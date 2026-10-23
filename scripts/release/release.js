@@ -19,7 +19,7 @@
 const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const { validate: validateVersion } = require('./verify-version');
+const { validate: validateVersion, validateFormat } = require('./verify-version');
 const { resolveExe } = require('../lib/resolve-exe');
 
 const ROOT = path.resolve(__dirname, '../..');
@@ -201,8 +201,11 @@ function main() {
         }
 
         // 2. 校验当前版本号格式（发版前必须已经是合法的 MAJOR.MINOR.PATCH）
+        //
+        // 这里只查格式，不查发布线 —— 换线的那一次发版，发版前的版本必然还在
+        // 旧线上，拿发布线去卡它会把换线堵死。发布线由第 8 步（bump 之后）把关。
         const currentVersion = readPackageVersion();
-        const versionErrors = validateVersion(currentVersion, null);
+        const versionErrors = validateFormat(currentVersion);
         if (versionErrors.length > 0) {
             console.error('❌ 当前版本号不符合规范：');
             versionErrors.forEach((e) => console.error(`   · ${e}`));

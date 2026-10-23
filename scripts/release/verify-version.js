@@ -43,22 +43,39 @@ function readVersion() {
 }
 
 /**
+ * 校验版本号格式
+ *
+ * 只看「是不是三段纯数字」，不涉及发布线。发版脚本在 bump 之前会用它 ——
+ * 换线的那一次发版，发版前的版本必然还在旧线上，拿发布线去卡它会把换线堵死。
+ * 发布线由 bump 之后的完整校验把关。
+ *
+ * @param {string} version
+ * @returns {string[]} 错误列表
+ */
+function validateFormat(version) {
+  if (!version) {
+    return ['package.json 里读不到 version'];
+  }
+
+  if (!VERSION_PATTERN.test(version)) {
+    return [
+      `版本号 "${version}" 不符合 MAJOR.MINOR.PATCH 格式（纯数字三段，不带 v 前缀）`,
+    ];
+  }
+
+  return [];
+}
+
+/**
  * 校验版本号
  * @param {string} version
  * @param {string|null} tag 期望的 tag 名，传 null 则不校验 tag
  * @returns {string[]} 错误列表
  */
 function validate(version, tag) {
-  const errors = [];
+  const errors = validateFormat(version);
 
-  if (!version) {
-    return ['package.json 里读不到 version'];
-  }
-
-  if (!VERSION_PATTERN.test(version)) {
-    errors.push(
-      `版本号 "${version}" 不符合 MAJOR.MINOR.PATCH 格式（纯数字三段，不带 v 前缀）`
-    );
+  if (errors.length > 0) {
     return errors;
   }
 
@@ -123,4 +140,4 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { validate, readVersion, RELEASE_LINE };
+module.exports = { validate, validateFormat, readVersion, RELEASE_LINE };
