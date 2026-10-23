@@ -103,4 +103,5 @@ async function main() {
     console.warn(`⚠️  等待 dist 稳定超过 ${TIMEOUT_MS}ms，继续启动 Electron`);
 }
 
-main();
+// main 内部不会 reject（等待逻辑全在 try/catch 里），显式 void 掉返回值
+void main();
