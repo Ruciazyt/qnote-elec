@@ -14,9 +14,26 @@ const path = require('path');
  */
 const PORTABLE_MARKER = 'portable.marker';
 
+/**
+ * 仓库根目录 —— 构建产物目录必须落在这个范围之内
+ *
+ * electron-builder 的产物目录本来就定义在仓库根下
+ * （package.json build.directories.output），所以这里以仓库根为基准。
+ */
+const ROOT = path.resolve(__dirname, '../..');
+
 /** 在便携版目录里写入标记文件 */
 function writePortableMarker(unpackedDir) {
-    const resourcesDir = path.join(unpackedDir, 'resources');
+    // unpackedDir 来自命令行传入的产物目录，写文件之前独立再校验一次：
+    // 目标必须仍在仓库根之内，否则一次路径穿越就能把标记写到仓库外。
+    // 判定方式与主进程 src/main/core/noteStore.ts 的 resolveSafe 一致。
+    const unpackedDirAbs = path.resolve(ROOT, unpackedDir);
+    const unpackedRel = path.relative(ROOT, unpackedDirAbs);
+    if (unpackedRel.startsWith('..') || path.isAbsolute(unpackedRel)) {
+        throw new Error(`便携版目录必须位于仓库根目录之内: ${unpackedDir}`);
+    }
+
+    const resourcesDir = path.join(unpackedDirAbs, 'resources');
     if (!fs.existsSync(resourcesDir)) {
         console.warn('⚠️ 未找到 resources 目录，跳过便携版标记写入');
         return false;
@@ -39,9 +56,17 @@ function writePortableMarker(unpackedDir) {
  */
 async function createPortableZip(outputDir = 'dist_electron') {
     return new Promise((resolve, reject) => {
+        // outputDir 来自命令行，先解析成绝对路径再确认它落在仓库根之内 ——
+        // 不校验就拼接，等于允许 "../../evil" 这类越界写入（SonarCloud S8707）。
+        // 校验放在最前面：参数不合法就没必要再往下走。
+        const distPath = path.resolve(ROOT, outputDir);
+        const distRel = path.relative(ROOT, distPath);
+        if (distRel.startsWith('..') || path.isAbsolute(distRel)) {
+            throw new Error(`构建产物目录必须位于仓库根目录之内: ${outputDir}`);
+        }
+
         const archiver = require('archiver');
 
-        const distPath = path.join(process.cwd(), outputDir);
         const unpackedDir = path.join(distPath, 'win-unpacked');
 
         if (!fs.existsSync(unpackedDir)) {
@@ -50,8 +75,8 @@ async function createPortableZip(outputDir = 'dist_electron') {
             return;
         }
 
-        // 读取package.json获取版本号
-        const packageJson = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf8'));
+        // 读取package.json获取版本号（路径同样以仓库根为基准，不受调用时 cwd 影响）
+        const packageJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
         const version = packageJson.version;
 
         const zipName = `QNote-${version}-portable.zip`;

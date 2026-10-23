@@ -42,6 +42,13 @@ import { writeOutputs } from './pack.mjs';
 
 const SRC = path.resolve(import.meta.dirname, '../assets/scarf-dog.png');
 
+/**
+ * 仓库根目录 —— 输出目录必须落在这个范围之内
+ *
+ * argv[2] 是命令行给的输出目录，不校验就等于允许写到仓库外。
+ */
+const PROJECT_ROOT = path.resolve(import.meta.dirname, '../../..');
+
 /* ------------------------------------------------------------------ */
 /* 版面参数                                                            */
 /* ------------------------------------------------------------------ */
@@ -439,6 +446,15 @@ function main() {
   const outDir = path.resolve(
     process.argv[2] || path.resolve(import.meta.dirname, '../../../src/renderer/public/pixel-pet')
   );
+
+  // 输出目录先校验再往下走：越界就直接退出，
+  // 免得白跑一遍帧渲染才发现目录不能用。
+  const rel = path.relative(PROJECT_ROOT, outDir);
+  if (rel.startsWith('..') || path.isAbsolute(rel)) {
+    console.error(`❌ 输出目录必须位于仓库根目录之内: ${process.argv[2]}`);
+    console.error(`   仓库根目录: ${PROJECT_ROOT}`);
+    process.exit(1);
+  }
 
   const { base, box, dw, dh, ox, oy, palette } = buildBase();
 

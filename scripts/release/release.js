@@ -24,6 +24,18 @@ const { resolveExe } = require('../lib/resolve-exe');
 
 const ROOT = path.resolve(__dirname, '../..');
 
+/** 合法的发版类型（白名单） */
+const RELEASE_TYPES = ['patch', 'minor', 'major'];
+
+/**
+ * 白名单的形态约束
+ *
+ * releaseType 会作为参数交给 pnpm version（Windows 上还要过一遍 shell），
+ * 值里带上空格、引号、分号这类元字符就可能被拼成别的命令。
+ * 正则只放行三个纯字面量类型名，不匹配就直接退出。
+ */
+const RELEASE_TYPE_PATTERN = /^(?:patch|minor|major)$/;
+
 // 命令解析成绝对路径再执行 —— 靠 PATH 查找意味着同名的可执行文件可以被劫持，
 // SonarCloud 会把这记成 S4036 安全漏洞（质量门禁里 Security Rating 直接掉到 E）。
 // 参数一律走数组形式，不经过 shell，路径带空格也不会出问题。
@@ -157,8 +169,12 @@ function readPackageVersion() {
 function main() {
     const releaseType = process.argv[2] || 'patch'; // patch, minor, major
 
-    if (!['patch', 'minor', 'major'].includes(releaseType)) {
-        console.error('❌ 无效的发布类型。请使用: patch, minor, 或 major');
+    // 白名单校验：只有 patch / minor / major 三种值能往下走。
+    // 不校验就把它交给 pnpm version，等于让命令行参数直接进子进程
+    // （SonarCloud S8705 命令参数注入）。
+    if (!RELEASE_TYPE_PATTERN.test(releaseType)) {
+        console.error(`❌ 无效的发布类型: ${JSON.stringify(releaseType)}`);
+        console.error(`   请使用: ${RELEASE_TYPES.join(' / ')}`);
         process.exit(1);
     }
 
@@ -171,7 +187,7 @@ function main() {
         // 1. 检查工作目录是否干净
         console.log('📋 检查Git工作目录状态...');
         try {
-            execSync('git diff-index --quiet HEAD --', { stdio: 'inherit', cwd: ROOT });
+            execFileSync(GIT, ['diff-index', '--quiet', 'HEAD', '--'], { stdio: 'inherit', cwd: ROOT });
         } catch (error) {
             console.error('❌ 工作目录不干净，请先提交或暂存所有更改');
             process.exit(1);

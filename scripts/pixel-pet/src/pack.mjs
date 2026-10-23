@@ -12,6 +12,14 @@ import path from 'node:path';
 import { CELL, SCALE, createCanvas, overlay } from './pet.mjs';
 import { encodePng } from './png.mjs';
 
+/**
+ * 仓库根目录 —— 产物写出必须落在这个范围之内
+ *
+ * outDir 来自命令行参数（build.mjs / from-image.mjs 的 argv[2]），
+ * 拼进文件路径后再写文件，越界就能写到仓库外的任意位置。
+ */
+const PROJECT_ROOT = path.resolve(import.meta.dirname, '../../..');
+
 /** 把逻辑画布按整数倍放大成 RGBA 像素数组（最近邻，绝不插值） */
 export function toRgba(cv, scale) {
   const w = cv.w * scale;
@@ -40,7 +48,17 @@ export function toRgba(cv, scale) {
  * @param outDir 输出目录
  */
 export function writeOutputs(rows, outDir) {
-  fs.mkdirSync(outDir, { recursive: true });
+  // 写文件之前先确认输出目录落在仓库根之内。
+  // 判定方式与主进程 src/main/core/noteStore.ts 的 resolveSafe 一致：
+  // path.relative 出来以 ".." 开头（或跨盘符成了绝对路径）就是越界。
+  // 这一层是真正的安全边界 —— 下面四处写文件全靠它兜底。
+  const outDirAbs = path.resolve(PROJECT_ROOT, outDir);
+  const outRel = path.relative(PROJECT_ROOT, outDirAbs);
+  if (outRel.startsWith('..') || path.isAbsolute(outRel)) {
+    throw new Error(`输出目录必须位于仓库根目录之内: ${outDir}`);
+  }
+
+  fs.mkdirSync(outDirAbs, { recursive: true });
 
   // ---- 预览图 ----
   // 两行对照：
@@ -108,7 +126,7 @@ export function writeOutputs(rows, outDir) {
     yRow += CELL * ROWS_BIG + GAP;
   }
   const pr = toRgba(preview, 1);
-  fs.writeFileSync(path.join(outDir, 'preview.png'), encodePng(pr.data, pr.w, pr.h));
+  fs.writeFileSync(path.join(outDirAbs, 'preview.png'), encodePng(pr.data, pr.w, pr.h));
 
   // ---- 正式 spritesheet：所有动画横向排成一行 ----
   const total = rows.reduce((n, r) => n + r.frames.length, 0);
@@ -121,7 +139,7 @@ export function writeOutputs(rows, outDir) {
     }
   }
   const sr = toRgba(sheet, SCALE);
-  fs.writeFileSync(path.join(outDir, 'spritesheet.png'), encodePng(sr.data, sr.w, sr.h));
+  fs.writeFileSync(path.join(outDirAbs, 'spritesheet.png'), encodePng(sr.data, sr.w, sr.h));
 
   // ---- 帧索引元数据：告诉组件每段动画在第几帧 ----
   const meta = { cell: CELL, scale: SCALE, sheetWidth: sr.w, sheetHeight: sr.h, animations: {} };
@@ -135,7 +153,7 @@ export function writeOutputs(rows, outDir) {
     };
     idx += row.frames.length;
   }
-  fs.writeFileSync(path.join(outDir, 'pet.json'), JSON.stringify(meta, null, 2));
+  fs.writeFileSync(path.join(outDirAbs, 'pet.json'), JSON.stringify(meta, null, 2));
 
   return { sheet: sr, preview: pr, total, meta };
 }
