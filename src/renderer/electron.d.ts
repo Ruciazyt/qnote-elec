@@ -16,7 +16,6 @@ interface ElectronAPI {
   writeToFileSync: (data: string) => Promise<string>;
   getFilePath: () => Promise<string>;
   selectDirs: () => Promise<string | undefined>;
-  setFilePath: (filePath: string) => Promise<void>;
   // 笔记文件（纯文件制，类型由扩展名决定；主进程是唯一写入口）
   getNoteTree: (dirPath: string) => Promise<import("../shared/noteTypes").NoteTreeNode[]>;
   /** Electron 32+ 移除了 File.path，取磁盘路径只能走这个 */

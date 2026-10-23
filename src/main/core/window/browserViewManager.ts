@@ -1,5 +1,6 @@
 import { BrowserWindow, WebContentsView, session, shell, type WebContents } from "electron";
 import { log } from "../../utils/log";
+import { parseExternalUrl } from "../../utils/externalUrl";
 
 /**
  * 浏览器专用持久化会话分区
@@ -226,7 +227,14 @@ function createTab(url?: string, activate = true): TabEntry {
     if (isSafeUrl(url)) {
       createTab(url, disposition !== "background-tab");
     } else {
-      shell.openExternal(url).catch(() => log.warn("无法打开外部链接", { url }));
+      // 网页给的 URL 不可信：只放行白名单里的协议，
+      // file: / javascript: 之类交给系统处理等于把执行权交出去
+      const parsed = parseExternalUrl(url);
+      if (parsed) {
+        shell.openExternal(parsed.toString()).catch(() => log.warn("无法打开外部链接", { url }));
+      } else {
+        log.warn("已拦截不允许交给系统打开的链接", { url });
+      }
     }
     return { action: "deny" };
   });
@@ -457,5 +465,12 @@ export function getOverlayBorrowCount(): number {
 
 /** 交给系统默认浏览器打开（用于不支持内嵌的协议，如 mailto:） */
 export function openExternal(url: string) {
-  return shell.openExternal(url);
+  // 协议白名单在这里统一收口 —— 渲染层给的 URL 一律先过这一关，
+  // 否则 file: / javascript: 之类会变成任意协议的执行入口
+  const parsed = parseExternalUrl(url);
+  if (!parsed) {
+    log.warn("已拦截不允许交给系统打开的链接", { url });
+    return Promise.reject(new Error(`不允许的外部链接协议: ${url}`));
+  }
+  return shell.openExternal(parsed.toString());
 }

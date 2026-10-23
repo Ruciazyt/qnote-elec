@@ -61,10 +61,9 @@ export function registerFileHandlers(fileWriter: FileWriter) {
     fileWriter.writeToFileSync(event, data)
   );
 
-  ipcMain.handle("setFilePath", (event: IpcMainInvokeEvent, filePath: string) =>
-    fileWriter.setFilePath(filePath)
-  );
-
+  // 笔记根目录只由用户通过系统目录选择框确定（见 select-dirs），主进程自己存着。
+  // 这里刻意不提供「渲染层设置根目录」的通道 —— 渲染层属于可能被攻陷的一端，
+  // 给了它写根目录的能力，就等于让它把后续所有文件操作指到任意位置。
   ipcMain.handle("getFilePath", () => fileWriter.getFilePath());
 
   ipcMain.handle("select-dirs", async () => {

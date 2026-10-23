@@ -55,7 +55,6 @@ contextBridge.exposeInMainWorld("electron", {
   send: (channel: string, ...args: any[]) => {
     ipcRenderer.send(channel, ...args);
   },
-  setFilePath: (filePath: string) => ipcRenderer.invoke("setFilePath", filePath),
 
   // 笔记：所有类型共用一套通道，类型由扩展名决定；定位用 relPath
   /**

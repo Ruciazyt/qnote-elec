@@ -166,7 +166,9 @@ export class NoteStore {
 
     let dirents: fs.Dirent[];
     try {
-      const abs = relDir ? path.join(root, relDir) : root;
+      // relDir 是递归拼出来的，必须逐层过越界检查 ——
+      // 直接 path.join 的话，渲染层传来的 root 就能把目录树指到任意位置
+      const abs = this.resolveSafe(root, relDir || ".");
       if (!fs.existsSync(abs)) return [];
       dirents = fs.readdirSync(abs, { withFileTypes: true });
     } catch (err) {
@@ -680,7 +682,8 @@ export class NoteStore {
       const isDir = fs.statSync(fromAbs).isDirectory();
 
       // 目标必须是已存在的目录（空串表示根目录，必然存在）
-      const toAbs = toFolderRel ? this.resolveSafe(root, toFolderRel) : path.resolve(root);
+      // 空串分支同样要过越界检查 —— 退化成裸的 path.resolve(root) 就等于放开了任意目录
+      const toAbs = this.resolveSafe(root, toFolderRel || ".");
       if (toFolderRel && !fs.existsSync(toAbs)) {
         return { ok: false, reason: "目标文件夹已不存在" };
       }
@@ -732,7 +735,10 @@ export class NoteStore {
    * 任意路径，这里不能成为绕过 resolveSafe 的旁路。
    */
   resolveForShell(root: string, relPath: string): string {
-    return relPath ? this.resolveSafe(root, relPath) : path.resolve(root);
+    // 空 relPath 表示笔记根目录本身，但同样要走一遍越界检查 ——
+    // 直接 path.resolve(root) 等于给 shell.openPath 开了一个任意路径的口子：
+    // shell.openPath 能打开任何路径（含 UNC 共享），不能成为绕过 resolveSafe 的旁路。
+    return this.resolveSafe(root, relPath || ".");
   }
 
   /**

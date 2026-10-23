@@ -16,6 +16,7 @@ import { FileWriter } from "./core/fileWriter";
 import { floatingPanelStore } from "./core/floatingPanel";
 import { getDB, closeDB } from "../database";
 import { log, installStdoutGuard } from "./utils/log";
+import { parseExternalUrl } from "./utils/externalUrl";
 import * as fs from "fs";
 import { setBaiduKeys } from "./utils/baiduOCR";
 import { configManager, DEFAULT_VOICE_HOTKEY } from "./utils/config";
@@ -402,13 +403,12 @@ function registerWindowScopedHandlers() {
     }
     // Validate URL scheme to prevent javascript:, file://, and other dangerous schemes
     try {
-      const parsed = new URL(url);
-      const allowed = ["https:", "http:", "mailto:"];
-      if (!allowed.includes(parsed.protocol)) {
-        log.warn("open-external blocked unsafe URL scheme:", { url, protocol: parsed.protocol });
+      const parsed = parseExternalUrl(url);
+      if (!parsed) {
+        log.warn("open-external blocked unsafe URL:", { url });
         return false;
       }
-      await shell.openExternal(url);
+      await shell.openExternal(parsed.toString());
       return true;
     } catch (err) {
       log.error("打开外部链接失败", { url, err });
@@ -467,7 +467,22 @@ app.on("window-all-closed", () => {
   app.quit();
 });
 
-app
+/**
+ * 把文本里的 HTML 特殊字符转义掉
+ *
+ * 启动失败的堆栈可能混进远程服务返回的内容（见 baiduOCR 的错误分支），
+ * 直接拼进 HTML 就等于让远端内容变成可执行脚本。错误窗口开着 nodeIntegration，
+ * 一旦被注入，渲染层就能直接拿到 Node 能力。
+ */
+function escapeHtml(text: string): string {
+  return text.replace(
+    /[&<>"']/g,
+    (ch) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch] ?? ch
+  );
+}
+
+void app
   .whenReady()
   .then(async () => {
     // 兜底：模块顶部已经 app.exit(0) 掉了，这里保证第二个实例绝不会建窗口、
@@ -678,20 +693,28 @@ app
           width: 600,
           height: 400,
           webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false
-          }
+            // 错误窗口只显示静态文本，不需要 Node 能力。
+            // 关掉 nodeIntegration：下面的错误详情可能混有远程服务返回的内容，
+            // 一旦被当成 HTML 注入，开着 Node 能力就等于把主进程交出去了。
+            nodeIntegration: false,
+            contextIsolation: true,
+          },
         });
 
-        errorWin.loadURL(`data:text/html,
-          <html>
-            <head><title>启动错误</title></head>
-            <body>
-              <h2>应用程序启动失败</h2>
-              <pre>${startupError.toString()}\n${startupError.stack || ''}</pre>
-            </body>
-          </html>
-        `);
+        const detail = escapeHtml(
+          `${startupError.toString()}\n${startupError.stack || ""}`
+        );
+        const html = `<!DOCTYPE html>
+<html>
+  <head><meta charset="utf-8"><title>启动错误</title></head>
+  <body>
+    <h2>应用程序启动失败</h2>
+    <pre>${detail}</pre>
+  </body>
+</html>`;
+        void errorWin.loadURL(
+          "data:text/html;charset=utf-8," + encodeURIComponent(html)
+        );
       } catch (e) {
         log.error("显示错误窗口失败", e);
       }
