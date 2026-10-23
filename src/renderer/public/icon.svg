@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <title>QNote</title>
+  <!-- Productivity Teal rounded square background -->
+  <rect width="256" height="256" rx="36" fill="hsl(195, 80%, 38%)"/>
+  <!-- Q circle (O body) -->
+  <circle cx="118" cy="114" r="46" fill="none" stroke="white" stroke-width="22"/>
+  <!-- Q tail: extends from bottom-right of circle, out and down-right -->
+  <line x1="150" y1="146" x2="186" y2="182" stroke="white" stroke-width="22" stroke-linecap="round"/>
+  <!-- Note underline: subtle horizontal line below Q — hints at "Note" -->
+  <line x1="68" y1="216" x2="188" y2="216" stroke="white" stroke-width="14" stroke-linecap="round" opacity="0.6"/>
+</svg>

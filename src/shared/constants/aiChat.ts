@@ -1,0 +1,1 @@
+export const DEFAULT_AI_CHAT_SESSION_ID = "default-ai-chat";

@@ -1,0 +1,139 @@
+import { BrowserWindow, screen, ipcMain } from "electron";
+import * as path from "node:path";
+import { app } from "electron";
+import { log } from "../../utils/log";
+
+// 跟踪IPC监听器引用，用于清理
+const ipcListenerRefs: Array<{ channel: string; handler: (...args: any[]) => void }> = [];
+
+function cleanupIpcListeners(): void {
+  for (const { channel, handler } of ipcListenerRefs) {
+    ipcMain.removeListener(channel, handler);
+  }
+  ipcListenerRefs.length = 0;
+  log.info("[clipboardPopup] IPC监听器已清理");
+}
+
+const DEV_SERVER_URL = "http://localhost:5173";
+
+function getAssetsDir() {
+  return !app.isPackaged
+    ? path.join(app.getAppPath(), "resources")
+    : path.join(process.resourcesPath, "resources");
+}
+
+function resolveAssetPath(fileName: string) {
+  return path.join(getAssetsDir(), fileName);
+}
+
+function getPreloadPath() {
+  return path.join(__dirname, "..", "..", "preload.js");
+}
+
+function getPopupPosition(w: number, h: number) {
+  const cursor = screen.getCursorScreenPoint();
+  const display = screen.getDisplayNearestPoint(cursor);
+  const { width, height } = display.workAreaSize;
+  const { x: dx, y: dy } = display.bounds;
+  const margin = 80;
+  let x = cursor.x - Math.floor(w / 2);
+  x = Math.max(dx, Math.min(x, dx + width - w - margin));
+  let y = Math.max(dy, dy + height - h - margin);
+  if (x < dx) x = dx + margin;
+  if (y < dy) y = dy + margin;
+  return { x, y };
+}
+
+export class ClipboardPopupWindow {
+  private static instance: ClipboardPopupWindow;
+  private win: BrowserWindow | null = null;
+
+  static getInstance(): ClipboardPopupWindow {
+    if (!ClipboardPopupWindow.instance) {
+      ClipboardPopupWindow.instance = new ClipboardPopupWindow();
+    }
+    return ClipboardPopupWindow.instance;
+  }
+
+  show(): void {
+    if (!this.win) this.win = this.create();
+    this.win.show();
+    this.win.focus();
+  }
+
+  hide(): void {
+    this.win?.hide();
+  }
+
+  isVisible(): boolean {
+    return this.win?.isVisible() ?? false;
+  }
+
+  // 销毁窗口，释放资源
+  destroy(): void {
+    if (this.win) {
+      // 清理IPC监听器
+      cleanupIpcListeners();
+      // 清理窗口事件监听器
+      this.win.removeAllListeners();
+      this.win.destroy();
+      this.win = null;
+      log.info("[clipboardPopup] 窗口已销毁");
+    }
+  }
+
+  private create(): BrowserWindow {
+    const pos = getPopupPosition(360, 480);
+    const win = new BrowserWindow({
+      width: 360,
+      height: 480,
+      x: pos.x,
+      y: pos.y,
+      frame: false,
+      resizable: false,
+      skipTaskbar: true,
+      alwaysOnTop: true,
+      show: false,
+      webPreferences: {
+        preload: getPreloadPath(),
+        contextIsolation: true,
+        nodeIntegration: false,
+        partition: "persist:main",
+      },
+    });
+
+    if (!app.isPackaged) {
+      // 开发环境：使用 vite dev server
+      win.loadURL(`${DEV_SERVER_URL}/src/renderer/components/clipboard/popup-main.tsx`);
+    } else {
+      // 生产环境：使用构建后的 HTML 文件
+      const htmlPath = resolveAssetPath("popup-clipboard.html");
+      log.info("[clipboardPopup] 加载 HTML:", htmlPath);
+      win.loadFile(htmlPath);
+    }
+
+    // 失去焦点自动隐藏
+    win.on("blur", () => this.hide());
+
+    // 注册 popup-close IPC - 使用命名函数以便跟踪
+    const popupCloseHandler = () => this.hide();
+    ipcMain.on("popup-close", popupCloseHandler);
+    ipcListenerRefs.push({ channel: "popup-close", handler: popupCloseHandler });
+
+    // 注册 popup-show-main-window IPC
+    const popupShowMainWindowHandler = () => {
+      const { getMainWindow } = require("./mainWindow");
+      const main = getMainWindow();
+      if (main) {
+        main.setSkipTaskbar(false);
+        main.show();
+        main.focus();
+      }
+    };
+    ipcMain.on("popup-show-main-window", popupShowMainWindowHandler);
+    ipcListenerRefs.push({ channel: "popup-show-main-window", handler: popupShowMainWindowHandler });
+
+    log.info("[clipboardPopup] 窗口创建成功");
+    return win;
+  }
+}

@@ -1,0 +1,165 @@
+/*
+ * 笔记富文本编辑器（TipTap）样式
+ *
+ * TipTap 的可编辑区会带上 .tiptap class，所有排版都挂在这个选择器下。
+ * 之前给 Markdown 预览用的 .note-markdown 已随预览区一起移除 ——
+ * 现在是所见即所得，编辑区本身就是唯一的视图。
+ */
+
+.tiptap {
+  color: hsl(var(--foreground));
+  font-size: 0.9375rem;
+  line-height: 1.75;
+  word-break: break-word;
+  outline: none;
+  min-height: 100%;
+  padding: 1.5rem 2rem 4rem;
+}
+
+.tiptap > *:first-child {
+  margin-top: 0;
+}
+.tiptap > *:last-child {
+  margin-bottom: 0;
+}
+
+/* ── 占位提示 ── */
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: hsl(var(--muted-foreground) / 0.55);
+}
+
+/* ── 选中态 ── */
+.tiptap ::selection {
+  background-color: hsl(var(--primary) / 0.22);
+}
+
+/* ── 标题 ── */
+.tiptap h1,
+.tiptap h2,
+.tiptap h3,
+.tiptap h4 {
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 1.5em 0 0.55em;
+}
+.tiptap h1 { font-size: 1.65em; }
+.tiptap h2 {
+  font-size: 1.35em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid hsl(var(--border));
+}
+.tiptap h3 { font-size: 1.12em; }
+.tiptap h4 { font-size: 1em; }
+
+/* ── 段落与列表 ── */
+.tiptap p { margin: 0.7em 0; }
+.tiptap ul,
+.tiptap ol { margin: 0.7em 0; padding-left: 1.5em; }
+.tiptap li { margin: 0.2em 0; }
+.tiptap li > ul,
+.tiptap li > ol { margin: 0.2em 0; }
+.tiptap ul { list-style: disc; }
+.tiptap ol { list-style: decimal; }
+.tiptap ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0.2em;
+}
+.tiptap ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5em;
+}
+.tiptap ul[data-type="taskList"] li > label {
+  margin-top: 0.32em;
+  user-select: none;
+}
+.tiptap ul[data-type="taskList"] li > div {
+  flex: 1;
+}
+.tiptap ul[data-type="taskList"] input[type="checkbox"] {
+  accent-color: hsl(var(--primary));
+  cursor: pointer;
+}
+.tiptap ul[data-type="taskList"] li[data-checked="true"] > div {
+  color: hsl(var(--muted-foreground));
+  text-decoration: line-through;
+}
+
+/* ── 引用 ── */
+.tiptap blockquote {
+  margin: 0.9em 0;
+  padding: 0.1em 0 0.1em 1em;
+  border-left: 3px solid hsl(var(--primary) / 0.5);
+  color: hsl(var(--muted-foreground));
+}
+
+/* ── 行内代码 ── */
+.tiptap code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.875em;
+  padding: 0.15em 0.4em;
+  border-radius: calc(var(--radius) * 0.5);
+  background-color: hsl(var(--muted));
+}
+.tiptap code::before,
+.tiptap code::after {
+  content: none;
+}
+
+/* ── 代码块 ── */
+.tiptap pre {
+  margin: 0.9em 0;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius);
+  background-color: hsl(var(--muted));
+  border: 1px solid hsl(var(--border));
+  overflow-x: auto;
+}
+.tiptap pre code {
+  padding: 0;
+  background: none;
+  font-size: 0.85em;
+  line-height: 1.6;
+  color: inherit;
+}
+
+/* ── 分割线 ── */
+.tiptap hr {
+  margin: 1.6em 0;
+  border: none;
+  border-top: 1px solid hsl(var(--border));
+}
+
+/* ── 链接 ── */
+.tiptap a {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+/* ── 图片 ── */
+.tiptap img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0.9em 0;
+  border-radius: var(--radius);
+}
+.tiptap img.ProseMirror-selectednode {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+/* 拖拽经过时的插入位置提示 */
+.tiptap img.is-drag-over {
+  opacity: 0.5;
+}
+
+/* ── 硬换行（Markdown 里两个尾空格 = 换行） ── */
+.tiptap br.ProseMirror-trailingBreak {
+  display: none;
+}

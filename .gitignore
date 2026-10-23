@@ -1,0 +1,62 @@
+# See http://help.github.com/ignore-files/ for more about ignoring files.
+
+# Compiled output
+/dist
+/tmp
+/out-tsc
+/build
+!/build/
+!/build/tsconfig.main.json
+!/build/tsconfig.preload.json
+!/build/electron-builder.json
+*.7z
+*.zip
+*.tar.gz
+*.rar
+
+# Node
+node_modules/
+renderer/node_modules/
+electron/node_modules/
+dist_electron/
+npm-debug.log
+yarn-error.log
+
+# Python virtualenv and caches
+embedding-service/.venv/
+embedding-service/__pycache__/
+embedding-service/.ruff_cache/
+embedding-service/.pytest_cache/
+embedding-service/*.pyc
+
+# Build outputs
+renderer/dist/
+
+# 开发期数据库（见 src/database/index.ts：开发环境数据不能放进 dist/）
+/.data/
+
+# Env and logs
+.env
+.env.*
+*.log
+
+# IDEs and editors
+.idea/
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/*
+
+# System files
+.DS_Store
+Thumbs.db

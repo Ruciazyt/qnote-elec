@@ -1,0 +1,85 @@
+name: Auto Build and Release
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v5
+        with:
+          version: 10.32.0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Set build version
+        id: version
+        run: |
+          $count = git rev-list --count HEAD
+          $version = "1.0.$count"
+          echo "build_version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          echo "Commit count: $count"
+          echo "Build version: $version"
+        shell: powershell
+
+      - name: Cache Electron
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/electron
+          key: ${{ runner.os }}-electron-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-electron-
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build renderer
+        run: pnpm --dir src/renderer run build
+
+      - name: Build electron
+        run: pnpm run build:electron
+
+      - name: Build Electron app (安装版 + 便携版)
+        run: pnpm run build:app
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ELECTRON_CACHE: ~/.cache/electron
+          ELECTRON_BUILDER_CACHE: ~/.cache/electron-builder
+          ELECTRON_BUILDER_VERSION: ${{ steps.version.outputs.build_version }}
+
+      - name: Process portable version
+        run: node scripts/post-build.js
+
+      - name: List build results
+        run: |
+          echo "Build results:"
+          Get-ChildItem -Path dist_electron -Force
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v3
+        with:
+          # 分支 push 没有 git tag，必须显式指定 tag_name
+          # action 会自动创建 tag + release（基于 commit count 的版本号）
+          tag_name: ${{ steps.version.outputs.build_version }}
+          name: "QNote ${{ steps.version.outputs.build_version }}"
+          files: |
+            dist_electron/*.exe
+            dist_electron/*.zip
+          draft: false
+          generate_release_notes: false
+          # 每次 push 都会生成 release，避免历史 release 被新版本误改
+          fail_on_unmatched_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

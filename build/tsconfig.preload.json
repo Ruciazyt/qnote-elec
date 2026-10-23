@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "rootDir": "../src/main",
+    "outDir": "../dist/main",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "sourceMap": true,
+    "skipLibCheck": true,
+    "noImplicitAny": false
+  },
+  "include": [
+    "../src/main/preload.ts"
+  ],
+  "exclude": [
+    "../dist",
+    "../node_modules"
+  ]
+}
