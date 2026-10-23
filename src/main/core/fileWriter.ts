@@ -111,6 +111,20 @@ export class FileWriter {
     }
   }
 
+  /**
+   * 同步取当前笔记根目录（内存副本）
+   *
+   * getFilePath() 每次都查 DB，适合渲染层主动问「根目录是哪个」；
+   * 主进程内部在 IPC 通道里要拿它做校验时，异步查询会把整个通道改成 async，
+   * 而这份内存副本本来就和 DB 同步（initPath / setFilePath 都会更新它）。
+   *
+   * 笔记根目录只能由用户经系统目录选择框确定，主进程自己存着 ——
+   * 渲染层属于可能被攻陷的一端，不能让它决定文件操作落在哪个目录。
+   */
+  getRootPath(): string {
+    return this.filePath;
+  }
+
   async getFilePath(): Promise<string> {
     try {
       const res = await this.DB("settings")

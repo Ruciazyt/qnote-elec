@@ -154,13 +154,13 @@ export function registerFileHandlers(fileWriter: FileWriter) {
    * 在系统文件管理器中打开一个目录。
    * 返回空串表示成功，Electron 的 shell.openPath 约定如此。
    */
-  ipcMain.handle("notes:open-in-explorer", (_event, dirPath: string, relPath: string) => {
+  ipcMain.handle("notes:open-in-explorer", (_event, _dirPath: string, relPath: string) => {
     try {
-      // 目标路径在同一个函数里从根目录解析并做包含性校验 ——
+      // 笔记根目录以主进程记录的为准，渲染层传过来的 dirPath 不用 ——
+      // 渲染层属于可能被攻陷的一端，不能让它决定要打开哪个目录。
+      // 目标路径在同一个函数里从根目录解析并做包含性校验：
       // shell.openPath 能打开任意路径（含 UNC 共享），越界必须在这里挡住。
-      // 校验与调用写在同一个函数里、且用 throw 抛出：抽出去的 resolveSafe
-      // 挡不住污点分析，只 return 不抛的话污点会继续往下传。
-      const rootAbs = path.resolve(dirPath);
+      const rootAbs = path.resolve(fileWriter.getRootPath());
       const abs = path.resolve(rootAbs, relPath || ".");
       const rel = path.relative(rootAbs, abs);
       if (rel.startsWith("..") || path.isAbsolute(rel)) {
@@ -177,10 +177,17 @@ export function registerFileHandlers(fileWriter: FileWriter) {
    * 在系统文件管理器中定位某个条目（打开所在目录并高亮选中）。
    * 用于「打开当前笔记所在文件夹」——比只打开目录多一步高亮，更省一次点击。
    */
-  ipcMain.handle("notes:reveal-in-folder", (_event, dirPath: string, relPath: string) => {
+  ipcMain.handle("notes:reveal-in-folder", (_event, _dirPath: string, relPath: string) => {
     try {
       if (!relPath) return false;
-      shell.showItemInFolder(noteStore.resolveForShell(dirPath, relPath));
+      // 同样以主进程记录的根目录为准，不用渲染层传来的 dirPath
+      const rootAbs = path.resolve(fileWriter.getRootPath());
+      const abs = path.resolve(rootAbs, relPath);
+      const rel = path.relative(rootAbs, abs);
+      if (rel.startsWith("..") || path.isAbsolute(rel)) {
+        throw new Error(`非法的笔记路径: ${relPath}`);
+      }
+      shell.showItemInFolder(abs);
       return true;
     } catch (err) {
       log.error("定位文件失败", err);
