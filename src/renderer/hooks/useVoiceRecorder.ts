@@ -486,6 +486,8 @@ export function useVoiceRecorder(): UseVoiceRecorder {
         seconds: pcm.length / TARGET_SAMPLE_RATE,
       };
     } catch (err) {
+      // 解码失败的具体原因要留痕，否则用户只看到"请重试"、无从排查
+      console.error("录音解码失败:", err);
       session.release();
       if (!mountedRef.current) return null;
       setError("录音解码失败，请重试");
