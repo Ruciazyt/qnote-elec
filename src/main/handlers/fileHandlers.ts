@@ -156,13 +156,15 @@ export function registerFileHandlers(fileWriter: FileWriter) {
    */
   ipcMain.handle("notes:open-in-explorer", (_event, dirPath: string, relPath: string) => {
     try {
-      const abs = noteStore.resolveForShell(dirPath, relPath);
-      // 打开前独立再校验一次：目标必须仍在笔记根之内。
-      // 校验和调用必须写在同一个函数里 —— 抽出去的 resolveSafe 挡不住污点分析：
-      // shell.openPath 能打开任意路径（含 UNC 共享），不能成为越界检查的旁路。
-      const rel = path.relative(path.resolve(dirPath), abs);
+      // 目标路径在同一个函数里从根目录解析并做包含性校验 ——
+      // shell.openPath 能打开任意路径（含 UNC 共享），越界必须在这里挡住。
+      // 校验与调用写在同一个函数里、且用 throw 抛出：抽出去的 resolveSafe
+      // 挡不住污点分析，只 return 不抛的话污点会继续往下传。
+      const rootAbs = path.resolve(dirPath);
+      const abs = path.resolve(rootAbs, relPath || ".");
+      const rel = path.relative(rootAbs, abs);
       if (rel.startsWith("..") || path.isAbsolute(rel)) {
-        return "路径不合法";
+        throw new Error(`非法的笔记路径: ${relPath}`);
       }
       return shell.openPath(abs);
     } catch (err) {
