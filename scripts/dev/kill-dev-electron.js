@@ -1,5 +1,6 @@
 const { execFileSync } = require('child_process');
 const path = require('path');
+const { resolveExe } = require('../lib/resolve-exe');
 
 /**
  * 启动 dev 之前清理残留的 Electron 实例。
@@ -25,21 +26,28 @@ const path = require('path');
  *   1. 命令行含 `dist/main/index.js` —— 打包版 QNote.exe 不会带这个；
  *   2. 命令行含本项目绝对路径 —— 别的项目自带的 electron 不会带这个。
  *
- * 用法：node scripts/kill-dev-electron.js [--dry-run]
+ * 用法：node scripts/dev/kill-dev-electron.js [--dry-run]
  */
 
 const APP_ENTRY = 'dist/main/index.js';
-const PROJECT_ROOT = path.resolve(__dirname, '..');
+const PROJECT_ROOT = path.resolve(__dirname, '../..');
 const DRY_RUN = process.argv.includes('--dry-run');
 
+// 命令解析成绝对路径再执行 —— 靠 PATH 查找的命令可以被同名可执行文件劫持，
+// SonarCloud 会把这记成 S4036 安全漏洞（质量门禁里 Security Rating 直接掉到 E）。
+const POWERSHELL = resolveExe('powershell.exe');
+const TASKKILL = resolveExe('taskkill');
+const PS = resolveExe('ps');
+const PKILL = resolveExe('pkill');
+
 function listWindowsPids() {
-    const ps = [
+    const psCmd = [
         `Get-CimInstance Win32_Process -Filter "Name='electron.exe'"`,
         `| Where-Object { $_.CommandLine -like '*${APP_ENTRY}*' -and $_.CommandLine -like '*${PROJECT_ROOT}*' }`,
         `| ForEach-Object { $_.ProcessId }`,
     ].join(' ');
 
-    const out = execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', ps], {
+    const out = execFileSync(POWERSHELL, ['-NoProfile', '-NonInteractive', '-Command', psCmd], {
         encoding: 'utf8',
     });
 
@@ -50,12 +58,14 @@ function listWindowsPids() {
 }
 
 function listPosixPids() {
-    const out = execFileSync('ps', ['-eo', 'pid=,args='], { encoding: 'utf8' });
+    const out = execFileSync(PS, ['-eo', 'pid=,args='], { encoding: 'utf8' });
 
     return out
         .split('\n')
         .map(line => {
-            const matched = line.trim().match(/^(\d+)\s+(.*)$/);
+            // \S.* 而不是 .* —— \s+ 与 .* 字符集重叠，引擎会在每个空白分隔点重试，
+            // 退化成 O(n²) 回溯（SonarCloud S8786）。
+            const matched = line.trim().match(/^(\d+)\s+(\S.*)$/);
             return matched ? { pid: Number(matched[1]), cmd: matched[2] } : null;
         })
         .filter(Boolean)
@@ -72,12 +82,12 @@ function listPosixPids() {
 function killPid(pid) {
     if (process.platform === 'win32') {
         // /T 连同渲染进程、GPU 进程一起杀，否则主进程没了子进程还挂着
-        execFileSync('taskkill', ['/PID', String(pid), '/T', '/F'], { stdio: 'ignore' });
+        execFileSync(TASKKILL, ['/PID', String(pid), '/T', '/F'], { stdio: 'ignore' });
         return;
     }
     // SIGKILL 主进程不会带走子进程，先子后父
     try {
-        execFileSync('pkill', ['-P', String(pid), '-9'], { stdio: 'ignore' });
+        execFileSync(PKILL, ['-P', String(pid), '-9'], { stdio: 'ignore' });
     } catch {
         // 没有子进程
     }

@@ -10,7 +10,8 @@
  * 这类风险在开发机上通常是"自己坑自己"，但 SonarCloud 把它算成安全漏洞
  * （S4036 / "Untrusted Search Path"），会直接把质量门禁的 Security Rating 拉到 E。
  *
- * 解析顺序：PATH 的各个目录 → 平台对应的可执行后缀（Windows 读 PATHEXT）。
+ * 解析顺序：PATH 的各个目录 → 先按原名匹配（命令自带扩展名时）→
+ * 再拼平台对应的可执行后缀（Windows 读 PATHEXT）。
  * 找不到就原样返回 —— 静默换一个路径比直接失败难查得多。
  */
 
@@ -34,6 +35,17 @@ function resolveExe(name) {
 
   let resolved = name;
   outer: for (const dir of dirs) {
+    // 先按原名找一遍：命令名自带扩展名时（powershell.exe、git.exe）
+    // 再拼 PATHEXT 会变成 powershell.exe.EXE，永远找不到
+    try {
+      const exact = path.join(dir, name);
+      if (fs.existsSync(exact)) {
+        resolved = exact;
+        break outer;
+      }
+    } catch {
+      // 目录无权限读就跳过，继续找下一个
+    }
     for (const ext of exts) {
       const candidate = path.join(dir, name + ext);
       try {
