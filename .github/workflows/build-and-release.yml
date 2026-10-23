@@ -1,9 +1,19 @@
 name: Build and Release
 
+# -----------------------------------------------------------------------
+# 正式发布 —— 由版本号 tag 触发。
+#
+# tag 名 = 版本号本身，MAJOR.MINOR.PATCH 三段纯数字，**不带 v 前缀**
+# （AGENTS.md 第 3.3 节）。例：1.0.19
+#
+# 所以触发模式用 [0-9]+ 三段数字，而不是 v* —— 早先混用过 v1.0.x 与
+# 1.0.<commit 数> 两种形态，Release 列表因此出现两串同号条目。
+# -----------------------------------------------------------------------
+
 on:
   push:
     tags:
-      - 'v*'
+      - '[0-9]+.[0-9]+.[0-9]+'
 
 jobs:
   build:
@@ -29,7 +39,17 @@ jobs:
           node-version: '22'
           cache: 'pnpm'
           cache-dependency-path: pnpm-lock.yaml
-          
+
+      # tag 名与 package.json 的 version 必须完全一致。
+      #
+      # 不一致的后果：latest.yml 里的版本号取自 package.json，而
+      # electron-updater 是拿它跟用户当前版本比较来决定要不要更新。
+      # 两者一旦对不上，要么永远提示"已是最新"，要么提示一个用户装不上的
+      # 版本。这一步把这个错误挡在发布之前。
+      - name: Verify tag matches package version
+        run: node scripts/release/verify-version.js --tag "${GITHUB_REF_NAME}"
+        shell: powershell
+
       # 设置代码签名证书
       - name: Setup Code Signing Certificate
         env:

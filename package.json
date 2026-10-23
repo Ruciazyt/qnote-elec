@@ -33,6 +33,7 @@
     "dev": "node scripts/dev/kill-dev-electron.js && pnpm run build:electron && concurrently -n \"tsc,vite,app\" -c \"cyan,magenta,green\" \"pnpm run watch\" \"pnpm run dev:renderer\" \"pnpm run dev:electron\"",
     "setup:hooks": "node scripts/git-hooks/setup-hooks.js",
     "verify:commit": "node scripts/git-hooks/verify-commit-msg.js",
+    "verify:version": "node scripts/release/verify-version.js",
     "release:patch": "node scripts/release/release.js patch",
     "release:minor": "node scripts/release/release.js minor",
     "release:major": "node scripts/release/release.js major",

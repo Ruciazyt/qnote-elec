@@ -106,7 +106,8 @@ qnote-elec/
 │   │   ├── post-build.js             # 便携版后处理
 │   │   └── build-icon.mjs            # 图标多尺寸生成
 │   ├── release/                      # 发版
-│   │   └── release.js                # 发布脚本
+│   │   ├── release.js                # 发布脚本
+│   │   └── verify-version.js         # 版本号校验
 │   ├── git-hooks/                    # 提交规范钩子
 │   │   ├── setup-hooks.js            # 启用 .githooks
 │   │   └── verify-commit-msg.js      # 提交信息校验
