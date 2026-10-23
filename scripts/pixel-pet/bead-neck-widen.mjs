@@ -29,13 +29,11 @@ const base = rasterize(parseSvg(fs.readFileSync(`${DIR}/makebead-64x68-base.svg`
 /** 只允许把「灰色肩部」换成围巾棕，其余像素一旦被动就报错 */
 function widen(rows) {
   const g = base.slice();
-  const touched = [];
   for (const { y, x0, x1 } of rows) {
     for (let x = x0; x <= x1; x++) {
       if (isBrown(g[y * W + x])) continue;              // 已经是棕色，保持原样（含深棕条纹）
       const cur = base[y * W + x];
       if (!cur) throw new Error(`(${x},${y}) 是空白像素，不能填棕`);
-      touched.push({ x, y, from: hex(cur) });
       g[y * W + x] = BROWN.slice();
     }
   }
@@ -71,7 +69,13 @@ for (const [name, v] of [['档位1 轻微', v1], ['档位2 明显', v2]]) {
 console.log('\n=== 围巾轮廓（改动后）===');
 const edge = (g, y) => {
   let a = null, b = null;
-  for (let x = 0; x < W; x++) if (hex(g[y * W + x]) === '864b2d' || hex(g[y * W + x]) === '86402d') { if (a === null) a = x; b = x; }
+  for (let x = 0; x < W; x++) {
+    const c = hex(g[y * W + x]);
+    if (c === '864b2d' || c === '86402d') {
+      if (a === null) a = x;
+      b = x;
+    }
+  }
   return `y=${y}  x=${a}..${b}  宽 ${b - a + 1}`;
 };
 for (const y of [35, 36, 37, 38, 39]) {

@@ -79,7 +79,13 @@ function crc32(buf) {
   let c;
   const t = (crc32.table ||= (() => {
     const t = new Int32Array(256);
-    for (let n = 0; n < 256; n++) { c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c; }
+    for (let n = 0; n < 256; n++) {
+      c = n;
+      for (let k = 0; k < 8; k++) {
+        c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+      }
+      t[n] = c;
+    }
     return t;
   })());
   let crc = -1;
