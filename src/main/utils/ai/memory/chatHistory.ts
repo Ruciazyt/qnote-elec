@@ -105,7 +105,9 @@ export class KnexChatMessageHistory extends BaseListChatMessageHistory {
       .orderBy('id', 'desc')
       .limit(this.limit);
 
-    return rows.reverse().map(rowToMessage);
+    // 倒序取出来再翻回正序。reverse() 是原地修改，copy 一份再翻，
+    // 免得把 rows 本身给改了（调用方要是还持有它就会踩坑）
+    return [...rows].reverse().map(rowToMessage);
   }
 
   /** 写入单条消息到当前会话 */

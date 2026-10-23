@@ -26,6 +26,7 @@
  */
 import * as fs from "fs";
 import * as path from "node:path";
+import { randomUUID } from "crypto";
 import { app } from "electron";
 import { log } from "../../log";
 
@@ -83,7 +84,7 @@ function dedupeKey(content: string): string {
 
 /** 生成 id */
 function makeId(): string {
-  return `mem-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  return `mem-${Date.now().toString(36)}-${randomUUID().slice(0, 12)}`;
 }
 
 /**

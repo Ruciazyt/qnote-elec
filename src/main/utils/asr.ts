@@ -80,7 +80,7 @@ export class AsrError extends Error {
  * 是只认域名：既覆盖国内/国际站切换，又不会被 provider 的路径前缀带偏。
  */
 export function resolveAsrEndpoint(baseUrl: string | undefined): string {
-  const trimmed = (baseUrl || "").trim().replace(/\/+$/, "");
+  const trimmed = (baseUrl || "").trim().replace(/^((?:[\s\S]*[^/])?)\/+$/, "$1");
 
   // 用户显式填了完整 ASR 地址：原样使用，不做任何改写
   if (trimmed.endsWith("/speech_to_text")) return trimmed;

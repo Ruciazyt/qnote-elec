@@ -1,3 +1,5 @@
+import { randomUUID } from "crypto";
+
 /**
  * 引用表口令
  *
@@ -9,7 +11,10 @@
  * 但要伪造必须先主动读一个它本不该关心的全局变量 —— 足够把「随手覆盖」和「蓄意劫持」区分开，
  * 而且成本几乎为零。
  *
+ * 口令必须不可预测，所以用 crypto.randomUUID() 而不是 Math.random() ——
+ * 后者是可推算的伪随机数（SonarCloud S2245 安全热点）。
+ *
  * 注意：这不是安全边界，只是防误伤。真要防恶意页面得走 CDP isolated world，那是另一个决策。
  */
 
-export const REF_SECRET = `${Math.random().toString(36).slice(2)}-${Date.now().toString(36)}`;
+export const REF_SECRET = randomUUID();

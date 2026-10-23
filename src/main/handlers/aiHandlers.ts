@@ -1228,7 +1228,9 @@ export function registerAiHandlers(DB: any, fileWriter: FileWriter) {
 
   ipcMain.handle("get-ai-config", async () => {
     try {
-      return configManager.getAiConfig();
+      // 必须 await：不 await 的话 promise 的 rejection 根本进不了 catch，
+      // 这里的兜底配置等于没写
+      return await configManager.getAiConfig();
     } catch (error) {
       log.error("获取AI配置失败", error);
       return { provider: 'deepseek', apiKey: '', model: '', baseUrl: '' };

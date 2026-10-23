@@ -73,7 +73,8 @@ function normalizeTarget(kind: ShortcutKind, target: string): string {
     try {
       const normalized = path.normalize(trimmed);
       // C:\ 归一化后仍是 C:\，不能把尾分隔符削掉
-      return normalized.length > 3 ? normalized.replace(/[\\/]+$/, "") : normalized;
+      // （^ 锚住 + 捕获前缀，避免未锚定正则的 O(n²) 回溯，见 SonarCloud S8786）
+      return normalized.length > 3 ? normalized.replace(/^((?:[\s\S]*[^\\/])?)[\\/]+$/, "$1") : normalized;
     } catch {
       return trimmed;
     }
@@ -82,7 +83,9 @@ function normalizeTarget(kind: ShortcutKind, target: string): string {
 }
 
 function cacheFile(key: string): string {
-  const hash = createHash("sha1").update(key).digest("hex");
+  // sha256 而不是 sha1：sha1 已被判定为弱哈希（SonarCloud S4790，安全热点），
+  // 这里只是拿来做缓存文件名，不存在兼容旧文件的负担
+  const hash = createHash("sha256").update(key).digest("hex");
   return path.join(cacheDir(), `${hash}.png`);
 }
 
@@ -175,7 +178,7 @@ function parseIconHref(html: string, base: string): string | null {
   let match: RegExpExecArray | null;
   while ((match = re.exec(html)) !== null) {
     const tag = match[0];
-    if (!/rel\s*=\s*["']?(?:[^"'>]*\bicon\b)/i.test(tag)) continue;
+    if (!/rel\s*=\s*["']?([^"'>]{0,512}\bicon\b)/i.test(tag)) continue;
     const href = /href\s*=\s*["']([^"']+)["']/i.exec(tag);
     if (!href) continue;
     try {

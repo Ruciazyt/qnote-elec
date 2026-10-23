@@ -37,7 +37,8 @@ const ILLEGAL_FOLDER_CHARS = /[\\/:*?"<>|]/g;
 function sanitizeName(raw: string, fallback: string): string {
   const cleaned = (raw ?? "").replace(ILLEGAL_NAME_CHARS, "").replace(/\s+/g, " ").trim();
   // 结尾的点 / 空格在 Windows 上会被系统悄悄丢掉，导致回读的路径对不上
-  const trimmed = cleaned.replace(/[. ]+$/, "");
+  // （^ 锚住 + 捕获前缀，避免未锚定正则的 O(n²) 回溯，见 SonarCloud S8786）
+  const trimmed = cleaned.replace(/^((?:[\s\S]*[^. ])?)[. ]+$/, "$1");
   return trimmed || fallback;
 }
 
@@ -78,7 +79,7 @@ function appendToExisting(existing: string, addition: string, noteType: NoteType
       return `${existing.slice(0, close)}\n${chunk}\n${existing.slice(close)}`;
     }
   }
-  return `${existing.replace(/\s+$/, "")}\n\n${chunk}\n`;
+  return `${existing.trimEnd()}\n\n${chunk}\n`;
 }
 
 export const saveNoteTool = tool(

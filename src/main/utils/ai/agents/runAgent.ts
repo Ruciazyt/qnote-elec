@@ -30,6 +30,7 @@ import {
   type BaseMessage,
 } from '@langchain/core/messages';
 import type { StructuredToolInterface } from '@langchain/core/tools';
+import { randomUUID } from 'crypto';
 import { extractTextContent } from '../providers';
 import { log } from '../../log';
 import type {
@@ -176,7 +177,7 @@ function announceToolCalls(
     onEvent?.({
       type: 'tool_call',
       toolCall: {
-        id: tc.id ?? `tc-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        id: tc.id ?? `tc-${Date.now()}-${randomUUID().slice(0, 8)}`,
         name: tc.name,
         args: tc.args ?? {},
       },

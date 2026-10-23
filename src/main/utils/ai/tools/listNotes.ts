@@ -39,7 +39,7 @@ export const listNotesTool = tool(
       const all = NoteStore.collectFiles(store.tree(root));
 
       // folder 传了就只看该子文件夹下的（AI 常用它把范围收窄）
-      const prefix = input.folder && input.folder.trim() ? input.folder.trim().replace(/\/+$/, '') : '';
+      const prefix = input.folder && input.folder.trim() ? input.folder.trim().replace(/^((?:[\s\S]*[^/])?)\/+$/, "$1") : '';
       let items = all;
       if (prefix) {
         items = all.filter((n) => n.relPath === prefix || n.relPath.startsWith(`${prefix}/`));

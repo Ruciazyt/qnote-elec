@@ -213,7 +213,8 @@ export class UsageStatsService {
     // 在 JS 里按本地日期聚合
     const buckets = new Map<string, UsageByDay>();
     for (const r of rows) {
-      const ts = typeof r.created_at === 'string' ? Number(r.created_at) : Number(r.created_at);
+      // created_at 可能是字符串也可能是数字，Number() 两种都能吃
+      const ts = Number(r.created_at);
       if (!Number.isFinite(ts)) continue;
       const key = msToLocalDate(ts);
       const bucket = buckets.get(key) ?? {

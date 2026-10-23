@@ -122,7 +122,7 @@ export function resolveBaseUrl(
   baseUrl: string | undefined,
   provider: AiProvider
 ): string | undefined {
-  const trimmed = (baseUrl || '').trim().replace(/\/+$/, '');
+  const trimmed = (baseUrl || '').trim().replace(/^((?:[\s\S]*[^/])?)\/+$/, "$1");
   if (!trimmed) return undefined;
 
   if (provider === 'claude') {

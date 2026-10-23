@@ -583,12 +583,14 @@ export function registerLeetcodeHandlers(DB: any) {
       try {
         // 尝试提取JSON（可能AI返回了markdown代码块）
         let jsonText = response.content.trim();
-        const jsonMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+        // 围栏内的空白由 trim 去掉；正则不写 \s* 包裹，避免多处无界量词相邻
+        // 造成 O(n²) 回溯（SonarCloud S8786）
+        const jsonMatch = jsonText.match(/```(?:json)?([\s\S]*?)```/);
         if (jsonMatch) {
-          jsonText = jsonMatch[1];
+          jsonText = jsonMatch[1].trim();
         }
         // 移除可能的markdown标记
-        jsonText = jsonText.replace(/^```json\s*/i, '').replace(/\s*```$/i, '');
+        jsonText = jsonText.replace(/^```json\s*/i, '').replace(/^((?:[\s\S]*[^\s])?)\s*```$/i, "$1");
         parsedResult = JSON.parse(jsonText);
       } catch (parseError) {
         log.error("AI返回的JSON解析失败", { content: response.content, error: parseError });

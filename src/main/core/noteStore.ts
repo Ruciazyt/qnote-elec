@@ -359,7 +359,11 @@ export class NoteStore {
       return { ok: false, reason: "文件名含有非法字符（/ \\ : * ? \" < > |）" };
     }
     // Windows 会悄悄丢掉结尾的点和空格，导致回读的路径和实际文件对不上
-    const safeName = name.replace(/[. ]+$/, "");
+    //
+    // 正则写成 ^ 锚住 + 捕获前缀，而不是 /[. ]+$/：
+    // 后者未锚定，引擎会在每个起始位置重试，尾串很长时退化成 O(n²)
+    // （SonarCloud S8786 记为超线性回溯安全热点）
+    const safeName = name.replace(/^((?:[\s\S]*[^. ])?)[. ]+$/, "$1");
     if (!safeName) return { ok: false, reason: "文件名不能为空" };
 
     // 去掉用户写的笔记后缀，再补上本次类型的后缀
