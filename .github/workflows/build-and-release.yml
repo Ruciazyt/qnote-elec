@@ -46,9 +46,14 @@ jobs:
       # electron-updater 是拿它跟用户当前版本比较来决定要不要更新。
       # 两者一旦对不上，要么永远提示"已是最新"，要么提示一个用户装不上的
       # 版本。这一步把这个错误挡在发布之前。
+      # 用 pwsh（PowerShell 7），不要用 shell: powershell
+      #
+      # GitHub runner 把 run: 写成无 BOM 的 UTF-8 临时 .ps1，Windows PowerShell 5.1
+      # 会按 ANSI 码页解码 —— 脚本里只要有中文或破折号，乱码混进的引号就会把字符串截断，
+      # 报 "The string is missing the terminator"。pwsh 默认按 UTF-8 读无 BOM 文件，没这问题。
       - name: Verify tag matches package version
         run: node scripts/release/verify-version.js --tag "${GITHUB_REF_NAME}"
-        shell: powershell
+        shell: pwsh
 
       # 设置代码签名证书
       - name: Setup Code Signing Certificate
@@ -72,7 +77,7 @@ jobs:
             echo "Error: Certificate file creation failed"
             exit 1
           }
-        shell: powershell
+        shell: pwsh
           
       - name: Cache Electron
         uses: actions/cache@v5
@@ -102,7 +107,7 @@ jobs:
             $env:CSC_LINK = ""
           }
           pnpm run build:app
-        shell: powershell
+        shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ELECTRON_CACHE: ~/.cache/electron
@@ -122,7 +127,7 @@ jobs:
           } else {
             echo "Certificate file does not exist, no cleanup needed"
           }
-        shell: powershell
+        shell: pwsh
         
       - name: List build results
         run: |

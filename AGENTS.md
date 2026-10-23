@@ -245,6 +245,7 @@ git diff --cached | grep -nEi "sk-[A-Za-z0-9]{20,}|api[_-]?key\s*[:=]\s*['\"][^'
 - [ ] `pnpm run build:electron` 通过（改过主进程或 preload）
 - [ ] `pnpm run build:react` 通过（改过渲染层）
 - [ ] 新增/修改的 UI 遵循 `.cursor/rules/react.mdc` 的 React 最佳实践
+- [ ] 改过 `.github/workflows/` 的，检查脚本里有无非 ASCII 字符（有就用 `shell: pwsh`，见 6.2）
 - [ ] 没有顺手改无关文件；格式化工具的噪音改动单独成一个 `style:` 提交
 
 ---
@@ -264,6 +265,29 @@ git diff --cached | grep -nEi "sk-[A-Za-z0-9]{20,}|api[_-]?key\s*[:=]\s*['\"][^'
 1. `src/main/handlers/<模块>.ts` 注册 channel
 2. `src/main/preload.ts` 暴露给渲染层
 3. `src/renderer/electron.d.ts` 补类型声明
+
+### 6.2 CI 脚本里出现中文时，shell 必须用 pwsh
+
+`.github/workflows/` 里的 `run:` 块只要写了中文、破折号这类非 ASCII 字符，
+`shell:` 就**必须写 `pwsh`**（PowerShell 7），不能写 `powershell`。
+
+原因：GitHub runner 把 `run:` 写成**无 BOM 的 UTF-8** 临时 `.ps1`，
+而 Windows PowerShell 5.1 会按系统 ANSI 码页解码它 —— 中文全变乱码，
+乱码里混进的引号字符会把字符串提前截断，CI 直接挂在解析阶段：
+
+```
+The string is missing the terminator: ".
+```
+
+具体触发链：runner 是 en-US 码页（cp1252），`——` 的 UTF-8 字节是 `E2 80 94`，
+被 cp1252 解成 `â€”`，其中 `0x94` → **U+201D 右双引号** —— 而 PowerShell
+接受弯引号作字符串定界符，于是字符串提前闭合，剩下的引号开了个没闭合的字符串。
+
+`pwsh` 默认按 UTF-8 读无 BOM 文件，没这个问题；`windows-latest` runner 自带 PowerShell 7。
+
+验证过：这个坑只在 `shell: powershell` 下出现 —— 仓库里所有带中文的步骤
+（`build-and-release.yml` 的 "List build results"）都没写 `shell:`，
+走默认的 pwsh，所以一直没暴露。
 
 ---
 

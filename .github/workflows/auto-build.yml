@@ -42,12 +42,17 @@ jobs:
           cache: 'pnpm'
           cache-dependency-path: pnpm-lock.yaml
 
+      # 用 pwsh（PowerShell 7），不要用 shell: powershell
+      #
+      # GitHub runner 把 run: 写成无 BOM 的 UTF-8 临时 .ps1，Windows PowerShell 5.1
+      # 会按 ANSI 码页解码 —— 中文和破折号全变乱码，乱码里混进的引号会把字符串截断，
+      # 报 "The string is missing the terminator"。pwsh 默认按 UTF-8 读无 BOM 文件，没这问题。
       - name: Show build version
         run: |
           $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
           Write-Host "package.json version: $version"
           Write-Host "本次构建不会创建 Release —— 正式发布请打版本号 tag"
-        shell: powershell
+        shell: pwsh
 
       - name: Cache Electron
         uses: actions/cache@v5
