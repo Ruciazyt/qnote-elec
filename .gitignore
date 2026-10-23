@@ -28,6 +28,8 @@ embedding-service/__pycache__/
 embedding-service/.ruff_cache/
 embedding-service/.pytest_cache/
 embedding-service/*.pyc
+__pycache__/
+*.pyc
 
 # Build outputs
 renderer/dist/
