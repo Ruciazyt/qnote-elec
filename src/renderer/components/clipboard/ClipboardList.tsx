@@ -26,7 +26,7 @@ interface ClipboardListProps {
   clipboardHistory: ClipboardRecord[];
   isLoading?: boolean;
   formattedLanguages: Record<number, SupportedLanguage>;
-  formattingRecordId: number | null;
+  formattingRecordId: number | undefined;
   onFormatCode: (record: ClipboardRecord, language: SupportedLanguage) => void;
   onCopy: (content: string, type: "text" | "image") => void;
   onDeleteRecord: (id: number) => void;
@@ -429,7 +429,9 @@ export function ClipboardList({
         const activeLanguageLabel = highlightLanguage
           ? getSupportedLanguages().find((l) => l.value === highlightLanguage)?.label
           : undefined;
-        const isFormatLoading = formattingRecordId === record.id;
+        // 跟列表里其它地方一样用 recordId（record.id ?? index），别拿 record.id 直接比：
+        // record.id 可能是 undefined，跟"正在格式化"的 id 比永远对不上
+        const isFormatLoading = formattingRecordId === recordId;
         const isPinned = Boolean(record.pinned_at);
         const isImportant = Boolean(record.is_important);
         const isEditing = editingId === recordId;

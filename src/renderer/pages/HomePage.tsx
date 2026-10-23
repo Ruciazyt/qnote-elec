@@ -42,7 +42,7 @@ export default function HomePage() {
   const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.userAgent);
 
   // 代码格式化相关state
-  const [formattingRecordId, setFormattingRecordId] = useState<number | null>(null);
+  const [formattingRecordId, setFormattingRecordId] = useState<number | undefined>(undefined);
   const formattedLanguagesState = useState<{ [key: number]: SupportedLanguage }>({});
   const formattedLanguages = formattedLanguagesState[0];
   const setFormattedLanguages = formattedLanguagesState[1];
@@ -381,7 +381,7 @@ export default function HomePage() {
       console.error("格式化代码失败:", error);
       toast({ title: "格式化失败", description: error instanceof Error ? error.message : "未知错误", variant: "destructive" });
     } finally {
-      setFormattingRecordId(null);
+      setFormattingRecordId(undefined);
     }
   };
 
