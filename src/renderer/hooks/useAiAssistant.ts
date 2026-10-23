@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AiChatSession, ChatMessage } from "@/components/clipboard/types";
 import { BlockBuilder, type AssistantBlock } from "@shared/aiBlocks";
+import { randomHex } from "@/utils/randomId";
 
 /**
  * 流式进行中的占位消息
@@ -292,7 +293,7 @@ export function useAiAssistant() {
     const sessionId =
       typeof crypto !== "undefined" && "randomUUID" in crypto
         ? crypto.randomUUID()
-        : `sid-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        : `sid-${Date.now()}-${randomHex(8)}`;
 
     setStreamingMessage({ sessionId, content: "", blocks: [] });
 
@@ -691,7 +692,7 @@ export function useAiAssistant() {
       const sessionId =
         typeof crypto !== "undefined" && "randomUUID" in crypto
           ? crypto.randomUUID()
-          : `sid-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+          : `sid-${Date.now()}-${randomHex(8)}`;
 
       setPetBubble({ phase: "thinking", utterance: text, reply: "" });
 

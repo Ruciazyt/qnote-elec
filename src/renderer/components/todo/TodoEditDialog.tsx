@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { format, isValid, parseISO } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
+import { randomHex } from '@/utils/randomId'
 import {
   Dialog,
   DialogContent,
@@ -323,7 +324,7 @@ export function TodoEditDialog({
 
 /** 生成附件唯一 id */
 function generateAttachmentId(): string {
-  return `att_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+  return `att_${Date.now()}_${randomHex(6)}`
 }
 
 /** File → base64 data URL */

@@ -8,6 +8,7 @@ import "prismjs/components/prism-css";
 import "@/styles/prism-clipboard.css";
 import { useToast } from "@/hooks/use-toast";
 import { formatCode, type SupportedLanguage } from "@/utils/codeFormatter";
+import { randomHex } from "@/utils/randomId";
 import { ClipboardToolbar } from "@/components/clipboard/ClipboardToolbar";
 import { ClipboardList } from "@/components/clipboard/ClipboardList";
 import { ImageOcrDialog } from "@/components/clipboard/ImageOcrDialog";
@@ -480,7 +481,7 @@ export default function HomePage() {
       setAddTodoTitle(titleFromOcr || "图片待办");
       setAddTodoAttachments([
         {
-          id: `att_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+          id: `att_${Date.now()}_${randomHex(6)}`,
           type: "image",
           dataUrl,
           name: `clipboard-${record.id ?? Date.now()}.png`,
