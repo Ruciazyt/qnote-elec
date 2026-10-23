@@ -107,6 +107,9 @@ qnote-elec/
 │   │   └── build-icon.mjs            # 图标多尺寸生成
 │   ├── release/                      # 发版
 │   │   └── release.js                # 发布脚本
+│   ├── git-hooks/                    # 提交规范钩子
+│   │   ├── setup-hooks.js            # 启用 .githooks
+│   │   └── verify-commit-msg.js      # 提交信息校验
 │   └── dev/                          # 开发期辅助
 │       ├── kill-dev-electron.js      # 清理残留 dev 实例
 │       └── wait-dist-stable.js       # 等 dist 写盘稳定
