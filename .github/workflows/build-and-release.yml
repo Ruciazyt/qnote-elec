@@ -90,7 +90,7 @@ jobs:
           CSC_KEY_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD || 'qnote2024' }}
           
       - name: Process portable version
-        run: node scripts/post-build.js
+        run: node scripts/build/post-build.js
         
       - name: Clean up certificate
         if: always()

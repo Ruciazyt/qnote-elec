@@ -17,7 +17,7 @@
     ]
   },
   "scripts": {
-    "build": "cross-env NODE_ENV=production pnpm run clean && pnpm run build:all && pnpm run build:app && node scripts/post-build.js",
+    "build": "cross-env NODE_ENV=production pnpm run clean && pnpm run build:all && pnpm run build:app && node scripts/build/post-build.js",
     "clean": "rimraf dist dist_electron",
     "build:main": "tsc -p build/tsconfig.main.json",
     "build:preload": "tsc -p build/tsconfig.preload.json",
@@ -29,11 +29,11 @@
     "electron:build": "electron-builder --publish=always --config build/electron-builder.json",
     "watch": "tsc -p build/tsconfig.main.json -w",
     "dev:renderer": "pnpm --dir src/renderer run dev",
-    "dev:electron": "wait-on tcp:5173 -t 60000 && node scripts/wait-dist-stable.js && electron ./dist/main/index.js",
-    "dev": "node scripts/kill-dev-electron.js && pnpm run build:electron && concurrently -n \"tsc,vite,app\" -c \"cyan,magenta,green\" \"pnpm run watch\" \"pnpm run dev:renderer\" \"pnpm run dev:electron\"",
-    "release:patch": "node scripts/release.js patch",
-    "release:minor": "node scripts/release.js minor",
-    "release:major": "node scripts/release.js major",
+    "dev:electron": "wait-on tcp:5173 -t 60000 && node scripts/dev/wait-dist-stable.js && electron ./dist/main/index.js",
+    "dev": "node scripts/dev/kill-dev-electron.js && pnpm run build:electron && concurrently -n \"tsc,vite,app\" -c \"cyan,magenta,green\" \"pnpm run watch\" \"pnpm run dev:renderer\" \"pnpm run dev:electron\"",
+    "release:patch": "node scripts/release/release.js patch",
+    "release:minor": "node scripts/release/release.js minor",
+    "release:major": "node scripts/release/release.js major",
     "postinstall": "electron-builder install-app-deps"
   },
   "devDependencies": {

@@ -102,8 +102,14 @@ qnote-elec/
 │   └── workflows/
 │       └── build-and-release.yml    # GitHub Actions工作流
 ├── scripts/
-│   ├── release.js                   # 发布脚本
-│   └── post-build.js                # 后处理脚本
+│   ├── build/                        # 构建产物处理
+│   │   ├── post-build.js             # 便携版后处理
+│   │   └── build-icon.mjs            # 图标多尺寸生成
+│   ├── release/                      # 发版
+│   │   └── release.js                # 发布脚本
+│   └── dev/                          # 开发期辅助
+│       ├── kill-dev-electron.js      # 清理残留 dev 实例
+│       └── wait-dist-stable.js       # 等 dist 写盘稳定
 ├── docs/
 │   ├── BUILD.md                     # 构建指南（本文件）
 │   └── PORTABLE.md                  # 便携版说明

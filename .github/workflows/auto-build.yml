@@ -60,7 +60,7 @@ jobs:
           ELECTRON_BUILDER_VERSION: ${{ steps.version.outputs.build_version }}
 
       - name: Process portable version
-        run: node scripts/post-build.js
+        run: node scripts/build/post-build.js
 
       - name: List build results
         run: |

@@ -1,6 +1,6 @@
-// scripts/build-icon.mjs
+// scripts/build/build-icon.mjs
 // 从 src/renderer/public/icon.svg 生成多尺寸 PNG 和 .ico
-// 用法：node scripts/build-icon.mjs
+// 用法：node scripts/build/build-icon.mjs
 //
 // 输出：
 //   src/renderer/public/icon-16.png
@@ -17,7 +17,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 // 从 src/renderer 找 node_modules（pnpm 结构）
-const RENDERER = path.join(import.meta.dirname, "..", "src/renderer");
+const RENDERER = path.join(import.meta.dirname, "..", "..", "src/renderer");
 const sharpUrl = pathToFileURL(
   path.join(RENDERER, "node_modules", "sharp", "dist", "index.mjs")
 ).href;
@@ -27,7 +27,7 @@ const icoUrl = pathToFileURL(
 const sharp = (await import(sharpUrl)).default;
 const pngToIco = (await import(icoUrl)).default;
 
-const ROOT = path.resolve(import.meta.dirname, "..");
+const ROOT = path.resolve(import.meta.dirname, "../..");
 const SVG_PATH = path.join(ROOT, "src/renderer/public/icon.svg");
 const PUBLIC_DIR = path.join(ROOT, "src/renderer/public");
 const RESOURCES_DIR = path.join(ROOT, "resources");
