@@ -106,7 +106,13 @@ jobs:
             echo "No certificate found, building without code signing..."
             $env:CSC_LINK = ""
           }
-          pnpm run build:app
+          # --publish never：electron-builder 的默认行为是「在 tag 构建或预发布版本时
+          # 自动发布到 GitHub」（build/electron-builder.json 里有 publish 段）。
+          # 那样它会自己建一个 v<版本号> 的草稿 Release —— 违反 AGENTS.md 第 3.3 节
+          # 「tag 不带 v 前缀」的规矩，还会多出一串同号条目。
+          # 正式 Release 由下面的 release 作业用 softprops/action-gh-release 创建，
+          # 那里才会带上便携版压缩包。
+          pnpm run build:app -- --publish never
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
