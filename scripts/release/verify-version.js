@@ -25,8 +25,15 @@ const GIT = resolveExe('git');
 /** 版本号格式：三段纯数字 */
 const VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
 
-/** 当前发布线 —— 1.0.x。升到 1.1.0 属于新的次版本线，需要同步改这里并写明理由 */
-const RELEASE_LINE = { major: 1, minor: 0 };
+/**
+ * 当前发布线 —— 1.1.x
+ *
+ * 1.0.x 留给「初版还在打补丁」的阶段。1.0.1 之后累积了三个功能级提交
+ * （应用内自动更新、版本号规范与发版脚本、提交信息校验钩子），
+ * 按 semver 规则它们要求 minor 版本，minor 落在 1.1.0 —— 所以换到 1.1.x。
+ * 换线理由见 AGENTS.md 第 3.1 节。
+ */
+const RELEASE_LINE = { major: 1, minor: 1 };
 
 /** 读取根 package.json 的 version */
 function readVersion() {

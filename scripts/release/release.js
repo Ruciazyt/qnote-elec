@@ -4,9 +4,9 @@
 /**
  * 发版脚本 —— 版本号唯一来源是根 package.json
  *
- *   node scripts/release/release.js patch   # 1.0.18 → 1.0.19
- *   node scripts/release/release.js minor   # 1.0.18 → 1.1.0
- *   node scripts/release/release.js major   # 1.0.18 → 2.0.0
+ *   node scripts/release/release.js patch   # 1.1.0 → 1.1.1
+ *   node scripts/release/release.js minor   # 1.1.0 → 1.2.0
+ *   node scripts/release/release.js major   # 1.1.0 → 2.0.0
  *
  * 三条硬规则（AGENTS.md 第 2.2 / 3 节）：
  *   1. 版本号是 MAJOR.MINOR.PATCH 纯数字三段，不带 v 前缀
