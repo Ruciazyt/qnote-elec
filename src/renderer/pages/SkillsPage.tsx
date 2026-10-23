@@ -102,7 +102,8 @@ export default function SkillsPage() {
   }, [toast]);
 
   useEffect(() => {
-    load();
+    // load 内部已 try/catch，失败会 toast，这里不等待结果
+    void load();
   }, [load]);
 
   // 搜索过滤（按名称或内容）
@@ -465,7 +466,10 @@ export default function SkillsPage() {
                     value={importUrl}
                     onChange={(e) => setImportUrl(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter") handlePreview();
+                      if (e.key === "Enter") {
+                        // 回车拉取预览，内部已处理失败分支，这里不等待结果
+                        void handlePreview();
+                      }
                     }}
                     placeholder="https://raw.githubusercontent.com/..."
                     className="h-9 bg-muted/30 focus-visible:bg-background"

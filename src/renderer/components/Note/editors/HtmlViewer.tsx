@@ -71,7 +71,7 @@ const HtmlViewer = forwardRef<NoteEditorHandle, HtmlViewerProps>(function HtmlVi
     }
     let cancelled = false;
     setLoading(true);
-    (async () => {
+    void (async () => {
       const content = await window.electron.readHtmlNote(dirPath, relPath);
       if (cancelled) return;
       setHtml(content ?? "");

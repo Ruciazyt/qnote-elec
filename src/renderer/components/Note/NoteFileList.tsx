@@ -124,7 +124,12 @@ function RowActions({
   return (
     <div
       className="flex items-center gap-0.5 flex-shrink-0"
+      role="group"
       onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => {
+        // 键盘事件同样要拦住：否则回车会连父级行的打开动作一起触发
+        e.stopPropagation();
+      }}
     >
       <button type="button" className={cn(btn, "text-muted-foreground hover:text-primary")} aria-label="重命名" onClick={onRename}>
         <Pencil className="h-3 w-3" />
@@ -350,6 +355,15 @@ export default function NoteFileList({
                 onClick={(e) => {
                   e.stopPropagation();
                   toggle(node.relPath);
+                }}
+                onKeyDown={(e) => {
+                  // 展开/收起是独立于「选中文件夹」的动作，
+                  // 键盘上同样要能触发，且不能顺带把父级行的选中一起做掉
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggle(node.relPath);
+                  }
                 }}
                 className="w-3.5 h-3.5 flex items-center justify-center text-muted-foreground/70 hover:text-foreground flex-shrink-0 rounded"
               >

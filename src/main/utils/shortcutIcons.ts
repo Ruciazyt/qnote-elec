@@ -382,7 +382,9 @@ export async function resolveShortcutIcon(kind: ShortcutKind, target: string): P
   }
 
   const pending = inflight.get(key);
-  if (pending) return pending;
+  // 显式比 undefined，不要用 if (pending) ——
+  // Promise 对象恒为真，写成布尔条件容易被误读成「判断 promise 的状态」
+  if (pending !== undefined) return pending;
 
   const task = resolveUncached(kind, target).finally(() => inflight.delete(key));
   inflight.set(key, task);

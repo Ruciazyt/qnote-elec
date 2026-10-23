@@ -191,7 +191,8 @@ export default function HomePage() {
   async function handleSearch(keyword: string) {
     setSearchKeyword(keyword);
     if (!keyword.trim()) {
-      loadHistory();
+      // 清空关键词回到历史列表；loadHistory 自带错误处理，这里不等待结果
+      void loadHistory();
       return;
     }
     try {
@@ -225,7 +226,8 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    loadHistory();
+    // 首次拉取历史；loadHistory 自带错误处理，这里不等待结果
+    void loadHistory();
 
     const handleClipboardChange = (_: unknown, data: ClipboardRecord) => {
       setClipboardHistory((prev) => {
@@ -634,7 +636,10 @@ export default function HomePage() {
         onOcrExtract={handleOcrExtract}
         onCopyResult={() => copyToClipboard(ocrResult)}
         onAddToVector={() => {
-          if (currentImageRecord) handleAddToMemory(currentImageRecord);
+          if (currentImageRecord) {
+            // 索引是附带动作，内部已处理失败分支，这里不等待结果
+            void handleAddToMemory(currentImageRecord);
+          }
         }}
       />
       <DeleteAllConfirmDialog

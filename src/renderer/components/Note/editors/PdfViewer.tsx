@@ -38,7 +38,7 @@ const PdfViewer = forwardRef<NoteEditorHandle, PdfViewerProps>(function PdfViewe
     }
     let cancelled = false;
     setLoading(true);
-    (async () => {
+    void (async () => {
       const content = await window.electron.readNote(dirPath, relPath);
       if (cancelled) return;
       setDataUrl(content && content.type === "pdf" ? content.dataUrl : null);

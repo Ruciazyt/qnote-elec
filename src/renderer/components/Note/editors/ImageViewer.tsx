@@ -36,7 +36,7 @@ const ImageViewer = forwardRef<NoteEditorHandle, ImageViewerProps>(function Imag
     }
     let cancelled = false;
     setLoading(true);
-    (async () => {
+    void (async () => {
       const content = await window.electron.readNote(dirPath, relPath);
       if (cancelled) return;
       setDataUrl(content && content.type === "image" ? content.dataUrl : null);

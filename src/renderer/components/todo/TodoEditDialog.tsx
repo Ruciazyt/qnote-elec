@@ -269,7 +269,7 @@ export function TodoEditDialog({
                 multiple
                 className="hidden"
                 onChange={(e) => {
-                  handleAddFiles(e.target.files)
+                  void handleAddFiles(e.target.files)
                   // 清空 value 以便用户能再次选择同一文件
                   e.target.value = ''
                 }}

@@ -37,7 +37,8 @@ export default function TodoPage() {
   }, [toast]);
 
   useEffect(() => {
-    load();
+    // load 内部已 try/catch，失败会 toast，这里不等待结果
+    void load();
   }, [load]);
 
   const filtered = useMemo(() => {
@@ -177,25 +178,42 @@ export default function TodoPage() {
       />
       {/* 附件大图预览 */}
       {previewAttachment && (
-        <div
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-8 cursor-zoom-out"
-          onClick={() => setPreviewAttachment(null)}>
-          <button
-            type="button"
-            className="absolute top-4 right-4 h-9 w-9 inline-flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
-            onClick={(e) => {
-              e.stopPropagation();
-              setPreviewAttachment(null);
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm">
+          {/*
+            遮罩单独成层：带 role="button" 的元素，其子节点对辅助技术是「纯展示」的，
+            子节点不再出现在无障碍树里 —— 所以关闭按钮和图片放在外层一层，
+            只有空的遮罩承担 role/tabIndex/onKeyDown，键盘也能关掉预览。
+          */}
+          <div
+            role="button"
+            tabIndex={0}
+            aria-label="关闭附件预览"
+            className="absolute inset-0 cursor-zoom-out"
+            onClick={() => setPreviewAttachment(null)}
+            onKeyDown={(e) => {
+              // Enter / Space 等价于点击遮罩关闭预览
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setPreviewAttachment(null);
+              }
             }}
-            aria-label="关闭预览">
-            <X className="h-4 w-4" />
-          </button>
-          <img
-            src={previewAttachment.dataUrl}
-            alt={previewAttachment.name || "附件"}
-            className="max-w-full max-h-full object-contain rounded-md shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
           />
+          {/* 内容层不接收点击（pointer-events-none），只有按钮和图片可交互，
+              点图片不会冒泡到遮罩，因此和原来的 stopPropagation 行为一致 */}
+          <div className="absolute inset-0 flex items-center justify-center p-8 pointer-events-none cursor-zoom-out">
+            <button
+              type="button"
+              className="pointer-events-auto absolute top-4 right-4 h-9 w-9 inline-flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+              onClick={() => setPreviewAttachment(null)}
+              aria-label="关闭预览">
+              <X className="h-4 w-4" />
+            </button>
+            <img
+              src={previewAttachment.dataUrl}
+              alt={previewAttachment.name || "附件"}
+              className="pointer-events-auto max-w-full max-h-full object-contain rounded-md shadow-2xl"
+            />
+          </div>
         </div>
       )}
     </div>

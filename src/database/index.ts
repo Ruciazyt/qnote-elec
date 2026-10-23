@@ -9,7 +9,13 @@ let DB: Knex | null = null;
 export function closeDB(): void {
   if (DB) {
     try {
-      DB.destroy();
+      // destroy() 是异步的：外层 try/catch 只能兜住同步抛错，接不住异步 reject。
+      // 所以这里显式挂 .catch 记日志 —— 否则关闭失败会变成"未处理的Promise拒绝"，
+      // 只在全局兜底里留下一句无上下文的记录。
+      // DB = null 的时机保持不变：仍在同步流程里立即置空，不等 destroy 完成。
+      DB.destroy().catch((error) => {
+        log.error("关闭数据库连接失败:", error);
+      });
       DB = null;
       log.info("数据库连接已关闭");
     } catch (error) {
@@ -70,7 +76,11 @@ export function getDB(appPath?: string): Knex {
 
   // 关闭现有连接（如果有）
   if (DB) {
-    DB.destroy();
+    // getDB 是同步函数，不能改成 await（会改签名并波及所有调用方）。
+    // 这里显式忽略返回值并挂 .catch：关闭失败要有日志，不能变成"未处理的Promise拒绝"。
+    void DB.destroy().catch((error) => {
+      log.error("关闭旧数据库连接失败:", error);
+    });
   }
 
   DB = knex({

@@ -53,7 +53,9 @@ function App() {
   useEffect(() => {
     return window.electron.onExternalAddShortcut((target) => {
       pushExternalAdd(target);
-      if (pathname !== "/") navigate("/");
+      // react-router v7 里 navigate 的返回类型是 void | Promise<void>，
+      // 这里不需要它的结果，显式 void 忽略，运行时行为不变
+      if (pathname !== "/") void navigate("/");
     });
   }, [pathname, navigate]);
 

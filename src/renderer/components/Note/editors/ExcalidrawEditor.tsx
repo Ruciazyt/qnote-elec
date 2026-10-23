@@ -71,7 +71,7 @@ const ExcalidrawEditor = forwardRef<NoteEditorHandle, ExcalidrawEditorProps>(fun
     if (loadedRelRef.current === relPath && reloadNonce === 0) return;
 
     let cancelled = false;
-    (async () => {
+    void (async () => {
       const content = await window.electron.readNote(dirPath, relPath);
       if (cancelled || !content || content.type !== "excalidraw") return;
 

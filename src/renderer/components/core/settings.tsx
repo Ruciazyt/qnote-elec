@@ -638,11 +638,11 @@ export default function Settings() {
   };
 
   useEffect(() => {
-    loadBaiduKeys();
-    loadAppInfo();
-    loadAiConfig();
-    loadMemoryCount();
-    loadUsageStats();
+    void loadBaiduKeys();
+    void loadAppInfo();
+    void loadAiConfig();
+    void loadMemoryCount();
+    void loadUsageStats();
     void loadVoiceHotkey();
   }, []);
 
@@ -1761,6 +1761,16 @@ function PathRow({
           copied && "border-emerald-500/40 bg-emerald-500/10"
         )}
         onClick={onCopy}
+        role="button"
+        tabIndex={0}
+        aria-label={`复制${label}`}
+        onKeyDown={(e) => {
+          // 路径条点击即复制，键盘也要有一条等价路径
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onCopy();
+          }
+        }}
         title={`${value} (点击复制)`}>
         <p className="text-[11px] font-mono leading-snug text-foreground/85 flex-1 min-w-0 truncate">
           {value}

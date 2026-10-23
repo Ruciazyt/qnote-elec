@@ -44,7 +44,7 @@ export function ClipboardPopup() {
   }, []);
 
   useEffect(() => {
-    loadHistory();
+    void loadHistory();
   }, [loadHistory]);
 
   // 滚动到选中项
@@ -92,7 +92,7 @@ export function ClipboardPopup() {
       if (e.key === "Enter") {
         e.preventDefault();
         if (filteredItems[selectedIndex]) {
-          handleCopy(filteredItems[selectedIndex]);
+          void handleCopy(filteredItems[selectedIndex]);
         }
         return;
       }
@@ -182,7 +182,19 @@ export function ClipboardPopup() {
               <div
                 key={item.id}
                 data-index={index}
-                onClick={() => handleCopy(item)}
+                role="button"
+                tabIndex={0}
+                onClick={() => void handleCopy(item)}
+                onKeyDown={(e) => {
+                  // 行内的「复制」按钮自己处理回车/空格，这里只响应条目本身获得焦点的情况
+                  if (e.target !== e.currentTarget) return;
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    // 弹窗根节点也监听回车去复制选中项，拦一下免得复制两次
+                    e.stopPropagation();
+                    void handleCopy(item);
+                  }
+                }}
                 className={cn(
                   "group relative p-3 rounded-lg border transition-all duration-150 cursor-pointer",
                   "flex flex-col gap-2",
@@ -218,7 +230,7 @@ export function ClipboardPopup() {
                           ? "text-primary opacity-100"
                           : "text-muted-foreground opacity-0 group-hover:opacity-100"
                       )}
-                      onClick={(e) => { e.stopPropagation(); handleCopy(item); }}
+                      onClick={(e) => { e.stopPropagation(); void handleCopy(item); }}
                     >
                       复制
                     </button>
@@ -235,7 +247,7 @@ export function ClipboardPopup() {
                           ? "text-primary opacity-100"
                           : "text-muted-foreground opacity-0 group-hover:opacity-100"
                       )}
-                      onClick={(e) => { e.stopPropagation(); handleCopy(item); }}
+                      onClick={(e) => { e.stopPropagation(); void handleCopy(item); }}
                     >
                       复制
                     </button>

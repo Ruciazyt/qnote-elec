@@ -346,7 +346,7 @@ export function FloatingAiAssistant() {
   // 初始加载：从主进程拉取跨窗口共享状态
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    void (async () => {
       try {
         const state = await window.electron.getFloatingAiState();
         if (cancelled) return;

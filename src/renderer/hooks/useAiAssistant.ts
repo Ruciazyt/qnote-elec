@@ -182,7 +182,8 @@ export function useAiAssistant() {
   // Skill：挂载时加载技能列表
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    // 内部已经 try/catch，不会 reject；这里只是发起即忘，显式 void 忽略返回值
+    void (async () => {
       try {
         const list = await window.electron.getAiSkills();
         if (!cancelled && Array.isArray(list)) {
@@ -491,7 +492,8 @@ export function useAiAssistant() {
       // （换行交给 textarea 自己处理，这里只拦截裸 Enter）
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
-        handleSendAiMessage();
+        // 发送逻辑自带错误处理，这里不等待结果，显式 void 忽略
+        void handleSendAiMessage();
       }
     },
     [handleSendAiMessage]

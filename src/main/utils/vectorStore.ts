@@ -118,7 +118,9 @@ class VectorStore {
   }
 
   async initialize(): Promise<void> {
-    if (this.initializationPromise) {
+    // 显式比 null，不要用 if (this.initializationPromise) ——
+    // Promise 对象恒为真，写成布尔条件容易被误读成「判断 promise 的状态」
+    if (this.initializationPromise !== null) {
       return this.initializationPromise;
     }
 

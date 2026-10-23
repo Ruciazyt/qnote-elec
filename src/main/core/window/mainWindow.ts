@@ -186,7 +186,10 @@ export function createMainWindow(): BrowserWindow {
     log.error(`加载失败: ${errorCode} - ${errorDescription}`, { url: loadUrl });
 
     // 尝试显示错误信息
-    win?.webContents.loadURL(`data:text/html,
+    // 错误提示页同样可能加载失败（窗口已被销毁等），接住 reject 并记日志，
+    // 免得变成"未处理的Promise拒绝"。
+    void win?.webContents
+      .loadURL(`data:text/html,
       <html>
         <head><title>加载错误</title></head>
         <body>
@@ -195,7 +198,10 @@ export function createMainWindow(): BrowserWindow {
           <p>错误描述: ${errorDescription}</p>
           <p>加载URL: ${loadUrl}</p>
         </html>
-      `);
+      `)
+      .catch((error) => {
+        log.error("加载错误提示页失败:", error);
+      });
   });
 
   // 监听加载成功事件
@@ -204,7 +210,11 @@ export function createMainWindow(): BrowserWindow {
     win?.webContents.send("window-maximized", win?.isMaximized() ?? false);
   });
 
-  win.loadURL(loadUrl);
+  // loadURL 失败会 reject（渲染进程没起来、URL 不对等），接住并记日志，
+  // 免得变成"未处理的Promise拒绝"。
+  win.loadURL(loadUrl).catch((error) => {
+    log.error("加载主窗口页面失败:", error);
+  });
 
   // 默认不自动打开 DevTools，避免 Chromium DevTools 内部日志干扰开发输出。
   if (!app.isPackaged && shouldAutoOpenDevTools()) {

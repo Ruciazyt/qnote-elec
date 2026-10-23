@@ -66,7 +66,7 @@ export default function Sidebar({ onSelectCollection, selectedCollectionId }: Si
   }, [toast]);
 
   useEffect(() => {
-    loadCollections();
+    void loadCollections();
   }, [loadCollections]);
 
   // 设置导入进度监听
@@ -113,7 +113,7 @@ export default function Sidebar({ onSelectCollection, selectedCollectionId }: Si
           title: "删除成功",
           description: "题单已删除",
         });
-        loadCollections();
+        void loadCollections();
         if (selectedCollectionId === id) {
           onSelectCollection(null);
         }
@@ -159,7 +159,7 @@ export default function Sidebar({ onSelectCollection, selectedCollectionId }: Si
         setShowCreateDialog(false);
         setNewCollectionName("");
         setNewCollectionSummary("");
-        loadCollections();
+        void loadCollections();
         // 创建成功后自动打开编辑
         if (saved.id) {
           onSelectCollection(saved.id);
@@ -218,7 +218,7 @@ export default function Sidebar({ onSelectCollection, selectedCollectionId }: Si
           setShowImportDialog(false);
           setImportText("");
           setImportProgress(null);
-          loadCollections();
+          void loadCollections();
 
           // 如果只有一个题单，自动打开编辑
           if (result.collections && result.collections.length === 1 && result.collections[0].id) {
@@ -290,7 +290,18 @@ export default function Sidebar({ onSelectCollection, selectedCollectionId }: Si
                     ? "selected border-sidebar-primary shadow-md ring-2 ring-sidebar-primary/30"
                     : "border-sidebar-border hover:border-sidebar-border"
                 }`}
-                onClick={() => onSelectCollection(collection.id)}>
+                onClick={() => onSelectCollection(collection.id)}
+                role="button"
+                tabIndex={0}
+                aria-label={`打开题单：${collection.name}`}
+                onKeyDown={(e) => {
+                  // 卡片内的编辑/删除按钮各自处理回车，这里只响应卡片本身获得焦点的情况
+                  if (e.target !== e.currentTarget) return;
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onSelectCollection(collection.id);
+                  }
+                }}>
                 <div className="flex-1 min-w-0 pr-2">
                   <div
                     className={`font-medium truncate ${
@@ -354,7 +365,7 @@ export default function Sidebar({ onSelectCollection, selectedCollectionId }: Si
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
-                    handleCreateCollection();
+                    void handleCreateCollection();
                   }
                 }}
               />

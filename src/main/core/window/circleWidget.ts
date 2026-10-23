@@ -60,7 +60,12 @@ export function createCircleWindow(): BrowserWindow {
     log.info("圆形控件HTML加载完成");
   });
 
-  circleWin.loadFile(circleHtmlPath);
+  // loadFile 返回的 Promise 在加载失败时会 reject。
+  // 上面已有 did-fail-load 监听负责上报加载失败，这里再接住 reject，
+  // 免得它落到全局兜底变成一句无上下文的"未处理的Promise拒绝"。
+  circleWin.loadFile(circleHtmlPath).catch((error) => {
+    log.error("圆形控件加载失败:", error);
+  });
 
   // 允许拖拽
   circleWin.setMovable(true);

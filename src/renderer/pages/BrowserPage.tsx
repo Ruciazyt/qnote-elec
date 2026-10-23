@@ -172,7 +172,8 @@ export default function BrowserPage() {
   const [bookmarkRevision, setBookmarkRevision] = useState(0);
   const bumpBookmarks = useCallback(() => {
     setBookmarkRevision((n) => n + 1);
-    refreshBookmark();
+    // 刷新书签列表是附带动作，不阻塞当前交互，显式 void 忽略
+    void refreshBookmark();
   }, [refreshBookmark]);
 
   /**
@@ -195,7 +196,8 @@ export default function BrowserPage() {
   // 初始化 —— 主进程保证至少存在一个标签页
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    // 内部已 try/catch，不会 reject；取消标记只防卸载后写 state，显式 void 忽略返回值
+    void (async () => {
       try {
         const state = await window.electron.browserGetState();
         if (!cancelled) applyState(state);

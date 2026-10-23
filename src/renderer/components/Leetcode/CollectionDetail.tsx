@@ -105,7 +105,7 @@ export default function CollectionDetail({ collectionId, onRefresh }: Collection
   }, [collectionId, toast]);
 
   useEffect(() => {
-    loadCollection();
+    void loadCollection();
   }, [loadCollection]);
 
   const handleStartEditName = () => {
@@ -367,7 +367,7 @@ export default function CollectionDetail({ collectionId, onRefresh }: Collection
                   onChange={(e) => setTempName(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
-                      handleSaveName();
+                      void handleSaveName();
                     } else if (e.key === "Escape") {
                       handleCancelEditName();
                     }
@@ -385,7 +385,17 @@ export default function CollectionDetail({ collectionId, onRefresh }: Collection
             ) : (
               <div
                 className="flex items-center gap-2 group cursor-pointer hover:bg-gray-50 p-2 rounded -ml-2"
-                onClick={handleStartEditName}>
+                role="button"
+                tabIndex={0}
+                aria-label={`编辑题单名称：${collection.name}`}
+                onClick={handleStartEditName}
+                onKeyDown={(e) => {
+                  // 标题行可点击，键盘也要有一条等价路径进入编辑态
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleStartEditName();
+                  }
+                }}>
                 <span className="text-lg font-semibold flex-1">{collection.name}</span>
                 <Edit2 className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
@@ -416,7 +426,17 @@ export default function CollectionDetail({ collectionId, onRefresh }: Collection
             ) : (
               <div
                 className="group cursor-pointer hover:bg-gray-50 p-2 rounded -ml-2"
-                onClick={handleStartEditSummary}>
+                role="button"
+                tabIndex={0}
+                aria-label="编辑题单总结"
+                onClick={handleStartEditSummary}
+                onKeyDown={(e) => {
+                  // 总结行可点击，键盘也要有一条等价路径进入编辑态
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleStartEditSummary();
+                  }
+                }}>
                 <div className="flex items-start justify-between">
                   <p className="text-sm text-gray-700 flex-1 whitespace-pre-wrap">
                     {collection.summary || <span className="text-gray-400">点击添加总结</span>}
@@ -439,7 +459,7 @@ export default function CollectionDetail({ collectionId, onRefresh }: Collection
                   className="w-64"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
-                      handleAddProblem();
+                      void handleAddProblem();
                     }
                   }}
                 />

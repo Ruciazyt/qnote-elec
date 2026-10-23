@@ -140,7 +140,7 @@ export function UpdateCard() {
   // 拉一次当前状态与环境信息
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    void (async () => {
       try {
         const [current, env] = await Promise.all([
           window.electron.getUpdateStatus(),

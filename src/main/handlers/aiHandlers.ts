@@ -537,7 +537,10 @@ export function registerAiHandlers(DB: any, fileWriter: FileWriter) {
       activeStreams.set(sessionId, controller);
 
       // 异步推送：不阻塞 invoke 返回，让渲染进程能立即拿到 sessionId 开始准备 UI
-      (async () => {
+      // 后台任务"发起即忘"：内部已有 try/catch/finally 兜住主流程，
+      // 这里再补一层 .catch —— 万一 catch/finally 自身抛错（比如 renderer 已销毁时
+      // sender.send 抛错），也不会变成"未处理的Promise拒绝"。
+      void (async () => {
         try {
           await ensureAiChatSession(DB, activeChatSessionId);
           const aiConfig = await configManager.getAiConfig();
@@ -626,7 +629,9 @@ export function registerAiHandlers(DB: any, fileWriter: FileWriter) {
         } finally {
           activeStreams.delete(sessionId);
         }
-      })();
+      })().catch((err) => {
+        log.error(`[ai-stream] session ${sessionId} 未被内部捕获的异常:`, err);
+      });
 
       return { sessionId };
     }
@@ -684,7 +689,10 @@ export function registerAiHandlers(DB: any, fileWriter: FileWriter) {
         }
       }
 
-      (async () => {
+      // 后台任务"发起即忘"：内部已有 try/catch/finally 兜住主流程，
+      // 这里再补一层 .catch —— 万一 catch/finally 自身抛错（比如 renderer 已销毁时
+      // sender.send 抛错），也不会变成"未处理的Promise拒绝"。
+      void (async () => {
         try {
           if (chatSessionId) {
             const existingSession = await DB.from("ai_chat_session")
@@ -931,7 +939,9 @@ export function registerAiHandlers(DB: any, fileWriter: FileWriter) {
         } finally {
           activeStreams.delete(sessionId);
         }
-      })();
+      })().catch((err) => {
+        log.error(`[ai-agent] session ${sessionId} 未被内部捕获的异常:`, err);
+      });
 
       return { sessionId };
     }

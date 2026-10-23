@@ -120,6 +120,17 @@ export function BookmarkList({
               <div
                 key={item.id}
                 onClick={() => onNavigate(item.url)}
+                role="button"
+                tabIndex={0}
+                aria-label={`打开 ${label}`}
+                onKeyDown={(e) => {
+                  // 行内的「外部打开 / 删除」按钮自己处理回车，这里只响应行本身获得焦点的情况
+                  if (e.target !== e.currentTarget) return;
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onNavigate(item.url);
+                  }
+                }}
                 title={item.url}
                 className="group flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-accent/50 transition-colors">
                 <div className="flex-1 min-w-0">

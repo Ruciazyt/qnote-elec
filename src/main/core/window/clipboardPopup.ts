@@ -104,12 +104,18 @@ export class ClipboardPopupWindow {
 
     if (!app.isPackaged) {
       // 开发环境：使用 vite dev server
-      win.loadURL(`${DEV_SERVER_URL}/src/renderer/components/clipboard/popup-main.tsx`);
+      // loadURL 失败（开发服务器没起等）会 reject，接住并记日志，
+      // 免得变成"未处理的Promise拒绝"。
+      win.loadURL(`${DEV_SERVER_URL}/src/renderer/components/clipboard/popup-main.tsx`).catch((error) => {
+        log.error("[clipboardPopup] 加载开发服务器页面失败:", error);
+      });
     } else {
       // 生产环境：使用构建后的 HTML 文件
       const htmlPath = resolveAssetPath("popup-clipboard.html");
       log.info("[clipboardPopup] 加载 HTML:", htmlPath);
-      win.loadFile(htmlPath);
+      win.loadFile(htmlPath).catch((error) => {
+        log.error("[clipboardPopup] 加载 HTML 失败:", error);
+      });
     }
 
     // 失去焦点自动隐藏

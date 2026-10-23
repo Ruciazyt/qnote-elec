@@ -542,6 +542,16 @@ export function ClipboardList({
               <div
                 className="flex items-center gap-2 px-3 py-2 cursor-pointer"
                 onClick={() => togglePinnedExpanded(recordId)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  // 操作栏里的按钮自己处理回车/空格，这里只响应收起条本身获得焦点的情况
+                  if (e.target !== e.currentTarget) return;
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    togglePinnedExpanded(recordId);
+                  }
+                }}
                 aria-expanded={false}
                 title={previewText ? previewText.slice(0, 200) : "图片记录"}>
                 {/* 类型 */}
@@ -588,7 +598,12 @@ export function ClipboardList({
                 */}
                 <div
                   className="flex items-center gap-0.5 flex-shrink-0"
-                  onClick={(e) => e.stopPropagation()}>
+                  role="group"
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => {
+                    // 键盘事件同样要拦住：否则回车会连父级收起条的展开一起触发
+                    e.stopPropagation();
+                  }}>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -911,7 +926,17 @@ export function ClipboardList({
                     src={record.content}
                     alt="Clipboard Image"
                     className="max-w-full h-auto rounded-md shadow-sm cursor-pointer"
+                    role="button"
+                    tabIndex={0}
+                    aria-label="查看剪贴板图片"
                     onClick={() => onImageClick(record.content)}
+                    onKeyDown={(e) => {
+                      // 图片可点击放大，键盘也要有一条等价路径
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onImageClick(record.content);
+                      }
+                    }}
                   />
                 </div>
               )}
