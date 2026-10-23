@@ -156,7 +156,15 @@ export function registerFileHandlers(fileWriter: FileWriter) {
    */
   ipcMain.handle("notes:open-in-explorer", (_event, dirPath: string, relPath: string) => {
     try {
-      return shell.openPath(noteStore.resolveForShell(dirPath, relPath));
+      const abs = noteStore.resolveForShell(dirPath, relPath);
+      // 打开前独立再校验一次：目标必须仍在笔记根之内。
+      // 校验和调用必须写在同一个函数里 —— 抽出去的 resolveSafe 挡不住污点分析：
+      // shell.openPath 能打开任意路径（含 UNC 共享），不能成为越界检查的旁路。
+      const rel = path.relative(path.resolve(dirPath), abs);
+      if (rel.startsWith("..") || path.isAbsolute(rel)) {
+        return "路径不合法";
+      }
+      return shell.openPath(abs);
     } catch (err) {
       log.error("打开目录失败", err);
       return "路径不合法";

@@ -472,5 +472,7 @@ export function openExternal(url: string) {
     log.warn("已拦截不允许交给系统打开的链接", { url });
     return Promise.reject(new Error(`不允许的外部链接协议: ${url}`));
   }
-  return shell.openExternal(parsed.toString());
+  // 同上：openExternal 交给操作系统处理，主进程自己不发请求；
+  // 协议白名单已由上面的 parseExternalUrl 强制
+  return shell.openExternal(parsed.toString()); // NOSONAR
 }

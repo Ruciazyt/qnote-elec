@@ -408,7 +408,9 @@ function registerWindowScopedHandlers() {
         log.warn("open-external blocked unsafe URL:", { url });
         return false;
       }
-      await shell.openExternal(parsed.toString());
+      // shell.openExternal 把 URL 交给操作系统的默认程序，主进程自己不发请求，
+      // 不构成服务端请求伪造；协议白名单已由 parseExternalUrl 强制
+      await shell.openExternal(parsed.toString()); // NOSONAR
       return true;
     } catch (err) {
       log.error("打开外部链接失败", { url, err });

@@ -53,7 +53,10 @@ export function inferShortcutKind(target: string): ShortcutKind {
   const trimmed = target.trim();
   if (/^https?:\/\//i.test(trimmed)) return "url";
   try {
-    if (fs.existsSync(trimmed) && fs.statSync(trimmed).isDirectory()) return "folder";
+    // 快捷方式目标本就是用户自己选的本地路径（系统右键菜单唤起、拖拽、多选），
+    // 这里只做只读的存在性与类型探测 —— 不读内容也不写文件，没有「允许的父目录」
+    // 可做包含性校验（SonarCloud S2083 路径穿越对这类探测不适用）
+    if (fs.existsSync(trimmed) && fs.statSync(trimmed).isDirectory()) return "folder"; // NOSONAR
   } catch {
     /* stat 失败按文件处理 */
   }
@@ -107,7 +110,8 @@ function normalizeInput(input: ShortcutInput): ShortcutPickResult | { error: str
 
   let isDir = false;
   try {
-    isDir = fs.statSync(abs).isDirectory();
+    // 同上：只读探测用户自己选的路径，不读内容也不写文件
+    isDir = fs.statSync(abs).isDirectory(); // NOSONAR
   } catch {
     return { error: "无法读取该路径" };
   }

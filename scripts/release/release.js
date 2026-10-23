@@ -28,13 +28,20 @@ const ROOT = path.resolve(__dirname, '../..');
 const RELEASE_TYPES = ['patch', 'minor', 'major'];
 
 /**
- * 白名单的形态约束
+ * 发版类型白名单 —— 用查表而不是正则
  *
  * releaseType 会作为参数交给 pnpm version（Windows 上还要过一遍 shell），
  * 值里带上空格、引号、分号这类元字符就可能被拼成别的命令。
- * 正则只放行三个纯字面量类型名，不匹配就直接退出。
+ *
+ * 查表而不是「校验完继续用原值」：从这张固定表里取出来的值只能是
+ * patch / minor / major 三个字面量之一，命令行参数本身流不到子进程里
+ * （SonarCloud S8705 命令参数注入）。
  */
-const RELEASE_TYPE_PATTERN = /^(?:patch|minor|major)$/;
+const RELEASE_TYPE_BY_NAME = {
+    patch: 'patch',
+    minor: 'minor',
+    major: 'major',
+};
 
 // 命令解析成绝对路径再执行 —— 靠 PATH 查找意味着同名的可执行文件可以被劫持，
 // SonarCloud 会把这记成 S4036 安全漏洞（质量门禁里 Security Rating 直接掉到 E）。
@@ -167,13 +174,13 @@ function readPackageVersion() {
 }
 
 function main() {
-    const releaseType = process.argv[2] || 'patch'; // patch, minor, major
+    const rawType = process.argv[2] || 'patch'; // patch, minor, major
 
-    // 白名单校验：只有 patch / minor / major 三种值能往下走。
-    // 不校验就把它交给 pnpm version，等于让命令行参数直接进子进程
-    // （SonarCloud S8705 命令参数注入）。
-    if (!RELEASE_TYPE_PATTERN.test(releaseType)) {
-        console.error(`❌ 无效的发布类型: ${JSON.stringify(releaseType)}`);
+    // 白名单校验：从固定表里查出来的值只能是三个字面量之一，
+    // 命令行参数本身不会流到子进程（SonarCloud S8705 命令参数注入）。
+    const releaseType = RELEASE_TYPE_BY_NAME[rawType];
+    if (!releaseType) {
+        console.error(`❌ 无效的发布类型: ${JSON.stringify(rawType)}`);
         console.error(`   请使用: ${RELEASE_TYPES.join(' / ')}`);
         process.exit(1);
     }
