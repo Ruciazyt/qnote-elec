@@ -93,4 +93,5 @@ jobs:
           path: |
             dist_electron/*.exe
             dist_electron/*.zip
+            dist_electron/latest.yml
           retention-days: 30

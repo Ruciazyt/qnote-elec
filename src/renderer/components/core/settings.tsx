@@ -46,7 +46,20 @@ import {
 } from "lucide-react";
 import { ClearVectorConfirmDialog } from "./ClearVectorConfirmDialog";
 import { ImportDatabaseConfirmDialog } from "./ImportDatabaseConfirmDialog";
+import { UpdateCard } from "./UpdateCard";
+// 卡片外观原语已抽到 settings-card.tsx —— 「应用更新」卡片要复用同一套外观，
+// 放在同一个文件里会造成循环依赖。
+import {
+  ACCENTS,
+  SettingsCard,
+  SettingsCardHeader,
+  type AccentKey,
+  type AccentSpec,
+} from "./settings-card";
 import { cn } from "@/lib/utils";
+
+export { ACCENTS, SettingsCard, SettingsCardHeader };
+export type { AccentKey, AccentSpec };
 
 // 仅作为输入框 placeholder 提示，不做自动填充
 //
@@ -72,53 +85,6 @@ function triggerSaveFlash(setter: (v: boolean) => void) {
   setter(true);
   setTimeout(() => setter(false), 3000);
 }
-
-// 主题色系统（降噪版） —— 之前 6 套强调色让设置页像万花筒，
-// 现在收敛到 2 套：accent（强调配置卡）+ neutral（中性 / 工具卡）
-// Tailwind JIT 不支持动态字符串拼接 class，所以这里做静态映射
-type AccentKey = "accent" | "neutral";
-
-export interface AccentSpec {
-  iconText: string;
-  /** 图标背景 — 平面 tint，去掉了 from-X to-X 多重渐变（AI 调色板的标志） */
-  iconBg: string;
-  iconBorder: string;
-  /** 状态徽章（已配置 / 成功） */
-  badge: string;
-  badgeDot: string;
-  /** 闲置徽章 */
-  badgeIdle: string;
-  badgeIdleDot: string;
-  sectionIcon: string;
-  hoverBorder: string;
-}
-
-export const ACCENTS: Record<AccentKey, AccentSpec> = {
-  /** 强调配置卡 — OCR / AI / 侧边栏设置 */
-  accent: {
-    iconText: "text-primary",
-    iconBg: "bg-primary/10",
-    iconBorder: "ring-1 ring-primary/20",
-    badge: "bg-primary/10 text-primary border-primary/25",
-    badgeDot: "bg-primary",
-    badgeIdle: "bg-muted text-muted-foreground/70 border-border/70",
-    badgeIdleDot: "bg-muted-foreground/40",
-    sectionIcon: "text-primary",
-    hoverBorder: "hover:border-primary/40 focus-within:border-primary/40",
-  },
-  /** 中性 / 工具卡 — 记忆索引 / 数据迁移 / 开发者工具 / 应用信息 */
-  neutral: {
-    iconText: "text-muted-foreground",
-    iconBg: "bg-muted",
-    iconBorder: "ring-1 ring-border",
-    badge: "bg-muted text-muted-foreground border-border",
-    badgeDot: "bg-muted-foreground",
-    badgeIdle: "bg-muted/60 text-muted-foreground/60 border-border/60",
-    badgeIdleDot: "bg-muted-foreground/30",
-    sectionIcon: "text-muted-foreground",
-    hoverBorder: "hover:border-muted-foreground/30 focus-within:border-muted-foreground/30",
-  },
-};
 
 /**
  * 配置状态徽章 — 已配置 / 未配置指示器
@@ -179,7 +145,7 @@ const SETTINGS_SECTIONS: Array<{
   hint: string;
 }> = [
   { id: "service", label: "服务与 AI", icon: Bot, hint: "OCR、AI 端点、记忆索引、用量" },
-  { id: "data", label: "数据与开发", icon: Layers, hint: "迁移、开发者工具、应用信息" },
+  { id: "data", label: "数据与开发", icon: Layers, hint: "迁移、开发者工具、应用更新" },
   { id: "ui", label: "界面", icon: Sliders, hint: "外观主题与侧边栏入口" },
 ];
 
@@ -241,74 +207,6 @@ function SettingsSectionNav({
         );
       })}
     </nav>
-  );
-}
-
-/**
- * SettingsCard — 卡片容器 + hover 描边色
- * 主题色靠图标容器、状态徽章、hover 描边传递，不需要左侧色条
- */
-export function SettingsCard({
-  accent,
-  className,
-  children,
-}: {
-  accent: AccentSpec;
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Card
-      className={cn(
-        "settings-card-hover relative overflow-hidden border-border/70",
-        accent.hoverBorder,
-        className
-      )}>
-      {children}
-    </Card>
-  );
-}
-
-/**
- * SettingsCardHeader — 大图标方块 + 标题 + 副标题 + 状态徽章
- */
-export function SettingsCardHeader({
-  accent,
-  icon: Icon,
-  title,
-  subtitle,
-  status,
-}: {
-  accent: AccentSpec;
-  icon: React.ComponentType<{ className?: string }>;
-  title: string;
-  subtitle: string;
-  status?: React.ReactNode;
-}) {
-  return (
-    <div className="px-5 pt-5 pb-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3 min-w-0">
-          <div
-            className={cn(
-              "h-10 w-10 rounded-lg flex items-center justify-center shrink-0",
-              accent.iconBg,
-              accent.iconBorder
-            )}>
-            <Icon className={cn("h-5 w-5", accent.iconText)} />
-          </div>
-          <div className="min-w-0 pt-0.5">
-            <h3 className="text-[15px] font-semibold leading-tight tracking-tight text-foreground">
-              {title}
-            </h3>
-            <p className="text-xs text-muted-foreground/75 leading-snug mt-0.5">
-              {subtitle}
-            </p>
-          </div>
-        </div>
-        {status && <div className="shrink-0 mt-0.5">{status}</div>}
-      </div>
-    </div>
   );
 }
 
@@ -1561,6 +1459,8 @@ export default function Settings() {
                 </Button>
               </CardContent>
             </SettingsCard>
+            {/* 应用更新 — 检查 / 下载 / 安装 */}
+            <UpdateCard />
             {/* 应用信息 */}
             {appInfo && (
               <SettingsCard accent={ACCENTS.neutral}>

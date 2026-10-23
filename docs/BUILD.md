@@ -93,6 +93,87 @@ pnpm run release:major
 
 - `QNote-Setup-x.x.x.exe` - Windows 安装程序
 - `QNote-x.x.x-portable.zip` - Windows 便携版压缩包
+- `latest.yml` - **自动更新元数据**（安装版更新时必需）
+
+## 🔄 自动更新
+
+安装版支持在设置页「数据与开发 → 应用更新」里检查、下载并安装新版本。
+实现基于 [`electron-updater`](https://www.electron.build/auto-update)，
+更新源是本仓库的 GitHub Releases。
+
+### 运作方式
+
+1. 应用启动后从 `resources/app-update.yml` 读取更新源配置
+   （由 `build/electron-builder.json` 的 `publish` 段在打包时生成）
+2. 用户点「检查更新」→ 请求 Releases 的 `latest.yml` 拿到最新版本号
+3. 用户点「下载更新」→ 下载安装包并校验 SHA512，全程显示进度
+4. 用户点「重启并安装」→ 静默执行 NSIS 安装器覆盖旧版本，装完自动拉起应用
+
+下载完成后若用户没点安装，直接退出应用也会自动完成安装。
+
+### latest.yml 必须随 Release 一起上传
+
+`latest.yml` 里记着版本号、安装包文件名与 SHA512 校验和。
+electron-updater 先取它，再据此下载安装包 —— **少了这个文件，
+「检查更新」必然失败**（报 `ERR_UPDATER_CHANNEL_FILE_NOT_FOUND`）。
+
+两个 workflow 都已把它加进上传列表：
+
+| 文件 | 上传位置 |
+| --- | --- |
+| `.github/workflows/build-and-release.yml` | 构建产物 → Actions Artifact → Release |
+| `.github/workflows/auto-build.yml` | 直接进 Release |
+
+### 版本号必须三处一致
+
+以下三处必须指向同一个版本号，否则更新判定会失效：
+
+| 位置 | 来源 |
+| --- | --- |
+| 安装包文件名 | `appInfo.version`（package.json 的 `version`） |
+| `latest.yml` 里的 `version` | 同上 |
+| 应用运行时 `app.getVersion()` | 同上 |
+
+`auto-build.yml` 里原先用 `ELECTRON_BUILDER_VERSION` 环境变量覆盖版本，
+但 **electron-builder 25.x 并不支持这个变量**，实际版本始终取自
+package.json。结果是 tag 用 `1.0.<commit 数>`、产物却叫 `1.0.18`，
+更新永远判定"已是最新"。该 workflow 现已改为直接改写 package.json 的
+`version` 字段。
+
+### 便携版不支持自动更新
+
+便携版是免安装的解压目录，没有安装器，无法"覆盖安装自己"——
+NSIS 安装器只会把新版本装到程序目录，用户手里的便携目录还是旧的。
+
+`scripts/build/post-build.js` 会在压缩前往 `resources/` 写入 `portable.marker`，
+主进程启动时据此识别便携版并关闭自动更新，改为引导用户去下载页手动替换。
+
+### 更新源不可达时
+
+`build/electron-builder.json` 的 `publish` 段是更新源的唯一开关：
+
+```json
+"publish": {
+  "provider": "github",
+  "owner": "Ruciazyt",
+  "repo": "qnote-elec"
+}
+```
+
+**注意：GitHub 的 Release 附件只有仓库公开时才能被匿名下载。**
+仓库若为私有，`electron-updater` 取 `latest.yml` 会拿到 404，
+「检查更新」会提示"更新源不可访问"。
+
+三种处理方式：
+
+| 场景 | 做法 |
+| --- | --- |
+| 仓库公开 | 无需改动，现有配置直接可用 |
+| 仓库私有但有公开分发渠道 | 把 `publish` 改成 `generic` 并指向一个公开可访问的目录（该目录里放 `latest.yml` 与安装包），`npmRebuild` 与上传步骤同步调整 |
+| 仓库私有且只自用 | 不发 Release 即可；「打开下载页」按钮会带着浏览器登录态跳到 Releases 页 |
+
+切换 `publish` 后需要重新构建 —— `app-update.yml` 是打包时生成并写进
+`resources/` 的，改配置不会影响已经打好的安装包。
 
 ## 📁 目录结构
 

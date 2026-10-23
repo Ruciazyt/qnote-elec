@@ -3,103 +3,12 @@ import { configManager } from "../utils/config";
 import { setBaiduKeys } from "../utils/baiduOCR";
 import { log } from "../utils/log";
 import { app } from "electron";
-import * as https from "https";
 
-/** GitHub 仓库信息 — 用于检查更新 */
-const GITHUB_OWNER = "Ruciazyt";
-const GITHUB_REPO = "qnote-elec";
-/** 请求超时时间（毫秒） */
-const RELEASE_FETCH_TIMEOUT_MS = 15000;
-
-interface GithubReleasePayload {
-  tag_name: string;
-  name: string;
-  html_url: string;
-  published_at: string;
-  body?: string;
-  draft?: boolean;
-  prerelease?: boolean;
-}
-
-/**
- * 通过 GitHub Releases API 查询最新版本
- * 文档：https://docs.github.com/en/rest/releases/releases#get-the-latest-release
- */
-function fetchLatestRelease(): Promise<{
-  success: boolean;
-  tag?: string;
-  version?: string;
-  name?: string;
-  htmlUrl?: string;
-  publishedAt?: string;
-  error?: string;
-}> {
-  return new Promise((resolve) => {
-    const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
-    const req = https.get(
-      url,
-      {
-        headers: {
-          "User-Agent": "QNote-Electron",
-          Accept: "application/vnd.github+json",
-          "X-GitHub-Api-Version": "2022-11-28",
-        },
-      },
-      (res) => {
-        let data = "";
-        res.setEncoding("utf8");
-        res.on("data", (chunk) => {
-          data += chunk;
-        });
-        res.on("end", () => {
-          if (res.statusCode === 404) {
-            // 仓库还没有任何 release
-            log.info("GitHub 上尚未发布 release");
-            resolve({ success: false, error: "暂无可用更新" });
-            return;
-          }
-          if (res.statusCode !== 200) {
-            log.warn(`查询最新版本失败: HTTP ${res.statusCode}`, data);
-            resolve({
-              success: false,
-              error: `GitHub 返回 ${res.statusCode}`,
-            });
-            return;
-          }
-          try {
-            const release = JSON.parse(data) as GithubReleasePayload;
-            const tagName = release.tag_name || "";
-            // 去掉 tag 前缀的 "v" 或 "V"
-            const version = tagName.replace(/^[vV]/, "");
-            resolve({
-              success: true,
-              tag: tagName,
-              version,
-              name: release.name || tagName,
-              htmlUrl: release.html_url,
-              publishedAt: release.published_at,
-            });
-          } catch (parseErr) {
-            log.error("解析 release JSON 失败", parseErr);
-            resolve({ success: false, error: "响应解析失败" });
-          }
-        });
-      }
-    );
-    req.on("error", (err) => {
-      log.error("查询最新版本网络错误", err);
-      resolve({
-        success: false,
-        error: err.message || "网络错误",
-      });
-    });
-    req.setTimeout(RELEASE_FETCH_TIMEOUT_MS, () => {
-      log.warn("查询最新版本超时");
-      req.destroy();
-      resolve({ success: false, error: "请求超时" });
-    });
-  });
-}
+// 注：原先这里有一个 get-latest-release handler，用 GitHub API 查最新版本号。
+// 它已被 src/main/core/updater.ts 的 electron-updater 方案取代并删除，原因是：
+//   1. 只能拿到版本号，既下载不了安装包也装不了；
+//   2. 匿名访问 GitHub API 对非公开仓库直接返回 404，"检查更新"永远失败。
+// 现在的更新能力统一走 update:* 系列通道，见 handlers/updateHandlers.ts。
 
 export function registerConfigHandlers() {
   ipcMain.handle("get-baidu-keys", async () => {
@@ -131,22 +40,6 @@ export function registerConfigHandlers() {
     } catch (error) {
       log.error("获取应用信息失败", error);
       return { success: false, error: error instanceof Error ? error.message : String(error) };
-    }
-  });
-
-  /**
-   * 查询 GitHub Releases 上的最新版本
-   * 与 get-app-info 一起被设置页面调用，用于"检查更新"功能
-   */
-  ipcMain.handle("get-latest-release", async () => {
-    try {
-      return await fetchLatestRelease();
-    } catch (err) {
-      log.error("检查更新失败", err);
-      return {
-        success: false,
-        error: err instanceof Error ? err.message : String(err),
-      };
     }
   });
 }

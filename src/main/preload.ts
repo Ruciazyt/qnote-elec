@@ -156,8 +156,38 @@ contextBridge.exposeInMainWorld("electron", {
   // 应用信息API
   getAppInfo: () => ipcRenderer.invoke("get-app-info"),
 
-  // 检查更新 — 查询 GitHub Releases 最新版本
-  getLatestRelease: () => ipcRenderer.invoke("get-latest-release"),
+  // ============================================================
+  // 应用更新
+  //
+  // 走主进程的 electron-updater（src/main/core/updater.ts）。
+  // 之前这里只有一个 getLatestRelease —— 只查 GitHub API 拿版本号，
+  // 既下载不了也装不了，而且那个 API 对非公开仓库直接 404。
+  // ============================================================
+  /** 拉取当前更新状态快照 */
+  getUpdateStatus: () => ipcRenderer.invoke("update:status"),
+  /** 运行环境信息：是否打包版 / 是否便携版 / 下载地址 */
+  getUpdateEnvironment: () => ipcRenderer.invoke("update:environment"),
+  /** 手动检查更新 */
+  checkForUpdate: () => ipcRenderer.invoke("update:check"),
+  /** 下载更新包 */
+  downloadUpdate: () => ipcRenderer.invoke("update:download"),
+  /** 重启并安装更新（调用后应用退出） */
+  installUpdate: () => ipcRenderer.invoke("update:install"),
+  /** 打开 Releases 页面（自动更新不可用时的手动出路） */
+  openReleasesPage: () => ipcRenderer.invoke("update:open-releases"),
+  /**
+   * 订阅更新状态变化
+   *
+   * 下载进度这类事件是持续推送的，不能等 IPC 的返回值，所以必须走监听。
+   * 返回一个反注册函数，组件卸载时调用，避免监听器泄漏导致重复 setState。
+   */
+  onUpdateStatus: (callback: (status: any) => void) => {
+    const listener = (_e: unknown, payload: any) => callback(payload);
+    ipcRenderer.on("update:status", listener);
+    return () => {
+      ipcRenderer.removeListener("update:status", listener);
+    };
+  },
 
   // AI相关API
   sendAiMessage: (message: string, chatSessionId?: string) =>

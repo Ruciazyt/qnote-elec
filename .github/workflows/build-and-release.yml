@@ -138,6 +138,10 @@ jobs:
           path: |
             dist_electron/*.exe
             dist_electron/*.zip
+            # latest.yml 是自动更新的元数据文件 —— 里面记着安装包文件名、
+            # 版本号与 SHA512。electron-updater 先下载它，再据此下载安装包。
+            # 少传这一个文件，"检查更新"就会报「找不到 latest.yml」。
+            dist_electron/latest.yml
           retention-days: 30
 
   release:
@@ -158,35 +162,44 @@ jobs:
       - name: List downloaded artifacts
         run: |
           echo "下载的构建文件:"
-          find artifacts -type f -name "*.exe" -o -name "*.zip" | sort
-          
+          find artifacts -type f -name "*.exe" -o -name "*.zip" -o -name "latest.yml" | sort
+
       - name: Create Release
         uses: softprops/action-gh-release@v3
         with:
           files: |
             artifacts/**/*.exe
             artifacts/**/*.zip
+            # 自动更新元数据 —— 必须与安装包在同一个 Release 里，
+            # electron-updater 会按 /releases/download/<tag>/latest.yml 取它。
+            artifacts/**/latest.yml
           draft: false
           prerelease: false
           generate_release_notes: true
           body: |
             ## 📦 下载说明
-            
+
             - **QNote-Setup-x.x.x.exe**: 安装版（已代码签名），推荐大多数用户使用
             - **QNote-x.x.x-portable.zip**: 便携版压缩包，解压后可直接运行
-            
+
+            ## 🔄 自动更新
+
+            安装版支持在「设置 → 数据与开发 → 应用更新」里检查、下载并安装新版本。
+            更新包下载完成后会校验 SHA512。若自动更新不可用，可在本页面手动下载。
+
             ## 🔒 安全说明
-            
+
             本版本已使用自签名证书进行代码签名，提高了安全性。
             如果首次运行时系统仍有提示，请选择"仍要运行"。
-            
+
             ### 便携版使用方法
             1. 下载 `QNote-x.x.x-portable.zip` 文件
             2. 解压到任意文件夹
             3. 双击 `QNote.exe` 即可运行
-            
+            4. 便携版不支持自动更新，升级需重新下载解压
+
             ## ✨ 更新内容
-            
+
             详见下方自动生成的更新日志。
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 

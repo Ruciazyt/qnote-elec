@@ -36,6 +36,8 @@ import { registerTodoHandlers } from "./handlers/todoHandlers";
 import { registerBrowserHandlers, teardownBrowserHandlers } from "./handlers/browserHandlers";
 import { registerBookmarkHandlers } from "./handlers/bookmarkHandlers";
 import { registerShortcutHandlers } from "./handlers/shortcutHandlers";
+import { registerUpdateHandlers } from "./handlers/updateHandlers";
+import { initUpdater } from "./core/updater";
 import { parseAddShortcutArg } from "./utils/shellContextMenu";
 import { registerAsrHandlers } from "./handlers/asrHandlers";
 import { createMainWindow, getMainWindow, showMainWindow, createTray, createCircleWindow, destroyCircleWindow } from "./core/window";
@@ -298,6 +300,7 @@ function registerIpcHandlers() {
   registerBookmarkHandlers(DB);
   registerShortcutHandlers(DB);
   registerAsrHandlers();
+  registerUpdateHandlers();
 }
 
 /** 必须在 createMainWindow() 之后调用 —— 下面这些 handler 要用 win 挂载原生视图 */
@@ -584,6 +587,13 @@ app
       log.info("注册IPC处理程序...");
       registerIpcHandlers();
       log.info("IPC处理程序已注册");
+
+      // 初始化更新器
+      //
+      // 必须放在 app ready 之后：electron-updater 要用 Electron 的网络栈
+      // 下载安装包，ready 之前拿不到 session。这里的 init 只注册事件监听，
+      // 不会自己发起任何网络请求 —— 更新只在用户点"检查更新"时才触发。
+      initUpdater();
 
       // 创建主窗口
       createMainWindow();

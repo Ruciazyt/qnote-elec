@@ -387,16 +387,21 @@ interface ElectronAPI {
     exePath: string;
   }>;
 
-  // Update check — fetches the latest GitHub release
-  getLatestRelease: () => Promise<{
-    success: boolean;
-    tag?: string;
-    version?: string;
-    name?: string;
-    htmlUrl?: string;
-    publishedAt?: string;
-    error?: string;
-  }>;
+  // ============================================================
+  // 应用更新
+  // 类型定义在 src/renderer/types/update.ts（interface 体内不能声明 type）
+  // ============================================================
+
+  getUpdateStatus: () => Promise<import("./types/update").UpdateStatus>;
+  getUpdateEnvironment: () => Promise<import("./types/update").UpdateEnvironment>;
+  checkForUpdate: () => Promise<import("./types/update").UpdateStatus>;
+  downloadUpdate: () => Promise<import("./types/update").UpdateStatus>;
+  installUpdate: () => Promise<{ ok: boolean; error?: string }>;
+  openReleasesPage: () => Promise<boolean>;
+  /** 订阅更新状态变化，返回反注册函数 */
+  onUpdateStatus: (
+    callback: (status: import("./types/update").UpdateStatus) => void
+  ) => () => void;
 
   // Cross-window shared state for the floating AI assistant panel
   getFloatingAiState: () => Promise<{
