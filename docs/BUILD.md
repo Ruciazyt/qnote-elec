@@ -247,6 +247,46 @@ ls -la dist_electron/
 
 3. **内存不足**: electron-builder 需要较多内存，确保系统有足够可用内存
 
+4. **`ENOENT: ... node_modules\.pnpm\node_modules\@emnapi\runtime`**
+
+   electron-builder 的原生模块重建步骤会遍历整棵依赖树，撞上 pnpm 留下的
+   **悬空 junction**（`@img/sharp-wasm32` 的 wasm 变体在 win32-x64 上不会安装，
+   但 pnpm 仍会建链接）就报 ENOENT，整个打包直接失败。
+
+   本项目的运行时原生模块只有 sqlite3，且它是 **N-API**（ABI 稳定，Node 和
+   Electron 通用），本来就不需要针对 Electron 重编译，因此构建配置里已经
+   关闭了该步骤（`build/electron-builder.json` 的 `"npmRebuild": false`）。
+
+5. **`Cannot create symbolic link : 客户端没有所需的权限`**
+
+   出在解压 `winCodeSign` 工具包时（里面带 darwin 的符号链接）。非管理员
+   且没开「开发者模式」的 Windows 建不了符号链接，解压失败 → 打包失败。
+
+   失败的是 macOS 的库文件，跟 Windows 构建毫无关系，纯粹是环境权限问题。
+
+   **`pnpm run build` 已经能自动处理，不用手工干预**：打包脚本
+   `scripts/build/build-app.js` 会先照常打包；一旦识别到这个报错，就自动
+   改用「跳过 exe 资源写入」重打一次，再用缓存里的 `rcedit-x64.exe`
+   把图标和版本信息补回去 —— `rcedit` 是独立可执行文件，不需要符号链接。
+   产物与正常打包一致。
+
+   想知道最终 exe 有没有写对，可以查一下：
+
+   ```powershell
+   (Get-Item dist_electron\win-unpacked\QNote.exe).VersionInfo |
+     Select-Object FileDescription, ProductName, FileVersion
+   ```
+
+   另外两种处理方式：
+
+   | 做法 | 说明 |
+   | --- | --- |
+   | 开启 Windows「开发者模式」 | 设置 → 系统 → 开发者选项，普通用户即可创建符号链接，之后连降级都不会触发 |
+   | 以管理员身份运行终端 | 同上，权限直接满足 |
+
+   注意：**CI（GitHub Actions）不受影响** —— 它的 runner 默认就有符号链接权限，
+   走的是常规路径。
+
 ### GitHub Actions 失败
 
 1. **Token 权限**: 确保 GitHub Token 有足够权限创建 Release

@@ -4,6 +4,7 @@
   "productName": "QNote",
   "copyright": "Rucia zyt",
   "asar": true,
+  "npmRebuild": false,
   "files": [
     "dist/**/*"
   ],
