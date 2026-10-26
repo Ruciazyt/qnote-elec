@@ -17,6 +17,22 @@ export default defineConfig({
   build: {
     outDir: "../../dist/renderer",
     emptyOutDir: true,
+    rollupOptions: {
+      /**
+       * 多页构建
+       *
+       * 除了主窗口，还要产出「屏幕便签」页面 —— 它跑在一个独立的透明
+       * BrowserWindow 里，必须是单独的入口，不能挂在主窗口的 bundle 上
+       * （主窗口那套 bundle 带着 Excalidraw、AI 等一大堆东西，便签只要一张纸）。
+       *
+       * 产物落在 dist/renderer/sticky-note.html，打包后位于
+       * resources/renderer/dist/sticky-note.html。
+       */
+      input: {
+        main: path.resolve(__dirname, "index.html"),
+        "sticky-note": path.resolve(__dirname, "sticky-note.html"),
+      },
+    },
   },
   server: {
     fs: {

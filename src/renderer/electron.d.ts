@@ -476,4 +476,49 @@ interface ElectronAPI {
   closePopup: () => void;
   showMainWindow: () => void;
 
-};
+  // ==================== 屏幕便签 API ====================
+  // 把一条剪贴板记录拖出程序窗口 → 变成压在桌面上的小纸条
+
+  /** 开始一次「拖出」：主进程开始盯光标，光标离开源窗口就撕下便签 */
+  stickyDragBegin: (payload: {
+    type: "text" | "image";
+    content: string;
+  }) => void;
+  /** 结束「拖出」（松手） */
+  stickyDragEnd: () => void;
+  /** 便签窗口读取自己的初始数据 */
+  stickyGetInit: () => Promise<import("../shared/stickyNote").StickyNoteInit | null>;
+  /** 修改便签（正文 / 置顶层级） */
+  stickyUpdate: (patch: {
+    id?: string;
+    text?: string;
+    alwaysOnTop?: boolean;
+  }) => Promise<{ ok: boolean; error?: string }>;
+  /** 关掉一张便签 */
+  stickyClose: (id?: string) => Promise<{ ok: boolean }>;
+  /** 设置便签的位置 / 尺寸 */
+  stickySetBounds: (bounds: {
+    id?: string;
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
+  }) => Promise<{ ok: boolean; error?: string }>;
+  /** 列出全部便签 */
+  stickyList: () => Promise<import("../shared/stickyNote").StickyNoteInit[]>;
+  /** 直接创建一张便签（菜单入口用，不必先学会拖拽） */
+  stickyCreate: (payload: {
+    type: "text" | "image";
+    content: string;
+  }) => Promise<{ ok: boolean; id?: string; error?: string }>;
+  /** 弹出便签的原生右键菜单（图片便签没有常驻控件，操作走这里） */
+  stickyShowMenu: () => Promise<boolean>;
+}
+
+declare global {
+  interface Window {
+    electron: ElectronAPI;
+  }
+}
+
+export {};

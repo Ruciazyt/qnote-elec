@@ -6,13 +6,14 @@ import { Button } from "../ui/button";
 import { Skeleton } from "../ui/skeleton";
 import {
   Copy, Trash2, Pin, PinOff, Star, Code, Check, Image as ImageIcon, Clock, ListChecks,
-  NotebookPen, Loader2, ChevronDown, ChevronLeft, MoreHorizontal, Pencil, Save,
+  NotebookPen, Loader2, ChevronDown, ChevronLeft, MoreHorizontal, Pencil, Save, StickyNote,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { ClipboardRecord } from "./types";
 import { getSupportedLanguages, SupportedLanguage } from "@/utils/codeFormatter";
 import { useAutoGrowTextarea } from "@/hooks/useAutoGrowTextarea";
+import { useStickyDrag } from "@/hooks/useStickyDrag";
 
 const languageToPrismClass: Record<SupportedLanguage, string> = {
   javascript: "language-javascript",
@@ -212,6 +213,14 @@ export function ClipboardList({
   codeContainerRef,
 }: ClipboardListProps) {
   const [copiedId, setCopiedId] = useState<number | null>(null);
+
+  /**
+   * 「拖出窗口 → 变成屏幕便签」
+   *
+   * 卡片本体接住按下与移动，越过阈值后由主进程盯着光标：
+   * 光标一旦离开本窗口边界，就在光标处撕下一张便签。
+   */
+  const { getDragProps, dragging, ghostNode } = useStickyDrag();
 
   /**
    * 置顶项默认收起
@@ -486,6 +495,19 @@ export function ClipboardList({
           });
         }
 
+        // 变成屏幕便签：把这条记录甩到桌面上去，当成一张实体便签纸
+        moreMenuItems.push({
+          key: "sticky",
+          label: "变成屏幕便签",
+          icon: <StickyNote className="h-3.5 w-3.5" />,
+          onSelect: () => {
+            void window.electron.stickyCreate({
+              type: record.type,
+              content: record.content,
+            });
+          },
+        });
+
         // 代码高亮是二级面板：语言有 5 种，和其它单次点击的动作挤在一层会让菜单变很长
         if (record.type === "text") {
           moreMenuItems.push({
@@ -538,7 +560,8 @@ export function ClipboardList({
               style={{
                 animationDelay: `${Math.min(index, 40) * 50}ms`,
                 animationFillMode: "both",
-              }}>
+              }}
+              {...getDragProps({ type: record.type, content: record.content })}>
               <div
                 className="flex items-center gap-2 px-3 py-2 cursor-pointer"
                 onClick={() => togglePinnedExpanded(recordId)}
@@ -695,11 +718,13 @@ export function ClipboardList({
               isEditing
                 ? "z-50 neu-raised neu-raised-open"
                 : "neu-raised neu-raised-hover hover:-translate-y-1 hover:scale-[1.004]"
-            }`}
+            } ${dragging ? "opacity-60" : ""}`}
             style={{
               animationDelay: `${Math.min(index, 40) * 50}ms`,
               animationFillMode: "both",
-            }}>
+            }}
+            title="按住拖出窗口即可变成屏幕便签"
+            {...getDragProps({ type: record.type, content: record.content })}>
             <div className="space-y-2">
               {/* 顶部行：类型徽章 + 操作按钮 */}
               <div className="flex items-center gap-2">
@@ -994,6 +1019,7 @@ export function ClipboardList({
       })}
       </div>
     </div>
+    {ghostNode}
     </TooltipProvider>
   );
 }

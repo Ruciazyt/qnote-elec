@@ -3,6 +3,7 @@ export default {
 	darkMode: ["class"],
 	content: [
 		"./index.html",
+		"./sticky-note.html",
 		"./*.{js,ts,jsx,tsx}",
 		"./{components,hooks,lib,pages,styles,utils}/**/*.{js,ts,jsx,tsx}",
 	],

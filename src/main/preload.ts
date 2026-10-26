@@ -556,4 +556,43 @@ contextBridge.exposeInMainWorld("electron", {
   closePopup: () => ipcRenderer.send("popup-close"),
   showMainWindow: () => ipcRenderer.send("popup-show-main-window"),
 
+  // ==================== 屏幕便签 API ====================
+  // 把一条剪贴板记录拖出程序窗口 → 变成压在桌面上的小纸条
+
+  /**
+   * 开始一次「拖出」
+   *
+   * 渲染层只负责"用户在拖某条记录"这一事实，**光标位置一律由主进程判断**：
+   * 渲染层的 screenX/screenY 是 CSS 像素，窗口边界是 DIP，
+   * Windows 缩放不是 100% 时两者对不上。
+   */
+  stickyDragBegin: (payload: { type: "text" | "image"; content: string }) =>
+    ipcRenderer.send("sticky:drag-begin", payload),
+  /** 结束「拖出」（松手） */
+  stickyDragEnd: () => ipcRenderer.send("sticky:drag-end"),
+  /** 便签窗口读取自己的初始数据 */
+  stickyGetInit: () => ipcRenderer.invoke("sticky:get-init"),
+  /** 修改便签（正文 / 置顶层级） */
+  stickyUpdate: (patch: {
+    id?: string;
+    text?: string;
+    alwaysOnTop?: boolean;
+  }) => ipcRenderer.invoke("sticky:update", patch),
+  /** 关掉一张便签 */
+  stickyClose: (id?: string) => ipcRenderer.invoke("sticky:close", id),
+  /** 设置便签的位置 / 尺寸（自定义缩放手柄用） */
+  stickySetBounds: (bounds: {
+    id?: string;
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
+  }) => ipcRenderer.invoke("sticky:set-bounds", bounds),
+  /** 列出全部便签 */
+  stickyList: () => ipcRenderer.invoke("sticky:list"),
+  /** 直接创建一张便签（菜单入口用，不必先学会拖拽） */
+  stickyCreate: (payload: { type: "text" | "image"; content: string }) =>
+    ipcRenderer.invoke("sticky:create", payload),
+  /** 弹出便签的原生右键菜单（图片便签没有常驻控件，操作走这里） */
+  stickyShowMenu: () => ipcRenderer.invoke("sticky:show-menu"),
 });

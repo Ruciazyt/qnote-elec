@@ -2,6 +2,7 @@ import { BrowserWindow, screen, ipcMain } from "electron";
 import * as path from "node:path";
 import { app } from "electron";
 import { log } from "../../utils/log";
+import { stickyNoteManager } from "./stickyNote";
 
 // 跟踪IPC监听器引用，用于清理
 const ipcListenerRefs: Array<{ channel: string; handler: (...args: any[]) => void }> = [];
@@ -98,7 +99,10 @@ export class ClipboardPopupWindow {
         preload: getPreloadPath(),
         contextIsolation: true,
         nodeIntegration: false,
-        partition: "persist:main",
+        // 用默认 session（不指定 partition），与主窗口共享 localStorage ——
+        // popup-clipboard.html 要从 qnote-theme 读用户选好的主题档位。
+        // 之前写的 `persist:main` 是另一个独立 session，读出来永远是 null，
+        // 主题只能退化成跟随系统。
       },
     });
 
@@ -119,7 +123,13 @@ export class ClipboardPopupWindow {
     }
 
     // 失去焦点自动隐藏
-    win.on("blur", () => this.hide());
+    win.on("blur", () => {
+      // 正在把某条记录拖成屏幕便签时**不能藏**：
+      // 把内容拖出弹窗必然会让弹窗失焦，一藏窗口就没了，
+      // 鼠标捕获随之丢失，拖拽会当场断掉。
+      if (stickyNoteManager.isDragActive()) return;
+      this.hide();
+    });
 
     // 注册 popup-close IPC - 使用命名函数以便跟踪
     const popupCloseHandler = () => this.hide();

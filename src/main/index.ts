@@ -32,6 +32,8 @@ import { registerVectorHandlers } from "./handlers/vectorHandlers";
 import { registerLeetcodeHandlers } from "./handlers/leetcodeHandlers";
 import { registerDatabaseTransferHandlers } from "./handlers/databaseTransferHandlers";
 import { registerClipboardPopupHandlers } from "./handlers/clipboardPopupHandlers";
+import { registerStickyNoteHandlers } from "./handlers/stickyNoteHandlers";
+import { stickyNoteManager } from "./core/window/stickyNote";
 import { registerNotesProtocol } from "./handlers/notesProtocol";
 import { registerTodoHandlers } from "./handlers/todoHandlers";
 import { registerBrowserHandlers, teardownBrowserHandlers } from "./handlers/browserHandlers";
@@ -297,6 +299,7 @@ function registerIpcHandlers() {
   registerVectorHandlers(DB);
   registerLeetcodeHandlers(DB);
   registerClipboardPopupHandlers();
+  registerStickyNoteHandlers();
   registerTodoHandlers(DB);
   registerBookmarkHandlers(DB);
   registerShortcutHandlers(DB);
@@ -485,6 +488,12 @@ app.on("will-quit", () => {
   // 销毁圆形控件窗口
   destroyCircleWindow();
 
+  // 销毁屏幕便签窗口
+  //
+  // 注意顺序：destroyAll 只关窗口、不删记录 —— 便签要活过这次退出，
+  // 下次启动再摆回桌面上。记录本身已经落盘，这里只是把窗口资源收掉。
+  stickyNoteManager.destroyAll();
+
   // 释放内嵌浏览器的 WebContentsView
   teardownBrowserHandlers();
 
@@ -641,6 +650,16 @@ void app
 
       // 创建主窗口
       createMainWindow();
+
+      // 恢复上次退出时留在桌面上的屏幕便签
+      //
+      // 放在 createMainWindow 之后：便签页面与主窗口共用同一个渲染层 session，
+      // 主题等 localStorage 设置要在主窗口起来之后才稳定。
+      try {
+        stickyNoteManager.restoreAll();
+      } catch (err) {
+        log.error("[sticky] 恢复便签失败:", err);
+      }
 
       // 窗口就绪后再注册依赖 win 的 handler
       registerWindowScopedHandlers();

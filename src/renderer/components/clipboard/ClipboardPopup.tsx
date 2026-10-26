@@ -3,6 +3,7 @@ import { X, Search, ClipboardList } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { useStickyDrag } from "@/hooks/useStickyDrag";
 
 interface ClipboardItem {
   id: number;
@@ -29,6 +30,14 @@ export function ClipboardPopup() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const listRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * 「拖出弹窗 → 变成屏幕便签」
+   *
+   * 这个小窗本来就常驻在光标旁边，把内容从它身上拖到桌面上，
+   * 是最顺手的路径 —— 拖拽中弹窗不会因为失焦而消失（主进程那边有兜底）。
+   */
+  const { getDragProps, dragging, ghostNode } = useStickyDrag();
 
   const loadHistory = useCallback(async () => {
     setIsLoading(true);
@@ -200,8 +209,11 @@ export function ClipboardPopup() {
                   "flex flex-col gap-2",
                   isSelected
                     ? "bg-primary/[0.07] border-primary/30 shadow-[0_4px_12px_hsl(var(--primary)/0.1)]"
-                    : "bg-card border-border hover:border-primary/20 hover:shadow-sm"
+                    : "bg-card border-border hover:border-primary/20 hover:shadow-sm",
+                  dragging ? "opacity-60" : ""
                 )}
+                title="按住拖出窗口即可变成屏幕便签"
+                {...getDragProps({ type: item.type, content: item.content })}
               >
                 {/* Left glow indicator — radiates behind selected item */}
                 {isSelected && (
@@ -261,6 +273,7 @@ export function ClipboardPopup() {
           })
         )}
       </div>
+      {ghostNode}
     </div>
   );
 }
