@@ -51,6 +51,9 @@ renderer/dist/
 .settings/
 *.sublime-workspace
 
+# 本地代理工作目录（截图、临时脚本等，不进仓库）
+.mavis/
+
 # Visual Studio Code
 .vscode/*
 !.vscode/settings.json
