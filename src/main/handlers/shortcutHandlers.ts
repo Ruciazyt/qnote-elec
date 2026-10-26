@@ -2,9 +2,10 @@ import { ipcMain, dialog, shell, app } from "electron";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { log } from "../utils/log";
+import { describeDBError } from "../../database";
 import { getMainWindow } from "../core/window";
 import { resolveShortcutIcon, type ShortcutKind } from "../utils/shortcutIcons";
-import { getContextMenuStatus, setContextMenuEnabled } from "../utils/shellContextMenu";
+import { getContextMenuStatus, setContextMenuEnabled, repairContextMenu } from "../utils/shellContextMenu";
 
 export interface ShortcutRow {
   id: number;
@@ -207,7 +208,9 @@ export function registerShortcutHandlers(DB: any) {
         return { success: true, id: id[0] };
       } catch (err) {
         log.error("shortcut:add error:", err);
-        return { success: false, error: err instanceof Error ? err.message : String(err) };
+        // 面向用户的那条用中文：原文是 knex/sqlite 的英文黑话，
+        // 直接显示出来用户既看不懂也不知道该干什么
+        return { success: false, error: describeDBError(err) };
       }
     }
   );
@@ -351,6 +354,22 @@ export function registerShortcutHandlers(DB: any) {
   /** 系统右键菜单项的注册状态 */
   ipcMain.handle("shell-menu:status", async () => {
     return await getContextMenuStatus();
+  });
+
+  /**
+   * 修复失效的右键菜单命令
+   *
+   * 菜单项在、命令失效时（升级换目录、旧版本残留、值写空），
+   * 右键能看见这一项、点了却毫无反应。应用启动时会自愈一次，
+   * 这里给界面留一个手动入口 —— 用户当场就能修好，不用重启。
+   */
+  ipcMain.handle("shell-menu:repair", async () => {
+    try {
+      return await repairContextMenu();
+    } catch (err) {
+      log.error("shell-menu:repair error:", err);
+      return { success: false, repaired: false, error: err instanceof Error ? err.message : String(err) };
+    }
   });
 
   /** 开关系统右键菜单项 */

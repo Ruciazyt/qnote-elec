@@ -7,6 +7,7 @@ import {
   Loader2,
   Settings2,
   Trash2,
+  Wrench,
 } from "lucide-react";
 import {
   DndContext,
@@ -70,6 +71,13 @@ export function ShortcutPanel() {
   const [preset, setPreset] = useState<{ kind: ShortcutKind; target: string; title: string } | null>(null);
   const [shellStatus, setShellStatus] = useState<ShellMenuStatus | null>(null);
   const [shellBusy, setShellBusy] = useState(false);
+  /**
+   * 注册项在、但命令已经失效 —— 右键能看见这一项，点了却毫无反应。
+   *
+   * 必须和"已开启"分开看：开关显示成开着的，用户理所当然会以为功能正常，
+   * 实际右键点下去什么都没发生，而应用内部还觉得自己注册成功了。
+   */
+  const shellBroken = !!shellStatus?.enabled && shellStatus?.valid === false;
   const [showShellRow, setShowShellRow] = useState(false);
   /** 正在拖动的图块 id；非 null 时渲染拖拽浮层 */
   const [activeId, setActiveId] = useState<number | null>(null);
@@ -350,11 +358,48 @@ export function ShortcutPanel() {
     try {
       const result = await window.electron.setShellContextMenuEnabled(next);
       if (result.success) {
-        setShellStatus((prev) => ({ ...(prev ?? { supported: true, enabled: false }), enabled: next }));
+        setShellStatus((prev) => ({
+          ...(prev ?? { supported: true, enabled: false, valid: false }),
+          enabled: next,
+          valid: next,
+        }));
         toast({ title: next ? "已添加到系统右键菜单" : "已从系统右键菜单移除" });
       } else {
         toast({ title: "设置失败", description: result.error, variant: "destructive" });
       }
+    } finally {
+      setShellBusy(false);
+    }
+  }
+
+  /**
+   * 修复失效的右键菜单命令
+   *
+   * "菜单项在、点了没反应"有三种成因：应用更新后换了安装目录、
+   * 旧版本残留的注册项、或者注册表写到一半留下空命令。
+   * 这三种在资源管理器里的表现完全一样，光看"开关是开的"分辨不出来，
+   * 所以这里要有一个能一键修好的出口，而不是让用户自己去掏注册表。
+   */
+  async function repairShellMenu() {
+    setShellBusy(true);
+    try {
+      const result = await window.electron.repairShellContextMenu();
+      if (result.success) {
+        const status = await window.electron.getShellContextMenuStatus();
+        setShellStatus(status);
+        toast({
+          title: result.repaired ? "右键菜单已修复" : "右键菜单无需修复",
+          description: result.repaired ? "现在右键文件或文件夹就能添加快捷方式了" : undefined,
+        });
+      } else {
+        toast({ title: "修复失败", description: result.error, variant: "destructive" });
+      }
+    } catch (err) {
+      toast({
+        title: "修复失败",
+        description: err instanceof Error ? err.message : "未知错误",
+        variant: "destructive",
+      });
     } finally {
       setShellBusy(false);
     }
@@ -434,19 +479,37 @@ export function ShortcutPanel() {
       {showShellRow && (
         <div className="px-3 py-2.5 border-b border-border/40 flex flex-col gap-2.5 shrink-0 animate-fade-in">
           {shellStatus?.supported ? (
-            <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <div className="text-[12px] font-medium text-foreground/85">系统右键菜单</div>
-                <div className="text-[10px] text-muted-foreground/60 leading-snug mt-0.5">
-                  右键文件或文件夹即可添加到快捷方式
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="text-[12px] font-medium text-foreground/85">系统右键菜单</div>
+                  <div className="text-[10px] text-muted-foreground/60 leading-snug mt-0.5">
+                    {shellBroken
+                      ? "菜单项在，但点了没反应"
+                      : "右键文件或文件夹即可添加到快捷方式"}
+                  </div>
                 </div>
+                <Switch
+                  checked={shellStatus.enabled}
+                  disabled={shellBusy}
+                  onCheckedChange={toggleShellMenu}
+                  aria-label="系统右键菜单"
+                />
               </div>
-              <Switch
-                checked={shellStatus.enabled}
-                disabled={shellBusy}
-                onCheckedChange={toggleShellMenu}
-                aria-label="系统右键菜单"
-              />
+              {/* 注册项在、命令失效：开关是"开"的，但功能是坏的。
+                  这里必须说清楚，并给一个当场就能修好的入口 ——
+                  否则用户只会看到"明明开着却没用"。 */}
+              {shellBroken && (
+                <button
+                  type="button"
+                  onClick={repairShellMenu}
+                  disabled={shellBusy}
+                  className="flex items-center gap-1 self-start text-[10px] text-destructive/90 hover:text-destructive transition-colors disabled:opacity-50">
+                  <Wrench className="h-3 w-3" />
+                  {shellStatus.reason ?? "右键菜单命令已失效，重新注册一下"}
+                  <span className="underline underline-offset-2">修复</span>
+                </button>
+              )}
             </div>
           ) : (
             <p className="text-[10px] text-muted-foreground/60 leading-relaxed">
@@ -572,7 +635,11 @@ export function ShortcutPanel() {
         }}
         onSubmit={handleSubmit}
         onShellMenuChange={(enabled) =>
-          setShellStatus((prev) => ({ ...(prev ?? { supported: true, enabled: false }), enabled }))
+          setShellStatus((prev) => ({
+            ...(prev ?? { supported: true, enabled: false, valid: false }),
+            enabled,
+            valid: enabled,
+          }))
         }
         shellMenuStatus={shellStatus}
         shellMenuBusy={shellBusy}

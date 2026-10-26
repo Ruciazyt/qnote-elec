@@ -497,6 +497,8 @@ contextBridge.exposeInMainWorld("electron", {
   getShellContextMenuStatus: () => ipcRenderer.invoke("shell-menu:status"),
   setShellContextMenuEnabled: (enabled: boolean) =>
     ipcRenderer.invoke("shell-menu:set", enabled),
+  /** 修复失效的右键菜单命令（菜单项在、点了没反应时用） */
+  repairShellContextMenu: () => ipcRenderer.invoke("shell-menu:repair"),
 
   /**
    * 从系统右键菜单「添加到 QNote 快捷方式」唤起时收到目标路径
@@ -553,4 +555,5 @@ contextBridge.exposeInMainWorld("electron", {
   // 窗口控制（现在仅 ClipboardPopup 使用 — AI Popup 已移除）
   closePopup: () => ipcRenderer.send("popup-close"),
   showMainWindow: () => ipcRenderer.send("popup-show-main-window"),
+
 });

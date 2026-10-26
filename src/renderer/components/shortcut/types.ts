@@ -27,6 +27,16 @@ export interface ShortcutPickResult {
 export interface ShellMenuStatus {
   supported: boolean;
   enabled: boolean;
+  /**
+   * 注册的命令是否指向当前这个应用
+   *
+   * enabled 只说明"注册项在"，valid 才说明"右键点下去真的有用"。
+   * 两者不一致时菜单项会显示出来但点了没反应 —— 界面必须如实显示，
+   * 不能拿 enabled 当成"一切正常"给用户一个绿灯。
+   */
+  valid: boolean;
+  /** 实际注册的命令，供展示与排查 */
+  command?: string;
   /** supported 为假时的原因，直接展示给用户 */
   reason?: string;
 }

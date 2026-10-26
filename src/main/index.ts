@@ -39,7 +39,7 @@ import { registerBookmarkHandlers } from "./handlers/bookmarkHandlers";
 import { registerShortcutHandlers } from "./handlers/shortcutHandlers";
 import { registerUpdateHandlers } from "./handlers/updateHandlers";
 import { initUpdater } from "./core/updater";
-import { parseAddShortcutArg } from "./utils/shellContextMenu";
+import { parseAddShortcutArg, repairContextMenu } from "./utils/shellContextMenu";
 import { registerAsrHandlers } from "./handlers/asrHandlers";
 import { createMainWindow, getMainWindow, showMainWindow, createTray, createCircleWindow, destroyCircleWindow } from "./core/window";
 import { ClipboardPopupWindow } from "./core/window/clipboardPopup";
@@ -644,6 +644,31 @@ void app
 
       // 窗口就绪后再注册依赖 win 的 handler
       registerWindowScopedHandlers();
+
+      // 系统右键菜单自愈
+      //
+      // 注册表里的「添加到 QNote 快捷方式」命令必须指向**当前这个**可执行文件。
+      // 应用换了安装目录（升级、便携版挪位置）、或者被旧版本的残留注册项覆盖，
+      // 命令就会指向一个不存在或带不上的路径 —— 菜单项照常显示，点下去毫无反应，
+      // 而应用自己只看"键在不在"，会一直以为"已注册"。
+      //
+      // 这里在启动时核对一次命令内容，发现失效就重写。只修"已开启"的情况：
+      // 用户主动关掉的右键菜单不该被应用擅自打开。
+      //
+      // 只在打包版做：开发版的命令指向 electron.exe + 项目入口，
+      // 跟打包版的命令天然不同 —— 让开发版去"修"会把打包版的注册项改成开发版。
+      if (app.isPackaged) {
+        void (async () => {
+          try {
+            const result = await repairContextMenu();
+            if (result.repaired) {
+              log.info("[shell-menu] 已修复失效的右键菜单命令");
+            }
+          } catch (err) {
+            log.warn("[shell-menu] 右键菜单自愈失败:", err);
+          }
+        })();
+      }
 
       // 处理「双击图标启动且命令行里带着 --add-shortcut」的首次启动场景。
       // 放在 createMainWindow 之后：dispatch 内部要靠 did-finish-load 兜住

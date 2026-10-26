@@ -258,6 +258,13 @@ export function AddShortcutDialog({
                     <p className="text-[11px] text-muted-foreground/70 leading-relaxed mt-0.5">
                       开启后，在资源管理器里右键文件或文件夹即可看到「添加到 QNote 快捷方式」
                     </p>
+                    {/* 注册项在、命令失效：开关是"开"的，但右键点了没反应。
+                        这里要点破，否则用户会以为是自己操作有误。 */}
+                    {shellMenuStatus.enabled && shellMenuStatus.valid === false && (
+                      <p className="text-[11px] text-destructive/90 leading-relaxed mt-1">
+                        {shellMenuStatus.reason ?? "右键菜单命令已失效，重新开启一次即可修复"}
+                      </p>
+                    )}
                   </div>
                 </div>
               ) : (

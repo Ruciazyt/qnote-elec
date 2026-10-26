@@ -174,9 +174,19 @@ function stripQuotes(raw: string): string {
   return trimmed;
 }
 
-/** reg.exe 的输出在中文系统上是 GBK，解成 utf8 只会得到乱码，而这里根本不看内容 */
-async function reg(args: string[]): Promise<void> {
-  await execFileAsync("reg.exe", args, { timeout: 10_000, windowsHide: true });
+/**
+ * reg.exe 的输出在中文系统上是 GBK，解成 utf8 只会得到乱码，而这里根本不看内容
+ *
+ * 但 regCommandValue 要读 stdout（要看写入的命令值对不对），所以这里把
+ * execFile 的输出原样带出来，不在解码上做文章 —— REG_SZ 之类的前缀是 ASCII，
+ * 即使正文是乱码，正则照样能匹配上。
+ */
+async function reg(args: string[]): Promise<{ stdout: string; stderr: string }> {
+  const { stdout, stderr } = await execFileAsync("reg.exe", args, {
+    timeout: 10_000,
+    windowsHide: true,
+  });
+  return { stdout, stderr };
 }
 
 /** 判断注册表键是否已存在 —— reg query 的返回码就是答案 */
@@ -189,9 +199,61 @@ async function regKeyExists(key: string): Promise<boolean> {
   }
 }
 
+/**
+ * 读取注册表里实际写入的命令值
+ *
+ * 返回值有三种含义，缺一不可：
+ *   - null：command 键压根不存在（注册项写了一半）
+ *   - ""  ：键在、但值是空的（写注册表时中途失败就会留下这种残缺项）
+ *   - 字符串：真正写进去的命令
+ *
+ * 后两种在资源管理器里的表现**完全一样**：菜单项显示得出来，
+ * 点下去什么都不会发生。所以必须把"空值"和"缺键"分开看。
+ */
+async function regCommandValue(commandKey: string): Promise<string | null> {
+  try {
+    const { stdout } = await reg(["query", commandKey, "/ve"]);
+    const match = stdout.match(/REG_SZ\s+(.*)/);
+    return match ? match[1].trim() : "";
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 当前这个应用**应该**注册进去的命令
+ *
+ * 资源管理器执行的就是这条命令，所以它必须指向当前正在运行的可执行文件。
+ * 应用换了安装目录（升级、便携版挪了位置）之后，旧的注册项就指向了一个
+ * 不存在的路径 —— 菜单项还在，点下去毫无反应。
+ */
+export function expectedContextMenuCommand(): { command: string; error?: string } {
+  const { prefix, error } = launchPrefix();
+  if (error) return { command: "", error };
+  return { command: `${prefix} ${ADD_SHORTCUT_FLAG}="%1"` };
+}
+
+/** 实际注册的命令是否就是"应该写入的那条" */
+function isCommandCurrent(actual: string | null): boolean {
+  if (actual === null || actual.trim() === "") return false;
+  const { command, error } = expectedContextMenuCommand();
+  if (error) return false;
+  return actual === command;
+}
+
 export interface ShellContextMenuStatus {
   supported: boolean;
   enabled: boolean;
+  /**
+   * 注册的命令是否指向当前这个应用
+   *
+   * enabled 只说明"键在"，valid 才说明"点下去真的有用"。
+   * 两者不一致时（enabled=true, valid=false）菜单项会显示出来但毫无反应，
+   * 界面必须如实告诉用户，而不是显示一个"已开启"的绿灯。
+   */
+  valid: boolean;
+  /** 实际注册的命令（供界面展示与排查） */
+  command?: string;
   /** supported 为假时的原因，直接显示给用户 */
   reason?: string;
 }
@@ -212,14 +274,79 @@ export function contextMenuSupport(): { supported: boolean; reason?: string } {
 export async function getContextMenuStatus(): Promise<ShellContextMenuStatus> {
   const support = contextMenuSupport();
   if (!support.supported) {
-    return { supported: false, enabled: false, reason: support.reason };
+    return { supported: false, enabled: false, valid: false, reason: support.reason };
   }
   try {
-    return { supported: true, enabled: await regKeyExists(hkcuShellKey("*", "")) };
+    const enabled = await regKeyExists(hkcuShellKey("*", ""));
+    if (!enabled) {
+      return { supported: true, enabled: false, valid: false };
+    }
+
+    // 两个类目都要核对：只修好一半的话，右键文件夹能用、右键文件还是死的
+    const commands = await Promise.all(
+      REG_CLASS_ROOTS.map((root) => regCommandValue(hkcuShellKey(root, "\\command")))
+    );
+    const valid = commands.every((cmd) => isCommandCurrent(cmd));
+
+    return {
+      supported: true,
+      enabled: true,
+      valid,
+      command: commands[0] ?? undefined,
+      reason: valid
+        ? undefined
+        : "右键菜单命令已失效（应用可能更新过，或残留了旧版本的注册项），需要重新注册",
+    };
   } catch (err) {
     log.warn("[shell-menu] 查询右键菜单注册状态失败:", err);
-    return { supported: true, enabled: false };
+    return { supported: true, enabled: false, valid: false };
   }
+}
+
+/**
+ * 自愈：注册项在、但命令已经失效时，把它重写成当前这条
+ *
+ * 典型场景：
+ *   - 应用升级后换了安装目录，旧命令还指着上一个路径
+ *   - 旧版本残留的注册项还在，命令格式是老的（甚至值是空的）
+ *   - 写注册表写到一半失败，留下"菜单项在、命令为空"的残缺状态
+ *
+ * 这三种在资源管理器里的表现都是"右键有这一项、点了没反应"，
+ * 而应用原先只看键在不在，永远发现不了。
+ *
+ * 只修"用户已经开启"的情况 —— 用户主动关掉的右键菜单不该被擅自打开。
+ */
+export async function repairContextMenu(): Promise<{
+  success: boolean;
+  repaired: boolean;
+  error?: string;
+}> {
+  const status = await getContextMenuStatus();
+  if (!status.supported) {
+    return { success: false, repaired: false, error: status.reason };
+  }
+  if (!status.enabled) {
+    // 用户没开这个功能，保持现状
+    return { success: true, repaired: false };
+  }
+  if (status.valid) {
+    return { success: true, repaired: false };
+  }
+
+  const result = await setContextMenuEnabled(true);
+  if (!result.success) {
+    return { success: false, repaired: false, error: result.error };
+  }
+
+  const after = await getContextMenuStatus();
+  if (!after.valid) {
+    return {
+      success: false,
+      repaired: false,
+      error: "重新注册后命令仍然无效，请检查安装目录权限",
+    };
+  }
+  return { success: true, repaired: true };
 }
 
 /** 写入 / 移除右键菜单项 */
@@ -232,28 +359,31 @@ export async function setContextMenuEnabled(
   }
 
   try {
-    const { prefix } = launchPrefix();
+    const { command: expected, error: prefixError } = expectedContextMenuCommand();
+    if (prefixError) {
+      return { success: false, error: prefixError };
+    }
+
     for (const root of REG_CLASS_ROOTS) {
       const base = hkcuShellKey(root, "");
       const command = hkcuShellKey(root, "\\command");
 
       if (enabled) {
+        // 命令先写、标签后写。
+        //
+        // 顺序反过来（先写标签再写命令）时，中途失败/被杀会留下
+        // "菜单项已经显示、命令却是空的"这种残缺状态 ——
+        // 在资源管理器里点下去毫无反应，而应用只看标签在不在，
+        // 会一直以为注册成功了。命令写好了菜单项才有意义，所以它排第一。
+        //
+        // %1 由资源管理器替换成被右键项的完整路径（自带引号）
+        await reg(["add", command, "/ve", "/t", "REG_SZ", "/d", expected, "/f"]);
+
         // MUIVerb 与默认值同时写：MUIVerb 让 Win11 的新版右键菜单正确显示
         // 本地化文案，缺省值则保证旧版资源管理器也能显示出来。
         await reg(["add", base, "/ve", "/t", "REG_SZ", "/d", VERB_LABEL, "/f"]);
         await reg(["add", base, "/v", "MUIVerb", "/t", "REG_SZ", "/d", VERB_LABEL, "/f"]);
         await reg(["add", base, "/v", "Icon", "/t", "REG_SZ", "/d", iconSource(), "/f"]);
-        // %1 由资源管理器替换成被右键项的完整路径（自带引号）
-        await reg([
-          "add",
-          command,
-          "/ve",
-          "/t",
-          "REG_SZ",
-          "/d",
-          `${prefix} ${ADD_SHORTCUT_FLAG}="%1"`,
-          "/f",
-        ]);
       } else {
         // 删掉 shell\QNoteAddShortcut 整个键会连同下面的 command 一起带走
         await reg(["delete", base, "/f"]);
@@ -261,9 +391,20 @@ export async function setContextMenuEnabled(
     }
 
     log.info(`[shell-menu] 右键菜单项已${enabled ? "注册" : "移除"}`, {
-      command: enabled ? `${prefix} ${ADD_SHORTCUT_FLAG}="%1"` : undefined,
+      command: enabled ? expected : undefined,
       packaged: app.isPackaged,
     });
+
+    // 写完必须回读一次：注册表写入不报错不代表内容是对的，
+    // 而"命令为空"的残缺项在资源管理器里表现为"点了没反应"，极难自查。
+    if (enabled) {
+      const after = await getContextMenuStatus();
+      if (!after.valid) {
+        log.error("[shell-menu] 注册后回读校验未通过:", after);
+        return { success: false, error: after.reason ?? "注册后校验未通过" };
+      }
+    }
+
     return { success: true };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

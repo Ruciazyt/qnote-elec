@@ -83,7 +83,7 @@ interface ElectronAPI {
   searchNotes: (keyword: string) => Promise<import("./components/clipboard/types").ClipboardRecord[]>;
   deleteNote: (content: string) => Promise<boolean>;
   deleteNoteById: (id: number) => Promise<boolean>;
-  deleteAllNotes: () => Promise<{ success: boolean; deleted?: number }>;
+  deleteAllNotes: () => Promise<{ success: boolean; deleted?: number; error?: string }>;
   /** 清空前统计：会保留多少条（置顶/重要） */
   countProtectedNotes: () => Promise<{ kept: number; total: number; removable: number }>;
   updateNoteContent: (noteId: number, content: string) => Promise<{ success: boolean; error?: string }>;
@@ -372,6 +372,12 @@ interface ElectronAPI {
   setShellContextMenuEnabled: (
     enabled: boolean
   ) => Promise<{ success: boolean; error?: string }>;
+  /** 修复失效的右键菜单命令（菜单项在、点了没反应时用） */
+  repairShellContextMenu: () => Promise<{
+    success: boolean;
+    repaired: boolean;
+    error?: string;
+  }>;
   /** 系统右键菜单唤起时收到目标路径，返回解绑函数 */
   onExternalAddShortcut: (callback: (target: string) => void) => () => void;
 
@@ -469,12 +475,5 @@ interface ElectronAPI {
   // 窗口控制（仅 ClipboardPopup 使用）
   closePopup: () => void;
   showMainWindow: () => void;
-}
 
-declare global {
-  interface Window {
-    electron: ElectronAPI;
-  }
-}
-
-export {};
+};
