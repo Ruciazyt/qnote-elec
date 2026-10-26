@@ -28,7 +28,7 @@ pnpm run build          # 完整构建（clean → 编译 → 打包 → 便携�
 pnpm run build:electron # 只编译主进程与 preload
 pnpm run build:react    # 只构建渲染层
 pnpm run build:app      # 只跑 electron-builder
-pnpm run release:patch  # 发补丁版本（1.1.0 → 1.1.1）
+pnpm run release:patch  # 发补丁版本（1.2.0 → 1.2.1）
 ```
 
 ---
@@ -153,15 +153,16 @@ pnpm run verify:commit "feat(updater): 增加应用更新卡片"
 ### 3.1 格式
 
 ```
-MAJOR.MINOR.PATCH        例：1.1.0
+MAJOR.MINOR.PATCH        例：1.2.0
 ```
 
 - 三段纯数字，不带 `v` 前缀、不带 `-rc` 之类后缀
-- 当前发布线是 **1.1.x**
-  - 换线理由：1.0.x 从 1.0.1 一路走到 1.0.18，这期间累积了三个功能级提交 ——
-    应用内自动更新（electron-updater）、版本号规范与发版脚本、提交信息校验钩子。
-    按 3.2 的规则它们要求 minor 版本，而 minor 落在 1.1.0。1.0.x 留给「初版还在
-    打补丁」的阶段，功能性的东西该有自己的次版本线。
+- 当前发布线是 **1.2.x**
+  - 换线理由：1.1.x 从 1.1.0 起步，这期间累积了两个功能级提交 ——
+    屏幕便签（剪贴板记录拖出窗口变成桌面便签）、资源管理器右键菜单自愈与
+    快捷方式面板。按 3.2 的规则它们要求 minor 版本，而 minor 落在 1.2.0。
+    1.1.x 留给「上一条线刚起步、功能还在零星补」的阶段，功能性的东西该有自己的
+    次版本线。
   - 换线必须同步改 `scripts/release/verify-version.js` 的 `RELEASE_LINE` ——
     两处不一致会被版本号校验拦下。
 - **版本号的唯一来源是根目录 `package.json` 的 `version` 字段**，任何地方都不许另造版本号
@@ -170,21 +171,21 @@ MAJOR.MINOR.PATCH        例：1.1.0
 
 | 场景 | 变更 |
 | --- | --- |
-| 修复缺陷、性能优化、重构、文档、测试、构建、CI、杂项 | patch（1.1.0 → 1.1.1） |
-| 新增功能 | minor（1.1.0 → 1.2.0） |
-| 不兼容的 API / 配置 / 数据结构变更 | major（1.2.0 → 2.0.0） |
+| 修复缺陷、性能优化、重构、文档、测试、构建、CI、杂项 | patch（1.2.0 → 1.2.1） |
+| 新增功能 | minor（1.2.0 → 1.3.0） |
+| 不兼容的 API / 配置 / 数据结构变更 | major（1.3.0 → 2.0.0） |
 
 判断依据是第 2 节的提交 type —— 一批提交里出现 `feat` 就不能只发 patch。
 
 ### 3.3 Tag 与 Release
 
-- **Tag 名 = 版本号本身**：`1.1.0`，**不加 `v` 前缀**
-- Release 标题 = `QNote 1.1.0`
+- **Tag 名 = 版本号本身**：`1.2.0`，**不加 `v` 前缀**
+- Release 标题 = `QNote 1.2.0`
 - Tag 必须与 `package.json` 的 `version` 完全一致
-- tag 是**带注释的**（`git tag -a`），注释写 `Release 1.1.0`
+- tag 是**带注释的**（`git tag -a`），注释写 `Release 1.2.0`
 - 一个版本号只发一次。改过内容要重发，就 bump 到下一个 patch 号
 
-> 为什么不带 `v`：`v1.1.0` 与 `1.1.0` 在 GitHub 上是两套不同的 tag，
+> 为什么不带 `v`：`v1.2.0` 与 `1.2.0` 在 GitHub 上是两套不同的 tag，
 > 混用会让 Release 列表出现两串同号条目，electron-updater 取
 > `/releases/download/<tag>/latest.yml` 时也会对不上。统一成不带前缀的形式。
 
@@ -203,7 +204,7 @@ pnpm run release:patch    # 或 release:minor / release:major
 `build-and-release.yml` 触发，产出安装版、便携版与 `latest.yml` 并创建 Release。
 
 > 新版本号以 `package.json` 为准，不解析 `pnpm version` 的输出 ——
-> pnpm 打印的是 `Version bumped successfully: 1.1.0 → 1.1.1` 这类多行文本，
+> pnpm 打印的是 `Version bumped successfully: 1.2.0 → 1.2.1` 这类多行文本，
 > 不是纯版本号。同理不设 `ELECTRON_BUILDER_VERSION` 之类的环境变量覆盖，
 > 该变量在 electron-builder 25.x 里并不生效。
 
@@ -218,7 +219,7 @@ pnpm run verify:version
 ```
 
 检查 `package.json` 的 `version` 是否为三段纯数字、是否为合法 semver、
-是否与当前发布线（1.1.x）一致。
+是否与当前发布线（1.2.x）一致。
 
 ---
 

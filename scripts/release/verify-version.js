@@ -26,14 +26,14 @@ const GIT = resolveExe('git');
 const VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
 
 /**
- * 当前发布线 —— 1.1.x
+ * 当前发布线 —— 1.2.x
  *
- * 1.0.x 留给「初版还在打补丁」的阶段。1.0.1 之后累积了三个功能级提交
- * （应用内自动更新、版本号规范与发版脚本、提交信息校验钩子），
- * 按 semver 规则它们要求 minor 版本，minor 落在 1.1.0 —— 所以换到 1.1.x。
+ * 1.1.x 留给「刚换过线、功能还在零星补」的阶段。1.1.0 之后这一批累积了
+ * 两个功能级提交（屏幕便签、资源管理器右键菜单自愈与快捷方式面板），
+ * 按 semver 规则它们要求 minor 版本，minor 落在 1.2.0 —— 所以换到 1.2.x。
  * 换线理由见 AGENTS.md 第 3.1 节。
  */
-const RELEASE_LINE = { major: 1, minor: 1 };
+const RELEASE_LINE = { major: 1, minor: 2 };
 
 /** 读取根 package.json 的 version */
 function readVersion() {
