@@ -91,5 +91,86 @@ export function getDB(appPath?: string): Knex {
     useNullAsDefault: true,
   });
 
+  installPoolSelfHeal(DB);
+
   return DB;
+}
+
+/**
+ * 把数据库错误翻译成用户看得懂的中文
+ *
+ * 这些报错原文全是英文的技术黑话（"Unable to acquire a connection"），
+ * 直接甩到界面上用户既看不懂也不知道该干什么 —— 截图里那条红底白字的
+ * "Unable to acquire a connection" 就是这么来的。
+ *
+ * 这里的映射只覆盖"用户能自己处理"的几类：重试有用、或者换个动作有用。
+ * 认不出来的错误保持原文，不要硬编 —— 原文进日志，用户反馈时能对照。
+ */
+export function describeDBError(err: unknown): string {
+  const raw = err instanceof Error ? err.message : String(err ?? "");
+  const text = raw.toLowerCase();
+
+  if (text.includes("unable to acquire a connection")) {
+    return "数据库连接已失效，请重启应用后重试";
+  }
+  if (text.includes("database is locked") || text.includes("sqlite_busy")) {
+    return "数据库正被占用，请稍后重试";
+  }
+  if (text.includes("unable to open database file") || text.includes("sqlite_cantopen")) {
+    return "无法打开数据库文件，请检查目录权限与磁盘空间";
+  }
+  if (text.includes("attempt to write a readonly database")) {
+    return "数据库处于只读状态，请检查目录权限";
+  }
+  if (text.includes("no such table")) {
+    return "数据表缺失，请重启应用以完成数据库初始化";
+  }
+  return raw || "未知错误";
+}
+
+/**
+ * 给 knex 实例装上"连接池自愈"
+ *
+ * ## 背景
+ *
+ * knex 在 `destroy()` 之后会把 `client.pool` 置为 undefined，此后**任何**查询
+ * 都在 `client.acquireConnection()` 里抛 `Unable to acquire a connection`
+ * （knex/lib/client.js 里就是这个报错原文）。
+ *
+ * 这本来是"连接已销毁"的正确语义，但本项目里有一个致命组合：
+ * 各 handler 在注册时把 knex 实例**捕获**下来长期使用，而退出流程又会在
+ * `before-quit` 里销毁连接池 —— 一旦退出被窗口的 close 处理器取消，
+ * 应用就带着一个"池已销毁"的实例继续跑，所有写库功能（清空记录、
+ * 添加快捷方式、置顶、标记重要……）集体失效。
+ *
+ * ## 做法
+ *
+ * 在真正取连接之前检查一次池是否还在，不在就**原位重建**。
+ * `client.initializePool()` 会在 pool 缺失时用同一份配置新建一个连接池，
+ * 而 knex 实例本身不变 —— 这一点很关键：各 handler 手里拿的是同一个实例引用，
+ * 原位重建之后它们不需要重新注册就能继续用。
+ *
+ * 已实测：destroy → initializePool → 查询恢复正常。
+ */
+function installPoolSelfHeal(db: Knex): void {
+  const client = db.client as any;
+  if (!client || typeof client.acquireConnection !== "function") return;
+  if (client.__qnoteSelfHealInstalled) return;
+  client.__qnoteSelfHealInstalled = true;
+
+  const originalAcquireConnection = client.acquireConnection.bind(client);
+
+  client.acquireConnection = async () => {
+    if (!client.pool) {
+      log.warn("[db] 连接池已失效，已自动重建");
+      try {
+        client.initializePool();
+      } catch (err) {
+        log.error("[db] 重建连接池失败:", err);
+        // 重建失败就让它按原样抛错，不要吞掉真实原因
+        throw err;
+      }
+    }
+    return await originalAcquireConnection();
+  };
 }

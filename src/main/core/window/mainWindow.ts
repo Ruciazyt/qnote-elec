@@ -3,6 +3,7 @@ import * as path from "node:path";
 import * as fs from "node:fs";
 import { app } from "electron";
 import { log } from "../../utils/log";
+import { markQuitting, shouldHideToTray } from "../../utils/appState";
 
 let win: BrowserWindow | null = null;
 // 存储IPC监听器引用，用于清理
@@ -225,10 +226,18 @@ export function createMainWindow(): BrowserWindow {
   // 隐藏默认菜单
   win.setMenu(null);
 
-  let isQuitting = false;
-
   win.on("close", (event: any) => {
-    if (!isQuitting && win) {
+    // 关键判断用**全局**退出状态，不能用本模块的局部标志位。
+    //
+    // 局部标志位只在标题栏 X 按钮（closeWindowHandler）里被置上；
+    // 托盘菜单的「退出」直接调 app.quit()，不经过这里。于是走托盘退出时
+    // 本模块的标志位仍是 false → 窗口被藏进托盘 + preventDefault() →
+    // **整个退出流程被取消**，而 before-quit 那边已经把数据库连接池销毁了。
+    // 应用活着、数据库死了，之后所有写库操作都抛
+    // "Unable to acquire a connection"（清空记录、添加快捷方式就是这么坏的）。
+    //
+    // shouldHideToTray() 由全局退出状态推导，覆盖所有退出入口。
+    if (shouldHideToTray() && win) {
       // 关闭按钮 = 隐藏到托盘，与最小化是两回事（产品确认过）：
       // 最小化走原生 minimize、图标留在任务栏；关闭才是真的收进托盘，
       // 唤回入口是托盘图标 / 右键菜单「显示应用」/ 全局快捷键。
@@ -298,7 +307,8 @@ export function createMainWindow(): BrowserWindow {
     }
   };
   const closeWindowHandler = () => {
-    isQuitting = true;
+    // 先标记再退出：窗口的 close 处理器靠这个标志决定"收进托盘"还是"真的关"
+    markQuitting();
     app.quit();
   };
   const openDevToolsHandler = () => {

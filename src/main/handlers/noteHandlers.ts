@@ -1,6 +1,7 @@
 import { ipcMain, IpcMainInvokeEvent } from "electron";
 import { log } from "../utils/log";
 import { contentHash } from "../../shared/noteHash";
+import { describeDBError } from "../../database";
 
 export function registerNoteHandlers(DB: any) {
   // 置顶的排最前，组内按置顶时间/记录时间倒序。
@@ -64,7 +65,9 @@ export function registerNoteHandlers(DB: any) {
       return { success: true, deleted };
     } catch (err) {
       log.error("删除所有笔记失败", err);
-      return { success: false };
+      // 把原因一并带回界面：只给一句"清空失败"的话，用户无从判断
+      // 是该重试还是该重启应用
+      return { success: false, error: describeDBError(err) };
     }
   });
 

@@ -44,6 +44,7 @@ import { registerAsrHandlers } from "./handlers/asrHandlers";
 import { createMainWindow, getMainWindow, showMainWindow, createTray, createCircleWindow, destroyCircleWindow } from "./core/window";
 import { ClipboardPopupWindow } from "./core/window/clipboardPopup";
 import { registerGlobalShortcuts, unregisterAllShortcuts, registerVoiceShortcut, validateAccelerator, getRegisteredVoiceAccelerator } from "./core/shortcuts";
+import { markQuitting } from "./utils/appState";
 
 // ---------------------------------------------------------------------------
 // 单实例锁 —— 必须在任何 app.* 副作用之前获取
@@ -199,7 +200,6 @@ app.commandLine.appendSwitch(
 let tray: Tray | null = null;
 let DB: any;
 let fileWriter: FileWriter;
-let isQuitting = false;
 
 function getAssetsDir() {
   return !app.isPackaged
@@ -445,8 +445,35 @@ process.on('unhandledRejection', (reason) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// 退出流程：before-quit 只做"标记"，不可逆的清理全部挪到 will-quit
+// ---------------------------------------------------------------------------
+//
+// ## 为什么不能把 closeDB() 放在 before-quit
+//
+// Electron 的退出顺序是：before-quit → 关闭所有窗口 → window-all-closed →
+// will-quit → quit。而窗口的 close 处理器**可以取消关闭动作**
+// （本项目的"关闭按钮 = 收进托盘"就是这么做的）。
+//
+// 一旦关闭被取消，退出流程就停在这里，进程继续活着 —— 但 before-quit
+// 已经把数据库连接池销毁了（knex 的 pool 被置空）。于是留下一个僵尸实例：
+// 界面还在、能点，但所有数据库操作都抛 "Unable to acquire a connection"。
+// 这正是"打包版清空记录 / 添加快捷方式都没反应"的成因。
+//
+// ## 现在的分工
+//
+//   before-quit：只置全局退出标志。窗口的 close 处理器据此不再收进托盘，
+//                退出得以继续。
+//   will-quit  ：只在退出**真的**要发生时触发（窗口已全部关闭），
+//                这时才拆资源、关数据库。
+//
+// 这样即使将来又有别的路径取消退出，应用的数据库、托盘、监听器都还是活的，
+// 不会出现"界面在、功能全废"的半死状态。
 app.on("before-quit", () => {
-  isQuitting = true;
+  markQuitting();
+});
+
+app.on("will-quit", () => {
   unregisterAllShortcuts();
   stopClipboardListener();
   closeDB(); // 关闭数据库连接

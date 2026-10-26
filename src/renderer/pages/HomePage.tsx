@@ -133,11 +133,19 @@ export default function HomePage() {
         });
         setClearStats(null);
       } else {
-        toast({ title: "清空失败", variant: "destructive" });
+        toast({
+          title: "清空失败",
+          description: result.error ?? "请稍后重试",
+          variant: "destructive",
+        });
       }
     } catch (err) {
       console.error("Error deleting all records:", err);
-      toast({ title: "清空失败", variant: "destructive" });
+      toast({
+        title: "清空失败",
+        description: err instanceof Error ? err.message : "请稍后重试",
+        variant: "destructive",
+      });
     }
   };
 
