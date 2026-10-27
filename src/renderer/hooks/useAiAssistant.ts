@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AiChatSession, ChatMessage } from "@/components/clipboard/types";
 import { BlockBuilder, type AssistantBlock } from "@shared/aiBlocks";
+import {
+  AI_IMAGE_MAX_COUNT,
+  type AiImageAttachment,
+} from "@shared/aiImages";
+import { toast } from "@/hooks/use-toast";
 import { randomHex } from "@/utils/randomId";
 
 /**
@@ -87,6 +92,14 @@ export function useAiAssistant() {
   const [chatHistoryLoading, setChatHistoryLoading] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [aiInput, setAiInput] = useState("");
+  /**
+   * 本轮待发送的图片附件
+   *
+   * 状态放在 hook 而不是输入框组件里：附件要跟着消息一起发出去，
+   * 而「清空附件」这个动作分散在发送、切会话、返回列表三处 ——
+   * 放在组件里的话每次都要额外传一遍回调。
+   */
+  const [aiImages, setAiImages] = useState<AiImageAttachment[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
   /** 当前正在累积的流式消息；null 表示没有进行中的流 */
   const [streamingMessage, setStreamingMessage] = useState<StreamingMessage | null>(null);
@@ -254,9 +267,34 @@ export function useAiAssistant() {
     }
   }, [loadChatSessions]);
 
+  /**
+   * 追加图片附件
+   *
+   * 两道限制：最多 AI_IMAGE_MAX_COUNT 张；同一张图不重复加
+   * （base64 相同即视为同一张）。
+   */
+  const addAiImages = useCallback((incoming: AiImageAttachment[]) => {
+    if (!incoming || incoming.length === 0) return;
+    setAiImages((current) => {
+      const next = [...current];
+      for (const image of incoming) {
+        if (next.length >= AI_IMAGE_MAX_COUNT) break;
+        if (next.some((item) => item.data === image.data)) continue;
+        next.push(image);
+      }
+      return next;
+    });
+  }, []);
+
+  /** 移除指定序号的图片附件 */
+  const removeAiImage = useCallback((index: number) => {
+    setAiImages((current) => current.filter((_, i) => i !== index));
+  }, []);
+
   const handleSendAiMessage = useCallback(async () => {
     const text = aiInput.trim();
-    if (!text || aiLoading) return;
+    // 只有图没有字也能发 —— 图像本身就是提问
+    if ((!text && aiImages.length === 0) || aiLoading) return;
 
     let chatSessionId = activeChatSessionIdRef.current;
     if (!chatSessionId && assistantView === "sessions") {
@@ -277,7 +315,10 @@ export function useAiAssistant() {
       activeSessionRef.current = null;
     }
 
+    // 本轮要带的图先取出来：setAiImages 清空后，闭包里的 aiImages 就不可信了
+    const images = aiImages;
     setAiInput("");
+    setAiImages([]);
     setAiLoading(true);
 
     // 临时用户消息 id 用于失败时回滚
@@ -285,6 +326,7 @@ export function useAiAssistant() {
       id: Date.now(),
       role: "user",
       content: text,
+      images: images.length > 0 ? images : undefined,
       created_at: new Date(),
     };
     setChatMessages((prev) => [...prev, userMessage]);
@@ -385,6 +427,15 @@ export function useAiAssistant() {
         setStreamingMessage(null);
         setAiLoading(false);
         console.error("AI stream failed:", payload.error);
+        // 失败原因必须让人看见 —— 只写进控制台的话，
+        // 界面表现是「问了一句，然后什么都没发生」。
+        // 带图提问时这条尤其重要：模型不支持图片时上游会直接报错，
+        // 用户需要知道是「模型看不了图」而不是「应用坏了」。
+        toast({
+          title: "AI 回复失败",
+          description: payload.error || "未知错误",
+          variant: "destructive",
+        });
       }
     );
 
@@ -428,11 +479,13 @@ export function useAiAssistant() {
     try {
       // 默认走 agent 流式（agent IPC 内部会按用户偏好决定是否加载工具）
       // skillId 透传：主进程据此把 skill 应用到本次提问
+      // images 透传：本轮带的图片，多模态消息
       await window.electron.sendAiAgentStream(
         text,
         sessionId,
         chatSessionId,
-        activeSkillIdRef.current
+        activeSkillIdRef.current,
+        images.length > 0 ? images : undefined
       );
     } catch (err) {
       const isCurrentSession = activeSessionRef.current?.sessionId === sessionId;
@@ -442,8 +495,13 @@ export function useAiAssistant() {
       setStreamingMessage(null);
       setAiLoading(false);
       console.error("发起流式 AI 失败:", err);
+      toast({
+        title: "AI 请求失败",
+        description: err instanceof Error ? err.message : "未知错误",
+        variant: "destructive",
+      });
     }
-  }, [aiInput, aiLoading, assistantView, createChatSession, loadChatSessions, scrollToEnd]);
+  }, [aiInput, aiImages, aiLoading, assistantView, createChatSession, loadChatSessions, scrollToEnd]);
 
   /** 用户中途取消 */
   const handleCancelAiMessage = useCallback(() => {
@@ -502,6 +560,9 @@ export function useAiAssistant() {
   const handleNewChat = useCallback(async () => {
     handleCancelAiMessage();
     setAiInput("");
+    // 待发的图片属于「上一轮草稿」，切走时一起丢 ——
+    // 留着的话下次提问会莫名多出几张图
+    setAiImages([]);
     await createChatSession();
   }, [createChatSession, handleCancelAiMessage]);
 
@@ -513,6 +574,7 @@ export function useAiAssistant() {
     setAssistantView("chat");
     setChatHistoryLoading(true);
     setAiInput("");
+    setAiImages([]);
     setChatMessages([]);
 
     try {
@@ -547,6 +609,7 @@ export function useAiAssistant() {
     setAssistantView("sessions");
     setChatHistoryLoading(false);
     setAiInput("");
+    setAiImages([]);
     setChatMessages([]);
     setSessionsLoading(true);
     void loadChatSessions().finally(() => setSessionsLoading(false));
@@ -820,6 +883,7 @@ export function useAiAssistant() {
     chatHistoryLoading,
     chatMessages,
     aiInput,
+    aiImages,
     aiLoading,
     streamingMessage,
     compacting,
@@ -834,6 +898,8 @@ export function useAiAssistant() {
     setAiInput,
     setActiveSkillId,
     // handlers
+    addAiImages,
+    removeAiImage,
     handleSendAiMessage,
     handleCancelAiMessage,
     handleKeyDown,

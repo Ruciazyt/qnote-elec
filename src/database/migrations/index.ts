@@ -263,6 +263,30 @@ async function addAiChatBlocksColumn(DB: Knex): Promise<void> {
   }
 }
 
+/**
+ * 给 ai_chat 补 images 列 —— 存这一条消息带上的图片附件
+ *
+ * 内容是 JSON 数组：[{"mime":"image/png","data":"<base64>","name":"a.png"}, …]
+ *
+ * 为什么不塞进 content：content 是纯文本列，历史列表、压缩器、
+ * 会话预览都按纯文本读它。图片走独立的一列，读历史时按需还原成
+ * content 块（见 hotMemory.rowToMessage），互不干扰。
+ *
+ * 体积换来的代价很直白：一张 1568px 的图约几百 KB。一条消息最多 4 张，
+ * 一轮问答 4MB 出头。SQLite 扛得住，代价是磁盘占用比纯文本对话高一个量级。
+ */
+async function addAiChatImagesColumn(DB: Knex): Promise<void> {
+  try {
+    const columns = await DB.raw("PRAGMA table_info(ai_chat)");
+    if (!columns.some((column: any) => column.name === "images")) {
+      await DB.raw("ALTER TABLE ai_chat ADD COLUMN images TEXT DEFAULT ''");
+      log.info("已为 ai_chat 表添加 images 字段（AI 消息图片附件）");
+    }
+  } catch (err) {
+    log.error("添加AI消息图片字段失败:", err);
+  }
+}
+
 async function createTodosTable(DB: Knex): Promise<void> {
   try {
     await DB.schema.createTable("todo", (table: Knex.TableBuilder) => {
@@ -688,6 +712,9 @@ export async function migrateRun(path?: string): Promise<void> {
 
     // AI 回复的有序分块（思考/工具/输出，重启后还要按原顺序渲染）
     await addAiChatBlocksColumn(DB);
+
+    // 用户消息带的图片附件（多模态对话）
+    await addAiChatImagesColumn(DB);
 
     // 一次性回填会话预览（历史数据里的 preview 存的是助手回复）
     await backfillAiSessionPreviews(DB);

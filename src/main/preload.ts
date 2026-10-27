@@ -251,12 +251,31 @@ contextBridge.exposeInMainWorld("electron", {
   },
   // Agent 模式 — 走 send-ai-agent-stream，事件复用 ai-stream:* 通道
   // skillId：选中的 AI 技能（可选，null = 不使用）
+  // images：本轮带的图片附件（可选）
+  //
+  // 这里没有 import shared/aiImages 的类型：preload 的 tsconfig 把 rootDir
+  // 锁在 src/main，引用 src/shared 下的文件会直接编译失败（TS6059）。
+  // 所以这里复述一份结构 —— 字段与 AiImageAttachment 完全一致，
+  // 渲染层的正式声明在 src/renderer/electron.d.ts。
   sendAiAgentStream: (
     message: string,
     sessionId?: string,
     chatSessionId?: string,
-    skillId?: string | null
-  ) => ipcRenderer.invoke("send-ai-agent-stream", message, sessionId, chatSessionId, skillId),
+    skillId?: string | null,
+    images?: { mime: string; data: string; name?: string }[]
+  ) => ipcRenderer.invoke(
+    "send-ai-agent-stream",
+    message,
+    sessionId,
+    chatSessionId,
+    skillId,
+    images
+  ),
+  // 打开系统选图框，返回原始图片（base64 + mime），由渲染层缩图后再发回来
+  pickAiImages: () =>
+    ipcRenderer.invoke("ai:pick-images") as Promise<
+      { mime: string; data: string; name?: string }[]
+    >,
   onAiStreamToolCall: (
     callback: (
       event: unknown,

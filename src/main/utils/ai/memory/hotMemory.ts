@@ -21,6 +21,12 @@
 import { BaseMessage, HumanMessage, AIMessage, SystemMessage } from '@langchain/core/messages';
 import type { Knex } from 'knex';
 import { log } from '../../log';
+import {
+  aiContentToText,
+  buildUserContent,
+  parseAiImages,
+  type AiImageAttachment,
+} from '../../../../shared/aiImages';
 
 /** 会话热状态（摘要 + 未压缩的原始消息） */
 export interface SessionHotState {
@@ -45,15 +51,24 @@ export interface TrackedMessage {
 /** 全局缓存表。进程内单例，不需要跨 worker 共享 */
 const cache = new Map<string, SessionHotState>();
 
-/** DB 行 → LangChain Message */
-function rowToMessage(row: { role: string; content: string }): BaseMessage {
+/**
+ * DB 行 → LangChain Message
+ *
+ * 带图的 user 行会被还原成「文本块 + 图片块」的 content 数组 ——
+ * 模型在后续轮次里要能重新看到这张图，否则「图里第二行写的什么」
+ * 这类追问会答不上来。
+ */
+function rowToMessage(row: { role: string; content: string; images?: string }): BaseMessage {
   switch (row.role) {
     case 'assistant':
       return new AIMessage(row.content);
     case 'system':
       return new SystemMessage(row.content);
-    default:
-      return new HumanMessage(row.content);
+    default: {
+      const images = parseAiImages(row.images);
+      if (images.length === 0) return new HumanMessage(row.content);
+      return new HumanMessage({ content: buildUserContent(row.content, images) });
+    }
   }
 }
 
@@ -85,8 +100,9 @@ export async function rebuildHotState(
       .orderBy('id', 'asc'),
     // 软删除：只读未压缩的（compressed=0）
     // 已压缩的原始消息仍留在 ai_chat 表里给前端历史列表用，但不进 prompt
+    // images 必须一起选：带图的用户消息要还原成多模态 content 才能被模型看见
     DB('ai_chat')
-      .select('id', 'role', 'content')
+      .select('id', 'role', 'content', 'images')
       .where('session_id', sessionId)
       .where('compressed', 0)
       .orderBy('id', 'asc'),

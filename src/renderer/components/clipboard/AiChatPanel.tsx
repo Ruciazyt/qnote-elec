@@ -19,12 +19,14 @@ import {
   Sparkles,
   RefreshCw,
   ChevronRight,
+  X,
 } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "../ui/button";
 import { TooltipProvider } from "../ui/tooltip";
 import { ChatMessage } from "./types";
 import type { AssistantBlock, ToolCallRecord } from "@shared/aiBlocks";
+import { aiImageDataUrl, type AiImageAttachment } from "@shared/aiImages";
 import type { StreamingMessage, AiSkill } from "@/hooks/useAiAssistant";
 import { AiComposer } from "./AiComposer";
 import { cn } from "@/lib/utils";
@@ -60,6 +62,12 @@ interface AiChatPanelProps {
   onSelectSkill?: (skillId: string | null) => void;
   /** Latest clipboard text content — shown as contextual prompt in empty state */
   latestClipboardContent?: string;
+  /** 待发送的图片附件（输入框里的预览条） */
+  aiImages?: AiImageAttachment[];
+  /** 追加图片附件 */
+  onAddAiImages?: (images: AiImageAttachment[]) => void;
+  /** 移除图片附件 */
+  onRemoveAiImage?: (index: number) => void;
   onSendAiMessage: () => void;
   /** 用户中途取消。不传则在流式期间不显示取消按钮 */
   onCancelAiMessage?: () => void;
@@ -92,6 +100,9 @@ export const AiChatPanel = memo(function AiChatPanel({
   skills,
   activeSkillId,
   onSelectSkill,
+  aiImages,
+  onAddAiImages,
+  onRemoveAiImage,
   onSendAiMessage,
   onCancelAiMessage,
   onInputChange,
@@ -104,6 +115,15 @@ export const AiChatPanel = memo(function AiChatPanel({
 
   // Track which message is hovered (for timestamp reveal)
   const [hoveredMsgId, setHoveredMsgId] = useState<number | null>(null);
+
+  /**
+   * 正在放大查看的图片
+   *
+   * 用面板内的绝对定位浮层，而不是 Dialog ——
+   * 这个面板在浏览器侧栏里时，下面的网页是原生视图（WebContentsView），
+   * 任何居中的弹窗都会被它盖住。面板内浮层只覆盖面板自己，天然没这个问题。
+   */
+  const [previewImage, setPreviewImage] = useState<AiImageAttachment | null>(null);
 
   const handleCopyMessage = useCallback(async (msg: ChatMessage) => {
     try {
@@ -218,7 +238,32 @@ export const AiChatPanel = memo(function AiChatPanel({
                         {msg.role === "assistant" ? (
                           <AssistantReply blocks={msg.blocks} />
                         ) : (
-                          <div className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{msg.content}</div>
+                          <>
+                            {msg.images && msg.images.length > 0 && (
+                              /* 用户带上的图 —— 显示在文字上方，点一下放大 */
+                              <div className="mb-1.5 flex flex-wrap gap-1.5">
+                                {msg.images.map((image, imageIndex) => (
+                                  <button
+                                    key={`${image.data}-${imageIndex}`}
+                                    type="button"
+                                    onClick={() => setPreviewImage(image)}
+                                    title={image.name || "查看图片"}
+                                    aria-label="查看图片"
+                                    className="overflow-hidden rounded-md border border-border/60 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
+                                    <img
+                                      src={aiImageDataUrl(image)}
+                                      alt={image.name || "附件图片"}
+                                      className="max-h-40 max-w-[220px] object-cover"
+                                      draggable={false}
+                                    />
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                            {msg.content && (
+                              <div className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{msg.content}</div>
+                            )}
+                          </>
                         )}
                       </div>
                       <div className="flex items-center justify-end gap-1.5 mt-1 -mb-0.5">
@@ -409,8 +454,40 @@ export const AiChatPanel = memo(function AiChatPanel({
             canStop={Boolean(onCancelAiMessage)}
             onStop={onCancelAiMessage}
             submitLabel="发送消息"
+            images={aiImages}
+            onAddImages={onAddAiImages}
+            onRemoveImage={onRemoveAiImage}
           />
         </div>
+
+        {/*
+         * 图片放大浮层 —— 盖住整个面板，点任意处关闭。
+         *
+         * 不用 Dialog 的原因见 previewImage 的注释：浏览器侧栏里的
+         * 居中弹窗会被下面的原生网页视图盖住。
+         */}
+        {previewImage && (
+          <div
+            className="absolute inset-0 z-30 flex items-center justify-center bg-background/90 backdrop-blur-sm animate-fade-in"
+            onClick={() => setPreviewImage(null)}
+            role="dialog"
+            aria-label="查看图片">
+            <img
+              src={aiImageDataUrl(previewImage)}
+              alt={previewImage.name || "附件图片"}
+              className="max-h-full max-w-full object-contain p-4"
+              draggable={false}
+            />
+            <button
+              type="button"
+              onClick={() => setPreviewImage(null)}
+              aria-label="关闭预览"
+              title="关闭"
+              className="absolute right-3 top-3 h-7 w-7 rounded-full bg-muted/80 border border-border/60 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
       </div>
     </TooltipProvider>
   );

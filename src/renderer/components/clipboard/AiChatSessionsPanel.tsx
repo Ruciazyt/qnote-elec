@@ -14,6 +14,7 @@ import { Input } from "../ui/input";
 import { useBrowserSurface } from "../../hooks/useBrowserSurface";
 import { AiComposer } from "./AiComposer";
 import type { AiChatSession } from "./types";
+import type { AiImageAttachment } from "@shared/aiImages";
 import { buildSessionPreview } from "../../../shared/aiSessionPreview";
 
 interface AiChatSessionsPanelProps {
@@ -28,6 +29,12 @@ interface AiChatSessionsPanelProps {
   onInputChange: (value: string) => void;
   onKeyDown: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
   onSendAiMessage: () => void;
+  /** 待发送的图片附件（输入框里的预览条） */
+  aiImages?: AiImageAttachment[];
+  /** 追加图片附件 */
+  onAddAiImages?: (images: AiImageAttachment[]) => void;
+  /** 移除图片附件 */
+  onRemoveAiImage?: (index: number) => void;
 }
 
 function formatSessionDate(value: Date): string {
@@ -58,6 +65,9 @@ export function AiChatSessionsPanel({
   onInputChange,
   onKeyDown,
   onSendAiMessage,
+  aiImages,
+  onAddAiImages,
+  onRemoveAiImage,
 }: AiChatSessionsPanelProps) {
   const [query, setQuery] = useState("");
   const [sessionToDelete, setSessionToDelete] = useState<AiChatSession | null>(null);
@@ -205,6 +215,9 @@ export function AiChatSessionsPanel({
           ariaLabel="发起新对话"
           disabled={aiLoading || isCreatingSession}
           submitLabel="发送并新建对话"
+          images={aiImages}
+          onAddImages={onAddAiImages}
+          onRemoveImage={onRemoveAiImage}
         />
       </div>
 

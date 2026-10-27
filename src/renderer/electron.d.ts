@@ -166,12 +166,16 @@ interface ElectronAPI {
   ) => () => void;
   // Agent 模式
   // skillId：选中的 AI 技能（可选，null = 不使用）
+  // images：本轮带的图片附件（可选）
   sendAiAgentStream: (
     message: string,
     sessionId?: string,
     chatSessionId?: string,
-    skillId?: string | null
+    skillId?: string | null,
+    images?: import("@shared/aiImages").AiImageAttachment[]
   ) => Promise<{ sessionId: string }>;
+  // 打开系统选图框，返回原始图片，由渲染层缩图
+  pickAiImages: () => Promise<import("@shared/aiImages").AiImageAttachment[]>;
   onAiStreamToolCall: (
     callback: (
       event: unknown,

@@ -807,6 +807,9 @@ export function FloatingAiAssistant() {
                   onInputChange={ai.setAiInput}
                   onKeyDown={ai.handleKeyDown}
                   onSendAiMessage={ai.handleSendAiMessage}
+                  aiImages={ai.aiImages}
+                  onAddAiImages={ai.addAiImages}
+                  onRemoveAiImage={ai.removeAiImage}
                 />
               ) : (
                 <AiChatPanel
@@ -821,6 +824,9 @@ export function FloatingAiAssistant() {
                   skills={ai.skills}
                   activeSkillId={ai.activeSkillId}
                   onSelectSkill={ai.setActiveSkillId}
+                  aiImages={ai.aiImages}
+                  onAddAiImages={ai.addAiImages}
+                  onRemoveAiImage={ai.removeAiImage}
                   chatEndRef={ai.chatEndRef}
                   onSendAiMessage={ai.handleSendAiMessage}
                   onCancelAiMessage={ai.handleCancelAiMessage}

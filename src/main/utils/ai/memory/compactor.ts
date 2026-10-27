@@ -24,6 +24,7 @@ import type { BaseChatModel } from '@langchain/core/language_models/chat_models'
 
 import { log } from '../../log';
 import { estimateMessagesTokens, estimateTextTokens } from './tokenEstimator';
+import { aiContentToText } from '../../../../shared/aiImages';
 import {
   applyCompression,
   getHotState,
@@ -159,7 +160,9 @@ export interface CompressResult {
 function toEstimable(t: TrackedMessage): { role: string; content: string } {
   return {
     role: t.message.getType(),
-    content: typeof t.message.content === 'string' ? t.message.content : '',
+    // 带图的消息 content 是块数组，取其中的文本部分 ——
+    // 不取的话这条消息会被当成零长度，压缩时整段正文凭空消失
+    content: aiContentToText(t.message.content),
   };
 }
 
@@ -180,9 +183,15 @@ function watermarkUnreachable(
   return floorTokens >= WATERMARK_TOKENS;
 }
 
-/** 取消息正文（非字符串 content 一律当空） */
+/**
+ * 取消息正文
+ *
+ * content 可能是字符串，也可能是带图的块数组 —— 两种都要能取到文本。
+ * 图片本身不参与摘要（摘要器只吃文本），但带图那条消息的文字必须进去，
+ * 否则「我问的是这张图」这个上下文就丢了。
+ */
 function contentOf(t: TrackedMessage): string {
-  return typeof t.message.content === 'string' ? t.message.content : '';
+  return aiContentToText(t.message.content);
 }
 
 /**
@@ -442,8 +451,7 @@ export async function compactIfNeeded(
     }
 
     const batchChars = batch.reduce(
-      (sum, t) =>
-        sum + (typeof t.message.content === 'string' ? t.message.content.length : 0),
+      (sum, t) => sum + aiContentToText(t.message.content).length,
       0
     );
 

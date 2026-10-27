@@ -1,5 +1,8 @@
-import { ipcMain, IpcMainInvokeEvent } from "electron";
+import { ipcMain, IpcMainInvokeEvent, dialog } from "electron";
 import { randomUUID } from "crypto";
+import * as fs from "fs";
+import * as path from "path";
+import { getMainWindow } from "../core/window/mainWindow";
 import { DEFAULT_AI_CHAT_SESSION_ID } from "../../shared/constants/aiChat";
 import { buildSessionPreview } from "../../shared/aiSessionPreview";
 import { aiService, AiMessage } from "../utils/aiService";
@@ -7,6 +10,15 @@ import { configManager } from "../utils/config";
 import { vectorStore } from "../utils/vectorStore";
 import { log } from "../utils/log";
 import { BlockBuilder, parseBlocks, serializeBlocks, type AssistantBlock } from "../../shared/aiBlocks";
+import {
+  aiContentToText,
+  aiImageContentBlocks,
+  buildUserContent,
+  normalizeAiImages,
+  parseAiImages,
+  serializeAiImages,
+  type AiImageAttachment,
+} from "../../shared/aiImages";
 import {
   ChatPromptTemplate,
 } from "@langchain/core/prompts";
@@ -52,6 +64,15 @@ import {
 } from "../utils/ai/skills";
 import { browserAutomation } from "../core/window/browserAutomation";
 import type { FileWriter } from "../core/fileWriter";
+
+/** 选图对话框用的扩展名 → MIME（只收 OpenAI/Anthropic 都认的那几种） */
+const MIME_BY_IMAGE_EXT: Readonly<Record<string, string>> = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+};
 
 /** 从文本提取词语和字符二元片段，供记忆摘要统计关键词。 */
 function extractDigestKeywords(text: string): string[] {
@@ -272,19 +293,27 @@ interface ContinuationRecord {
  * rowIds 返回给续跑流程：撞轮次上限时会先落库再问用户「是否继续」，
  * 继续时拿 rowIds 改成 UPDATE，而不是再插一对新行 —— 否则一次用户输入
  * 会在 ai_chat 里留下多组重复的 user/assistant。
+ *
+ * images 是这一轮用户带上的图片：落进 user 行的 images 列，
+ * 同时进热内存 —— 后者决定模型这一轮能不能看见图。
  */
 async function persistAiChatExchange(
   DB: any,
   chatSessionId: string,
   userMessage: string,
   assistantMessage: string,
-  blocks?: AssistantBlock[]
+  blocks?: AssistantBlock[],
+  images?: AiImageAttachment[]
 ): Promise<{ rowIds: number[] }> {
   const createdAt = new Date();
-  const title = userMessage.replace(/\s+/g, " ").trim().slice(0, 48) || "新建对话";
+  // 只发图没发字时，标题和预览不能是空的 —— 会话列表里会显示成一片空白，
+  // 分不清是「没内容」还是「有图但显示不出来」。
+  const titleSource =
+    userMessage.trim() || (images && images.length > 0 ? "[图片]" : "");
+  const title = titleSource.replace(/\s+/g, " ").trim().slice(0, 48) || "新建对话";
   // 预览取**用户**输入而非助手回复：助手回复又长又带推理过程，
   // 塞进会话列表既看不出聊了什么，还占满整块空间。
-  const preview = buildSessionPreview(userMessage);
+  const preview = buildSessionPreview(titleSource);
 
   // 拿回自增 id（用于同步热内存，压缩时需要 id 范围来安全删除）
   let inserted: Array<{ id: number }> = [];
@@ -297,7 +326,13 @@ async function persistAiChatExchange(
 
     inserted = await transaction("ai_chat")
       .insert([
-        { session_id: chatSessionId, role: "user", content: userMessage, created_at: createdAt },
+        {
+          session_id: chatSessionId,
+          role: "user",
+          content: userMessage,
+          images: serializeAiImages(images ?? []),
+          created_at: createdAt,
+        },
         {
           session_id: chatSessionId,
           role: "assistant",
@@ -321,9 +356,18 @@ async function persistAiChatExchange(
 
   // 同步热内存（避免下一轮又去查 DB）
   // 拿不到 id 时 appendToHotState 会填 -1，压缩时自动重建缓存兜底
+  //
+  // 带图时必须存成带块的 HumanMessage：只存文本的话，
+  // 这一轮的图在后续轮次里就「消失」了 —— 模型以为用户没给过图。
+  const userContent = buildUserContent(userMessage, images ?? []);
   appendToHotState(
     chatSessionId,
-    [new HumanMessage(userMessage), new AIMessage(assistantMessage)],
+    [
+      typeof userContent === 'string'
+        ? new HumanMessage(userContent)
+        : new HumanMessage({ content: userContent as any }),
+      new AIMessage(assistantMessage),
+    ],
     rowIds
   );
 
@@ -418,6 +462,23 @@ async function buildSkillMessages(
     log.error("[skill] 构建技能消息失败，回退到普通对话:", err);
     return null;
   }
+}
+
+/**
+ * 把图片接到一条已有的 user 消息上
+ *
+ * 用的场景是 skill：skill 会把用户原话换掉，但图片是用户这次真的带过来的，
+ * 不能因为套了模板就丢在门外。图片排在文字前面（与 buildUserContent 一致）。
+ */
+function attachImagesToHumanMessage(
+  message: BaseMessage,
+  images: AiImageAttachment[]
+): BaseMessage {
+  if (images.length === 0) return message;
+  const text = aiContentToText(message.content);
+  const blocks: any[] = [...aiImageContentBlocks(images)];
+  if (text) blocks.push({ type: "text", text });
+  return new HumanMessage({ content: blocks });
 }
 
 /**
@@ -673,7 +734,14 @@ export function registerAiHandlers(DB: any, fileWriter: FileWriter) {
       clientSessionId?: string,
       chatSessionId?: string,
       /** Skill 技能 id（可选，null/空 = 不使用技能） */
-      skillId?: string | null
+      skillId?: string | null,
+      /**
+       * 本轮带的图片附件（可选）
+       *
+       * 渲染层已经缩过尺寸，这里再做一遍校验 —— IPC 通道是外部输入，
+       * 不能假设传进来的都是合法的图片。
+       */
+      images?: AiImageAttachment[]
     ) => {
       const sessionId = clientSessionId || randomUUID();
       const activeChatSessionId = chatSessionId || DEFAULT_AI_CHAT_SESSION_ID;
@@ -784,26 +852,53 @@ export function registerAiHandlers(DB: any, fileWriter: FileWriter) {
             ? await buildSkillMessages(DB, skillId, message)
             : null;
 
+          // 本轮带的图片（先过一遍校验，非法的那张直接丢掉）
+          const attachedImages = normalizeAiImages(images);
+          if (attachedImages.length > 0) {
+            log.info(
+              `[ai-agent] session ${sessionId} 收到 ${attachedImages.length} 张图片`
+            );
+          }
+
           let lcMessages: BaseMessage[];
           if (skillMessages && skillMessages.length > 0) {
+            const skillLc: BaseMessage[] = skillMessages.map((m) =>
+              m.role === "system"
+                ? new SystemMessage(m.content)
+                : new HumanMessage(m.content)
+            );
+            // skill 会把用户原话换掉，但图片是用户这次真的带过来的 ——
+            // 接到最后一条 user 消息上，不能因为用了 skill 就丢掉
+            if (attachedImages.length > 0) {
+              let lastUserIndex = -1;
+              for (let i = skillLc.length - 1; i >= 0; i -= 1) {
+                if (skillLc[i].getType() === "human") {
+                  lastUserIndex = i;
+                  break;
+                }
+              }
+              if (lastUserIndex >= 0) {
+                skillLc[lastUserIndex] = attachImagesToHumanMessage(
+                  skillLc[lastUserIndex],
+                  attachedImages
+                );
+              }
+            }
             lcMessages = [
               baseSystemMessage,
               ...memoryMessage,
               ...chatHistory,
-              // skill 产生的 system / user 消息
-              ...skillMessages.map(
-                (m) =>
-                  m.role === "system"
-                    ? new SystemMessage(m.content)
-                    : new HumanMessage(m.content)
-              ),
+              ...skillLc,
             ];
           } else {
+            const userContent = buildUserContent(message, attachedImages);
             lcMessages = [
               baseSystemMessage,
               ...memoryMessage,
               ...chatHistory,
-              new HumanMessage(message),
+              typeof userContent === "string"
+                ? new HumanMessage(userContent)
+                : new HumanMessage({ content: userContent as any }),
             ];
           }
 
@@ -892,7 +987,8 @@ export function registerAiHandlers(DB: any, fileWriter: FileWriter) {
                 activeChatSessionId,
                 message,
                 finalText,
-                blocks
+                blocks,
+                attachedImages
               );
               rowIds = persisted.rowIds;
             } catch (dbErr) {
@@ -923,7 +1019,14 @@ export function registerAiHandlers(DB: any, fileWriter: FileWriter) {
           // 正常收尾（仅 user + 最终 assistant — 不存中间 tool 回合，避免污染 ai_chat）
           // 有序分块记在 assistant 行的 blocks 列里，渲染层据此按 思考→工具→输出 还原
           try {
-            await persistAiChatExchange(DB, activeChatSessionId, message, finalText, blocks);
+            await persistAiChatExchange(
+              DB,
+              activeChatSessionId,
+              message,
+              finalText,
+              blocks,
+              attachedImages
+            );
           } catch (dbErr) {
             log.error(`[ai-agent] session ${sessionId} persist failed:`, dbErr);
           }
@@ -1093,6 +1196,58 @@ export function registerAiHandlers(DB: any, fileWriter: FileWriter) {
     }
   );
 
+  // ============================================================
+  // 选图对话框（AI 对话附件）
+  // ============================================================
+
+  /**
+   * 打开系统文件选择框选图片，返回原始字节的 base64。
+   *
+   * ## 为什么不在这里缩图
+   *
+   * 缩图要用 canvas（渲染层才有），而这里只能拿到文件字节。
+   * 原图过大时 base64 会撑到好几 MB —— 但这是一次性的用户动作，
+   * 而且渲染层拿到后会立刻缩到 1568px 再发回来。
+   *
+   * ## 为什么不存进笔记资源目录
+   *
+   * notes:pick-image 会把图写进用户的笔记目录，那是用户的数据。
+   * 对话附件是临时的，不该在用户的笔记里留下没头没尾的图片文件。
+   */
+  ipcMain.handle("ai:pick-images", async () => {
+    const win = getMainWindow();
+    if (!win) {
+      log.error("ai:pick-images 调用时主窗口不存在，无法打开图片选择框");
+      return [];
+    }
+
+    const result = await dialog.showOpenDialog(win, {
+      title: "添加图片",
+      properties: ["openFile", "multiSelections"],
+      filters: [{ name: "图片", extensions: ["png", "jpg", "jpeg", "gif", "webp"] }],
+    });
+    if (result.canceled || result.filePaths.length === 0) return [];
+
+    const picked: AiImageAttachment[] = [];
+    for (const filePath of result.filePaths) {
+      try {
+        const buffer = fs.readFileSync(filePath);
+        const ext = path.extname(filePath).toLowerCase();
+        const mime = MIME_BY_IMAGE_EXT[ext];
+        // 非图片 / 读不出来就跳过这一张，不影响其它几张
+        if (!mime) continue;
+        picked.push({
+          mime,
+          data: buffer.toString("base64"),
+          name: path.basename(filePath),
+        });
+      } catch (err) {
+        log.error(`读取图片失败 ${filePath}:`, err);
+      }
+    }
+    return picked;
+  });
+
   ipcMain.handle("get-ai-chat-sessions", async () => {
     try {
       const sessions = await DB.from("ai_chat_session")
@@ -1129,8 +1284,9 @@ export function registerAiHandlers(DB: any, fileWriter: FileWriter) {
     try {
       // blocks 必须列出来：下面是显式列清单，漏一列就是 SQL 报错，
       // 而 catch 会把它吞成 return [] —— 表现为「整段聊天记录变空白且不报错」。
+      // images 同理：漏了它，历史里的图片附件就再也回不到界面上。
       const history = await DB.from("ai_chat")
-        .select("id", "role", "content", "blocks", "created_at")
+        .select("id", "role", "content", "blocks", "images", "created_at")
         .where("session_id", chatSessionId)
         .orderBy("created_at", "asc")
         .orderBy("id", "asc");
@@ -1140,6 +1296,7 @@ export function registerAiHandlers(DB: any, fileWriter: FileWriter) {
         role: message.role,
         content: message.content,
         blocks: parseBlocks(message.blocks),
+        images: parseAiImages(message.images),
         created_at: new Date(message.created_at),
       }));
     } catch (error) {
@@ -1188,6 +1345,7 @@ export function registerAiHandlers(DB: any, fileWriter: FileWriter) {
         role: msg.role,
         content: msg.content,
         blocks: parseBlocks(msg.blocks),
+        images: parseAiImages(msg.images),
         created_at: new Date(msg.created_at)
       }));
     } catch (error) {

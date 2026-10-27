@@ -1,4 +1,5 @@
 import type { AssistantBlock } from "@shared/aiBlocks";
+import type { AiImageAttachment } from "@shared/aiImages";
 
 export interface ClipboardRecord {
     id?: number;
@@ -33,6 +34,11 @@ export interface ChatMessage {
      * 从 ai_chat.blocks 列读回（见 shared/aiBlocks）。
      */
     blocks?: AssistantBlock[];
+    /**
+     * 用户这一轮带的图片附件。
+     * 从 ai_chat.images 列读回（见 shared/aiImages）。
+     */
+    images?: AiImageAttachment[];
     created_at: Date;
 }
 
