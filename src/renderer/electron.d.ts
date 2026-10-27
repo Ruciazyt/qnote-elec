@@ -380,6 +380,13 @@ interface ElectronAPI {
   }>;
   /** 系统右键菜单唤起时收到目标路径，返回解绑函数 */
   onExternalAddShortcut: (callback: (target: string) => void) => () => void;
+  /**
+   * 快捷方式列表发生变化（新增 / 改名 / 删除 / 排序）
+   *
+   * 改表的入口不止快捷方式面板自己（剪贴板面板的「添加到快捷方式」
+   * 就是另一处），面板据此刷新。
+   */
+  onShortcutsChanged: (callback: () => void) => () => void;
 
 
   // App info

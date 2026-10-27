@@ -512,6 +512,48 @@ export default function HomePage() {
     setAddTodoDialogOpen(true);
   };
 
+  /**
+   * 打开记录里的网页地址
+   *
+   * 走系统默认浏览器，跟 URL 快捷方式的打开方式一致 —— 内嵌浏览器是另一个
+   * 页面，从剪贴板区跳过去要连带切路由和标签页，代价大于收益。
+   *
+   * 协议白名单在主进程收口（parseExternalUrl），这里只负责把失败说清楚。
+   */
+  const handleOpenUrl = async (record: ClipboardRecord, url: string) => {
+    try {
+      const ok = await window.electron.openExternal(url);
+      if (!ok) {
+        toast({ title: "打不开链接", description: url, variant: "destructive" });
+      }
+    } catch (err) {
+      console.error("打开链接失败:", err);
+      toast({ title: "打不开链接", description: url, variant: "destructive" });
+    }
+  };
+
+  /**
+   * 把记录里的网页地址收进快捷方式面板
+   *
+   * 面板在右侧、与剪贴板区各自独立，不共享状态 —— 面板靠主进程广播
+   * shortcut:changed 来刷新，所以这里不用（也不能）直接去动面板的状态。
+   *
+   * 标题交给主进程推导（取域名去掉 www），这里不重复实现一遍。
+   */
+  const handleAddToShortcut = async (record: ClipboardRecord, url: string) => {
+    try {
+      const result = await window.electron.shortcutAdd({ kind: "url", target: url });
+      if (!result.success) {
+        toast({ title: "添加失败", description: result.error, variant: "destructive" });
+        return;
+      }
+      toast({ title: "已添加到快捷方式", description: url });
+    } catch (err) {
+      console.error("添加到快捷方式失败:", err);
+      toast({ title: "添加失败", variant: "destructive" });
+    }
+  };
+
   const handleSaveTodoFromClipboard = async (input: {
     title: string;
     notes?: string;
@@ -620,6 +662,8 @@ export default function HomePage() {
             onTogglePin={handleTogglePin}
             onToggleImportant={handleToggleImportant}
             onAddToTodo={handleAddToTodo}
+            onOpenUrl={handleOpenUrl}
+            onAddToShortcut={handleAddToShortcut}
             onSaveAsNote={handleSaveAsNote}
             savingNoteId={savingNoteId}
             onUpdateContent={handleUpdateContent}

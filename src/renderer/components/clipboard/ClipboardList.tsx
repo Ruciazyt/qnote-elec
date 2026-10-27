@@ -7,11 +7,13 @@ import { Skeleton } from "../ui/skeleton";
 import {
   Copy, Trash2, Pin, PinOff, Star, Code, Check, Image as ImageIcon, Clock, ListChecks,
   NotebookPen, Loader2, ChevronDown, ChevronLeft, MoreHorizontal, Pencil, Save, StickyNote,
+  ExternalLink, LayoutGrid,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { ClipboardRecord } from "./types";
 import { getSupportedLanguages, SupportedLanguage } from "@/utils/codeFormatter";
+import { detectUrl } from "@/utils/urlDetect";
 import { useAutoGrowTextarea } from "@/hooks/useAutoGrowTextarea";
 import { useStickyDrag } from "@/hooks/useStickyDrag";
 
@@ -35,6 +37,15 @@ interface ClipboardListProps {
   onTogglePin?: (record: ClipboardRecord) => void;
   onToggleImportant?: (record: ClipboardRecord) => void;
   onAddToTodo?: (record: ClipboardRecord) => void;
+  /**
+   * 打开记录里的网页地址
+   *
+   * 只对「整条内容就是一个网址」的记录可用 —— 列表据此决定
+   * 要不要显示那个按钮，调用方拿到的 url 已归一化好。
+   */
+  onOpenUrl?: (record: ClipboardRecord, url: string) => void;
+  /** 把记录里的网页地址收进快捷方式面板 */
+  onAddToShortcut?: (record: ClipboardRecord, url: string) => void;
   /** 存为笔记：文本落成 .md，图片落成 .png */
   onSaveAsNote?: (record: ClipboardRecord) => void;
   /** 正在存为笔记的记录 id，用于按钮转圈 */
@@ -206,6 +217,8 @@ export function ClipboardList({
   onTogglePin,
   onToggleImportant,
   onAddToTodo,
+  onOpenUrl,
+  onAddToShortcut,
   onSaveAsNote,
   savingNoteId = null,
   onUpdateContent,
@@ -444,6 +457,13 @@ export function ClipboardList({
         const isPinned = Boolean(record.pinned_at);
         const isImportant = Boolean(record.is_important);
         const isEditing = editingId === recordId;
+        /**
+         * 这条记录是不是一个网页地址
+         *
+         * 判定口径在 utils/urlDetect：整条内容就是一个网址才算数，
+         * 正文里恰好出现网址不算。图片记录没有正文，直接排除。
+         */
+        const recordUrl = record.type === "text" ? detectUrl(record.content) : null;
 
         /**
          * 次要操作统一进「更多」菜单。
@@ -507,6 +527,17 @@ export function ClipboardList({
             });
           },
         });
+
+        // 收进快捷方式：和「存为笔记」「加为 Todo」同类，都是把这条记录
+        // 转到别处去，因此归在「更多」菜单里，不占操作栏的位置。
+        if (recordUrl && onAddToShortcut) {
+          moreMenuItems.push({
+            key: "shortcut",
+            label: "添加到快捷方式",
+            icon: <LayoutGrid className="h-3.5 w-3.5" />,
+            onSelect: () => onAddToShortcut(record, recordUrl),
+          });
+        }
 
         // 代码高亮是二级面板：语言有 5 种，和其它单次点击的动作挤在一层会让菜单变很长
         if (record.type === "text") {
@@ -649,6 +680,26 @@ export function ClipboardList({
                       <p className="text-xs">{copiedId === recordId ? "已复制" : "复制内容"}</p>
                     </TooltipContent>
                   </Tooltip>
+
+                  {/* 打开链接：只有整条内容就是网址的记录才有。
+                      它是这类记录最常用的动作，所以留在操作栏上跟「复制」并列，
+                      而不是塞进「更多」——「更多」里都是偶尔才用得上的流转动作。 */}
+                  {recordUrl && onOpenUrl && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          onClick={() => onOpenUrl(record, recordUrl)}
+                          variant="ghost"
+                          aria-label="打开链接"
+                          className="h-8 w-8 p-0 transition-all duration-150 hover:bg-primary/10 hover:text-primary active:scale-95 focus-visible:ring-2 focus-visible:ring-primary/50">
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" sideOffset={6}>
+                        <p className="text-xs">在浏览器中打开</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
 
                   {onTogglePin && (
                     <Tooltip>
@@ -795,6 +846,26 @@ export function ClipboardList({
                       <p className="text-xs">{copiedId === recordId ? "已复制" : "复制内容"}</p>
                     </TooltipContent>
                   </Tooltip>
+
+                  {/* 打开链接：只有整条内容就是网址的记录才有。
+                      位置与收起态严格一致（复制之后、置顶之前），
+                      两条读法之间来回切时按钮不该跳位。 */}
+                  {recordUrl && onOpenUrl && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          onClick={() => onOpenUrl(record, recordUrl)}
+                          variant="ghost"
+                          aria-label="打开链接"
+                          className="h-8 w-8 p-0 transition-all duration-150 hover:bg-primary/10 hover:text-primary active:scale-95 focus-visible:ring-2 focus-visible:ring-primary/50">
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" sideOffset={6}>
+                        <p className="text-xs">在浏览器中打开</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
 
                   {onTogglePin && (
                     <Tooltip>

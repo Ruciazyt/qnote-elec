@@ -134,6 +134,23 @@ export function ShortcutPanel() {
   }, [load, loadShellStatus]);
 
   /**
+   * 快捷方式表被面板之外改了
+   *
+   * 改这张表的入口不止面板自己 —— 剪贴板面板的「添加到快捷方式」
+   * 就是从面板之外改的。收到广播后重新拉一次，否则那条快捷方式要等
+   * 下次进主页才看得见，用户会以为没加上。
+   *
+   * 面板自己发起的增删改也会收到这条广播（主进程在写库后统一广播），
+   * 于是会多拉一次列表 —— 同一条数据拉两遍的代价远小于漏刷新。
+   */
+  useEffect(() => {
+    const unsubscribe = window.electron.onShortcutsChanged(() => {
+      void load();
+    });
+    return unsubscribe;
+  }, [load]);
+
+  /**
    * 图标逐个解析、谁先回来谁先显示
    *
    * 依赖用 id+target 的拼接串而不是 items 本身：拖拽排序会让数组引用整个换掉，

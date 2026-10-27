@@ -1,4 +1,4 @@
-import { ipcMain, dialog, shell, app } from "electron";
+import { ipcMain, dialog, shell, app, BrowserWindow } from "electron";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { log } from "../utils/log";
@@ -133,6 +133,24 @@ async function isDuplicate(DB: any, kind: ShortcutKind, target: string): Promise
   return !!row;
 }
 
+/**
+ * 快捷方式表变了 —— 广播给所有窗口
+ *
+ * 快捷方式面板是唯一读这张表的界面，但它此前只在「自己发起的增删改」
+ * 之后才重新拉取。剪贴板面板新增的「添加到快捷方式」就是从面板之外
+ * 改的这张表 —— 不广播的话，那条快捷方式要等下次进主页才看得见，
+ * 用户会以为没加上。
+ *
+ * 广播而不是让每个调用方自己刷新：改这张表的入口不止一处（面板对话框、
+ * 系统右键菜单、剪贴板），每处都记得刷新一遍是漏改的开始。
+ */
+function broadcastShortcutsChanged() {
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (win.isDestroyed()) continue;
+    win.webContents.send("shortcut:changed");
+  }
+}
+
 export function registerShortcutHandlers(DB: any) {
   /**
    * 列表 — 按 sort_order 升序
@@ -205,6 +223,7 @@ export function registerShortcutHandlers(DB: any) {
           sort_order: nextOrder,
         });
 
+        broadcastShortcutsChanged();
         return { success: true, id: id[0] };
       } catch (err) {
         log.error("shortcut:add error:", err);
@@ -246,6 +265,7 @@ export function registerShortcutHandlers(DB: any) {
         }
 
         await DB("shortcut").where("id", id).update(updates);
+        broadcastShortcutsChanged();
         return { success: true };
       } catch (err) {
         log.error("shortcut:update error:", err);
@@ -257,6 +277,7 @@ export function registerShortcutHandlers(DB: any) {
   ipcMain.handle("shortcut:delete", async (_event, id: number): Promise<boolean> => {
     try {
       await DB("shortcut").where("id", id).delete();
+      broadcastShortcutsChanged();
       return true;
     } catch (err) {
       log.error("shortcut:delete error:", err);
@@ -277,6 +298,7 @@ export function registerShortcutHandlers(DB: any) {
       for (let i = 0; i < ids.length; i++) {
         await DB("shortcut").where("id", ids[i]).update({ sort_order: i });
       }
+      broadcastShortcutsChanged();
       return true;
     } catch (err) {
       log.error("shortcut:reorder error:", err);
@@ -384,6 +406,7 @@ export function registerShortcutHandlers(DB: any) {
   ipcMain.handle("shortcut:clear", async (): Promise<boolean> => {
     try {
       await DB("shortcut").del();
+      broadcastShortcutsChanged();
       return true;
     } catch (err) {
       log.error("shortcut:clear error:", err);

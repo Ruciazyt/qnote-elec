@@ -512,6 +512,19 @@ contextBridge.exposeInMainWorld("electron", {
     return () => ipcRenderer.removeListener("shortcut:external-add", listener);
   },
 
+  /**
+   * 快捷方式列表发生变化（新增 / 改名 / 删除 / 排序）
+   *
+   * 改这张表的入口不止快捷方式面板自己 —— 剪贴板面板的「添加到快捷方式」
+   * 就是从面板之外改的。面板收到广播后重新拉一次列表，否则那条快捷方式
+   * 要等下次进主页才看得见。
+   */
+  onShortcutsChanged: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on("shortcut:changed", listener);
+    return () => ipcRenderer.removeListener("shortcut:changed", listener);
+  },
+
   // 跨窗口 AI 浮框位置 / 展开同步
   getFloatingAiState: () => ipcRenderer.invoke("floating-ai:get-state"),  setFloatingAiPosition: (position: { right: number; bottom: number }) =>
     ipcRenderer.send("floating-ai:set-position", position),
