@@ -14,8 +14,8 @@
 /** 便签内容类型：文本 / 图片 */
 export type StickyNoteType = "text" | "image";
 
-/** 拖出窗口时随行携带的载荷 —— 只带够画一张便签的东西 */
-export interface StickyDragPayload {
+/** 长按生成便签时随行携带的载荷 —— 只带够画一张便签的东西 */
+export interface StickyHoldPayload {
   type: StickyNoteType;
   /** 文本内容，或图片的 data URL */
   content: string;
@@ -38,6 +38,14 @@ export interface StickyNoteInit {
   imageDataUrl?: string;
   /** 是否处于"屏幕级"置顶（压在所有窗口之上） */
   alwaysOnTop: boolean;
+  /**
+   * 尺寸是否随内容自适应
+   *
+   * true 时，窗口大小由渲染层量出正文实际占位后申请（正好包住内容）；
+   * 用户一旦拖动过缩放手柄，就转成 false —— 手动尺寸优先，
+   * 否则用户刚拖大的纸会被下一次内容变化又缩回去。
+   */
+  autoSize: boolean;
   /** 便签当前尺寸（渲染层缩放手柄要以此为基准） */
   width: number;
   height: number;
@@ -49,6 +57,8 @@ export interface StickyNotePatch {
   id?: string;
   text?: string;
   alwaysOnTop?: boolean;
+  /** 切换尺寸模式：true = 随内容自适应，false = 用用户手动定的尺寸 */
+  autoSize?: boolean;
 }
 
 /** 便签位置 / 尺寸 */
@@ -58,4 +68,12 @@ export interface StickyBounds {
   y?: number;
   width?: number;
   height?: number;
+  /**
+   * 顺带切尺寸模式
+   *
+   * 缩放手柄拖动时一并传 false —— 尺寸和模式在同一次调用里改，
+   * 免得出现"窗口已经按手动尺寸变了、模式还停在自适应"的中间态，
+   * 那一瞬间内容变化就会把用户刚拖出来的尺寸又缩回去。
+   */
+  autoSize?: boolean;
 }

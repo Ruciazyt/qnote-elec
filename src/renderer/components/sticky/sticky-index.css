@@ -5,11 +5,23 @@
 /* ==========================================================================
    屏幕便签 —— 独立页面的样式
 
-   ## 配色不另起一套
+   ## 配色跟 App 走
 
-   这个页面**直接引入 App 的 index.css**，所以 --primary / --card / --border /
-   --muted 这些设计变量与主窗口逐字相同。便签看着像"从 App 里撕下来的一小块"，
-   而不是另一套配色；App 以后改品牌色，便签自动跟着变。
+   这个页面**直接引入 App 的 index.css**，纸面与字色都按 App 的品牌青
+   （hue 195）定：浅色主题是淡青纸 + 深墨字，深色主题是深青纸 + 浅字。
+
+   为什么不用 App 的 --secondary 当纸面：
+   它在浅色主题下是 195 30% 94% —— 几乎就是一张白纸。便签是浮在**桌面**上的，
+   桌面背景不由 App 决定，浅色桌面上这张纸等于消失（实测与 #eceff3 只差
+   1.06:1，肉眼看不出纸的边界）。所以纸色单独定一档：同一色相、再实一点，
+   无论桌面明暗都看得出这是一张纸。
+
+   ## 与 App 主题同步
+
+   深浅两档由 <html class="dark"> 切换 —— App 的 useTheme.ts 把这个 class
+   挂在 documentElement 上，本文件里的 .dark 规则跟着它翻。
+
+   .dark 规则必须写在 :root **之后**：两者都命中 <html>，同权重时靠后的赢。
 
    这里只做两件 App 样式表不覆盖的事：
      1. 窗口是透明的，body 不能有底色（否则是一块白底方块）
@@ -25,7 +37,7 @@
     height: 100%;
     /* 关键：窗口本身是 transparent 的，body 不透明就等于贴了块白底 */
     background: transparent !important;
-    color: hsl(var(--foreground));
+    color: hsl(var(--sticky-ink));
     overflow: hidden;
     user-select: none;
     cursor: default;
@@ -44,34 +56,106 @@
   }
 }
 
-/* ── 纸卡本体 ─────────────────────────────────────────────────
-   直接复用 App 的 card / border / foreground 变量，
-   阴影也用 foreground 变量算（纸片浮在桌面上的投影本来就是中性灰）。
+/* ── 纸面 ─────────────────────────────────────────────────
+   排版常量（字号 / 行高 / 内边距）也放在这里，因为**渲染层要按它们
+   量尺寸**：先量出正文占多大地方，再把窗口调成正好包住它。
+   两边共用同一份定义，才不会出现"量的时候算 18px、画的时候是 13px"。
+
+   颜色分浅深两档（见文件头：为什么不用 --secondary 当纸面）：
+
+     浅色主题：纸 hsl(195 45% 90%) —— 比 App 的内容面板略深一档的淡青，
+               字 hsl(200 12% 18%) —— 近黑的冷灰。正文对比度 11:1。
+     深色主题：纸 hsl(195 22% 26%) —— 比 App 的深色背景亮一档的深青，
+               字 hsl(195 25% 92%)。正文对比度 7.9:1。
+
+   提示文字（空便签的占位字、编辑框 placeholder）用墨色压到 72%：
+   浅色纸面上 4.95:1、深色纸面上 5.02:1，都在 WCAG AA 正文线（4.5:1）内。
    ---------------------------------------------------------------- */
 
+:root {
+  /* 排版 */
+  --sticky-font-size: 18px;
+  --sticky-line-height: 1.6;
+  /* 正文与纸边之间的距离 */
+  --sticky-pad: 20px;
+  /* 纸面外圈留白：留给投影，不然阴影会被窗口边界切成一圈硬边 */
+  --sticky-frame: 16px;
+
+  /* 纸面与字色 —— 品牌青（hue 195），与 App 的 --primary 同一色相 */
+  --sticky-paper: hsl(195 45% 90%);
+  /* 字色存三元组：描边、缩放手柄都要拿它调透明度（hsl(var(--sticky-ink) / 40%）） */
+  --sticky-ink: 200 12% 18%;
+  --sticky-hint: hsl(200 12% 18% / 0.72);
+}
+
+/*
+   深色主题 —— 与 :root 同权重，靠写在后面取胜（见文件头）。
+   纸色比 App 的深色背景亮一档，贴在深色桌面上才拎得出来。
+*/
+.dark {
+  --sticky-paper: hsl(195 22% 26%);
+  --sticky-ink: 195 25% 92%;
+  --sticky-hint: hsl(195 25% 92% / 0.72);
+}
+
 .sticky-card {
-  background: hsl(var(--card));
-  color: hsl(var(--card-foreground));
-  border: 1px solid hsl(var(--border));
+  background: var(--sticky-paper);
+  color: hsl(var(--sticky-ink));
+  /*
+    描边用内阴影而不是 border ——
+    border 会占掉 2px 的内容区，而纸的尺寸是按"内容 + 内边距"精确算出来的，
+    少 2px 就会让最后一行的换行位置与量出来的对不上。
+
+    描边取墨色（不是灰）：纸和字本是一套色，边也该跟着走。
+    深色主题下墨色是浅的，这道细边正好把纸从深色桌面里拎出来。
+   */
   box-shadow:
-    0 10px 28px hsl(var(--foreground) / 0.10),
-    0 2px 6px hsl(var(--foreground) / 0.06);
+    inset 0 0 0 1px hsl(var(--sticky-ink) / 0.12),
+    0 6px 16px hsl(220 40% 8% / 0.18),
+    0 1px 3px hsl(220 40% 8% / 0.1);
 }
 
-.dark .sticky-card {
-  box-shadow:
-    0 12px 30px hsl(0 0% 0% / 0.45),
-    0 2px 6px hsl(0 0% 0% / 0.30);
+/* 外圈留白 —— 数值来自 --sticky-frame，量尺寸时读的是同一个变量 */
+.sticky-shell {
+  padding: var(--sticky-frame);
 }
 
-/* 顶部胶条：品牌色的一层淡染，呼应 App 的 primary */
-.sticky-tape {
-  background: linear-gradient(
-    180deg,
-    hsl(var(--primary) / 0.14),
-    hsl(var(--primary) / 0.04)
-  );
-  border-bottom: 1px solid hsl(var(--border) / 0.8);
+/*
+ * 便签正文的排版
+ *
+ * 这个类被**两处**同时使用：
+ *   1. 纸面上真正显示的 <pre> / <textarea>
+ *   2. 屏幕外那个专门用来量尺寸的隐藏元素
+ *
+ * 两边必须逐字一致 —— 量出来的行高若与实际渲染差 1px，
+ * 纸就正好把最后一行切掉。所以规则写在一处，不许各写各的。
+ */
+.sticky-text {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+  font-size: var(--sticky-font-size);
+  line-height: var(--sticky-line-height);
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: normal;
+  color: hsl(var(--sticky-ink));
+  margin: 0;
+}
+
+/*
+ * 量尺寸用的隐藏元素
+ *
+ * 不能用 display:none —— 那样它没有布局，量不出任何东西。
+ * 用 visibility:hidden：照样参与布局，只是看不见。
+ * white-space 由脚本切换（pre = 量自然宽度，pre-wrap = 量换行后高度）。
+ */
+.sticky-measure {
+  position: absolute;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  pointer-events: none;
+  white-space: pre;
 }
 
 /* ── 出现动画 ───────────────────────────────────────────────── */
@@ -91,19 +175,21 @@
   animation: sticky-appear 160ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-/* ── 滚动条 ─────────────────────────────────────────────────── */
+/* ── 滚动条 ───────────────────────────────────────────────────
+   零宽度。
+   纸的宽度是量出来的（正好包住正文），滚动条一旦占位置，
+   正文就会被挤窄、换行位置跟着变 —— 纸的尺寸立刻对不上。
+   所以滚动条不占地方：内容装得下时它根本不出现，
+   用户手动把纸改小导致溢出时，滚轮依然能滚。
+   ---------------------------------------------------------------- */
 
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 0;
+  height: 0;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.3);
-  border-radius: 999px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.5);
+  background: transparent;
 }

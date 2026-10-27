@@ -4,34 +4,38 @@ import * as path from "path";
 import { log } from "../../utils/log";
 import {
   StickyBounds,
-  StickyDragPayload,
+  StickyHoldPayload,
   StickyNoteInit,
   StickyNotePatch,
   StickyNoteType,
 } from "../../../shared/stickyNote";
 
 /**
- * 屏幕便签 —— 把一条剪贴板记录从程序窗口里"撕"下来，变成压在桌面上的小纸条。
+ * 屏幕便签 —— 把一条剪贴板记录变成压在桌面上的小纸条。
  *
  * ## 整体流程
  *
- *   1. 渲染层（剪贴板列表 / 剪贴板弹窗）按住一条记录开始拖动
- *   2. 渲染层发 `sticky:drag-begin`，主进程起一个拖拽会话
- *   3. 主进程每 16ms 读一次光标位置；**光标一旦离开源窗口边界**，
+ *   1. 渲染层（剪贴板列表 / 剪贴板弹窗）鼠标按下一条记录，
+ *      立刻发 `sticky:hold-begin`，主进程起一个长按会话
+ *   2. 主进程每 16ms 读一次光标位置；**按住满 1.2 秒**，
  *      就在光标处开一张便签窗口，并让便签跟着光标走
- *   4. 渲染层发 `sticky:drag-end`，会话结束，便签留在松手的位置
+ *   3. 渲染层发 `sticky:hold-end`（松手），会话结束，便签留在松手的位置
  *
- * ## 为什么判定"离开窗口"要在主进程做
+ * 原来是"把记录拖出程序窗口"才生成便签，那条路太难被发现 ——
+ * 现在改成按住 1.2 秒，按在哪就在哪生成。
+ *
+ * ## 为什么计时与光标都要在主进程做
  *
  * 渲染层拿到的 `MouseEvent.screenX/screenY` 是 CSS 像素，
  * 而 `BrowserWindow.getBounds()` 是 DIP（设备无关像素）。
  * Windows 缩放 125% / 150% 时两者对不上，用渲染层的坐标判断
- * 会在"还没出窗口"时就误判成出窗口。主进程的
+ * 会让便签跟手不准。主进程的
  * `screen.getCursorScreenPoint()` 与 `getBounds()` 用的都是 DIP，
  * 天然对齐。
  *
- * 另一个原因：光标移出窗口后，源窗口可能失焦（剪贴板弹窗失焦即隐藏），
- * 渲染层就再也收不到事件了。只有主进程的轮询不依赖源窗口是否还活着。
+ * 另一个原因：便签生成之后，光标就落在便签窗口上了，源窗口
+ * （剪贴板弹窗失焦即隐藏）再也收不到事件。只有主进程的轮询
+ * 不依赖源窗口是否还活着。
  */
 
 const DEV_SERVER_URL = "http://localhost:5173";
@@ -43,16 +47,30 @@ const IMAGE_DIR = "sticky-images";
 
 const DEFAULT_WIDTH = 300;
 const DEFAULT_HEIGHT = 200;
-const MIN_WIDTH = 180;
-const MIN_HEIGHT = 120;
+/**
+ * 窗口尺寸下限
+ *
+ * 这两个值比"默认尺寸"小得多：文本便签的窗口大小是**按内容量出来的**，
+ * 一句短话就该是一张小纸片（内容区 92px + 内边距 40px + 留白 32px ≈ 164px），
+ * 用 180/120 卡着的话，短内容会被撑出一大片空白，就不是"正好包住内容"了。
+ */
+const MIN_WIDTH = 120;
+const MIN_HEIGHT = 70;
 
-/** 拖拽轮询间隔（毫秒）—— 16ms ≈ 60fps，肉眼看不出便签在"跳" */
+/** 会话轮询间隔（毫秒）—— 16ms ≈ 60fps，肉眼看不出便签在"跳" */
 const DRAG_POLL_INTERVAL = 16;
 /**
- * 单次拖拽会话的最长存活时间
+ * 按住多久才生成便签（毫秒）
  *
- * 兜底：万一渲染层没发出 `drag-end`（比如窗口在拖拽途中被销毁），
- * 会话会永远挂着并一直轮询光标。60 秒足够拖完一次，也足够让会话自己收摊。
+ * 生成方式从"把记录拖出程序窗口"改成"按住不动"：按住满 1.2 秒，
+ * 光标所在处就出现一张便签，之后便签跟着光标走，松手停在原地。
+ */
+const HOLD_DURATION_MS = 1200;
+/**
+ * 单次会话的最长存活时间
+ *
+ * 兜底：万一渲染层没发出结束通知（窗口在过程中被销毁），
+ * 会话会永远挂着并一直轮询光标。60 秒足够一次，也足够让会话自己收摊。
  */
 const DRAG_MAX_LIFETIME = 60_000;
 
@@ -67,16 +85,29 @@ interface StickyNoteRecord {
   width: number;
   height: number;
   alwaysOnTop: boolean;
+  /**
+   * 尺寸是否随内容自适应
+   *
+   * 默认 true —— 文本便签的窗口由渲染层量出正文占位后申请；
+   * 用户拖过缩放手柄就转 false，把尺寸让给用户。
+   */
+  autoSize: boolean;
   createdAt: number;
 }
 
 interface DragSession {
-  /** 拖拽起点所在的窗口（主窗口或剪贴板弹窗） */
-  source: BrowserWindow | null;
-  payload: StickyDragPayload;
+  /**
+   * 会话类型
+   *
+   * - "hold"：按住一条记录，满 1.2 秒生成一张新便签
+   * - "move"：移动一张已经存在的便签
+   */
+  mode: "hold" | "move";
+  /** hold 模式下的载荷；move 模式不用 */
+  payload: StickyHoldPayload | null;
   timer: NodeJS.Timeout;
   startedAt: number;
-  /** 已经撕下来的便签 id；还没撕下来时为 null */
+  /** hold 模式下：便签还没生成时为 null */
   noteId: string | null;
   /** 光标相对便签左上角的偏移 */
   grabOffset: { x: number; y: number };
@@ -164,6 +195,9 @@ class StickyNoteManager {
             width: Number.isFinite(item.width) ? item.width : DEFAULT_WIDTH,
             height: Number.isFinite(item.height) ? item.height : DEFAULT_HEIGHT,
             alwaysOnTop: item.alwaysOnTop !== false,
+            // 老记录里没有这个字段，一律当"自适应"——
+            // 便签尺寸本来就该跟着内容走，让旧便签也回到这个状态
+            autoSize: item.autoSize !== false,
             createdAt: Number.isFinite(item.createdAt) ? item.createdAt : Date.now(),
           };
           this.records.set(record.id, record);
@@ -342,7 +376,7 @@ class StickyNoteManager {
   /* ───────────────────── 对外接口 ───────────────────── */
 
   /** 从一条剪贴板记录撕下一张便签 */
-  createFromPayload(payload: StickyDragPayload, cursor: { x: number; y: number }): string {
+  createFromPayload(payload: StickyHoldPayload, cursor: { x: number; y: number }): string {
     this.load();
     const id = `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
 
@@ -355,6 +389,7 @@ class StickyNoteManager {
       width: DEFAULT_WIDTH,
       height: DEFAULT_HEIGHT,
       alwaysOnTop: true,
+      autoSize: true,
       createdAt: Date.now(),
     };
 
@@ -487,6 +522,7 @@ class StickyNoteManager {
       text: record.text,
       imageDataUrl: record.type === "image" ? this.readImageDataUrl(record) : undefined,
       alwaysOnTop: record.alwaysOnTop,
+      autoSize: record.autoSize,
       width: record.width,
       height: record.height,
       createdAt: record.createdAt,
@@ -510,6 +546,9 @@ class StickyNoteManager {
       if (win && !win.isDestroyed()) {
         this.applyAlwaysOnTop(win, record.alwaysOnTop);
       }
+    }
+    if (typeof patch.autoSize === "boolean") {
+      record.autoSize = patch.autoSize;
     }
     this.scheduleSave();
     return { ok: true };
@@ -535,9 +574,29 @@ class StickyNoteManager {
     const nextX = Math.round(bounds.x ?? record.x);
     const nextY = Math.round(bounds.y ?? record.y);
 
+    // 尺寸模式与尺寸在同一次调用里改，避免中间态：
+    // 窗口已经按手动尺寸变了、模式却还停在自适应，下一次内容变化
+    // 就把用户刚拖出来的尺寸又缩回去。
+    if (typeof bounds.autoSize === "boolean") {
+      record.autoSize = bounds.autoSize;
+    }
+
     win.setBounds({ x: nextX, y: nextY, width: nextWidth, height: nextHeight });
     record.x = nextX;
     record.y = nextY;
+
+    /*
+     * 拖拽过程中便签跟着光标走，靠的是"光标相对便签左上角的偏移"。
+     * 尺寸一变，这个偏移就得跟着等比缩放 —— 否则偏移还是按旧尺寸算的，
+     * 便签会在光标旁边偏出去一截（宽从 300 缩到 200，偏 50px）。
+     */
+    if (this.session?.noteId === id && record.width > 0 && record.height > 0) {
+      this.session.grabOffset = {
+        x: (this.session.grabOffset.x / record.width) * nextWidth,
+        y: (this.session.grabOffset.y / record.height) * nextHeight,
+      };
+    }
+
     record.width = nextWidth;
     record.height = nextHeight;
     this.scheduleSave();
@@ -579,6 +638,7 @@ class StickyNoteManager {
         text: record.text,
         imageDataUrl: record.type === "image" ? this.readImageDataUrl(record) : undefined,
         alwaysOnTop: record.alwaysOnTop,
+        autoSize: record.autoSize,
         width: record.width,
         height: record.height,
         createdAt: record.createdAt,
@@ -587,16 +647,24 @@ class StickyNoteManager {
     return result;
   }
 
-  /* ───────────────────── 拖拽会话 ───────────────────── */
+  /* ───────────────────── 会话（长按生成 / 移动便签） ───────────────────── */
 
-  /** 渲染层开始拖一条记录 */
-  beginDrag(source: BrowserWindow | null, payload: StickyDragPayload): void {
+  /**
+   * 开始一次长按
+   *
+   * 渲染层在鼠标按下的瞬间就发过来 —— 1.2 秒的计时必须从"按下"起算，
+   * 早一点发早一点开始计时。
+   *
+   * 会话在渲染层发出结束通知（松手）时结束；期间若按住满 1.2 秒，
+   * 便签就在光标处生成，并跟着光标走直到松手。
+   */
+  beginHold(payload: StickyHoldPayload): void {
     this.endDrag();
     if (!payload || (payload.type !== "text" && payload.type !== "image")) return;
     if (typeof payload.content !== "string" || payload.content.length === 0) return;
 
     const session: DragSession = {
-      source,
+      mode: "hold",
       payload,
       timer: setInterval(() => this.tickDrag(), DRAG_POLL_INTERVAL),
       startedAt: Date.now(),
@@ -604,26 +672,80 @@ class StickyNoteManager {
       grabOffset: { x: 0, y: 0 },
     };
     this.session = session;
-    log.info("[sticky] 开始拖拽会话", { type: payload.type });
+    log.info("[sticky] 开始长按会话", { type: payload.type });
   }
 
-  /** 渲染层结束拖拽（松手） */
+  /**
+   * 移动一张已经存在的便签
+   *
+   * 渲染层负责判断"用户是在点击还是在拖动"，一旦确定是拖动就调这里，
+   * 之后的移动由**主进程轮询光标**完成 ——
+   * 渲染层的 clientX/clientY 是 CSS 像素，窗口坐标是 DIP，
+   * Windows 缩放不是 100% 时两者对不上，用渲染层的坐标会让便签跟手不准。
+   *
+   * `anchor` 是按下鼠标时那一点在窗口内的位置。抓住哪儿就贴哪儿 ——
+   * 若改用"此刻光标的位置"来算，等判定出拖动时鼠标已经挪了几像素，
+   * 便签会在起手时往回跳一下。
+   */
+  beginMove(id: string, anchor?: { x: number; y: number }): { ok: boolean } {
+    this.load();
+    const record = this.records.get(id);
+    const win = this.windows.get(id);
+    if (!record || !win || win.isDestroyed()) return { ok: false };
+
+    // 同一时间只允许一个移动会话
+    this.endDrag();
+
+    let cursor: { x: number; y: number };
+    try {
+      cursor = screen.getCursorScreenPoint();
+    } catch {
+      return { ok: false };
+    }
+    const bounds = win.getBounds();
+
+    let grab = { x: cursor.x - bounds.x, y: cursor.y - bounds.y };
+    if (anchor && Number.isFinite(anchor.x) && Number.isFinite(anchor.y)) {
+      // 锚点必须落在窗口内，否则说明两个坐标系没对上，退回用光标位置算
+      if (anchor.x >= 0 && anchor.x <= bounds.width && anchor.y >= 0 && anchor.y <= bounds.height) {
+        grab = { x: anchor.x, y: anchor.y };
+      }
+    }
+
+    this.session = {
+      mode: "move",
+      payload: null,
+      timer: setInterval(() => this.tickDrag(), DRAG_POLL_INTERVAL),
+      startedAt: Date.now(),
+      noteId: id,
+      // 抓住的是便签的哪个位置，就一直保持那个位置在光标下
+      grabOffset: grab,
+    };
+    log.info("[sticky] 开始移动便签", { id, grab });
+    return { ok: true };
+  }
+
+  /** 渲染层结束会话（松手） */
   endDrag(): void {
     const session = this.session;
     if (!session) return;
     this.session = null;
     clearInterval(session.timer);
-    log.info("[sticky] 结束拖拽会话", { noteId: session.noteId });
+    log.info("[sticky] 结束会话", { noteId: session.noteId, mode: session.mode });
   }
 
   /**
-   * 拖拽会话里有没有正在进行的拖动
+   * 会话里有没有正在进行的长按
    *
-   * 剪贴板弹窗失焦就隐藏 —— 而"把记录拖出弹窗"必然会失焦，
-   * 所以弹窗要靠这个标志判断"现在正在拖，别急着藏"。
+   * 剪贴板弹窗失焦就隐藏 —— 而长按到生成便签的过程中，弹窗随时可能失焦，
+   * 一藏窗口，用户按着的那张卡就没了，1.2 秒也白按。
+   * 所以弹窗要靠这个标志判断"现在正在长按，别急着藏"。
+   *
+   * 只认"长按生成"这一种：移动已有便签跟弹窗没关系，
+   * 把它算进去会让弹窗在无关的时候赖着不走。
    */
   isDragActive(): boolean {
-    return this.session !== null;
+    return this.session !== null && this.session.mode === "hold";
   }
 
   private tickDrag(): void {
@@ -643,15 +765,14 @@ class StickyNoteManager {
     }
 
     if (!session.noteId) {
-      // 还没撕下来：光标离开源窗口才算"拖出"
-      const source = session.source;
-      const bounds = source && !source.isDestroyed() ? source.getBounds() : null;
-      if (!bounds) return;
-      if (!isPointOutsideBounds(cursor, bounds)) return;
+      // 还没生成便签：按住满 1.2 秒才生成
+      if (Date.now() - session.startedAt < HOLD_DURATION_MS) return;
+      if (!session.payload) return;
 
       const id = this.createFromPayload(session.payload, cursor);
       session.noteId = id;
       const record = this.records.get(id);
+      // 光标落在便签正中，往后便签就跟着光标走
       session.grabOffset = {
         x: record ? record.width / 2 : DEFAULT_WIDTH / 2,
         y: record ? record.height / 2 : DEFAULT_HEIGHT / 2,
@@ -659,12 +780,30 @@ class StickyNoteManager {
       return;
     }
 
-    // 已经撕下来了：便签跟着光标走
+    // 便签已经生成：它跟着光标走
     const win = this.windows.get(session.noteId);
-    if (!win || win.isDestroyed()) return;
+    if (!win || win.isDestroyed()) {
+      this.endDrag();
+      return;
+    }
+    const bounds = win.getBounds();
+
+    /*
+     * 移动会话的兜底：光标跑出便签窗口就收摊。
+     *
+     * 便签是跟着光标走的，正常情况下光标始终落在便签上（抓哪儿就贴哪儿），
+     * 渲染层一定收得到 pointerup，会话也会正常结束。
+     * 只有便签被夹到屏幕边缘、夹得光标落到便签之外时，渲染层才收不到
+     * pointerup —— 这时若不收摊，便签会一直跟着光标跑，停不下来。
+     */
+    if (session.mode === "move" && isPointOutsideBounds(cursor, bounds)) {
+      this.endDrag();
+      return;
+    }
+
     const position = this.clampToWorkArea(
       { x: cursor.x - session.grabOffset.x, y: cursor.y - session.grabOffset.y },
-      { width: win.getBounds().width, height: win.getBounds().height },
+      { width: bounds.width, height: bounds.height },
       cursor
     );
     win.setPosition(position.x, position.y);

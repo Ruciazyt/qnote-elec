@@ -15,7 +15,7 @@ import { ClipboardRecord } from "./types";
 import { getSupportedLanguages, SupportedLanguage } from "@/utils/codeFormatter";
 import { detectUrl } from "@/utils/urlDetect";
 import { useAutoGrowTextarea } from "@/hooks/useAutoGrowTextarea";
-import { useStickyDrag } from "@/hooks/useStickyDrag";
+import { useStickyHold } from "@/hooks/useStickyHold";
 
 const languageToPrismClass: Record<SupportedLanguage, string> = {
   javascript: "language-javascript",
@@ -228,12 +228,12 @@ export function ClipboardList({
   const [copiedId, setCopiedId] = useState<number | null>(null);
 
   /**
-   * 「拖出窗口 → 变成屏幕便签」
+   * 「按住 1.2 秒 → 变成屏幕便签」
    *
-   * 卡片本体接住按下与移动，越过阈值后由主进程盯着光标：
-   * 光标一旦离开本窗口边界，就在光标处撕下一张便签。
+   * 卡片本体接住按下，主进程从按下的瞬间开始计时：
+   * 按住满 1.2 秒，就在光标处生成一张便签。
    */
-  const { getDragProps, dragging, ghostNode } = useStickyDrag();
+  const { getHoldProps, holding, holdNode } = useStickyHold();
 
   /**
    * 置顶项默认收起
@@ -592,7 +592,7 @@ export function ClipboardList({
                 animationDelay: `${Math.min(index, 40) * 50}ms`,
                 animationFillMode: "both",
               }}
-              {...getDragProps({ type: record.type, content: record.content })}>
+              {...getHoldProps({ type: record.type, content: record.content })}>
               <div
                 className="flex items-center gap-2 px-3 py-2 cursor-pointer"
                 onClick={() => togglePinnedExpanded(recordId)}
@@ -769,13 +769,13 @@ export function ClipboardList({
               isEditing
                 ? "z-50 neu-raised neu-raised-open"
                 : "neu-raised neu-raised-hover hover:-translate-y-1 hover:scale-[1.004]"
-            } ${dragging ? "opacity-60" : ""}`}
+            } ${holding ? "opacity-60" : ""}`}
             style={{
               animationDelay: `${Math.min(index, 40) * 50}ms`,
               animationFillMode: "both",
             }}
-            title="按住拖出窗口即可变成屏幕便签"
-            {...getDragProps({ type: record.type, content: record.content })}>
+            title="按住 1.2 秒即可变成屏幕便签"
+            {...getHoldProps({ type: record.type, content: record.content })}>
             <div className="space-y-2">
               {/* 顶部行：类型徽章 + 操作按钮 */}
               <div className="flex items-center gap-2">
@@ -1090,7 +1090,7 @@ export function ClipboardList({
       })}
       </div>
     </div>
-    {ghostNode}
+    {holdNode}
     </TooltipProvider>
   );
 }

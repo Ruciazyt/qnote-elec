@@ -592,23 +592,43 @@ contextBridge.exposeInMainWorld("electron", {
   // 把一条剪贴板记录拖出程序窗口 → 变成压在桌面上的小纸条
 
   /**
-   * 开始一次「拖出」
+   * 开始一次长按
    *
-   * 渲染层只负责"用户在拖某条记录"这一事实，**光标位置一律由主进程判断**：
-   * 渲染层的 screenX/screenY 是 CSS 像素，窗口边界是 DIP，
-   * Windows 缩放不是 100% 时两者对不上。
+   * 鼠标按下的瞬间就发过来 —— 1.2 秒的计时必须从"按下"起算。
+   * 主进程按住满 1.2 秒就在光标处生成一张便签。
    */
-  stickyDragBegin: (payload: { type: "text" | "image"; content: string }) =>
-    ipcRenderer.send("sticky:drag-begin", payload),
-  /** 结束「拖出」（松手） */
-  stickyDragEnd: () => ipcRenderer.send("sticky:drag-end"),
+  stickyHoldBegin: (payload: { type: "text" | "image"; content: string }) =>
+    ipcRenderer.send("sticky:hold-begin", payload),
+  /** 结束长按（松手） */
+  stickyHoldEnd: () => ipcRenderer.send("sticky:hold-end"),
+  /** 主进程让这张便签进入编辑态（右键菜单 → 编辑内容） */
+  onStickyEdit: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on("sticky:edit", listener);
+    return () => {
+      ipcRenderer.removeListener("sticky:edit", listener);
+    };
+  },
+  /**
+   * 主进程切换了尺寸模式（右键菜单 → 自适应大小）
+   *
+   * 参数为 true 时，渲染层要重新量一次正文，把窗口缩到正好包住内容。
+   */
+  onStickyAutoSize: (callback: (enabled: boolean) => void) => {
+    const listener = (_event: unknown, enabled: boolean) => callback(enabled);
+    ipcRenderer.on("sticky:autosize", listener);
+    return () => {
+      ipcRenderer.removeListener("sticky:autosize", listener);
+    };
+  },
   /** 便签窗口读取自己的初始数据 */
   stickyGetInit: () => ipcRenderer.invoke("sticky:get-init"),
-  /** 修改便签（正文 / 置顶层级） */
+  /** 修改便签（正文 / 置顶层级 / 尺寸模式） */
   stickyUpdate: (patch: {
     id?: string;
     text?: string;
     alwaysOnTop?: boolean;
+    autoSize?: boolean;
   }) => ipcRenderer.invoke("sticky:update", patch),
   /** 关掉一张便签 */
   stickyClose: (id?: string) => ipcRenderer.invoke("sticky:close", id),
@@ -619,7 +639,18 @@ contextBridge.exposeInMainWorld("electron", {
     y?: number;
     width?: number;
     height?: number;
+    autoSize?: boolean;
   }) => ipcRenderer.invoke("sticky:set-bounds", bounds),
+  /**
+   * 开始移动便签
+   *
+   * 渲染层判别出"用户在拖动"后调用，之后由主进程轮询光标移动窗口。
+   * anchor 是按下鼠标那一点在窗口内的位置 —— 抓住哪儿便签就跟到哪儿。
+   */
+  stickyMoveBegin: (id?: string, anchor?: { x: number; y: number }) =>
+    ipcRenderer.invoke("sticky:move-begin", id, anchor),
+  /** 结束移动（松手） */
+  stickyMoveEnd: () => ipcRenderer.invoke("sticky:move-end"),
   /** 列出全部便签 */
   stickyList: () => ipcRenderer.invoke("sticky:list"),
   /** 直接创建一张便签（菜单入口用，不必先学会拖拽） */

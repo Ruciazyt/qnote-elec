@@ -490,20 +490,30 @@ interface ElectronAPI {
   // ==================== 屏幕便签 API ====================
   // 把一条剪贴板记录拖出程序窗口 → 变成压在桌面上的小纸条
 
-  /** 开始一次「拖出」：主进程开始盯光标，光标离开源窗口就撕下便签 */
-  stickyDragBegin: (payload: {
+  /**
+   * 开始一次长按
+   *
+   * 鼠标按下的瞬间就发过来 —— 1.2 秒的计时必须从"按下"起算。
+   * 主进程按住满 1.2 秒就在光标处生成一张便签。
+   */
+  stickyHoldBegin: (payload: {
     type: "text" | "image";
     content: string;
   }) => void;
-  /** 结束「拖出」（松手） */
-  stickyDragEnd: () => void;
+  /** 结束长按（松手） */
+  stickyHoldEnd: () => void;
+  /** 主进程让这张便签进入编辑态（右键菜单 → 编辑内容） */
+  onStickyEdit: (callback: () => void) => () => void;
+  /** 主进程切换了尺寸模式（右键菜单 → 自适应大小） */
+  onStickyAutoSize: (callback: (enabled: boolean) => void) => () => void;
   /** 便签窗口读取自己的初始数据 */
   stickyGetInit: () => Promise<import("../shared/stickyNote").StickyNoteInit | null>;
-  /** 修改便签（正文 / 置顶层级） */
+  /** 修改便签（正文 / 置顶层级 / 尺寸模式） */
   stickyUpdate: (patch: {
     id?: string;
     text?: string;
     alwaysOnTop?: boolean;
+    autoSize?: boolean;
   }) => Promise<{ ok: boolean; error?: string }>;
   /** 关掉一张便签 */
   stickyClose: (id?: string) => Promise<{ ok: boolean }>;
@@ -514,7 +524,15 @@ interface ElectronAPI {
     y?: number;
     width?: number;
     height?: number;
+    autoSize?: boolean;
   }) => Promise<{ ok: boolean; error?: string }>;
+  /** 开始移动便签（渲染层判别出拖动后调用，实际移动由主进程轮询光标完成） */
+  stickyMoveBegin: (
+    id?: string,
+    anchor?: { x: number; y: number }
+  ) => Promise<{ ok: boolean; error?: string }>;
+  /** 结束移动（松手） */
+  stickyMoveEnd: () => Promise<{ ok: boolean }>;
   /** 列出全部便签 */
   stickyList: () => Promise<import("../shared/stickyNote").StickyNoteInit[]>;
   /** 直接创建一张便签（菜单入口用，不必先学会拖拽） */
