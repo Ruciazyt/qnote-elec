@@ -35,6 +35,20 @@ export default defineConfig({
     },
   },
   server: {
+    // 端口被占时直接失败，不要静默换到下一个端口。
+    //
+    // 主进程里的 DEV_SERVER_URL 是写死的 http://localhost:5173
+    // （mainWindow / clipboardPopup / stickyNote 三处）。vite 默认在端口被占时
+    // 会自动往下找一个（5174、5175……），主进程却仍然去连 5173 ——
+    // 连上的是**上一次遗留的旧 vite 实例**，页面和当前源码对不上，
+    // 表现为主窗口白屏或 ERR_FAILED。
+    //
+    // 更糟的是旧实例上的 electron-reloader 监听着 dist/main，tsc 一重编译
+    // 它就 relaunch，把当前实例的窗口一起带走（ERR_FAILED 的真正来源）。
+    //
+    // strictPort 让这个错配在启动时就炸出来：端口被占 → vite 报错退出 →
+    // concurrently 立刻暴露问题，而不是悄悄连到错误的实例。
+    strictPort: true,
     fs: {
       // 允许访问到项目根目录（加载 Electron 主项目的依赖/资源）
       allow: [path.resolve(__dirname, "../..")],

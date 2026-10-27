@@ -1,4 +1,5 @@
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
 /**
@@ -27,14 +28,41 @@ const path = require('path');
  * 这里等 dist 安静下来再启动 Electron，就让"重编译"和"启动"不再撞车，
  * 启动阶段的 relaunch 和随之而来的 134 一起消失。改代码时的热重载不受影响。
  *
- * 用法：node scripts/wait-dist-stable.js [安静窗口毫秒] [超时毫秒]
+ * 用法：node scripts/wait-dist-stable.js [安静窗口毫秒] [超时毫秒] [基准时间戳毫秒]
+ *
+ * 基准时间戳：只有晚于它的写入才算「本轮的」。由 dev 脚本在 build:electron
+ * 之后立即取当前时间传进来 —— build:electron 是本轮的第一批产物，tsc -w 的
+ * 首轮全量 emit 必然晚于它。不传则退化为「晚于本脚本启动时刻」。
  */
 
-const DIST_DIR = path.resolve(__dirname, '..', 'dist');
+// 注意是 '../..' 不是 '..' —— __dirname 是 scripts/dev/，
+// 少一级就会指向 scripts/dist（不存在），脚本会直接跳过等待，
+// tsc 首轮重写与 Electron 启动的竞态就再也挡不住了。
+const DIST_DIR = path.resolve(__dirname, '..', '..', 'dist');
+const BASELINE_FILE = path.join(os.tmpdir(), 'qnote-dist-baseline.json');
 const QUIET_MS = Number(process.argv[2]) || 2000;
 const TIMEOUT_MS = Number(process.argv[3]) || 120000;
 const POLL_MS = 150;
 const WATCHED = /\.(js|cjs|mjs|map)$/i;
+
+/**
+ * 读 build:electron 之后记录的基准时刻
+ *
+ * 命令行参数优先；没有参数就读 stamp-baseline.js 写的基准文件；
+ * 都没有则返回 0 —— 此时退化为「晚于本脚本启动时刻」。
+ */
+function readBaseline() {
+    const fromArg = Number(process.argv[4]);
+    if (fromArg > 0) return fromArg;
+
+    try {
+        const raw = JSON.parse(fs.readFileSync(BASELINE_FILE, 'utf8'));
+        const value = Number(raw.baseline);
+        return Number.isFinite(value) && value > 0 ? value : 0;
+    } catch {
+        return 0;
+    }
+}
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -79,20 +107,48 @@ async function main() {
     }
 
     const startedAt = Date.now();
-    let lastSeen = newestMtime(DIST_DIR);
-    let lastChangedAt = Date.now();
+
+    // 「本轮写入」的基准时刻。优先用外部传入的基准（build:electron 完成时刻），
+    // 没传就用脚本自己的启动时刻。
+    const baseline = readBaseline() || startedAt;
+
+    // 只认「晚于本脚本启动时刻」的写入。
+    //
+    // 原来的实现把 lastSeen 初始化成 newestMtime(现有 dist) —— 那是**上一轮**
+    // 构建留下的时间戳。于是 tsc 还在做首轮类型检查（实测约 11 秒，这期间
+    // 一个文件都没写）时，dist 的 mtime 纹丝不动，安静窗口从脚本启动那刻
+    // 就算满了，脚本立刻放行 Electron。
+    //
+    // 放行之后 tsc 才批量重写 dist/main，electron-reloader 监听到变更 →
+    // app.relaunch() + app.exit(0) → 刚起来的窗口被销毁 → 正在进行的页面
+    // 加载被中止 → 主窗口报 ERR_FAILED (-2)。
+    //
+    // 所以必须先确认「本轮确实写过了」，才谈得上「安静」。改动前的 mtime
+    // 一律不算数 —— 它们属于上一次构建。
+    let lastSeen = 0;
+    let lastChangedAt = startedAt;
+    let sawFreshWrite = false;
 
     while (Date.now() - startedAt < TIMEOUT_MS) {
         await sleep(POLL_MS);
 
         const current = newestMtime(DIST_DIR);
-        if (current !== lastSeen) {
-            lastSeen = current;
-            lastChangedAt = Date.now();
-            continue;
+
+        // 只有晚于基准时刻的写入才算「本轮的」
+        if (current > baseline) {
+            if (!sawFreshWrite) {
+                sawFreshWrite = true;
+                console.log('⏳ 检测到本轮编译产物写入，等待写盘稳定...');
+            }
+            if (current !== lastSeen) {
+                lastSeen = current;
+                lastChangedAt = Date.now();
+                continue;
+            }
         }
 
-        if (Date.now() - lastChangedAt >= QUIET_MS) {
+        // 必须先看到本轮写入，再等安静窗口
+        if (sawFreshWrite && Date.now() - lastChangedAt >= QUIET_MS) {
             const waited = ((Date.now() - startedAt) / 1000).toFixed(1);
             console.log(`⏳ dist 已稳定 ${QUIET_MS}ms（等待 ${waited}s），启动 Electron`);
             return;
