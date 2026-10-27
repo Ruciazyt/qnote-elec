@@ -5,17 +5,11 @@ import { log } from "../utils/log";
 import { Knex } from "knex";
 
 /**
- * 历史遗留默认值 — 早期版本用此值把剪贴板文本追加进一个文件
- * 现在 file_path 存的是笔记目录；遇到这个旧值时按"未设置"处理
- */
-const LEGACY_DEFAULT_FILE_PATH = "clipboard.txt";
-
-/**
  * 笔记目录访问器 —— 笔记根路径的真值源
  *
  * 为什么不让调用方各自查 settings 表：这个类持有路径，并集中处理
- * 历史遗留值的迁移（见 LEGACY_DEFAULT_FILE_PATH）。别处自己查 DB 会绕开
- * 那套迁移，遇到老数据就会写到已被改名的目录里去。
+ * 「未设置」时的回退。别处自己查 DB 会绕开那套回退，遇到空值就会
+ * 拿到一个不可用的路径。
  *
  * 笔记页（fileHandlers）和 AI 工具（save_note / list_notes / read_note）
  * 都经由它取路径 —— 这是保证「AI 存的笔记出现在用户看到的位置」的唯一依据。
@@ -44,11 +38,9 @@ export class FileWriter {
 
       if (res.length > 0) {
         const stored = res[0].configValue;
-        // 历史兼容：旧版默认 "clipboard.txt" 不是目录，迁移到新默认值
-        if (!stored || stored === LEGACY_DEFAULT_FILE_PATH) {
-          log.info(
-            `检测到历史默认值 "${stored}"，迁移到默认目录 ${this.defaultDir}`
-          );
+        // 未设置：回退到默认目录
+        if (!stored) {
+          log.info(`笔记目录未设置，回退到默认目录 ${this.defaultDir}`);
           await this.DB("settings")
             .where("configName", "file_path")
             .update({ configValue: this.defaultDir });
@@ -132,8 +124,8 @@ export class FileWriter {
         .select("configValue");
       if (res.length > 0) {
         const stored = res[0].configValue;
-        // 防御性迁移：万一 DB 里还残留旧值
-        if (!stored || stored === LEGACY_DEFAULT_FILE_PATH) {
+        // 防御性回退：值为空时用默认目录
+        if (!stored) {
           await this.DB("settings")
             .where("configName", "file_path")
             .update({ configValue: this.defaultDir });

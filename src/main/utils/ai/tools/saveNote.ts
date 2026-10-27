@@ -109,7 +109,7 @@ export const saveNoteTool = tool(
       return JSON.stringify({ ok: false, error: '内容为空，没有写入任何文件。' });
     }
 
-    // 笔记根目录 —— FileWriter 是真值源（它内部处理了历史默认值迁移）
+    // 笔记根目录 —— FileWriter 是真值源（它内部处理了未设置时的回退）
     let root: string;
     try {
       root = await ctx.notes.getFilePath();
