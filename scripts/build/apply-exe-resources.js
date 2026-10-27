@@ -74,10 +74,9 @@ function main() {
     process.exit(1);
   }
 
-  const icon = path.join(projectRoot, "build", "resources", "icon-d1tools.com.ico");
+  // 图标候选：QNote 自有图标优先，仓库里资源目录与渲染层 public 各留一份兜底。
+  // 别再指向第三方站点的通用图标 —— 那是旧圆形控件的遗留物。
   const iconCandidates = [
-    icon,
-    path.join(projectRoot, "resources", "icon-d1tools.com.ico"),
     path.join(projectRoot, "resources", "icon.ico"),
     path.join(projectRoot, "src", "renderer", "public", "icon.ico"),
   ];

@@ -30,7 +30,7 @@
     "artifactName": "${productName}-Setup-${version}.${ext}"
   },
   "win": {
-    "icon": "resources/icon-d1tools.com.ico",
+    "icon": "resources/icon.ico",
     "artifactName": "${productName}-${version}-win.${ext}"
   },
   "mac": {
