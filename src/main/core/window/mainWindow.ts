@@ -187,19 +187,24 @@ export function createMainWindow(): BrowserWindow {
     log.error(`加载失败: ${errorCode} - ${errorDescription}`, { url: loadUrl });
 
     // 尝试显示错误信息
+    //
     // 错误提示页同样可能加载失败（窗口已被销毁等），接住 reject 并记日志，
     // 免得变成"未处理的Promise拒绝"。
+    //
+    // **必须 encodeURIComponent**：data: URL 里不能有裸换行和未转义的尖括号。
+    // 之前这里直接用多行模板字符串拼 data:text/html，含换行 → URL 非法 →
+    // loadURL 抛错 → 出错时反而什么都看不到，只剩一行 ERR_FAILED。
+    const errorHtml = [
+      '<!DOCTYPE html><html><head><meta charset="utf-8"><title>加载错误</title></head>',
+      '<body>',
+      '<h2>无法加载应用界面</h2>',
+      `<p>错误代码: ${errorCode}</p>`,
+      `<p>错误描述: ${errorDescription}</p>`,
+      `<p>加载URL: ${loadUrl}</p>`,
+      '</body></html>',
+    ].join('');
     void win?.webContents
-      .loadURL(`data:text/html,
-      <html>
-        <head><title>加载错误</title></head>
-        <body>
-          <h2>无法加载应用界面</h2>
-          <p>错误代码: ${errorCode}</p>
-          <p>错误描述: ${errorDescription}</p>
-          <p>加载URL: ${loadUrl}</p>
-        </html>
-      `)
+      .loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(errorHtml)}`)
       .catch((error) => {
         log.error("加载错误提示页失败:", error);
       });
