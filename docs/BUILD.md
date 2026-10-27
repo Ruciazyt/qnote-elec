@@ -21,30 +21,42 @@ QNote 支持两种构建类型：
 # 1. 安装工作区依赖
 pnpm install
 
-# 2. 构建所有版本（安装版 + 便携版）
+# 2. 构建所有版本（安装版 + 便携版 ZIP）
 pnpm run build
 
-# 3. 仅构建便携版
+# 3. 只产出便携版的未打包目录（不生成 ZIP）
 pnpm run build-portable
 ```
 
+> 💡 `pnpm run build-portable` 只跑 `electron-builder --win dir`，产物是
+> `dist_electron/win-unpacked/` 这个**未打包目录**。ZIP 由
+> `scripts/build/post-build.js` 生成 —— 它要在压缩前写入便携版标记，
+> 所以要拿 ZIP 必须走完整的 `pnpm run build`。
+
 ### 构建脚本说明
 
-| 脚本                     | 说明                             |
-| ------------------------ | -------------------------------- |
-| `pnpm run build`          | 完整构建流程，生成安装版和便携版 |
-| `pnpm run build-portable` | 仅构建便携版                     |
-| `pnpm run clean`          | 清理构建文件                     |
+| 脚本                     | 说明                                          |
+| ------------------------ | --------------------------------------------- |
+| `pnpm run build`         | 完整构建流程，生成安装版和便携版 ZIP          |
+| `pnpm run build-portable` | 只产出便携版的未打包目录，不生成 ZIP          |
+| `pnpm run build:app`     | 只跑 electron-builder，产出安装版              |
+| `pnpm run build:electron`| 只编译主进程与 preload                         |
+| `pnpm run build:react`   | 只构建渲染层                                   |
+| `pnpm run clean`         | 清理构建文件                                   |
 
 ## 🚀 自动发布流程
 
 ### GitHub Actions 自动构建
 
-每次推送带有版本标签的提交时，GitHub Actions 会自动：
+每次推送**形如 `1.0.19` 的版本号 tag** 时，GitHub Actions 会自动：
 
 1. **构建应用**: 同时构建安装版和便携版
 2. **创建 Release**: 在 GitHub 上创建新的 Release
 3. **上传文件**: 将构建的文件上传到 Release 中
+
+> tag 名 = 版本号本身，**不带 `v` 前缀**。`v1.0.19` 与 `1.0.19` 在 GitHub 上是两套
+> 不同的 tag，混用会让 Release 列表出现两串同号条目，electron-updater 取
+> `/releases/download/<tag>/latest.yml` 时也会对不上。详见 AGENTS.md 第 3.3 节。
 
 ### 发布命令
 
@@ -64,12 +76,15 @@ pnpm run release:major
 当执行发布命令时，会自动执行以下步骤：
 
 1. **版本更新**: 更新 `package.json` 中的版本号
-2. **Git 提交**: 提交版本更新
-3. **创建标签**: 创建对应的 Git 标签 (如 `v1.0.1`)
+2. **Git 提交**: 提交版本更新（`chore(release): bump version to X.Y.Z`）
+3. **创建标签**: 创建对应的注释 tag（`1.0.19`，**不带 `v` 前缀**）
 4. **推送到 GitHub**: 推送代码和标签到远程仓库
-5. **触发 CI/CD**: GitHub Actions 检测到标签推送，开始自动构建
+5. **触发 CI/CD**: GitHub Actions 检测到 tag 推送，开始自动构建
 6. **构建应用**: 在 GitHub 服务器上构建安装版和便携版
 7. **创建 Release**: 自动创建 GitHub Release 并上传构建文件
+
+> 脚本在 bump 之前还会校验三件事：工作区是否干净、版本号格式是否合法、
+> **发版类型与本批提交是否匹配**（有 `feat` 却发 patch 会被直接拦下）。
 
 ## 🔧 GitHub Actions 配置
 
@@ -122,7 +137,10 @@ electron-updater 先取它，再据此下载安装包 —— **少了这个文�
 | 文件 | 上传位置 |
 | --- | --- |
 | `.github/workflows/build-and-release.yml` | 构建产物 → Actions Artifact → Release |
-| `.github/workflows/auto-build.yml` | 直接进 Release |
+| `.github/workflows/auto-build.yml` | 只进 Actions Artifact，**不创建 Release** |
+
+`auto-build.yml` 每次推 master 跑一次，作用是验证「这次提交能构建出可用的包」。
+正式 Release 一律由版本号 tag 触发 `build-and-release.yml` —— 这样版本号才有唯一来源。
 
 ### 版本号必须三处一致
 
@@ -134,11 +152,14 @@ electron-updater 先取它，再据此下载安装包 —— **少了这个文�
 | `latest.yml` 里的 `version` | 同上 |
 | 应用运行时 `app.getVersion()` | 同上 |
 
-`auto-build.yml` 里原先用 `ELECTRON_BUILDER_VERSION` 环境变量覆盖版本，
-但 **electron-builder 25.x 并不支持这个变量**，实际版本始终取自
-package.json。结果是 tag 用 `1.0.<commit 数>`、产物却叫 `1.0.18`，
-更新永远判定"已是最新"。该 workflow 现已改为直接改写 package.json 的
-`version` 字段。
+`auto-build.yml` 以前用 commit 数拼版本号（`1.0.<commit 数>`），并用
+`ELECTRON_BUILDER_VERSION` 环境变量覆盖版本 —— 但 **electron-builder 25.x
+并不支持这个变量**，实际版本始终取自 package.json。结果是产物叫 `1.0.18`、
+tag 却叫 `1.0.447`，更新永远判定「已是最新」。
+
+现在正式发布统一走 `build-and-release.yml`（打版本号 tag 触发），
+`auto-build.yml` 只读取并打印 package.json 的版本号，不做任何改写，
+也不会创建 Release。
 
 ### 便携版不支持自动更新
 
@@ -192,9 +213,10 @@ qnote-elec/
 │   ├── git-hooks/                    # 提交规范钩子
 │   │   ├── setup-hooks.js            # 启用 .githooks
 │   │   └── verify-commit-msg.js      # 提交信息校验
-│   └── dev/                          # 开发期辅助
-│       ├── kill-dev-electron.js      # 清理残留 dev 实例
-│       └── wait-dist-stable.js       # 等 dist 写盘稳定
+│   ├── dev/                          # 开发期辅助
+│   │   ├── kill-dev-electron.js      # 清理残留 dev 实例
+│   │   └── wait-dist-stable.js       # 等 dist 写盘稳定
+│   └── pixel-pet/                    # 像素桌宠素材与生成脚本
 ├── docs/
 │   ├── BUILD.md                     # 构建指南（本文件）
 │   └── PORTABLE.md                  # 便携版说明
@@ -224,13 +246,14 @@ pnpm run build
 
 构建完成后，检查 `dist_electron/` 目录：
 
-```bash
+```powershell
 # 列出构建文件
-ls -la dist_electron/
+Get-ChildItem -Path dist_electron -Force
 
 # 应该看到类似以下文件：
-# QNote-Setup-1.0.7.exe      # 安装版
-# QNote-1.0.7-portable.zip   # 便携版
+# QNote-Setup-1.0.19.exe      # 安装版
+# QNote-1.0.19-portable.zip   # 便携版
+# latest.yml                  # 自动更新元数据
 ```
 
 ## 🐛 常见问题
