@@ -4,6 +4,7 @@ import { formatDistanceToNow } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useStickyHold } from "@/hooks/useStickyHold";
+import { detectUrl } from "@/utils/urlDetect";
 
 interface ClipboardItem {
   id: number;
@@ -188,6 +189,8 @@ export function ClipboardPopup() {
         ) : (
           filteredItems.map((item, index) => {
             const isSelected = index === selectedIndex;
+            // 整条内容就是一个网址时，正文换成链接色 —— 与主列表同一口径
+            const isLink = item.type === "text" && detectUrl(item.content) !== null;
             return (
               <div
                 key={item.id}
@@ -250,7 +253,7 @@ export function ClipboardPopup() {
                   </div>
                 ) : (
                   <div className="flex items-start gap-2 min-w-0">
-                    <pre className={cn("flex-1 min-w-0 text-[13px] font-mono text-foreground whitespace-pre-wrap break-all", isSelected && "ml-0")}>
+                    <pre className={cn("flex-1 min-w-0 text-[13px] font-mono whitespace-pre-wrap break-all", isLink ? "text-link" : "text-foreground", isSelected && "ml-0")}>
                       {item.content}
                     </pre>
                     <button

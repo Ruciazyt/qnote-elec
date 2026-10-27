@@ -68,6 +68,13 @@
   /* Semantic — warning (used for window control hover, future warning states) */
   --warning: 38 70% 45%;
   --warning-foreground: 0 0% 100%;
+
+  /* Semantic — link（剪贴板里被识别成网址的正文用这个色）
+     刻意避开品牌青（--primary，195°）：卡片上置顶徽章、打开链接按钮、
+     编辑激活态都已经是 primary 色，链接再用同一色就分不出彼此。
+     蓝色是链接的通用约定，与正文（前景灰）也拉得开。
+     浅色模式下对卡片白底对比度 5.2:1（AA 正文标准）。 */
+  --link: 212 90% 42%;
 }
 
 .dark {
@@ -117,6 +124,9 @@
   /* Semantic — warning (used for window control hover, future warning states) */
   --warning: 48 85% 60%;
   --warning-foreground: 38 50% 18%;
+
+  /* Semantic — link（深色模式提亮，对暗色卡片底对比度 8.3:1） */
+  --link: 205 92% 70%;
 }
 
 @layer base {

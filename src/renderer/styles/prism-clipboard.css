@@ -57,6 +57,15 @@
   color: hsl(var(--foreground) / 0.85);
 }
 
+/* 链接正文 —— 整条内容被识别成网址时换色
+   放在上面那条规则之后：两者选择器权重相同（0,3,0），
+   后写的赢，否则链接色会被正文的 foreground 盖掉。
+   只挂在 --plain 上：用户手动开了语法高亮的记录，
+   颜色归 Prism 的 token 管，不跟链接色抢。 */
+.clipboard-code .code-block--plain code.code--link {
+  color: hsl(var(--link));
+}
+
 .clipboard-code .code-block::-webkit-scrollbar {
   height: 6px;
   width: 6px;

@@ -462,6 +462,10 @@ export function ClipboardList({
          *
          * 判定口径在 utils/urlDetect：整条内容就是一个网址才算数，
          * 正文里恰好出现网址不算。图片记录没有正文，直接排除。
+         *
+         * 除了决定「打开链接」按钮出不出现，这条判断还决定正文用不用
+         * 链接色 —— 两个地方必须同源，否则会出现「按钮有、正文却不是
+         * 链接色」的错位。
          */
         const recordUrl = record.type === "text" ? detectUrl(record.content) : null;
 
@@ -627,7 +631,10 @@ export function ClipboardList({
 
                 {/* 简述：宽度由 truncate 自适应，长内容不会被撑开 */}
                 {record.type === "text" ? (
-                  <span className="flex-1 min-w-0 truncate text-xs font-mono text-foreground/80">
+                  <span
+                    className={`flex-1 min-w-0 truncate text-xs font-mono ${
+                      recordUrl ? "text-link" : "text-foreground/80"
+                    }`}>
                     {previewText || "（空内容）"}
                   </span>
                 ) : (
@@ -1013,7 +1020,7 @@ export function ClipboardList({
                         ? "code-block--highlight"
                         : "code-block--plain rounded-md bg-muted/30 pl-3 pr-2 py-2 border border-border/40"
                     }`}>
-                    <code className={`${codeClassName} block`}>{record.content}</code>
+                    <code className={`${codeClassName} block${recordUrl ? " code--link" : ""}`}>{record.content}</code>
                   </pre>
                 )
               ) : (
