@@ -43,7 +43,7 @@ import { registerUpdateHandlers } from "./handlers/updateHandlers";
 import { initUpdater } from "./core/updater";
 import { parseAddShortcutArg, repairContextMenu } from "./utils/shellContextMenu";
 import { registerAsrHandlers } from "./handlers/asrHandlers";
-import { createMainWindow, getMainWindow, showMainWindow, createTray, createCircleWindow, destroyCircleWindow } from "./core/window";
+import { createMainWindow, getMainWindow, showMainWindow, createTray } from "./core/window";
 import { ClipboardPopupWindow } from "./core/window/clipboardPopup";
 import { registerGlobalShortcuts, unregisterAllShortcuts, registerVoiceShortcut, validateAccelerator, getRegisteredVoiceAccelerator } from "./core/shortcuts";
 import { markQuitting } from "./utils/appState";
@@ -485,9 +485,6 @@ app.on("will-quit", () => {
   const clipboardPopup = ClipboardPopupWindow.getInstance();
   clipboardPopup.destroy();
 
-  // 销毁圆形控件窗口
-  destroyCircleWindow();
-
   // 销毁屏幕便签窗口
   //
   // 注意顺序：destroyAll 只关窗口、不删记录 —— 便签要活过这次退出，
@@ -562,18 +559,11 @@ void app
 
       // 检查图标文件是否存在
       const iconFile = resolveFirstExistingAsset(["icon.ico"]) ?? path.join(assetPath, "icon.ico");
-      const circleHtmlFile = path.join(assetPath, "circle.html");
 
       if (!fs.existsSync(iconFile)) {
         log.error("图标文件不存在:", iconFile);
       } else {
         log.info("图标文件存在:", iconFile);
-      }
-
-      if (!fs.existsSync(circleHtmlFile)) {
-        log.error("圆形控件HTML文件不存在:", circleHtmlFile);
-      } else {
-        log.info("圆形控件HTML文件存在:", circleHtmlFile);
       }
 
       // 数据库初始化
@@ -708,16 +698,11 @@ void app
       // 创建托盘
       tray = createTray();
 
-      // 创建圆形控件窗口
-      createCircleWindow();
-
       // 注册全局快捷键
-      const { getCircleWindow } = require("./core/window/circleWidget");
       globalShortcut.register("CommandOrControl+Enter", () => {
         // 窗口可能停在两种后台态：最小化（图标留在任务栏）和隐藏到托盘。
         // 原来只调 show()，对最小化态不可靠，快捷键会"按了没反应"。
         showMainWindow();
-        getCircleWindow()?.hide();
       });
 
       // 注册快捷键小窗
