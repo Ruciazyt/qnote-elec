@@ -26,13 +26,14 @@ const GIT = resolveExe('git');
 const VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
 
 /**
- * 当前发布线 —— 1.3.x
+ * 当前发布线 —— 1.4.x
  *
- * 1.2.x 从 1.2.0 起步，这期间累积了一个功能级提交（剪贴板链接识别与
- * 快捷方式新增），按 semver 规则它要求 minor 版本，minor 落在 1.3.0 ——
- * 所以换到 1.3.x。换线理由见 AGENTS.md 第 3.1 节。
+ * 1.3.x 从 1.3.0 起步，这期间累积了三个功能级提交（AI 对话带图提问、
+ * 便签改长按生成并支持自适应尺寸、剪贴板链接正文使用独立色值），按 semver
+ * 规则它们要求 minor 版本，minor 落在 1.4.0 —— 所以换到 1.4.x。
+ * 换线理由见 AGENTS.md 第 3.1 节。
  */
-const RELEASE_LINE = { major: 1, minor: 3 };
+const RELEASE_LINE = { major: 1, minor: 4 };
 
 /** 读取根 package.json 的 version */
 function readVersion() {
