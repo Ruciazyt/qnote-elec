@@ -178,6 +178,10 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v3
         with:
+          # Release 标题要带产品名（AGENTS.md 第 3.3 节）。
+          # 不写 name 时 action 直接拿 tag 名当标题，Release 列表里
+          # 就只剩一串光秃秃的版本号，看不出是哪个产品。
+          name: QNote ${{ github.ref_name }}
           files: |
             artifacts/**/*.exe
             artifacts/**/*.zip
