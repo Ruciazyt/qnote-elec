@@ -34,6 +34,8 @@
     "setup:hooks": "node scripts/git-hooks/setup-hooks.js",
     "verify:commit": "node scripts/git-hooks/verify-commit-msg.js",
     "verify:version": "node scripts/release/verify-version.js",
+    "verify:signature": "node scripts/build/verify-signature.js",
+    "patch:update-info": "node scripts/release/patch-update-info.js",
     "release:patch": "node scripts/release/release.js patch",
     "release:minor": "node scripts/release/release.js minor",
     "release:major": "node scripts/release/release.js major",
