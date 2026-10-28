@@ -160,8 +160,10 @@ jobs:
           $exitCode = $LASTEXITCODE
           if ($exitCode -ne 0) {
             # 把失败原因做成注解：注解在运行页面上直接可见，不用翻日志。
-            $tail = ((Get-Content $logPath -Tail 60) -join "%0A")
-            Write-Host "::error title=打包失败::$tail"
+            # 头部和尾部都留 —— 报错的关键信息（请求地址、状态码）在中间那段。
+            $head = (Get-Content $logPath -TotalCount 40) -join "%0A"
+            $tail = (Get-Content $logPath -Tail 200) -join "%0A"
+            Write-Host "::error title=打包失败::HEAD %0A$head %0A ====== TAIL ====== %0A$tail"
           }
           exit $exitCode
         shell: pwsh
@@ -172,6 +174,14 @@ jobs:
           # 证书口令只从 secret 取，不留默认值 —— 兜底默认值等于把口令写进仓库。
           # 这里用另一个名字，真正要用时才赋给 CSC_KEY_PASSWORD。
           CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+          # 构建阶段不让 electron-builder 以为自己在 tag 上构建。
+          # 它的 getCiTag() 靠 GITHUB_REF_TYPE / GITHUB_REF_NAME 判断，
+          # 命中就按「onTag」策略去 GitHub 上发 Release —— 那是本仓库
+          # 自己在 release 作业里做的事（softprops/action-gh-release），
+          # 两边都做会多出 v<版本号> 的草稿 Release。
+          # 这里把类型改成 branch，getCiTag() 返回 null，发布就不会发生。
+          # 只影响这一步骤，其他步骤用 ${{ github.ref_name }} 不受影响。
+          GITHUB_REF_TYPE: branch
           
       # ------------------------------------------------------------------
       # SignPath Foundation 免费签名（面向符合条件的开源项目）
