@@ -35,7 +35,6 @@ import { extractTextContent } from '../providers';
 import { log } from '../../log';
 import type {
   AgentResult,
-  ModelTurn,
   RunAgentOptions,
   ToolDecision,
   ToolExecution,
@@ -44,17 +43,12 @@ import type {
 // 类型都在 ./types，这里只做转出，方便外部从 runAgent 直接 import
 export type { AgentEvent, AgentResult, RunAgentOptions } from './types';
 
-/** 用户主动取消 */
-function assertNotAborted(signal: AbortSignal | undefined): void {
-  if (signal?.aborted) throw new Error('Aborted');
-}
-
 /** 步骤 1 —— 调一次模型，把流式碎片拼成完整回复 */
 async function callModelOnce(
   opts: RunAgentOptions,
   messages: BaseMessage[],
   callbacks: unknown[] | undefined
-): Promise<ModelTurn> {
+): Promise<AIMessage> {
   const stream = await opts.model.stream(messages, {
     signal: opts.signal,
     callbacks,
@@ -68,30 +62,17 @@ async function callModelOnce(
     const delta = extractTextContent(chunk.content);
     if (delta) opts.onEvent?.({ type: 'text', text: delta });
   }
-  assertNotAborted(opts.signal);
+  opts.signal?.throwIfAborted();
 
-  const response = responseChunk ?? new AIMessage('');
-
-  // AIMessageChunk 的 content 可能是 string | array；统一成 string
-  const text =
-    typeof response.content === 'string'
-      ? response.content
-      : Array.isArray(response.content)
-        ? response.content
-            .map((p: any) => (typeof p === 'string' ? p : p?.text ?? ''))
-            .join('')
-        : '';
-
-  return { response, text };
+  // AIMessageChunk 的 content 可能是 string | array；用 extractTextContent 归一成 string
+  return responseChunk ?? new AIMessage('');
 }
 
 /** 步骤 2 —— 读模型的决定 */
 function readToolDecision(response: AIMessage): ToolDecision {
-  // OpenAI / Anthropic 都用 tool_call_chunks / tool_calls 字段
-  const calls =
-    (response as any).tool_calls ??
-    (response as any).additional_kwargs?.tool_calls ??
-    [];
+  // tool_calls 是 LangChain 标准字段（args 已是对象）；additional_kwargs 里那份是
+  // provider 原始格式（arguments 是 JSON 字符串且分块未合并），取它反而会拿到 undefined
+  const calls = (response.tool_calls ?? []) as ToolDecision['calls'];
 
   return { calls, cutShort: (response as any).response_metadata?.finish_reason === 'length' };
 }
@@ -197,7 +178,7 @@ function lastAiText(messages: BaseMessage[]): string {
   for (let i = messages.length - 1; i >= 0; i -= 1) {
     const m = messages[i];
     if (m instanceof AIMessage) {
-      const text = typeof m.content === 'string' ? m.content : '';
+      const text = extractTextContent(m.content);
       if (text.trim()) return text;
     }
   }
@@ -231,7 +212,7 @@ export async function runAgent(opts: RunAgentOptions): Promise<AgentResult> {
   let truncated = false;
 
   for (let iter = 0; iter < maxIter; iter++) {
-    assertNotAborted(opts.signal);
+    opts.signal?.throwIfAborted();
 
     // 每轮取一次 callbacks，模型调用和工具调用共用同一组 ——
     // ObservabilityCallback 内部用 runId → 计时 的 Map，一轮只能有一个实例，
@@ -239,7 +220,7 @@ export async function runAgent(opts: RunAgentOptions): Promise<AgentResult> {
     const roundCallbacks = opts.callbacksFactory ? opts.callbacksFactory(iter) : opts.callbacks;
 
     // 步骤 1
-    const { response, text } = await callModelOnce(opts, messages, roundCallbacks);
+    const response = await callModelOnce(opts, messages, roundCallbacks);
 
     // 步骤 2
     const { calls, cutShort } = readToolDecision(response);
@@ -251,7 +232,7 @@ export async function runAgent(opts: RunAgentOptions): Promise<AgentResult> {
     // 步骤 3 —— 没有工具调用 = 模型自己收尾了
     if (calls.length === 0) {
       messages.push(response);
-      finalContent = text;
+      finalContent = extractTextContent(response.content);
       converged = true;
       break;
     }
@@ -265,13 +246,20 @@ export async function runAgent(opts: RunAgentOptions): Promise<AgentResult> {
     if (cutShort) {
       const names = calls.map((tc) => tc?.name ?? '?').join(', ');
       log.warn(`[agent] 丢弃被截断的工具调用：${names}`);
-      messages.push(
-        new SystemMessage(
-          `[系统提醒] 你上一条因为超出单次输出上限被截断了，` +
-            `准备调用的工具（${names}）没有传完就被切断，我已丢弃该调用。\n` +
-            `请把内容拆小后重试：一次调用只写一部分，用 save_note 的 append:true 续写，不要一次写完。`
-        )
-      );
+      // 用 ToolMessage 把这个 tool_call 关掉：assistant 消息带着 tool_calls
+      // 却没有对应的 tool 消息，下一轮请求会被 OpenAI 判 400
+      // （An assistant message with 'tool_calls' must be followed by tool messages）。
+      for (const tc of calls) {
+        messages.push(
+          new ToolMessage({
+            content:
+              `[调用被丢弃] 你这次的参数因为超出单次输出上限被截断，没有传完。\n` +
+              `请把内容拆小后重试：一次调用只写一部分，用 save_note 的 append:true 续写，不要一次写完。`,
+            tool_call_id: tc.id ?? '',
+            name: tc.name ?? '',
+          })
+        );
+      }
       continue;
     }
 

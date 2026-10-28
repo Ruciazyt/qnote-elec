@@ -6,12 +6,12 @@
  *
  * 分两类：
  *   对外契约 —— AgentEvent / AgentResult / RunAgentOptions，调用方会用到
- *   内部中间态 —— ModelTurn / ToolDecision / ToolExecution，
+ *   内部中间态 —— ToolDecision / ToolExecution，
  *                只在 runAgent 的某一步里传递，不出模块
  */
 
 import type { BaseChatModel } from '@langchain/core/language_models/chat_models';
-import type { AIMessage, BaseMessage, ToolMessage } from '@langchain/core/messages';
+import type { BaseMessage, ToolMessage } from '@langchain/core/messages';
 import type { StructuredToolInterface } from '@langchain/core/tools';
 
 // ────────────────────────── 对外契约 ──────────────────────────
@@ -98,12 +98,6 @@ export interface RunAgentOptions {
 }
 
 // ────────────────────────── 内部中间态 ──────────────────────────
-
-/** 模型这一轮的完整回复：原始消息 + 归一化后的纯文本 */
-export interface ModelTurn {
-  response: AIMessage;
-  text: string;
-}
 
 /** 模型这一轮的「决定」：要不要调工具，以及是不是被 maxTokens 砍断了 */
 export interface ToolDecision {
