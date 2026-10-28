@@ -72,14 +72,27 @@ jobs:
       # 时不用改构建流程：把 PFX 的 base64 填回 CERTIFICATE_BASE64、口令填回
       # CERTIFICATE_PASSWORD 即可。SignPath Foundation 那条路不经过这里，
       # 走下面的独立步骤。
+      #
+      # 签名要同时满足两个条件：
+      #   1. CERTIFICATE_BASE64 secret 非空
+      #   2. 仓库变量 SIGN_WITH_CERTIFICATE 的值为 true
+      # 只满足第 1 条不会签名 —— GitHub 上的 secret 删不掉（只有本人在网页
+      # 操作能删），而历史遗留的自签名 PFX 还留在那里。留着它却不加开关，
+      # 产物会继续带自签名证书，比不签名更容易被安全软件拦。
       - name: Setup Code Signing Certificate
         id: cert
         env:
           CERTIFICATE_BASE64: ${{ secrets.CERTIFICATE_BASE64 }}
+          SIGN_WITH_CERTIFICATE: ${{ vars.SIGN_WITH_CERTIFICATE }}
         run: |
           if ([string]::IsNullOrEmpty($env:CERTIFICATE_BASE64)) {
             echo "enabled=false" >> $env:GITHUB_OUTPUT
             echo "No code signing certificate configured, building without code signing"
+            exit 0
+          }
+          if ($env:SIGN_WITH_CERTIFICATE -ne 'true') {
+            echo "enabled=false" >> $env:GITHUB_OUTPUT
+            echo "SIGN_WITH_CERTIFICATE is not set to 'true', building without code signing"
             exit 0
           }
           echo "enabled=true" >> $env:GITHUB_OUTPUT
