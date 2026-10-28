@@ -1,7 +1,7 @@
 <div align="center">
   <img src="https://raw.githubusercontent.com/Ruciazyt/qnote-elec/master/src/renderer/public/icon-256.png" width="88" height="88" alt="QNote" />
   <h1>QNote</h1>
-  <p><b>安静地待在桌面角落的效率工具</b><br />剪贴板 · 笔记 · Todo · AI 助手 · 内嵌浏览器 —— 一处收下</p>
+  <p><b>A quiet productivity tool that sits in the corner of your desktop</b><br />Clipboard · Notes · Todo · AI assistant · Embedded browser — all in one window</p>
 </div>
 
 <div align="center">
@@ -25,308 +25,316 @@
 ---
 
 <p align="center">
-  <a href="https://github.com/Ruciazyt/qnote-elec/releases/latest"><img src="https://img.shields.io/badge/%E4%B8%8B%E8%BD%BD-latest-1d97a8?style=for-the-badge&logo=github&logoColor=white" alt="下载最新版本" /></a>
-  <a href="#-功能一览"><img src="https://img.shields.io/badge/%E7%9C%8B%E4%BB%80%E4%B9%88-%E5%8A%9F%E8%83%BD%E4%B8%80%E8%A7%88-1d97a8?style=for-the-badge&logo=readthedocs&logoColor=white" alt="功能一览" /></a>
-  <a href="#-%E5%BC%80%E5%8F%91"><img src="https://img.shields.io/badge/%E5%BC%80%E5%8F%91-8A94A7?style=for-the-badge&logo=github&logoColor=white" alt="开发" /></a>
+  <a href="https://github.com/Ruciazyt/qnote-elec/releases/latest"><img src="https://img.shields.io/badge/%E4%B8%8B%E8%BD%BD-latest-1d97a8?style=for-the-badge&logo=github&logoColor=white" alt="Download the latest release" /></a>
+  <a href="#feature-overview"><img src="https://img.shields.io/badge/%E5%8A%9F%E8%83%BD%E4%B8%80%E8%A7%88-1d97a8?style=for-the-badge&logo=readthedocs&logoColor=white" alt="Feature overview" /></a>
+  <a href="#development"><img src="https://img.shields.io/badge/%E5%BC%80%E5%8F%91-8A94A7?style=for-the-badge&logo=github&logoColor=white" alt="Development" /></a>
 </p>
 
 ---
 
-## 📌 这是什么
+## What is this
 
-QNote 是一个基于 **Electron** 的桌面效率工具。它把日常最高频的几件事收进同一个窗口：
+QNote is a desktop productivity tool for Windows built on **Electron**. It puts the handful of things you reach for every day into a single window:
 
-- 复制过的每一段文字，都替你留着 —— **剪贴板历史**即时入库、可搜索、可置顶
-- 想法落成文件，不锁在某个专有格式里 —— **笔记**是纯文件制，Markdown / 网页 / 绘图 / 图片 / PDF 都能放
-- 事情有轻重缓急 —— **Todo** 带优先级、截止时间与图片附件
-- 不想动手的那部分，交给 **AI 助手** —— 它能读你的笔记、翻你的剪贴板，甚至替你操作网页
-- 要查的东西不必切浏览器 —— **内嵌浏览器**带书签，AI 侧栏能直接读当前页面
+- Everything you copied is kept for you — **clipboard history** is captured in the background, searchable, and can be pinned.
+- Ideas become files instead of lock-in — **notes** are plain files: Markdown, web pages, drawings, images and PDF all live side by side.
+- Tasks have weights and deadlines — **to-dos** carry a priority, an optional due date and image attachments.
+- The part you would rather not do by hand goes to the **AI assistant** — it reads your notes, searches your clipboard history and can operate the browser for you.
+- Looking something up should not mean switching to another window — the **embedded browser** keeps bookmarks, and the AI sidebar reads the page you are on.
 
-设计取向只有一条：**安静**。单一品牌色、克制的动效、几乎不抢注意力的视觉密度，让工具消失在肌肉记忆里，而不是时刻提醒你它的存在。
+The design has a single principle: **quiet**. One brand color, restrained motion, a visual density that does not fight for attention, so the tool disappears into muscle memory instead of reminding you that it exists.
 
----
-
-## 📚 目录
-
-- [这是什么](#-这是什么)
-- [功能一览](#-功能一览)
-- [界面预览](#-界面预览)
-- [下载安装](#-下载安装)
-- [功能详解](#-功能详解)
-  - [📋 剪贴板](#-剪贴板)
-  - [📓 笔记](#-笔记)
-  - [✅ Todo](#-todo)
-  - [🤖 AI 助手](#-ai-助手)
-  - [🌐 内嵌浏览器](#-内嵌浏览器)
-  - [🖼️ OCR 与语音输入](#-ocr-与语音输入)
-  - [🚀 快捷方式](#-快捷方式)
-- [配置说明](#-配置说明)
-- [技术栈](#-技术栈)
-- [项目结构](#-项目结构)
-- [开发](#-开发)
-- [版本号与发版](#版本号与发版)
-- [相关文档](#-相关文档)
-- [反馈与贡献](#-反馈与贡献)
-- [许可证](#-许可证)
+The application interface is in Chinese; this document is in English.
 
 ---
 
-## ✨ 功能一览
+## Table of contents
 
-| 模块 | 能力 |
+- [What is this](#what-is-this)
+- [Feature overview](#feature-overview)
+- [Screenshots](#screenshots)
+- [Download and install](#download-and-install)
+- [Feature details](#feature-details)
+  - [Clipboard](#clipboard)
+  - [Notes](#notes)
+  - [Todo](#todo)
+  - [AI assistant](#ai-assistant)
+  - [Embedded browser](#embedded-browser)
+  - [OCR and voice input](#ocr-and-voice-input)
+  - [Shortcuts](#shortcuts)
+- [Configuration](#configuration)
+- [Tech stack](#tech-stack)
+- [Project structure](#project-structure)
+- [Development](#development)
+- [Versioning and releases](#versioning-and-releases)
+- [Code signing policy](#code-signing-policy)
+  - [What is signed](#what-is-signed)
+  - [Build and signing process](#build-and-signing-process)
+  - [Team roles](#team-roles)
+  - [Privacy](#privacy)
+  - [System changes during installation](#system-changes-during-installation)
+  - [Uninstalling](#uninstalling)
+  - [How users verify a download](#how-users-verify-a-download)
+- [Related documents](#related-documents)
+- [Feedback and contributions](#feedback-and-contributions)
+- [License](#license)
+
+---
+
+## Feature overview
+
+| Module | Capability |
 | --- | --- |
-| 📋 **剪贴板** | 后台监听文本与图片、置顶、标记重要、全文搜索、代码高亮、一键格式化、存为笔记、加为待办、写入记忆索引 |
-| 📓 **笔记** | 纯文件制存储、5 种笔记类型、文件夹树、拖拽移动、重命名、批量导入、富文本编辑、Excalidraw 绘图、PDF 阅读 |
-| ✅ **Todo** | 三级优先级、截止时间、备注、图片附件、一键完成 |
-| 🤖 **AI 助手** | 全局浮框、流式输出、支持图片提问、Agent 工具循环、13 个内置工具、会话历史与自动压缩、AI 技能模板、长期记忆、用量统计 |
-| 🌐 **内嵌浏览器** | 多标签页、书签收藏、AI 侧栏读取当前页面、AI 可点击 / 填表 / 导航 |
-| 🖼️ **OCR** | 百度 OCR 标准版 / 高精度版 / 网页图片识别，结果可存回记录 |
-| 🎤 **语音输入** | MiniMax ASR 语音转文字，全局快捷键唤起（默认 `F1`，可改） |
-| 🚀 **快捷方式** | 主页磁贴一键打开应用与文件夹、拖拽排序、系统右键菜单直接收录 |
-| 🎨 **其它** | 深浅色主题、像素桌宠、系统托盘常驻、剪贴板小窗（`Ctrl/⌘ + Shift + V`）、数据导出导入、应用自动更新 |
+| **Clipboard** | Background capture of text and images, pinning, marking as important, full-text search, code highlighting, one-click formatting, save as a note, add as a to-do, write to the memory index |
+| **Notes** | Plain-file storage, 5 note types, folder tree, drag-and-drop move, rename, batch import, rich text editing, Excalidraw drawing, PDF reading |
+| **Todo** | Three priority levels, optional due date and notes, image attachments, one-click completion |
+| **AI assistant** | Floating panel, streaming output, image questions, agent tool loop, 13 built-in tools, conversation history with automatic compaction, skill templates, long-term memory, usage statistics |
+| **Embedded browser** | Multiple tabs, bookmarks, AI sidebar reads the current page, AI can click, fill forms and navigate |
+| **OCR** | Baidu OCR standard, high-precision and web image recognition; results can be written back to the record |
+| **Voice input** | MiniMax ASR speech-to-text, summoned by a global hotkey (`F1` by default, changeable) |
+| **Shortcuts** | Home tiles open apps and folders, drag to reorder, direct access from the system context menu |
+| **Other** | Light and dark themes, pixel desktop pet, system tray, clipboard mini window (`Ctrl/⌘ + Shift + V`), data export and import, automatic updates |
 
 ---
 
-## 🖼️ 界面预览
+## Screenshots
 
-> 截图待补 —— 把图片放进 `docs/images/`，再把下面每行的 `<!-- -->` 注释去掉即可。
+> Screenshots are pending — drop the images into `docs/images/` and uncomment the lines below.
 >
-> - **主页** —— 剪贴板列表、搜索、OCR、格式化的操作条
-> - **笔记** —— 文件夹树 + 多类型编辑器（文本 / 绘图 / 网页 / 图片 / PDF）
-> - **AI 助手浮框** —— 折叠球与展开卡片两种形态
-> - **内嵌浏览器** —— 标签栏、书签栏与 AI 侧栏
+> - **Home** — clipboard list, search, OCR and formatting toolbar
+> - **Notes** — folder tree plus multi-type editors (text, drawing, web page, image, PDF)
+> - **AI assistant** — a collapsed dot that expands into a card
+> - **Embedded browser** — tab bar, bookmark bar and the AI sidebar
 
 ```markdown
-<!-- <p align="center"><img src="docs/images/home.png" width="880" alt="主页" /></p> -->
-<!-- <p align="center"><img src="docs/images/notes.png" width="880" alt="笔记" /></p> -->
-<!-- <p align="center"><img src="docs/images/ai.png" width="880" alt="AI 助手" /></p> -->
+<!-- <p align="center"><img src="docs/images/home.png" width="880" alt="Home" /></p> -->
+<!-- <p align="center"><img src="docs/images/notes.png" width="880" alt="Notes" /></p> -->
+<!-- <p align="center"><img src="docs/images/ai.png" width="880" alt="AI assistant" /></p> -->
 ```
 
 ---
 
-## 📥 下载安装
+## Download and install
 
-当前发布渠道为 **Windows**，每次发版由 GitHub Actions 自动产出两种形态：
+The current distribution channel is **Windows**. Every release is produced by GitHub Actions in two forms.
 
-### 安装版（推荐）
+### Installer (recommended)
 
-- 文件名：`QNote-Setup-x.x.x.exe`
-- 双击安装，可选择安装目录，自动创建桌面与开始菜单快捷方式
-- **支持自动更新** —— 应用内「设置 → 数据与开发 → 应用更新」可完成检查、下载、重启安装三步
-- 更新包下载完成后即校验 SHA512，损坏或被篡改的文件不会装上
+- File name: `QNote-Setup-x.x.x.exe`
+- Double-click to install, choose the directory, desktop and Start menu shortcuts are created for you
+- **Automatic updates** — Settings → Data and development → App update walks through check, download and restart-and-install
+- The update package is verified with SHA512 before it is installed, so a corrupted or tampered file never lands on disk
 
-### 便携版
+### Portable build
 
-- 文件名：`QNote-x.x.x-portable.zip`
-- 解压到任意目录，双击 `QNote.exe` 即可运行
-- 适合 U 盘携带、临时使用、绿色卸载
-- **不支持自动更新** —— 便携版没有安装器，无法覆盖自己，升级需手动下载新版本替换目录
+- File name: `QNote-x.x.x-portable.zip`
+- Unpack it anywhere, double-click `QNote.exe` and run
+- Handy on a USB stick, for temporary use, or for a green uninstall
+- **No automatic updates** — a portable build has no installer and cannot overwrite itself, so upgrading means downloading the new version and replacing the folder
 
-> 📌 笔记默认存放在 `%APPDATA%\qnote\notes`，在笔记页点「更换目录」即可改到任意本地路径。
-
----
-
-## 🧩 功能详解
-
-### 📋 剪贴板
-
-打开就是历史列表 —— 复制过什么，都在。
-
-- **自动入库**：文本与图片复制后立刻入列，重复内容自动去重
-- **置顶 / 重要**：置顶的排在最前；标为「重要」的记录在清空时会被保留
-- **全文搜索**：边输入边筛，命中后仍可直接编辑保存
-- **代码高亮**：代码片段用 Prism 渲染，支持 `JavaScript` / `TypeScript` / `JSON` / `HTML` / `CSS` 五种语言一键格式化
-- **一键流转**：任意一条记录可以存成笔记、加成待办、写入记忆索引
-- **图片识别**：图片记录可直接调百度 OCR，识别结果回写到该条记录
-- **小窗速取**：`Ctrl/⌘ + Shift + V` 唤出独立小窗，不打断当前窗口的操作
-
-### 📓 笔记
-
-**笔记是纯文件制** —— 没有专有数据库，也没有私有格式，类型完全由扩展名决定。
-
-| 类型 | 扩展名 | 说明 |
-| --- | --- | --- |
-| 绘图 | `.excalidraw` | 内置 Excalidraw，手绘草图、流程图随手存 |
-| 文本 | `.md` / `.markdown` | TipTap 富文本编辑，落盘为标准 Markdown |
-| 网页 | `.html` / `.htm` | 单文件网页，图片资源自动抽取到 `assets/` |
-| 图片 | `.png` `.jpg` `.jpeg` `.gif` `.webp` `.bmp` `.svg` | 截图、素材直接存进来 |
-| PDF | `.pdf` | 内置阅读器，翻页与缩放 |
-
-配套能力：
-
-- **文件夹树**：多级目录、拖拽移动、重命名、批量导入（拖入文件即可）
-- **资源目录**：富文本里的图片统一存进 `assets/`，笔记正文保持纯文本可读
-- **默认目录**：`%APPDATA%\qnote\notes`，可改为任意本地路径
-- **AI 可写**：AI 助手能直接往笔记目录写文件（同名自动追加后缀，不覆盖你的版本）
-
-### ✅ Todo
-
-- 三级优先级（高 / 中 / 低）、可选截止时间与备注
-- 支持图片附件 —— 从剪贴板直接「加为待办」时，图片和 OCR 文本会一并带上
-- 剪贴板、笔记、AI 助手三处都能创建待办
-
-### 🤖 AI 助手
-
-右下角常驻一颗球，点开是一张可拖动的浮窗卡片，位置与展开状态跨窗口同步。
-
-- **流式输出**：逐字返回，随时可中断
-- **Agent 模式**：模型自己决定调用哪些工具，循环直到任务完成
-- **支持图片**：输入框里可直接粘贴、拖入或选文件，最多 4 张，随提问一起发给模型
-- **多会话**：历史会话分组保存，随时回溯
-- **长会话自动压缩**：超过阈值时自动摘要历史，界面给出「正在压缩历史…」提示
-- **AI 技能**：把常用提示词存成模板，支持 `{content}` / `{clipboard}` 占位符，也能从远程 URL 导入
-- **长期记忆**：AI 可以主动记住你的偏好、事实与协作约定，存在 `<userData>/ai-memory.json`，明文可读可改
-- **用量统计**：今日 / 本周 / 累计的 token 消耗与按模型、按日期分布，设置页可直接查看
-
-**内置工具清单**
-
-| 工具 | 作用 | 类型 |
-| --- | --- | --- |
-| `list_notes` | 列出笔记目录 | 读 |
-| `read_note` | 读取指定笔记内容 | 读 |
-| `save_note` | 写入笔记（同名自动改名） | 写 |
-| `get_clipboard_history` | 读取剪贴板历史 | 读 |
-| `get_todos` | 读取待办清单 | 读 |
-| `get_app_info` | 读取应用信息与数据路径 | 读 |
-| `remember` / `recall` / `forget` | 长期记忆的写入 / 召回 / 删除 | 混合 |
-| `browser_get_snapshot` | 读取当前网页的结构化快照 | 读 |
-| `browser_click` / `browser_fill` / `browser_navigate` | 操作内嵌浏览器当前标签页 | 写 |
-
-> 🛡️ 浏览器类工具只作用于**你当前正在看的那一个标签页**，不会新建或关闭标签，每次操作都会落进应用日志。涉及密码、验证码、支付信息时，模型被明确要求停下来交给你确认。
-
-**接入方式**：兼容 OpenAI 与 Anthropic 两种协议，填入 API Key、模型名与 Base URL 即可 —— 官方端点、聚合网关、Ollama、LM Studio 都能用。
-
-> 🖼️ 带图提问需要模型本身支持视觉（GPT-4o / Claude / MiniMax 视觉型号这一类）。模型不支持时上游会直接报错，错误原样显示在提示条里 —— 纯文字提问不受影响。
-
-### 🌐 内嵌浏览器
-
-- 多标签页、书签收藏、地址栏与前进 / 后退 / 刷新
-- 右侧可展开 **AI 侧栏**，让模型直接读当前页面并操作
-- 网页由主进程的 `WebContentsView` 承载，界面层只负责工具栏与位置同步，因此不会被页面的样式干扰
-
-### 🖼️ OCR 与语音输入
-
-- **OCR**：百度 OCR 三种模式 —— 标准版、高精度版、网页图片识别。API Key 与 Secret Key 在设置页填写，源码里只保留空默认值
-- **语音输入**：录音后送 MiniMax ASR（`asr-1.0`）转成文字。默认用 `F1` 唤起，快捷键可改，非法组合会被拦下并说明原因
-
-### 🚀 快捷方式
-
-- 主页磁贴：把常用应用与文件夹钉在首页，一点直达
-- 拖拽排序，图标自动解析
-- 开启系统右键菜单后，在资源管理器里右键任意文件即可「添加到 QNote」
+> Notes are stored in `%APPDATA%\qnote\notes` by default. Use "Change directory" on the Notes page to move them anywhere on your machine.
 
 ---
 
-## ⚙️ 配置说明
+## Feature details
 
-所有密钥与第三方服务配置都在**设置页**填写，运行时注入，仓库里不含任何凭据。
+### Clipboard
 
-| 配置项 | 用途 | 位置 |
+The window opens on a list — whatever you copied is already there.
+
+- **Captured in the background**: text and images go into the list the moment you copy them, and duplicates are collapsed.
+- **Pinned and important**: pinned entries float to the top; entries marked as important survive a clear.
+- **Full-text search**: type to filter, and the match can still be edited and saved in place.
+- **Code highlighting**: snippets are rendered with Prism, and `JavaScript`, `TypeScript`, `JSON`, `HTML` and `CSS` can be formatted with one click.
+- **Move it along**: any entry can become a note, a to-do, or an entry in the memory index.
+- **Image recognition**: an image entry can be sent to Baidu OCR, and the result is written back to that entry.
+- **Quick access**: `Ctrl/⌘ + Shift + V` opens a separate mini window, so you do not have to break up whatever you were doing.
+
+### Notes
+
+**Notes are plain files** — no proprietary database, no private format, the type is decided by the extension.
+
+| Type | Extension | Notes |
 | --- | --- | --- |
-| 笔记目录 | 笔记文件存放路径 | 笔记页 → 更换目录 |
-| 百度 OCR Key / Secret | 图片文字识别 | 设置 → 服务与 AI → OCR 识别 |
-| AI Provider / Key / 模型 / Base URL | AI 助手与语音识别 | 设置 → 服务与 AI → AI 助手 |
-| 语音快捷键 | 语音输入的全局唤起键 | 设置 → 服务与 AI → 语音输入 |
-| 主题 | 浅色 / 深色 / 跟随系统 | 设置 → 界面 → 外观 |
-| 应用更新 | 检查 / 下载 / 安装新版本 | 设置 → 数据与开发 → 应用更新 |
+| Drawing | `.excalidraw` | Built-in Excalidraw, hand-drawn sketches and flowcharts |
+| Text | `.md` / `.markdown` | TipTap rich text, written to disk as standard Markdown |
+| Web page | `.html` / `.htm` | Single file, images extracted into `assets/` |
+| Image | `.png` `.jpg` `.jpeg` `.gif` `.webp` `.bmp` `.svg` | Screenshots and assets stored as they are |
+| PDF | `.pdf` | Built-in reader with page navigation and zoom |
 
-**数据存放位置**
+Around that:
 
-| 内容 | 路径 |
+- **Folder tree**: any depth, drag to move, rename, batch import (drop files in and they are indexed).
+- **Asset directory**: images inside a rich text note are written into `assets/`, and the note body stays plain and readable.
+- **Default directory**: `%APPDATA%\qnote\notes`, changeable to any path.
+- **Writable by the AI**: the assistant can write into the notes directory (it appends a suffix instead of overwriting your version).
+
+### Todo
+
+Three priority levels, an optional due date and notes, and image attachments — when a to-do is created from the clipboard, the image and the OCR text come along.
+
+To-dos can be created from the clipboard, the notes and the AI assistant.
+
+### AI assistant
+
+A dot rests in the corner; open it and it becomes a draggable card, with its position and expanded state shared across windows.
+
+- **Streaming output**: the reply comes back word by word and can be interrupted at any time.
+- **Agent mode**: the model runs a tool loop on its own, calling tools until the task is done.
+- **Images**: paste, drag or pick a file into the input box, up to four images per question.
+- **Many conversations**: history is grouped and can be revisited.
+- **Automatic compaction**: long conversations are summarized once they pass a threshold, and the interface says so.
+- **Skills**: frequently used prompts become templates with `{content}` and `{clipboard}` placeholders, and they can be imported from a remote URL.
+- **Long-term memory**: the assistant can remember your preferences, facts and working agreements. It lives in `<userData>/ai-memory.json`, in plain text you can read and edit.
+- **Usage statistics**: today's, this week's and the total token consumption, broken down by model and by date, visible in the settings.
+
+**Built-in tools**
+
+| Tool | Does | Type |
+| --- | --- | --- |
+| `list_notes` | Lists the notes directory | read |
+| `read_note` | Reads one note by name | read |
+| `save_note` | Writes a note (appends a suffix rather than overwriting) | write |
+| `get_clipboard_history` | Reads the clipboard history | read |
+| `get_todos` | Reads the to-do list | read |
+| `get_app_info` | Reads the app version and data paths | read |
+| `remember` / `recall` / `forget` | Writes, reads and deletes long-term memory | mixed |
+| `browser_get_snapshot` | Reads the structure of the current page | read |
+| `browser_click` / `browser_fill` / `browser_navigate` | Operates the embedded browser tab | write |
+
+> Browser tools only ever act on **the one tab you are currently looking at**. They never open or close tabs, and every call is written to the application log. When a password, a verification code or a payment is involved, the model is explicitly told to stop and hand the step back to you.
+
+**Connecting a provider**: fill in an API key, a model name and a base URL. Both the OpenAI and the Anthropic protocol are supported, so official endpoints, gateways, Ollama and LM Studio all work.
+
+> Asking with images requires a vision-capable model (GPT-4o, Claude, a MiniMax vision model and similar). If the model does not support it, the upstream error is shown as it is — text-only questions are unaffected.
+
+### Embedded browser
+
+Multiple tabs, bookmarks, an address bar and back / forward / reload. A collapsible **AI sidebar** on the right lets the model read the current page and operate it.
+
+Pages are hosted by the main process in a `WebContentsView`, and the interface layer only synchronizes the toolbar and the location, so page styles cannot bleed into the app.
+
+### OCR and voice input
+
+- **OCR**: three Baidu OCR modes — standard, high-precision and web image recognition. The API key and secret are entered in the settings; the source code only keeps empty defaults.
+- **Voice input**: recordings are sent to MiniMax ASR (`asr-1.0`) and transcribed. `F1` summons it by default, the hotkey can be changed, and illegal combinations are rejected with an explanation.
+
+### Shortcuts
+
+Home tiles pin your favorite apps and folders so they open with one click, and you can drag to reorder them. Turn on the system context menu and right-clicking any file in Explorer offers "Add to QNote".
+
+---
+
+## Configuration
+
+All keys and third-party settings are entered on the **settings page** and injected at runtime. The repository contains no credentials.
+
+| Setting | Purpose | Where |
+| --- | --- | --- |
+| Notes directory | Where note files live | Notes page → Change directory |
+| Baidu OCR key / secret | Image text recognition | Settings → Services and AI → OCR |
+| AI provider / key / model / base URL | AI assistant and speech recognition | Settings → Services and AI → AI assistant |
+| Voice hotkey | Global hotkey for voice input | Settings → Services and AI → Voice input |
+| Theme | Light, dark or follow the system | Settings → Interface → Appearance |
+| App updates | Check, download and install new versions | Settings → Data and development → App update |
+
+**Where the data lives**
+
+| Content | Path |
 | --- | --- |
-| 数据库 | `%APPDATA%\qnote\db\clipboard.sqlite` |
-| 默认笔记目录 | `%APPDATA%\qnote\notes` |
-| 日志 | `%APPDATA%\qnote\app.log` / `app-error.log` |
-| AI 长期记忆 | `%APPDATA%\qnote\ai-memory.json` |
+| Database | `%APPDATA%\qnote\db\clipboard.sqlite` |
+| Default notes directory | `%APPDATA%\qnote\notes` |
+| Logs | `%APPDATA%\qnote\app.log` / `app-error.log` |
+| AI long-term memory | `%APPDATA%\qnote\ai-memory.json` |
 
-> 💾 数据库支持在设置页一键导出 / 导入，换机时直接搬文件即可。
+> The database can be exported and imported with one click in the settings, so moving to a new machine is a copy.
 
 ---
 
-## 🛠️ 技术栈
+## Tech stack
 
-| 层次 | 技术选型 |
+| Layer | Choice |
 | --- | --- |
-| 桌面框架 | Electron 33 |
-| 界面 | React 18 · Vite 5 · Tailwind CSS 3 · shadcn/ui · lucide-react |
-| 编辑器 | TipTap（富文本 / Markdown）· Excalidraw · Prism · Prettier |
-| 数据 | Knex · SQLite（sqlite3） |
-| AI | LangChain（`@langchain/openai` / `@langchain/anthropic`）· 自研 Agent 循环与记忆层 |
-| 语言 | TypeScript 5 |
-| 构建 | electron-builder 25（NSIS 安装包 + 便携版 ZIP） |
+| Desktop framework | Electron 33 |
+| Interface | React 18 · Vite 5 · Tailwind CSS 3 · shadcn/ui · lucide-react |
+| Editors | TipTap (rich text / Markdown) · Excalidraw · Prism · Prettier |
+| Data | Knex · SQLite (sqlite3) |
+| AI | LangChain (`@langchain/openai` / `@langchain/anthropic`) · in-house agent loop and memory layer |
+| Language | TypeScript 5 |
+| Build | electron-builder 25 (NSIS installer + portable ZIP) |
 
 ---
 
-## 📁 项目结构
+## Project structure
 
 ```text
 qnote-elec/
 ├── src/
-│   ├── main/                  # 主进程
-│   │   ├── core/              # 常驻能力：托盘、快捷键、剪贴板监听、浮窗、自动更新
-│   │   ├── handlers/          # IPC 处理器，一个模块一个文件
-│   │   └── utils/             # AI / OCR / ASR / 向量检索 / 配置
-│   ├── preload.ts             # 上下文桥接，渲染层唯一的系统能力入口
-│   ├── renderer/              # React 界面
-│   ├── shared/                # 主进程与渲染层共用的类型定义
-│   └── database/              # Knex 连接与迁移
-├── build/                     # 打包与编译配置（electron-builder / tsconfig）
-├── scripts/                   # 构建、发版、提交钩子脚本
-├── docs/                      # 补充文档
-├── DESIGN.md                  # 设计规范：色彩、密度、组件哲学
-└── AGENTS.md                  # 开发规范：提交信息、版本号、红线
+│   ├── main/                  # main process
+│   │   ├── core/              # long-lived capabilities: tray, shortcuts, clipboard watcher, floating windows, auto update
+│   │   ├── handlers/          # IPC handlers, one module per file
+│   │   └── utils/             # AI / OCR / ASR / vector search / configuration
+│   ├── preload.ts             # context bridge, the only entry point for system capabilities
+│   ├── renderer/              # React interface
+│   ├── shared/                # types shared by the main process and the renderer
+│   └── database/              # Knex connection and migrations
+├── build/                     # packaging and compilation config (electron-builder / tsconfig)
+├── scripts/                   # build, release and commit hook scripts
+├── docs/                      # additional documentation
+├── DESIGN.md                  # design spec: color, density, component philosophy
+└── AGENTS.md                  # development spec: commit messages, versioning, red lines
 ```
 
 ---
 
-## 🛠️ 开发
+## Development
 
-### 环境要求
+### Requirements
 
 - **Node.js >= 18**
-- **pnpm 10.32.0**（请勿改用 npm / yarn）
+- **pnpm 10.32.0** (please do not use npm or yarn)
 
-### 常用命令
+### Common commands
 
 ```bash
-# 安装依赖
+# install dependencies
 pnpm install
 
-# 开发模式：主进程编译监听 + 渲染层热更新 + 应用启动，三者并行
+# development mode: main process compile watcher + renderer hot reload + app launch, all three in parallel
 pnpm run dev
 
-# 只编译主进程与 preload
+# compile only the main process and preload
 pnpm run build:electron
 
-# 只构建渲染层
+# build only the renderer
 pnpm run build:react
 
-# 完整构建：清理 → 编译 → 打包 → 便携版后处理
+# full build: clean → compile → package → post-process the portable build
 pnpm run build
 
-# 构建便携版
+# build the portable version
 pnpm run build-portable
 ```
 
-### 提交规范
+### Commit convention
 
-仓库启用了提交信息校验钩子（Angular 提交规范），首次克隆后执行一次：
+The repository enforces a commit message hook (Angular commit convention). Run this once after cloning:
 
 ```bash
 pnpm run setup:hooks
 ```
 
-提交信息形如 `feat(ocr): 增加百度 OCR 表格识别`。也可以单独校验：
+Messages look like `feat(ocr): 增加百度 OCR 表格识别`. You can validate a single message with:
 
 ```bash
 pnpm run verify:commit "feat(updater): 增加应用更新卡片"
 ```
 
-> Windows 上若钩子文件权限不对会被静默跳过，`setup:hooks` 会自动补正。
+> If the hook file does not have the right permissions on Windows it is silently skipped, and `setup:hooks` fixes that for you.
 
-### 版本号与发版
+### Versioning and releases
 
-版本号的唯一来源是根目录 `package.json` 的 `version` 字段。发布走「打 tag → CI 构建 → 创建 Release」这一条路径：
+The version number has a single source of truth: the `version` field in the root `package.json`. A release goes through exactly one path — tag the commit, CI builds it and creates the Release:
 
 ```bash
 pnpm run release:patch     # 1.1.0 → 1.1.1
@@ -334,9 +342,9 @@ pnpm run release:minor     # 1.1.0 → 1.2.0
 pnpm run release:major     # 1.1.0 → 2.0.0
 ```
 
-脚本会校验工作区是否干净、版本号格式是否合法、**发版类型是否与本批提交匹配**（有 `feat` 却发 patch 会被直接拦下），然后 bump 版本、打注释 tag、推送分支与 tag。CI 随之产出安装版、便携版与 `latest.yml`，并创建 GitHub Release。
+The script checks that the working tree is clean, that the version number is valid and that **the release type matches what the commits since the last release actually contain** (a `feat` commit forces a minor release), then bumps the version, commits it, creates an annotated tag and pushes both. CI produces the installer, the portable build and `latest.yml`, and creates the GitHub Release.
 
-校验版本号：
+Validate the version number with:
 
 ```bash
 pnpm run verify:version
@@ -344,26 +352,130 @@ pnpm run verify:version
 
 ---
 
-## 📚 相关文档
+## Code signing policy
 
-| 文档 | 内容 |
+The code signing arrangement for this project: the Windows installer is signed with a certificate issued by [SignPath Foundation](https://signpath.org) under a public CA — the foundation vouches for open source projects that have been reviewed and meet its criteria, so the certificate chain is trusted by Windows and both SmartScreen and enterprise security scanners can see a verified publisher.
+
+> Free code signing provided by [SignPath.io](https://signpath.io), certificate by [SignPath Foundation](https://signpath.org).
+
+**Current status: the release artifacts are not signed.** The self-signed certificate used up to and including 1.4.0 was retired on 2026-10-28 — in practice it was worse than no signature at all, because a signed-but-untrusted publisher is an extra suspicion signal for security products. The free SignPath Foundation signing application has been submitted; once it is approved the installer will be signed with the foundation's certificate, and each release still needs a manual approval. Until then, verify the file with the `SHA256SUMS.txt` published in every Release.
+
+### What is signed
+
+| Artifact | Signed | Notes |
+| --- | --- | --- |
+| `QNote-Setup-<version>.exe` | Yes once SignPath is active<br>Currently: not signed | The installer users download |
+| `QNote.exe` after installation | No | Not signed separately; handled like the third-party native modules described below |
+| `QNote-<version>-portable.zip` | No | Secondary channel; verify it with `SHA256SUMS.txt` |
+| `latest.yml` | n/a | Auto-update metadata; not signed, its integrity is checked through the installer hash |
+| `SHA256SUMS.txt` | n/a | Hash manifest for manual verification |
+
+Files *inside* the installer (the main executable `QNote.exe`, third-party native modules such as the SQLite `node_sqlite3.node`) are not signed individually; they are shipped as their upstream projects publish them. This is the normal practice for open source projects: the signature states "this installer was produced by this project's CI from the public source tree", not "every file inside has been audited one by one". The file a security scanner actually inspects is the downloaded installer, and that is the file the signature covers.
+
+### Build and signing process
+
+Once SignPath is active, the complete flow is:
+
+1. The source is built by GitHub Actions on GitHub-hosted runners.
+2. The build output is uploaded as a workflow artifact. SignPath verifies that the file really originates from this repository's CI build, then signs it.
+3. A signing request is approved manually by this project's approver in the SignPath console.
+4. After approval, SignPath applies an Authenticode signature using a public CA certificate, and the signed artifact is returned to the CI.
+5. The CI recomputes the hashes in `latest.yml` and publishes the signed installer to the GitHub Release.
+
+While SignPath is not active, steps 2 to 4 are skipped and the CI publishes the unsigned installer — the release flow is not blocked by the missing signature.
+
+Private keys are held in SignPath's HSM. The repository holds no private key, and the CI does not need any certificate file. The publisher shown by Windows is **SignPath Foundation**, not the individual maintainer.
+
+### Team roles
+
+This project is maintained by a single maintainer, who also holds all three signing roles:
+
+| Role | Member | Responsibility |
+| --- | --- | --- |
+| **Authors** (committers) | [Ruciazyt](https://github.com/Ruciazyt) | May modify the source tree in the repository without additional review |
+| **Reviewers** | [Ruciazyt](https://github.com/Ruciazyt) | Reviews every pull request from outside contributors; outside pull requests are not merged without review |
+| **Approvers** | [Ruciazyt](https://github.com/Ruciazyt) | Approves every signing request |
+
+### Privacy
+
+**This program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it.**
+
+Every network request in QNote is triggered by the user:
+
+| Feature | Destination | Trigger |
+| --- | --- | --- |
+| AI assistant | The AI endpoint the user entered in the settings page (OpenAI- or Anthropic-compatible protocol, Ollama, LM Studio, and similar) | The user sends a message |
+| Voice input | MiniMax ASR | The user records and converts audio |
+| OCR | Baidu OCR | The user clicks "recognize" |
+| Embedded browser | The website the user opens | The user navigates to a page |
+| Check for updates | GitHub Releases | The user clicks "check for updates" |
+
+The user's own data (clipboard history, notes, todos, conversation history) is stored locally in `%APPDATA%\qnote` and is never uploaded for synchronization or analytics. API keys are entered by the user in the settings page and injected at runtime; the repository and the installer contain no credentials. If the user configures no AI or OCR service, QNote makes no network request other than "check for updates". The AI, OCR and speech-to-text services listed above are operated by third parties and are subject to their own privacy policies and terms of service.
+
+### System changes during installation
+
+The installer performs the following changes, all of which are removed again on uninstall:
+
+- Installs into `%LOCALAPPDATA%\Programs\QNote` for the current user by default. The first page of the wizard lets the user choose "for all users" instead (which installs into `Program Files`), and the next page lets them choose any other directory.
+- Creates a desktop shortcut and a Start menu shortcut.
+- Registers three global hotkeys (system-wide, so they are taken while QNote runs and released when it exits): `Ctrl/⌘ + Shift + V` opens the clipboard popup, `Ctrl/⌘ + Enter` brings up the main window, and `F1` starts voice input. The voice hotkey can be changed to another combination in the settings page.
+- Optional: registers an "Add to QNote" entry in the Windows Explorer context menu (disabled by default, enabled in the settings page). The entry is written under the current user's `HKCU\Software\Classes\*\shell`.
+
+QNote adds no startup entry to the registry, installs no background service and installs no drivers.
+
+### Uninstalling
+
+- **Windows 11 / Windows 10**: Settings → Apps → Installed apps → QNote → Uninstall. The uninstaller removes the program directory and the shortcuts it created.
+- The portable build has no installer: delete the extracted folder.
+- User data (notes, clipboard history, todos, AI memory) stays in `%APPDATA%\qnote` after uninstalling and is not deleted automatically. Remove that folder to erase it, or export and import the data from within the app before uninstalling.
+
+### How users verify a download
+
+**For the current unsigned releases, check the SHA256 hash:**
+
+```powershell
+Get-FileHash .\QNote-Setup-<version>.exe -Algorithm SHA256
+```
+
+The expected hashes are published with every release in `SHA256SUMS.txt`, which can also be verified directly:
+
+```bash
+sha256sum -c SHA256SUMS.txt
+```
+
+Once SignPath is active, the installer additionally carries an Authenticode digital signature. Windows shows the signature information under "Properties → Digital Signatures", and it can be checked from the command line:
+
+```powershell
+Get-AuthenticodeSignature .\QNote-Setup-<version>.exe |
+  Select-Object Status, StatusMessage, SignerCertificate
+```
+
+`Status` of `Valid` means the signature is intact and the certificate chain is trusted by the system. `SignerCertificate.Issuer` is the public CA that issued the certificate held by SignPath Foundation.
+
+If a corporate security product blocks the download, the hash from `SHA256SUMS.txt` is what the IT team needs in order to allow-list the file.
+
+---
+
+## Related documents
+
+| Document | Contents |
 | --- | --- |
-| [便携版说明](docs/PORTABLE.md) | 便携版的特点、目录结构与迁移方式 |
-| [构建指南](docs/BUILD.md) | 本地打包、产物位置与常见构建问题 |
-| [设计规范](DESIGN.md) | 色彩体系、视觉密度、组件与交互约定 |
-| [开发规范](AGENTS.md) | 提交信息、版本号规范与红线清单 |
-| [更新日志](https://github.com/Ruciazyt/qnote-elec/releases) | 每个版本的完整变更记录 |
+| [Portable build notes](docs/PORTABLE.md) | What the portable build is, its directory layout and how to move it |
+| [Build guide](docs/BUILD.md) | Local packaging, artifact locations and common build problems |
+| [Design spec](DESIGN.md) | Color system, visual density, components and interaction conventions |
+| [Development spec](AGENTS.md) | Commit message and versioning conventions, the red line list |
+| [Changelog](https://github.com/Ruciazyt/qnote-elec/releases) | The complete change log of every version |
 
 ---
 
-## 🐛 反馈与贡献
+## Feedback and contributions
 
-- 遇到问题或想要新功能 → 提 [Issue](https://github.com/Ruciazyt/qnote-elec/issues)
-- 准备动手改 → 先读 [AGENTS.md](AGENTS.md)（提交规范与红线）与 [DESIGN.md](DESIGN.md)（界面约定）
-- 提 Issue 时附上版本号、系统版本与复现步骤，能贴日志最好（`%APPDATA%\qnote\app.log`）
+- Found a bug or want a new feature → open an [issue](https://github.com/Ruciazyt/qnote-elec/issues)
+- About to write code → read [AGENTS.md](AGENTS.md) (commit conventions and red lines) and [DESIGN.md](DESIGN.md) (interface conventions) first
+- When you open an issue, include the version, the Windows version and the steps to reproduce; attaching the log (`%APPDATA%\qnote\app.log`) helps a lot
 
 ---
 
-## 📄 许可证
+## License
 
 [MIT](LICENSE) © Rucia zyt
