@@ -137,11 +137,17 @@ jobs:
         run: |
           $certificatePath = Join-Path $env:GITHUB_WORKSPACE "certificate.pfx"
           if (Test-Path $certificatePath) {
-            echo "Certificate found, building with code signing..."
+            Write-Host "找到证书，启用代码签名"
             $env:CSC_LINK = $certificatePath
+            $env:CSC_KEY_PASSWORD = $env:CERTIFICATE_PASSWORD
           } else {
-            echo "No certificate found, building without code signing..."
-            $env:CSC_LINK = ""
+            Write-Host "没有证书，不签名"
+            # 这两个变量必须彻底移除，不能留空字符串 ——
+            # PowerShell 7 里 `$env:X = ""` 是「设成空串」而不是「删除变量」，
+            # electron-builder 拿到空串的 CSC_LINK 虽说不签名，但下游脚本
+            # （build-app.js 判断是否配了证书）会被误导。
+            Remove-Item Env:CSC_LINK -ErrorAction SilentlyContinue
+            Remove-Item Env:CSC_KEY_PASSWORD -ErrorAction SilentlyContinue
           }
           # --publish never：electron-builder 的默认行为是「在 tag 构建或预发布版本时
           # 自动发布到 GitHub」（build/electron-builder.json 里有 publish 段）。
@@ -149,14 +155,23 @@ jobs:
           # 「tag 不带 v 前缀」的规矩，还会多出一串同号条目。
           # 正式 Release 由下面的 release 作业用 softprops/action-gh-release 创建，
           # 那里才会带上便携版压缩包。
-          pnpm run build:app -- --publish never
+          $logPath = Join-Path $env:RUNNER_TEMP "build-app.log"
+          & pnpm run build:app -- --publish never 2>&1 | Tee-Object -FilePath $logPath
+          $exitCode = $LASTEXITCODE
+          if ($exitCode -ne 0) {
+            # 把失败原因做成注解：注解在运行页面上直接可见，不用翻日志。
+            $tail = ((Get-Content $logPath -Tail 60) -join "%0A")
+            Write-Host "::error title=打包失败::$tail"
+          }
+          exit $exitCode
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ELECTRON_CACHE: ~/.cache/electron
           ELECTRON_BUILDER_CACHE: ~/.cache/electron-builder
-          # 证书密码只从 secret 取，不留默认值 —— 兜底默认值等于把口令写进仓库
-          CSC_KEY_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
+          # 证书口令只从 secret 取，不留默认值 —— 兜底默认值等于把口令写进仓库。
+          # 这里用另一个名字，真正要用时才赋给 CSC_KEY_PASSWORD。
+          CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
           
       # ------------------------------------------------------------------
       # SignPath Foundation 免费签名（面向符合条件的开源项目）

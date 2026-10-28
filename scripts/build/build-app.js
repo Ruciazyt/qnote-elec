@@ -36,8 +36,16 @@ const configPath = path.join(projectRoot, "build", "electron-builder.json");
 /** 透传给 electron-builder 的额外参数（CI 会用 --publish never） */
 const extraArgs = process.argv.slice(2);
 
-/** 是否配了代码签名 */
-const hasSigning = !!(process.env.CSC_LINK || process.env.CSC_KEY_PASSWORD);
+/**
+ * 是否配了代码签名
+ *
+ * 只看证书本身（CSC_LINK / WIN_CSC_LINK），不看口令。
+ * electron-builder 只有拿到证书才会签名，口令单独存在不会触发签名
+ * （它的 windowsSignToolManager 遇到空的 CSC_LINK 直接返回「不签名」）。
+ * 把 CSC_KEY_PASSWORD 也算进来会让「证书已停用、只剩口令」的情况被误判成
+ * 配了签名，于是符号链接权限不足时不肯降级构建，构建直接失败。
+ */
+const hasSigning = !!(process.env.CSC_LINK || process.env.WIN_CSC_LINK);
 
 /**
  * 符号链接权限不足的特征
