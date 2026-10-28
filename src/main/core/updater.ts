@@ -215,8 +215,16 @@ export function initUpdater(): void {
   // 手动触发下载：默认的自动下载会在用户没同意时就开始占用带宽，
   // 而且下载完也不告诉用户，行为不可预期。
   autoUpdater.autoDownload = false;
-  // 下载完成后退出应用时自动安装。这是"下载完忘了点安装"的兜底。
-  autoUpdater.autoInstallOnAppQuit = true;
+  // 不在退出应用时自动安装更新。
+  //
+  // 这一条是给企业安全扫描看的：`autoInstallOnAppQuit` 打开时，用户只是
+  // 关掉应用，下载好的安装包就会在后台**静默**执行 —— 从临时目录里拉起
+  // 一个没有受信任签名的 exe，正是 EDR 最敏感的行为模式（无界面执行 +
+  // 可执行文件来自下载/缓存目录）。不少企业策略会直接拦下来，用户看到的
+  // 就是「应用退出一半被安全软件阻止」。
+  //
+  // 改成必须由用户点「重启并安装」才会安装，行为可预期，也不会踩这条规则。
+  autoUpdater.autoInstallOnAppQuit = false;
 
   // electron-updater 默认用 console 输出日志，进了打包版就什么都看不到。
   // 接到应用自己的日志系统里，报障时能直接看 app.log。
@@ -363,9 +371,15 @@ export function installUpdate(): { ok: boolean; error?: string } {
   }
   try {
     log.info("[update] 触发重启安装");
-    // 第二个参数 isSilent=true：静默安装不弹 NSIS 向导。
-    // 第三个参数 isForceRunAfter=true：装完自动重新拉起应用。
-    autoUpdater.quitAndInstall(true, true);
+    // 第一个参数 isSilent=false：装的时候弹出安装向导，不做静默安装。
+    //
+    // 静默安装（/S）意味着用户看不到任何界面就换掉了程序文件，企业 EDR
+    // 会把「无界面执行 + 可执行文件来自缓存目录」判成高危行为。改成
+    // 有向导的安装，用户看得见发生了什么，扫描也更容易放行。
+    //
+    // 第二个参数 isForceRunAfter=true：装完自动重新拉起应用 —— 这一条
+    // 保留，它不涉及文件执行路径，只是启动已装好的程序。
+    autoUpdater.quitAndInstall(false, true);
     return { ok: true };
   } catch (err) {
     log.error("[update] 启动安装失败:", err);

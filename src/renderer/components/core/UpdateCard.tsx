@@ -23,7 +23,7 @@ import type { UpdateStatus } from "@/types/update";
  * 覆盖完整的「检查 → 下载 → 安装」链路：
  *   - 检查：比对 GitHub Releases 上的最新版本
  *   - 下载：带进度条与速度显示
- *   - 安装：静默安装并自动重启应用
+ *   - 安装：用户点「重启并安装」后弹出安装向导，装完自动拉起应用
  *
  * 状态由主进程单方面推进（core/updater.ts），渲染层只负责展示。
  * 进度这类高频事件走 update:status 推送，不走 IPC 的返回值。
