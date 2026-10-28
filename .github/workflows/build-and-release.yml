@@ -155,6 +155,16 @@ jobs:
           # 「tag 不带 v 前缀」的规矩，还会多出一串同号条目。
           # 正式 Release 由下面的 release 作业用 softprops/action-gh-release 创建，
           # 那里才会带上便携版压缩包。
+          # 构建阶段不让 electron-builder 以为自己在 tag 上构建。
+          # 它的 getCiTag() 靠 GITHUB_REF_TYPE / GITHUB_REF_NAME 判断，
+          # 命中就按「onTag」策略去 GitHub 上发 Release —— 那是本仓库
+          # 自己在 release 作业里做的事（softprops/action-gh-release），
+          # 两边都做会多出 v<版本号> 的草稿 Release。
+          #
+          # GITHUB_* 是 GitHub 保留的变量名，在 workflow 的 env: 里改不动
+          # （改了不起作用），只能改进程环境变量。
+          # 只影响这一步，其他步骤用表达式上下文里的 ref_name 不受影响。
+          $env:GITHUB_REF_TYPE = "branch"
           $logPath = Join-Path $env:RUNNER_TEMP "build-app.log"
           & pnpm run build:app -- --publish never 2>&1 | Tee-Object -FilePath $logPath
           $exitCode = $LASTEXITCODE
@@ -174,14 +184,6 @@ jobs:
           # 证书口令只从 secret 取，不留默认值 —— 兜底默认值等于把口令写进仓库。
           # 这里用另一个名字，真正要用时才赋给 CSC_KEY_PASSWORD。
           CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
-          # 构建阶段不让 electron-builder 以为自己在 tag 上构建。
-          # 它的 getCiTag() 靠 GITHUB_REF_TYPE / GITHUB_REF_NAME 判断，
-          # 命中就按「onTag」策略去 GitHub 上发 Release —— 那是本仓库
-          # 自己在 release 作业里做的事（softprops/action-gh-release），
-          # 两边都做会多出 v<版本号> 的草稿 Release。
-          # 这里把类型改成 branch，getCiTag() 返回 null，发布就不会发生。
-          # 只影响这一步骤，其他步骤用 ${{ github.ref_name }} 不受影响。
-          GITHUB_REF_TYPE: branch
           
       # ------------------------------------------------------------------
       # SignPath Foundation 免费签名（面向符合条件的开源项目）

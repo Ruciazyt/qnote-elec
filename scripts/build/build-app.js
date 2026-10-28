@@ -33,8 +33,17 @@ const path = require("path");
 const projectRoot = path.resolve(__dirname, "..", "..");
 const configPath = path.join(projectRoot, "build", "electron-builder.json");
 
-/** 透传给 electron-builder 的额外参数（CI 会用 --publish never） */
-const extraArgs = process.argv.slice(2);
+/**
+ * 透传给 electron-builder 的额外参数（CI 会用 --publish never）
+ *
+ * pnpm 与 npm 在这里不一样：`pnpm run build:app -- --publish never` 会把
+ * 那个 `--` 也当成真实参数传进来（npm 会吃掉它），于是脚本收到的是
+ * ["--", "--publish", "never"]。yargs 遇到 `--` 之后的内容一律当位置参数，
+ * `--publish never` 就被忽略了 —— electron-builder 于是认为自己在 tag 上
+ * 构建，会自己去 GitHub 建 Release（还多发一次 api.github.com 请求）。
+ * 所以这里把开头的 `--` 去掉。
+ */
+const extraArgs = process.argv.slice(2).filter((arg, index) => !(index === 0 && arg === "--"));
 
 /**
  * 是否配了代码签名

@@ -75,7 +75,10 @@ jobs:
         run: pnpm run build:electron
 
       - name: Build Electron app (安装版 + 便携版)
-        run: pnpm run build:app
+        # --publish never：electron-builder 在 CI 里检测到 tag 会自己去
+        # GitHub 建 Release 并上传产物。auto-build 的产物只作为 artifact
+        # 用来验证「这次提交能构建出可用的包」，不该出现在 Release 里。
+        run: pnpm run build:app -- --publish never
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ELECTRON_CACHE: ~/.cache/electron
