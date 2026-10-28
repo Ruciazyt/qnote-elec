@@ -19,6 +19,11 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
+    # Release 页正文要区分三种签名状态（SignPath / 公共 CA 证书 / 无签名），
+    # 所以把签名方式透传给 release 作业。
+    outputs:
+      signpath_enabled: ${{ steps.signpath.outputs.enabled }}
+      certificate_enabled: ${{ steps.cert.outputs.enabled }}
     
     strategy:
       matrix:
@@ -55,15 +60,29 @@ jobs:
         run: node scripts/release/verify-version.js --tag "${GITHUB_REF_NAME}"
         shell: pwsh
 
-      # 设置代码签名证书
+      # 设置代码签名证书（可选）
+      #
+      # ⚠️ **自签名证书已于 2026-10-28 停用** —— 实测它比「完全不签名」更糟：
+      # 证书链不受系统信任（Windows 判定 UnknownError），Symantec 之类用云端
+      # 信誉做判定的产品还会直接把它归进「无法证明安全的未知程序」。
+      # 所以 CERTIFICATE_BASE64 / CERTIFICATE_PASSWORD 两个 secret 现在**留空**，
+      # 产物就是未签名的。
+      #
+      # 这里保留这套机制，是为了将来换成**公共 CA 签发的证书**（OV，路线 D）
+      # 时不用改构建流程：把 PFX 的 base64 填回 CERTIFICATE_BASE64、口令填回
+      # CERTIFICATE_PASSWORD 即可。SignPath Foundation 那条路不经过这里，
+      # 走下面的独立步骤。
       - name: Setup Code Signing Certificate
+        id: cert
         env:
           CERTIFICATE_BASE64: ${{ secrets.CERTIFICATE_BASE64 }}
         run: |
           if ([string]::IsNullOrEmpty($env:CERTIFICATE_BASE64)) {
-            echo "No code signing certificate configured, skipping certificate setup"
+            echo "enabled=false" >> $env:GITHUB_OUTPUT
+            echo "No code signing certificate configured, building without code signing"
             exit 0
           }
+          echo "enabled=true" >> $env:GITHUB_OUTPUT
           echo "Setting up code signing certificate..."
           $certificateBytes = [System.Convert]::FromBase64String($env:CERTIFICATE_BASE64)
           $certificatePath = Join-Path $env:GITHUB_WORKSPACE "certificate.pfx"
@@ -118,8 +137,104 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ELECTRON_CACHE: ~/.cache/electron
           ELECTRON_BUILDER_CACHE: ~/.cache/electron-builder
-          CSC_KEY_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD || 'qnote2024' }}
+          # 证书密码只从 secret 取，不留默认值 —— 兜底默认值等于把口令写进仓库
+          CSC_KEY_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
           
+      # ------------------------------------------------------------------
+      # SignPath Foundation 免费签名（面向符合条件的开源项目）
+      #
+      # 没配 SIGNPATH_API_TOKEN 就整段跳过，未签名的产物照常发布。
+      # 这条链路只有在 SignPath Foundation 申请通过、secret 与 variable 配齐
+      # 之后才会真正执行。
+      #
+      # 顺序不能换：
+      #   签名会改变安装包的文件字节 → latest.yml 里记的 sha512 / size 随之失效
+      #   → 必须紧接着重算，否则 electron-updater 会因哈希不匹配拒绝安装更新。
+      #
+      # 人工审批：OSS 计划要求每次签名请求由 Approver 批准。action 默认等
+      # 600 秒，这里放宽到 30 分钟；超时就重跑这个 job，签名请求会重新提交。
+      # ------------------------------------------------------------------
+      - name: Check SignPath configuration
+        id: signpath
+        env:
+          SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+        run: |
+          if ([string]::IsNullOrEmpty($env:SIGNPATH_API_TOKEN)) {
+            echo "enabled=false" >> $env:GITHUB_OUTPUT
+            Write-Host "未配置 SIGNPATH_API_TOKEN，跳过 SignPath 签名"
+          } else {
+            echo "enabled=true" >> $env:GITHUB_OUTPUT
+            Write-Host "已配置 SignPath，开始签名流程"
+          }
+        shell: pwsh
+
+      # SignPath 要求：产物必须先作为 workflow artifact 上传，
+      # 它据此校验「这份文件确实由本仓库的 CI 构建出来」。
+      - name: Upload unsigned installer for signing
+        id: upload-unsigned-installer
+        if: steps.signpath.outputs.enabled == 'true'
+        uses: actions/upload-artifact@v5
+        with:
+          name: unsigned-installer
+          path: dist_electron/QNote-Setup-*.exe
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Sign installer with SignPath
+        if: steps.signpath.outputs.enabled == 'true'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: ${{ vars.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG }}
+          github-artifact-id: ${{ steps.upload-unsigned-installer.outputs.artifact-id }}
+          # 产物配置里把安装包路径与版本元数据都写成 ${version}，
+          # 值在这里传 —— tag 名就是版本号（前面已校验过与 package.json 一致）。
+          parameters: |
+            version: "${{ github.ref_name }}"
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 1800
+          output-artifact-directory: dist_electron/signed
+
+      - name: Replace installer with signed one
+        if: steps.signpath.outputs.enabled == 'true'
+        run: |
+          $signed = Get-ChildItem -Path dist_electron/signed -Recurse -Filter 'QNote-Setup-*.exe' |
+            Select-Object -First 1
+          if (-not $signed) {
+            throw "签名产物里没有找到安装包，检查 SignPath 的产物配置是否匹配"
+          }
+          Copy-Item $signed.FullName -Destination (Join-Path $env:GITHUB_WORKSPACE "dist_electron") -Force
+          Write-Host "已用签名后的安装包替换原文件"
+        shell: pwsh
+
+      # 未签名的副本不能留在 artifact 里 —— release 作业会按 *.exe 通配，
+      # 留着等于把没签名的安装包也发到 Release 上。
+      - name: Remove unsigned artifact
+        if: always() && steps.signpath.outputs.enabled == 'true'
+        uses: actions/delete-artifact@v4
+        with:
+          name: unsigned-installer
+
+      - name: Refresh update-info hashes
+        if: steps.signpath.outputs.enabled == 'true'
+        run: node scripts/release/patch-update-info.js
+        shell: pwsh
+
+      # 签名体检：产物的签名链状态 + SHA256 清单
+      #
+      # 必须在「Process portable version」之前跑 —— 那一步把 win-unpacked 打成
+      # zip 之后会把目录删掉，而体检要逐个检查解包目录里的可执行文件。
+      #
+      # 只报告、不失败：签名不合格得靠换证书解决，不该把发版流程卡死。
+      # 报告留在构建日志里；SHA256SUMS.txt 随 Release 一起发布，企业安全团队
+      # 可以按哈希加白名单，用户也可以核对文件有没有被替换。
+      - name: Verify code signatures
+        run: node scripts/build/verify-signature.js
+        shell: pwsh
+
       - name: Process portable version
         run: node scripts/build/post-build.js
         
@@ -153,6 +268,8 @@ jobs:
             # 版本号与 SHA512。electron-updater 先下载它，再据此下载安装包。
             # 少传这一个文件，"检查更新"就会报「找不到 latest.yml」。
             dist_electron/latest.yml
+            # SHA256 清单 —— 供用户与企业安全团队核对文件指纹
+            dist_electron/SHA256SUMS.txt
           retention-days: 30
 
   release:
@@ -188,13 +305,15 @@ jobs:
             # 自动更新元数据 —— 必须与安装包在同一个 Release 里，
             # electron-updater 会按 /releases/download/<tag>/latest.yml 取它。
             artifacts/**/latest.yml
+            # 哈希清单 —— 供用户与企业安全团队核对文件指纹
+            artifacts/**/SHA256SUMS.txt
           draft: false
           prerelease: false
           generate_release_notes: true
           body: |
             ## 📦 下载说明
 
-            - **QNote-Setup-x.x.x.exe**: 安装版（已代码签名），推荐大多数用户使用
+            - **QNote-Setup-x.x.x.exe**: 安装版，推荐大多数用户使用
             - **QNote-x.x.x-portable.zip**: 便携版压缩包，解压后可直接运行
 
             ## 🔄 自动更新
@@ -204,8 +323,20 @@ jobs:
 
             ## 🔒 安全说明
 
-            本版本已使用自签名证书进行代码签名，提高了安全性。
-            如果首次运行时系统仍有提示，请选择"仍要运行"。
+            ${{ (needs.build.outputs.signpath_enabled == 'true' && '安装包带 Authenticode 数字签名（证书由 SignPath Foundation 签发），可在「文件属性 → 数字签名」里查看签名信息。') || (needs.build.outputs.certificate_enabled == 'true' && '安装包带 Authenticode 数字签名，可在「文件属性 → 数字签名」里查看签名信息。') || '本版本安装包不带数字签名 —— 自签名证书已停用，因为它比完全不签名更容易被安全软件判定为风险。请用同目录的 `SHA256SUMS.txt` 核对文件指纹。' }}
+
+            `SHA256SUMS.txt` 给出各产物的 SHA256，可用
+            `sha256sum -c SHA256SUMS.txt` 核对文件有没有被替换。
+
+            企业网络里若被安全软件拦截（提示未知发布者、签名无效、恶意软件等），
+            请把 `SHA256SUMS.txt` 里的哈希提交给 IT 安全团队加白名单。
+
+            ## 🔐 Code signing policy
+
+            ${{ (needs.build.outputs.signpath_enabled == 'true' && 'Free code signing provided by [SignPath.io](https://signpath.io), certificate by [SignPath Foundation](https://signpath.org).') || (needs.build.outputs.certificate_enabled == 'true' && 'The Windows installer carries an Authenticode digital signature issued under a public CA certificate.') || 'The Windows installer is currently not code signed. Verify it against SHA256SUMS.txt before running it. Certificate details, team roles, privacy statement and uninstall instructions are listed in the code signing policy.' }}
+
+            签名覆盖范围、团队角色、隐私声明与卸载说明：
+            ${{ vars.SIGNPATH_POLICY_URL || 'https://github.com/Ruciazyt/qnote-elec' }}
 
             ### 便携版使用方法
             1. 下载 `QNote-x.x.x-portable.zip` 文件
