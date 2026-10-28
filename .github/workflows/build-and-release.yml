@@ -19,6 +19,11 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
+    # actions: write —— 删未签名的 artifact 要调 REST 接口
+    # contents: read —— checkout 读代码
+    permissions:
+      actions: write
+      contents: read
     # Release 页正文要区分三种签名状态（SignPath / 公共 CA 证书 / 无签名），
     # 所以把签名方式透传给 release 作业。
     outputs:
@@ -225,11 +230,36 @@ jobs:
 
       # 未签名的副本不能留在 artifact 里 —— release 作业会按 *.exe 通配，
       # 留着等于把没签名的安装包也发到 Release 上。
+      #
+      # 这里直接调 GitHub 的 REST 接口删，不引第三方 action：官方仓库
+      # actions/delete-artifact 已经不存在了（GitHub 解析 action 失败会直接
+      # 让整个 job 在「Set up job」阶段挂掉，仓库地址返回 404）。
+      # runner 自带 PowerShell，用 Invoke-RestMethod 就够。
       - name: Remove unsigned artifact
         if: always() && steps.signpath.outputs.enabled == 'true'
-        uses: actions/delete-artifact@v4
-        with:
-          name: unsigned-installer
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ARTIFACT_ID: ${{ steps.upload-unsigned-installer.outputs.artifact-id }}
+        run: |
+          if ([string]::IsNullOrEmpty($env:ARTIFACT_ID)) {
+            Write-Host "没有拿到 artifact id，跳过删除"
+            exit 0
+          }
+          $headers = @{
+            'Authorization' = "Bearer $env:GH_TOKEN"
+            'Accept' = 'application/vnd.github+json'
+            'User-Agent' = 'github-actions'
+          }
+          $uri = "https://api.github.com/repos/${{ github.repository }}/actions/artifacts/$env:ARTIFACT_ID"
+          try {
+            Invoke-RestMethod -Method Delete -Headers $headers -Uri $uri
+            Write-Host "已删除未签名 artifact: $env:ARTIFACT_ID"
+          } catch {
+            # 删不掉不拦发版：artifact 的保留期是 1 天，到期自动清掉；
+            # 而且 release 作业只下载 *-build，未签名的副本到不了 Release。
+            Write-Host "删除未签名 artifact 失败（不影响发版）：$($_.Exception.Message)"
+          }
+        shell: pwsh
 
       - name: Refresh update-info hashes
         if: steps.signpath.outputs.enabled == 'true'
@@ -295,9 +325,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
         
-      - name: Download all artifacts
+      # 只下载正式产物（*-build）。签名那步还会另外上传一个
+      # unsigned-installer —— 那里面是没签名的安装包，绝不能进 Release。
+      # 上一步会删它，这里再加一道按名字筛选，删失败也不会漏出去。
+      - name: Download build artifacts
         uses: actions/download-artifact@v5
         with:
+          pattern: "*-build"
           path: artifacts
           
       - name: List downloaded artifacts
