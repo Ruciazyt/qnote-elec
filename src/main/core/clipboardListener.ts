@@ -2,6 +2,7 @@ import { clipboard, BrowserWindow, NativeImage } from "electron";
 import { log } from "../utils/log";
 import { Knex } from "knex";
 import { contentHash } from "../../shared/noteHash";
+import { readClipboardImage } from "../utils/clipboard";
 
 let lastClipboardText: string = "";
 let lastClipboardImageHash: string = ""; // 使用哈希值而非完整base64
@@ -21,7 +22,9 @@ let clipboardIntervalId: NodeJS.Timeout | null = null;
  *
  * 监听器每 2 秒轮询一次，渲染层写完剪贴板再发 IPC 通知，中间存在一个
  * 监听器已经读到新内容的窗口 —— 那一次就会被记下来。
- * 主进程先登记、再同步写剪贴板，两步之间没有异步间隙，不存在这个竞态。
+ * 主进程先登记、再写剪贴板，登记一定早于内容变化，监听器不可能读到
+ * 还没登记的新内容（Electron 45 起写剪贴板是异步的，但异步只发生在
+ * 登记之后，方向是安全的）。
  *
  * ## 一次性消费
  *
@@ -144,7 +147,7 @@ export function clipboardListener(win: BrowserWindow, DB: Knex): void {
 
     try {
       isProcessing = true;
-      const text = clipboard.readText();
+      const text = await clipboard.readText();
       const currentTime = new Date().toISOString();
 
       // 只处理有效的文本或图片
@@ -177,7 +180,7 @@ export function clipboardListener(win: BrowserWindow, DB: Knex): void {
         }
       } else {
         // 图片走单独分支：先取指纹判断有没有变，变了才付 PNG 编码的代价
-        const image = clipboard.readImage();
+        const image = await readClipboardImage();
         const imageHash = imageFingerprint(image);
 
         if (imageHash && imageHash !== lastClipboardImageHash) {

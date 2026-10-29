@@ -12,7 +12,7 @@
 | --- | --- |
 | 形态 | Electron 桌面应用（Windows 安装版 + 便携版） |
 | 主进程 | `src/main`（TypeScript → `dist/main`），preload 在 `src/main/preload.ts` |
-| 渲染层 | `src/renderer`（React 18 + Vite 5 + Tailwind 3 + shadcn/ui，new-york 风格） |
+| 渲染层 | `src/renderer`（React 18 + Vite 6 + Tailwind 3 + shadcn/ui，new-york 风格） |
 | 共享层 | `src/shared`（主进程与渲染层共用的类型） |
 | 数据层 | `src/database`（Knex + SQLite，笔记、剪贴板、待办等） |
 | 构建配置 | `build/electron-builder.json`（打包）、`build/tsconfig.*.json`（编译） |
@@ -96,7 +96,7 @@ pnpm run release:patch  # 发补丁版本（1.5.0 → 1.5.1）
 fix(updater): 修正检查更新时版本号比较始终判定为最新
 
 latest.yml 里的版本号取自 appInfo.version，而 auto-build 之前用
-ELECTRON_BUILDER_VERSION 覆盖版本 —— 该变量在 electron-builder 25.x
+ELECTRON_BUILDER_VERSION 覆盖版本 —— 该变量在 electron-builder 26.x
 里并不生效，导致产物版本与发布 tag 不一致。
 
 Closes #123
@@ -205,7 +205,7 @@ pnpm run release:patch    # 或 release:minor / release:major
 > 新版本号以 `package.json` 为准，不解析 `pnpm version` 的输出 ——
 > pnpm 打印的是 `Version bumped successfully: 1.5.0 → 1.5.1` 这类多行文本，
 > 不是纯版本号。同理不设 `ELECTRON_BUILDER_VERSION` 之类的环境变量覆盖，
-> 该变量在 electron-builder 25.x 里并不生效。
+> 该变量在 electron-builder 26.x 里并不生效。
 
 **`auto-build.yml` 不创建 Release。** 它只在每次推 master 时跑一次构建，
 把产物上传为 Actions Artifact 用于验证"这次提交能构建出可用的包"。

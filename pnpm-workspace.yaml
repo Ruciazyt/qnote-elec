@@ -1,3 +1,32 @@
 packages:
   - .
   - src/renderer
+
+# pnpm 10 起这个设置不再从 package.json 的 "pnpm" 字段读（会打印
+# 「The "pnpm" field in package.json is no longer read by pnpm」的警告并忽略），
+# 新的位置就是本文件。不放这里的话，electron 的 install 脚本会被跳过，
+# 新克隆的机器上 node_modules/electron/dist 是空的，`pnpm dev` 起不来。
+onlyBuiltDependencies:
+  - electron
+  - esbuild
+  - sqlite3
+
+overrides:
+  # @tiptap/react 3.31.3 的依赖范围是 ^3.31.3，会解析到 3.32.1，
+  # 而 @tiptap/core / @tiptap/pm 被钉在 3.31.3 —— 于是这些子包要 3.32.1 的
+  # core，实际装的是 3.31.3，peer 不匹配。这里统一锁回与 core 同版本。
+  '@tiptap/extensions': 3.31.3
+  '@tiptap/extension-bubble-menu': 3.31.3
+  '@tiptap/extension-floating-menu': 3.31.3
+
+  # @chevrotain/cst-dts-gen@11.0.3 把 lodash-es 精确钉在 4.17.21，
+  # 而 4.17.21 带三个已知漏洞（4.18.0 起修复）。上游 chevrotain 13 要等
+  # mermaid 12 → mermaid-to-excalidraw 3.x → excalidraw 发新版才能换掉，
+  # 在那之前只能强制抬到 4.18.1（同为 4.x，API 兼容）。
+  'lodash-es': 4.18.1
+
+  # archiver-utils / rimraf 的范围都是 ^10.x，但 lockfile 里停在 10.4.5
+  # （漏洞在 10.5.0 修复）。这里只针对这两个父包 —— node-gyp 那边还需要
+  # glob 7/8，全局覆盖会把它们一起顶掉。
+  'archiver-utils>glob': 10.5.0
+  'rimraf>glob': 10.5.0

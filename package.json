@@ -9,13 +9,6 @@
     "node": ">=18.0.0"
   },
   "packageManager": "pnpm@10.32.0",
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "electron",
-      "esbuild",
-      "sqlite3"
-    ]
-  },
   "scripts": {
     "build": "cross-env NODE_ENV=production pnpm run clean && pnpm run build:all && pnpm run build:app && node scripts/build/post-build.js",
     "clean": "rimraf dist dist_electron",
@@ -49,8 +42,8 @@
     "archiver": "^7.0.1",
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
-    "electron": "^33.2.0",
-    "electron-builder": "^25.1.8",
+    "electron": "^45.1.0",
+    "electron-builder": "^26.18.0",
     "electron-reloader": "^1.2.3",
     "rimraf": "^5.0.10",
     "typescript": "^5.6.3",
@@ -110,6 +103,6 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "sqlite3": "^5.1.7",
-    "zod": "3.25.76"
+    "zod": "^4.6.6"
   }
 }

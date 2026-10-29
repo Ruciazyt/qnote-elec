@@ -1,4 +1,5 @@
-import { ipcMain, IpcMainInvokeEvent, dialog, BrowserWindow, clipboard, shell } from "electron";
+import { ipcMain, IpcMainInvokeEvent, dialog, BrowserWindow, shell } from "electron";
+import { readClipboardImage } from "../utils/clipboard";
 import * as fs from "fs";
 import * as path from "node:path";
 import { FileWriter } from "../core/fileWriter";
@@ -341,9 +342,9 @@ export function registerFileHandlers(fileWriter: FileWriter) {
    */
   ipcMain.handle(
     "notes:save-clipboard-image",
-    (_event, dirPath: string, parentRel: string): NoteFileEntry | null => {
+    async (_event, dirPath: string, parentRel: string): Promise<NoteFileEntry | null> => {
       try {
-        const image = clipboard.readImage();
+        const image = await readClipboardImage();
         if (image.isEmpty()) return null;
 
         const relPath = noteStore.allocateImageName(dirPath, parentRel, ".png");
