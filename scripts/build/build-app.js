@@ -34,6 +34,37 @@ const projectRoot = path.resolve(__dirname, "..", "..");
 const configPath = path.join(projectRoot, "build", "electron-builder.json");
 
 /**
+ * electron-builder 的 CLI 入口
+ *
+ * ## 为什么不直接跑 npx electron-builder
+ *
+ * npx 是靠 PATH 查找的命令。谁能在 PATH 靠前的目录里放一个同名可执行文件，
+ * 就能劫持实际执行的打包器 —— SonarCloud 把这算成安全漏洞
+ * （S4036 / "Untrusted Search Path"），会把质量门禁的 Security Rating 拉下来。
+ *
+ * 改成解析出 electron-builder 的 CLI 脚本，用当前 node（process.execPath）跑它：
+ * 路径全是绝对的，不查 PATH，也不用 shell 转发参数。
+ * 顺带消掉两件事：
+ *   - Node 22 的 DEP0190 警告（shell 模式只拼接参数、不转义）；
+ *   - 参数里带空格时（--config.directories.output=）被 cmd 拆错的问题。
+ *
+ * 版本也随之固定成仓库里装的那一份 —— npx 在本地没装时是会去下载最新版的，
+ * 构建产物就不该取决于构建时网络上恰好有什么版本。
+ */
+function electronBuilderCli() {
+  try {
+    return require.resolve("electron-builder/cli.js");
+  } catch (error) {
+    console.error(
+      "\n❌ 找不到 electron-builder。\n" +
+        "   请先执行 pnpm install --frozen-lockfile，再重试。\n" +
+        `   （原始错误：${error.message}）`
+    );
+    process.exit(1);
+  }
+}
+
+/**
  * 透传给 electron-builder 的额外参数（CI 会用 --publish never）
  *
  * pnpm 与 npm 在这里不一样：`pnpm run build:app -- --publish never` 会把
@@ -111,9 +142,9 @@ function generateIcons() {
 function runElectronBuilder(args, label) {
   console.log(`\n▶ ${label}`);
   const result = spawnSync(
-    "npx",
-    ["electron-builder", "--config", configPath, ...args],
-    { cwd: projectRoot, stdio: "inherit", shell: true }
+    process.execPath,
+    [electronBuilderCli(), "--config", configPath, ...args],
+    { cwd: projectRoot, stdio: "inherit" }
   );
   return result.status === 0;
 }
@@ -125,12 +156,15 @@ function main() {
   }
 
   // 第一次：正常打包
-  const first = spawnSync("npx", ["electron-builder", "--config", configPath, ...extraArgs], {
-    cwd: projectRoot,
-    encoding: "utf8",
-    shell: true,
-    maxBuffer: 64 * 1024 * 1024,
-  });
+  const first = spawnSync(
+    process.execPath,
+    [electronBuilderCli(), "--config", configPath, ...extraArgs],
+    {
+      cwd: projectRoot,
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024,
+    }
+  );
 
   if (first.status === 0) {
     process.exit(0);
@@ -175,9 +209,9 @@ function main() {
   const outputArg = extraArgs.find((a) => a.startsWith("--config.directories.output="));
   const applyArgs = outputArg ? [outputArg.split("=")[1]] : [];
   const apply = spawnSync(
-    "node",
+    process.execPath,
     [path.join(projectRoot, "scripts", "build", "apply-exe-resources.js"), ...applyArgs],
-    { cwd: projectRoot, stdio: "inherit", shell: true }
+    { cwd: projectRoot, stdio: "inherit" }
   );
   if (apply.status !== 0) {
     console.error(

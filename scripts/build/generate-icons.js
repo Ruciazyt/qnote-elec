@@ -65,9 +65,11 @@ function loadSharp() {
   try {
     return requireFromRenderer("sharp");
   } catch (error) {
+    // 把原始异常挂在 cause 上：提示语是给人看的，cause 里才有真正的失败原因
     throw new Error(
       "找不到 sharp（渲染层工作区的 devDependency）。\n" +
-        "请先执行 pnpm install --frozen-lockfile，再重试。"
+        "请先执行 pnpm install --frozen-lockfile，再重试。",
+      { cause: error }
     );
   }
 }
@@ -129,11 +131,13 @@ async function main() {
   const squareSvg = toSquareSvg(originalSvg);
 
   // ---- macOS 应用图标：满幅方形 ----
-  const chunks = [];
-  for (const entry of ICNS_ENTRIES) {
-    const png = await renderPng(sharp, squareSvg, entry.size);
-    chunks.push(buildIcnsChunk(entry.type, png));
-  }
+  //
+  // 6 个尺寸互不依赖，并行渲染即可 —— 串行 await 只是把 6 轮耗时叠在一起。
+  // Promise.all 保证结果顺序与 ICNS_ENTRIES 一致，下面的下标对应才成立。
+  const pngs = await Promise.all(
+    ICNS_ENTRIES.map((entry) => renderPng(sharp, squareSvg, entry.size))
+  );
+  const chunks = ICNS_ENTRIES.map((entry, index) => buildIcnsChunk(entry.type, pngs[index]));
   const icnsPath = path.join(buildDir, "icon.icns");
   writeFile(icnsPath, buildIcns(chunks));
   console.log(`✔ macOS 应用图标: ${path.relative(projectRoot, icnsPath)} (${ICNS_ENTRIES.length} 个尺寸)`);
@@ -150,5 +154,9 @@ async function main() {
 
 main().catch((error) => {
   console.error(`\n❌ 生成图标失败：${error.message}`);
+  // 原始异常在 cause 里，别让真正的失败原因随提示语一起丢掉
+  if (error.cause) {
+    console.error(`   原始错误：${error.cause.message || String(error.cause)}`);
+  }
   process.exit(1);
 });

@@ -1,6 +1,7 @@
 import { BrowserWindow, app, screen, nativeImage } from "electron";
 import * as fs from "fs";
 import * as path from "path";
+import { randomUUID } from "crypto";
 import { log } from "../../utils/log";
 import {
   StickyBounds,
@@ -378,7 +379,9 @@ class StickyNoteManager {
   /** 从一条剪贴板记录撕下一张便签 */
   createFromPayload(payload: StickyHoldPayload, cursor: { x: number; y: number }): string {
     this.load();
-    const id = `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+    // id 会拿去做图片文件名，所以只用字母数字 —— randomUUID 的前几位是十六进制
+    // 用 crypto 而不是 Math.random：后者可预测，SonarCloud 判为安全漏洞（S2245）
+    const id = `s${Date.now().toString(36)}${randomUUID().slice(0, 5)}`;
 
     const record: StickyNoteRecord = {
       id,
