@@ -3,6 +3,7 @@ import * as path from "node:path";
 import { app } from "electron";
 import { log } from "../../utils/log";
 import { stickyNoteManager } from "./stickyNote";
+import { resolveAssetPath } from "../../utils/assets";
 
 // 跟踪IPC监听器引用，用于清理
 const ipcListenerRefs: Array<{ channel: string; handler: (...args: any[]) => void }> = [];
@@ -16,16 +17,6 @@ function cleanupIpcListeners(): void {
 }
 
 const DEV_SERVER_URL = "http://localhost:5173";
-
-function getAssetsDir() {
-  return !app.isPackaged
-    ? path.join(app.getAppPath(), "resources")
-    : path.join(process.resourcesPath, "resources");
-}
-
-function resolveAssetPath(fileName: string) {
-  return path.join(getAssetsDir(), fileName);
-}
 
 function getPreloadPath() {
   return path.join(__dirname, "..", "..", "preload.js");

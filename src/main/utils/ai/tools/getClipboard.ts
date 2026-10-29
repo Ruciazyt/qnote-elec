@@ -36,7 +36,7 @@ export const getClipboardHistoryTool = tool(
     description:
       '获取用户最近的剪贴板记录（按时间倒序）。用户问"我刚才复制了什么"、"我上一条剪贴板"时使用。',
     schema: z.object({
-      limit: z.number().int().min(1).max(50).default(10).describe('返回条数，1-50，默认 10'),
+      limit: z.number().int().min(1).max(50).optional().describe('返回条数，1-50，默认 10'),
       type: z.enum(['text', 'image']).optional().describe('可选：只取文本或图片'),
     }),
   }

@@ -10,12 +10,12 @@
 
 | 项 | 值 |
 | --- | --- |
-| 形态 | Electron 桌面应用（Windows 安装版 + 便携版） |
+| 形态 | Electron 桌面应用（Windows 安装版 + 便携版 / macOS dmg + zip） |
 | 主进程 | `src/main`（TypeScript → `dist/main`），preload 在 `src/main/preload.ts` |
-| 渲染层 | `src/renderer`（React 18 + Vite 5 + Tailwind 3 + shadcn/ui，new-york 风格） |
+| 渲染层 | `src/renderer`（React 18 + Vite 6 + Tailwind 3 + shadcn/ui，new-york 风格） |
 | 共享层 | `src/shared`（主进程与渲染层共用的类型） |
 | 数据层 | `src/database`（Knex + SQLite，笔记、剪贴板、待办等） |
-| 构建配置 | `build/electron-builder.json`（打包）、`build/tsconfig.*.json`（编译） |
+| 构建配置 | `build/electron-builder.json`（打包）、`build/tsconfig.*.json`（编译）、`build/entitlements.mac.plist`（macOS 权限声明） |
 | 脚本 | `scripts/`（按用途分目录：`build/` 构建后处理、`release/` 发版、`git-hooks/` 提交规范、`dev/` 开发期辅助） |
 | CI | `.github/workflows/`（`build-and-release.yml` 正式发布 / `auto-build.yml` 提交验证） |
 | 运行时要求 | Node.js >= 18，pnpm 10.32.0（勿改用 npm / yarn） |
@@ -27,7 +27,8 @@ pnpm dev                # 主进程 + 渲染层热更新一起起
 pnpm run build          # 完整构建（clean → 编译 → 打包 → 便携版后处理）
 pnpm run build:electron # 只编译主进程与 preload
 pnpm run build:react    # 只构建渲染层
-pnpm run build:app      # 只跑 electron-builder
+pnpm run build:app      # 只跑 electron-builder（打包前会自动生成图标）
+pnpm run generate:icons # 只生成图标（macOS 的 .icns + 运行时 PNG）
 pnpm run release:patch  # 发补丁版本（1.5.0 → 1.5.1）
 ```
 
@@ -96,7 +97,7 @@ pnpm run release:patch  # 发补丁版本（1.5.0 → 1.5.1）
 fix(updater): 修正检查更新时版本号比较始终判定为最新
 
 latest.yml 里的版本号取自 appInfo.version，而 auto-build 之前用
-ELECTRON_BUILDER_VERSION 覆盖版本 —— 该变量在 electron-builder 25.x
+ELECTRON_BUILDER_VERSION 覆盖版本 —— 该变量在 electron-builder 26.x
 里并不生效，导致产物版本与发布 tag 不一致。
 
 Closes #123
@@ -205,7 +206,7 @@ pnpm run release:patch    # 或 release:minor / release:major
 > 新版本号以 `package.json` 为准，不解析 `pnpm version` 的输出 ——
 > pnpm 打印的是 `Version bumped successfully: 1.5.0 → 1.5.1` 这类多行文本，
 > 不是纯版本号。同理不设 `ELECTRON_BUILDER_VERSION` 之类的环境变量覆盖，
-> 该变量在 electron-builder 25.x 里并不生效。
+> 该变量在 electron-builder 26.x 里并不生效。
 
 **`auto-build.yml` 不创建 Release。** 它只在每次推 master 时跑一次构建，
 把产物上传为 Actions Artifact 用于验证"这次提交能构建出可用的包"。
@@ -294,6 +295,41 @@ The string is missing the terminator: ".
 验证过：这个坑只在 `shell: powershell` 下出现 —— 仓库里所有带中文的步骤
 （`build-and-release.yml` 的 "List build results"）都没写 `shell:`，
 走默认的 pwsh，所以一直没暴露。
+
+### 6.3 macOS 打包
+
+macOS 产物由 CI 的 `build-mac` 作业产出（`macos-15` runner），
+**只能在 macOS 上打** —— electron-builder 不支持交叉构建 mac 产物。
+
+| 项 | 说明 |
+| --- | --- |
+| 产物 | `QNote-<版本>-mac-arm64.dmg` / `-mac-x64.dmg`，以及同名的 `.zip` |
+| 架构 | arm64（Apple Silicon）与 x64（Intel），**一次 electron-builder 调用同时出** |
+| 打包配置 | `build/electron-builder.json` 的 `mac` 段 |
+| 权限声明 | `build/entitlements.mac.plist` |
+| 图标 | `scripts/build/generate-icons.js` 从 `src/renderer/public/icon.svg` 生成 |
+| 自动更新元数据 | `latest-mac.yml`（Windows 那份是 `latest.yml`，两个不能混） |
+
+几条容易踩的约束：
+
+- **两个架构必须一次构建**。electron-builder 只会写一份 `latest-mac.yml`，
+  分两次跑会各写一份，发到同一个 Release 时互相覆盖。
+- **dmg 与 zip 都要出**。mac 自动更新靠 zip，dmg 不支持差分更新。
+- **`latest-mac.yml` 必须与安装包在同一个 Release 里**，否则 mac 用户点
+  「检查更新」会报「找不到更新源」。
+- **`.blockmap` 也要跟着产物发布**。electron-updater 按 `<产物名>.blockmap`
+  取差分依据，取不到会退化成整包下载（mac 的 zip 约 205MB）。
+- **图标不能用 `.ico`**。Electron 的 `nativeImage` 在 macOS / Linux 上读
+  `.ico` 会得到空图，托盘图标直接抛「无法加载图标文件」。按平台选图标的
+  逻辑集中在 `src/main/utils/assets.ts`，改图标相关代码先看它。
+- **macOS 应用图标要满幅方形**（圆角由系统遮罩加），而托盘 / 窗口图标是
+  应用内自己画的，要保留圆角 —— 生成脚本里这两种源是分开的。
+- **Hardened Runtime 下必须声明 `com.apple.security.cs.disable-library-validation`**，
+  否则 sqlite3 的原生模块加载不了，表现为启动后数据库初始化失败。
+- **mac 自动更新要求应用已签名**。未签名的 mac 版能安装，但更新装不上。
+
+macOS 产物的签名 / 公证与是否进正式 Release，都是**条件式**的，
+细节见 `docs/MACOS-BUILD.md`。
 
 ---
 

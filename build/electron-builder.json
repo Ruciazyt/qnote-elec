@@ -35,7 +35,19 @@
   },
   "mac": {
     "category": "public.app-category.productivity",
-    "artifactName": "${productName}-${version}-mac.${ext}"
+    "artifactName": "${productName}-${version}-mac-${arch}.${ext}",
+    "target": [
+      "dmg",
+      "zip"
+    ],
+    "icon": "build/icon.icns",
+    "hardenedRuntime": true,
+    "gatekeeperAssess": false,
+    "entitlements": "build/entitlements.mac.plist",
+    "entitlementsInherit": "build/entitlements.mac.plist",
+    "extendInfo": {
+      "NSMicrophoneUsageDescription": "QNote 用麦克风录制语音输入的笔记。"
+    }
   },
   "linux": {
     "category": "Utility",

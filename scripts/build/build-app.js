@@ -64,6 +64,50 @@ const hasSigning = !!(process.env.CSC_LINK || process.env.WIN_CSC_LINK);
  */
 const SYMLINK_ERROR = /cannot create symbolic link|symbolic link/i;
 
+/**
+ * 是否是 macOS 构建
+ *
+ * 两种判据：跑在 macOS 上，或者命令行里显式带了 --mac。
+ */
+function isMacBuild() {
+  return (
+    process.platform === "darwin" ||
+    extraArgs.some((arg) => arg === "--mac" || arg.startsWith("--mac="))
+  );
+}
+
+/**
+ * 生成图标
+ *
+ * macOS 的应用图标必须是 .icns —— 仓库里原本只有 icon.ico，
+ * 而 Electron 的 nativeImage 在 macOS 上读不了 .ico（托盘图标直接抛错）。
+ * 运行时图标（窗口图标、托盘图标）也要 PNG。
+ * 这些都由 scripts/build/generate-icons.js 从 src/renderer/public/icon.svg 现场生成。
+ *
+ * mac 构建缺了图标打出来的包没法用，直接失败；
+ * Windows 构建用的是仓库里现成的 resources/icon.ico，失败只警告。
+ */
+function generateIcons() {
+  console.log("\n▶ 生成图标");
+  const result = spawnSync(
+    process.execPath,
+    [path.join(projectRoot, "scripts", "build", "generate-icons.js")],
+    { cwd: projectRoot, stdio: "inherit" }
+  );
+
+  if (result.status === 0) {
+    return true;
+  }
+
+  if (isMacBuild()) {
+    console.error("\n❌ 图标生成失败，macOS 构建无法继续。");
+    return false;
+  }
+
+  console.warn("\n⚠️  图标生成失败（不影响 Windows 构建 —— Windows 用 resources/icon.ico）。");
+  return true;
+}
+
 function runElectronBuilder(args, label) {
   console.log(`\n▶ ${label}`);
   const result = spawnSync(
@@ -75,6 +119,11 @@ function runElectronBuilder(args, label) {
 }
 
 function main() {
+  // 图标要先备齐 —— macOS 的 .icns 是打包的硬前提
+  if (!generateIcons()) {
+    process.exit(1);
+  }
+
   // 第一次：正常打包
   const first = spawnSync("npx", ["electron-builder", "--config", configPath, ...extraArgs], {
     cwd: projectRoot,

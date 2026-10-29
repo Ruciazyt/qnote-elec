@@ -1,4 +1,5 @@
 import { ipcMain, clipboard, nativeImage } from "electron";
+import { writeClipboardImage } from "../utils/clipboard";
 import { log } from "../utils/log";
 import { getDB } from "../../database";
 import { markClipboardSelfWrite, markClipboardSelfWriteImage } from "../core/clipboardListener";
@@ -24,7 +25,7 @@ export function registerClipboardPopupHandlers() {
       if (item.type === "text") {
         // 先登记再写：应用内复制出来的内容不再被监听器记成一条新的历史
         markClipboardSelfWrite(item.content);
-        clipboard.writeText(item.content);
+        await clipboard.writeText(item.content);
       } else if (item.type === "image") {
         const imagePath = item.content;
         const img = nativeImage.createFromPath(imagePath);
@@ -32,7 +33,7 @@ export function registerClipboardPopupHandlers() {
           return { success: false, error: "图片不存在或已损坏" };
         }
         markClipboardSelfWriteImage(img);
-        clipboard.writeImage(img);
+        await writeClipboardImage(img);
       }
       return { success: true };
     } catch (err: any) {
@@ -46,7 +47,7 @@ export function registerClipboardPopupHandlers() {
    *
    * 渲染层的 navigator.clipboard.writeText 走的是 Chromium，不经过主进程，
    * 所以主进程无法自动感知 —— 必须由渲染层在写入**之前**通知一次。
-   * 顺序不能反：先通知再写，中间没有异步间隙，监听器不可能读到未登记的新内容。
+   * 顺序不能反：先通知再写，登记一定早于内容变化，监听器不可能读到未登记的新内容。
    */
   ipcMain.handle("mark-clipboard-self-write", (_event, content: string) => {
     if (typeof content !== "string" || content.length === 0) return false;

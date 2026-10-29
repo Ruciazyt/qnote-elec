@@ -342,11 +342,171 @@ jobs:
             dist_electron/SHA256SUMS.txt
           retention-days: 30
 
+  # -----------------------------------------------------------------------
+  # macOS 构建
+  #
+  # 与 Windows 那条链路完全分开，原因是三条硬约束：
+  #
+  #   1. dmg / .app 只能在 macOS runner 上打 —— electron-builder 不支持交叉
+  #      构建 mac 产物，在 Windows / Linux 上打不出能用的 .app；
+  #   2. Windows 链路里的证书、SignPath、便携版压缩包、rcedit 全是 Windows
+  #      专属的东西，混在一条作业里只会互相干扰；
+  #   3. mac 自动更新靠 zip 产物（dmg 不支持差分更新），
+  #      所以 target 必须同时包含 dmg 和 zip。
+  #
+  # 两个架构在**同一次** electron-builder 调用里出（--arm64 --x64）：
+  # electron-builder 只会写一份 latest-mac.yml，分两次跑会各写一份，
+  # 发到同一个 Release 时会互相覆盖。
+  # -----------------------------------------------------------------------
+  build-mac:
+    name: Build macOS (arm64 + x64)
+    runs-on: macos-15
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    # Release 页正文要说明 mac 产物是否已签名 / 已公证
+    outputs:
+      signed: ${{ steps.apple-signing.outputs.signed }}
+      notarized: ${{ steps.apple-signing.outputs.notarized }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+        with:
+          version: 10.32.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Cache Electron
+        uses: actions/cache@v5
+        with:
+          path: ~/Library/Caches/electron
+          key: ${{ runner.os }}-electron-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-electron-
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build renderer
+        run: pnpm --dir src/renderer run build
+
+      - name: Build electron
+        run: pnpm run build:electron
+
+      # ------------------------------------------------------------------
+      # Apple 开发者证书 + 公证凭据（可选）
+      #
+      # 没配 MAC_CSC_LINK、或者开关 SIGN_WITH_APPLE_CERTIFICATE 没打开，
+      # 就出未签名包 —— 未签名包第一次打开会被 Gatekeeper 拦（要右键 → 打开），
+      # 而且 mac 上的自动更新要求应用已签名。
+      #
+      # 证书**不用**手动导入钥匙串：electron-builder 自己会建临时钥匙串、
+      # 导入 CSC_LINK 指向的 p12、再签名（见 app-builder-lib 的 macCodeSign）。
+      #
+      # 公证需要 APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID 三件套齐全。
+      # 少一个 electron-builder 会直接抛 InvalidConfigurationError 把构建打断，
+      # 所以这里要么三个都给，要么一个都不给。
+      # ------------------------------------------------------------------
+      - name: Check Apple signing configuration
+        id: apple-signing
+        env:
+          MAC_CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          MAC_CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          SIGN_WITH_APPLE_CERTIFICATE: ${{ vars.SIGN_WITH_APPLE_CERTIFICATE }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          function Append-Env([string]$line) {
+            # 用 AppendAllText 而不是 Out-File：PowerShell 7 的 Out-File -Encoding utf8
+            # 虽然不带 BOM，但显式走 .NET API 更稳，不会因为编码差异把
+            # GITHUB_ENV 的第一行变成带 BOM 的垃圾。
+            [System.IO.File]::AppendAllText($env:GITHUB_ENV, "$line`n")
+          }
+
+          $signed = $false
+          $notarized = $false
+
+          if ([string]::IsNullOrEmpty($env:MAC_CSC_LINK) -or $env:SIGN_WITH_APPLE_CERTIFICATE -ne 'true') {
+            Write-Host "未配置 Apple 证书（或开关未打开），本次产出未签名包"
+          }
+          else {
+            $signed = $true
+            Write-Host "已配置 Apple 证书，启用代码签名"
+            Append-Env "CSC_LINK=$env:MAC_CSC_LINK"
+            Append-Env "CSC_KEY_PASSWORD=$env:MAC_CSC_KEY_PASSWORD"
+
+            if ([string]::IsNullOrEmpty($env:APPLE_ID) -or [string]::IsNullOrEmpty($env:APPLE_APP_SPECIFIC_PASSWORD) -or [string]::IsNullOrEmpty($env:APPLE_TEAM_ID)) {
+              Write-Host "公证凭据不完整，跳过公证（只签名）"
+            }
+            else {
+              $notarized = $true
+              Write-Host "公证凭据齐全，启用公证"
+              Append-Env "APPLE_ID=$env:APPLE_ID"
+              Append-Env "APPLE_APP_SPECIFIC_PASSWORD=$env:APPLE_APP_SPECIFIC_PASSWORD"
+              Append-Env "APPLE_TEAM_ID=$env:APPLE_TEAM_ID"
+            }
+          }
+
+          [System.IO.File]::AppendAllText($env:GITHUB_OUTPUT, "signed=$($signed.ToString().ToLower())`n")
+          [System.IO.File]::AppendAllText($env:GITHUB_OUTPUT, "notarized=$($notarized.ToString().ToLower())`n")
+
+      - name: Build macOS app
+        # --publish never：正式 Release 由下面的 release 作业创建。
+        # 不加这个参数，electron-builder 看到 tag 会自己去 GitHub 建一份
+        # 带 v 前缀的草稿 Release（违反 AGENTS.md 第 3.3 节）。
+        #
+        # GITHUB_REF_TYPE 是 GitHub 保留变量名，在 workflow 的 env: 里改不动，
+        # 只能改进程环境变量 —— 改成 branch 是为了让 electron-builder 以为
+        # 自己不在 tag 上。
+        run: |
+          export GITHUB_REF_TYPE="branch"
+          pnpm run build:app -- --mac --arm64 --x64 --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ELECTRON_CACHE: ~/Library/Caches/electron
+          ELECTRON_BUILDER_CACHE: ~/Library/Caches/electron-builder
+
+      - name: List build results
+        run: Get-ChildItem -Path dist_electron -Force
+        shell: pwsh
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v5
+        with:
+          # 名字必须以 -build 结尾 —— release 作业按 "*-build" 下载
+          name: mac-build
+          path: |
+            dist_electron/*.dmg
+            dist_electron/*.zip
+            # latest-mac.yml 是 mac 自动更新的元数据文件（Windows 那份是 latest.yml）。
+            # 少传这一个文件，mac 用户点「检查更新」就会报「找不到更新源」。
+            dist_electron/latest-mac.yml
+            # blockmap 是差分更新的依据 —— electron-updater 按 <产物名>.blockmap
+            # 去 Release 上取，算出要传哪些块。缺了它不会报错，但会退化成整包下载
+            # （mac 的 zip 约 205MB，每次更新全量拉并不划算）。
+            dist_electron/*.blockmap
+          retention-days: 30
+
   release:
-    needs: build
+    needs: [build, build-mac]
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: startsWith(github.ref, 'refs/tags/')
+    # always()：mac 作业失败不该连累 Windows 发版（两个平台的构建互相独立）。
+    # 但 Windows 构建本身失败时仍然不发 —— 那时 Release 里没有可用的安装包。
+    if: always() && startsWith(github.ref, 'refs/tags/') && needs.build.result == 'success'
     
     steps:
       - name: Checkout code
@@ -355,16 +515,104 @@ jobs:
       # 只下载正式产物（*-build）。签名那步还会另外上传一个
       # unsigned-installer —— 那里面是没签名的安装包，绝不能进 Release。
       # 上一步会删它，这里再加一道按名字筛选，删失败也不会漏出去。
-      - name: Download build artifacts
+      #
+      # Windows 与 macOS 分开下载：mac 产物默认不进正式 Release，
+      # 未签名的 .dmg 被 Gatekeeper 拦，用户体验反而更差。
+      # 打开仓库变量 MAC_RELEASE_ENABLED 之后 mac 产物才会一起发布。
+      - name: Download Windows build artifacts
         uses: actions/download-artifact@v5
         with:
-          pattern: "*-build"
+          pattern: "windows-*-build"
           path: artifacts
+
+      - name: Download macOS build artifacts
+        # 显式打开开关，或者产物已签名且已公证（这种包用户双击就能开，
+        # 没有 Gatekeeper 的问题，不必等维护者手动开开关）。
+        if: vars.MAC_RELEASE_ENABLED == 'true' || (needs.build-mac.outputs.signed == 'true' && needs.build-mac.outputs.notarized == 'true')
+        # mac 构建失败时不阻断发版 —— Windows 的产物照常发布。
+        continue-on-error: true
+        uses: actions/download-artifact@v5
+        with:
+          pattern: "mac-*-build"
+          path: artifacts-mac
           
       - name: List downloaded artifacts
         run: |
           echo "下载的构建文件:"
-          find artifacts -type f -name "*.exe" -o -name "*.zip" -o -name "latest.yml" | sort
+          find artifacts -type f \( -name "*.exe" -o -name "*.zip" -o -name "latest.yml" \) | sort
+          if [ -d artifacts-mac ]; then
+            echo "下载的 macOS 构建文件:"
+            find artifacts-mac -type f \( -name "*.dmg" -o -name "*.zip" -o -name "latest-mac.yml" \) | sort
+          fi
+
+      # 汇总要发布的文件清单与 macOS 说明段。
+      # files 不能在 workflow 里按条件写死，所以在这里算好再传给 action。
+      - name: Prepare release assets
+        id: release-assets
+        env:
+          MAC_RELEASE_ENABLED: ${{ vars.MAC_RELEASE_ENABLED }}
+          MAC_SIGNED: ${{ needs.build-mac.outputs.signed }}
+          MAC_NOTARIZED: ${{ needs.build-mac.outputs.notarized }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $files = @(
+            'artifacts/**/*.exe',
+            'artifacts/**/*.zip',
+            # 自动更新元数据 —— 必须与安装包在同一个 Release 里，
+            # electron-updater 会按 /releases/download/<tag>/latest.yml 取它。
+            'artifacts/**/latest.yml',
+            # 哈希清单 —— 供用户与企业安全团队核对文件指纹
+            'artifacts/**/SHA256SUMS.txt'
+          )
+
+          $macNotes = @()
+
+          # mac 产物进正式 Release 的条件：
+          #   - 显式打开仓库变量 MAC_RELEASE_ENABLED（=true）；或者
+          #   - 产物已签名且已公证 —— 这种包用户双击就能开，没有 Gatekeeper 的问题，
+          #     不必再等维护者手动开开关。
+          # 两个条件都没满足时，mac 产物只留在 Actions Artifact 里。
+          $macReady = (Test-Path 'artifacts-mac')
+          $macSignedOk = ($env:MAC_SIGNED -eq 'true' -and $env:MAC_NOTARIZED -eq 'true')
+          if ($macReady -and ($env:MAC_RELEASE_ENABLED -eq 'true' -or $macSignedOk)) {
+            $files += @(
+              'artifacts-mac/**/*.dmg',
+              'artifacts-mac/**/*.zip',
+              # mac 自动更新的元数据（Windows 那份是 latest.yml）
+              'artifacts-mac/**/latest-mac.yml',
+              # 差分更新的依据，必须与产物在同一个 Release 里
+              'artifacts-mac/**/*.blockmap'
+            )
+
+            $macNotes += '## 🍎 macOS 版本'
+            $macNotes += ''
+            $macNotes += '- **QNote-x.x.x-mac-arm64.dmg**: Apple Silicon（M 系列）'
+            $macNotes += '- **QNote-x.x.x-mac-x64.dmg**: Intel'
+            $macNotes += ''
+
+            if ($env:MAC_SIGNED -eq 'true' -and $env:MAC_NOTARIZED -eq 'true') {
+              $macNotes += 'macOS 应用已用 Developer ID 签名并通过 Apple 公证，下载后双击即可打开。'
+            }
+            elseif ($env:MAC_SIGNED -eq 'true') {
+              $macNotes += 'macOS 应用已用 Developer ID 签名，但没有通过 Apple 公证。首次打开可能需要在「系统设置 → 隐私与安全性」里点「仍要打开」。'
+            }
+            else {
+              $macNotes += 'macOS 应用**未签名**。第一次打开会被 Gatekeeper 拦住，需要右键点击应用 → 「打开」，或者执行：'
+              $macNotes += ''
+              $macNotes += '```'
+              $macNotes += 'xattr -dr com.apple.quarantine /Applications/QNote.app'
+              $macNotes += '```'
+              $macNotes += ''
+              $macNotes += '另外，macOS 要求更新包与已安装应用使用同一签名，**未签名的 mac 版无法自动更新**。'
+            }
+            $macNotes += ''
+          }
+
+          # 用 heredoc 形式写多行输出（GitHub 的 GITHUB_OUTPUT 语法）
+          [System.IO.File]::AppendAllText($env:GITHUB_OUTPUT, "files<<QNOTE_EOF`n" + ($files -join "`n") + "`nQNOTE_EOF`n")
+          [System.IO.File]::AppendAllText($env:GITHUB_OUTPUT, "mac_notes<<QNOTE_EOF`n" + ($macNotes -join "`n") + "`nQNOTE_EOF`n")
 
       - name: Create Release
         uses: softprops/action-gh-release@v3
@@ -373,14 +621,7 @@ jobs:
           # 不写 name 时 action 直接拿 tag 名当标题，Release 列表里
           # 就只剩一串光秃秃的版本号，看不出是哪个产品。
           name: QNote ${{ github.ref_name }}
-          files: |
-            artifacts/**/*.exe
-            artifacts/**/*.zip
-            # 自动更新元数据 —— 必须与安装包在同一个 Release 里，
-            # electron-updater 会按 /releases/download/<tag>/latest.yml 取它。
-            artifacts/**/latest.yml
-            # 哈希清单 —— 供用户与企业安全团队核对文件指纹
-            artifacts/**/SHA256SUMS.txt
+          files: ${{ steps.release-assets.outputs.files }}
           draft: false
           prerelease: false
           generate_release_notes: true
@@ -390,6 +631,7 @@ jobs:
             - **QNote-Setup-x.x.x.exe**: 安装版，推荐大多数用户使用
             - **QNote-x.x.x-portable.zip**: 便携版压缩包，解压后可直接运行
 
+            ${{ steps.release-assets.outputs.mac_notes }}
             ## 🔄 自动更新
 
             安装版支持在「设置 → 数据与开发 → 应用更新」里检查、下载并安装新版本。

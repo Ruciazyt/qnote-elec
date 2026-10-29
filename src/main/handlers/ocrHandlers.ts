@@ -1,4 +1,5 @@
-import { ipcMain, clipboard, nativeImage } from "electron";
+import { ipcMain, nativeImage } from "electron";
+import { writeClipboardImage } from "../utils/clipboard";
 import { baiduOcrImage, baiduOcrAccurate, baiduOcrWebImage } from "../utils/baiduOCR";
 import { markClipboardSelfWriteImage } from "../core/clipboardListener";
 import { log } from "../utils/log";
@@ -26,7 +27,7 @@ export function registerOcrHandlers(DB: any) {
       markClipboardSelfWriteImage(image);
 
       // 写入剪贴板
-      clipboard.writeImage(image);
+      await writeClipboardImage(image);
 
       return true;
     } catch (err) {

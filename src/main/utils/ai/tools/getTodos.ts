@@ -33,9 +33,9 @@ export const getTodosTool = tool(
     description:
       '获取用户的 Todo 列表。可按状态（已完成/未完成）和优先级过滤。用户问"我还有什么 todo"、"最近的任务"时使用。',
     schema: z.object({
-      status: z.enum(['all', 'pending', 'completed']).default('all').describe('过滤状态'),
+      status: z.enum(['all', 'pending', 'completed']).optional().describe('过滤状态，默认 all'),
       priority: z.enum(['high', 'medium', 'low']).optional().describe('过滤优先级'),
-      limit: z.number().int().min(1).max(100).default(20).describe('返回条数，默认 20'),
+      limit: z.number().int().min(1).max(100).optional().describe('返回条数，默认 20'),
     }),
   }
 );
