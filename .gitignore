@@ -1,0 +1,74 @@
+# See http://help.github.com/ignore-files/ for more about ignoring files.
+
+# Compiled output
+/dist
+/tmp
+/out-tsc
+/build
+!/build/
+!/build/tsconfig.main.json
+!/build/tsconfig.preload.json
+!/build/electron-builder.json
+# macOS 打包图标（由 scripts/build/generate-icons.js 从 icon.svg 生成）
+build/icon.icns
+# 运行时图标（托盘 / 窗口图标，macOS 与 Linux 用 PNG，Windows 用 icon.ico）
+resources/icon.png
+resources/icon-tray.png
+*.7z
+*.zip
+*.tar.gz
+*.rar
+
+# Node
+node_modules/
+renderer/node_modules/
+electron/node_modules/
+dist_electron/
+# 打包时指定了别的输出目录时用的临时目录（dist_electron_xxx/）
+dist_electron_*/
+npm-debug.log
+yarn-error.log
+
+# Python virtualenv and caches
+embedding-service/.venv/
+embedding-service/__pycache__/
+embedding-service/.ruff_cache/
+embedding-service/.pytest_cache/
+embedding-service/*.pyc
+__pycache__/
+*.pyc
+
+# Build outputs
+renderer/dist/
+
+# 开发期数据库（见 src/database/index.ts：开发环境数据不能放进 dist/）
+/.data/
+
+# Env and logs
+.env
+.env.*
+*.log
+
+# IDEs and editors
+.idea/
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# 本地代理工作目录（截图、临时脚本等，不进仓库）
+.mavis/
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/*
+
+# System files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,183 @@
+name: Auto Build (验证)
+
+# -----------------------------------------------------------------------
+# 每次推 master 跑一次构建，验证「这次提交能构建出可用的包」。
+#
+# 这个 workflow **不创建 GitHub Release**。
+#
+# 原因：正式 Release 必须有唯一且可追溯的版本号，而版本号的唯一来源是
+# package.json 的 version 字段（见 AGENTS.md 第 3 节）。本 workflow 以前
+# 用 commit 数拼版本号（1.0.<commit 数>），会带来两个问题：
+#   1. 版本号与 package.json 不一致 —— 产物叫 1.0.18、tag 却叫 1.0.447，
+#      electron-updater 拿 latest.yml 里的 1.0.18 跟用户当前版本比较，
+#      永远判定「已是最新」，自动更新等于没生效；
+#   2. Release 列表被 1.0.4xx 这类与语义化版本无关的号淹没，
+#      正式版本反而淹没在中间。
+#
+# 现在正式发布统一走 build-and-release.yml（打版本号 tag 触发）。
+# -----------------------------------------------------------------------
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v5
+        with:
+          version: 10.32.0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
+
+      # 用 pwsh（PowerShell 7），不要用 shell: powershell
+      #
+      # GitHub runner 把 run: 写成无 BOM 的 UTF-8 临时 .ps1，Windows PowerShell 5.1
+      # 会按 ANSI 码页解码 —— 中文和破折号全变乱码，乱码里混进的引号会把字符串截断，
+      # 报 "The string is missing the terminator"。pwsh 默认按 UTF-8 读无 BOM 文件，没这问题。
+      - name: Show build version
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          Write-Host "package.json version: $version"
+          Write-Host "本次构建不会创建 Release —— 正式发布请打版本号 tag"
+        shell: pwsh
+
+      - name: Cache Electron
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/electron
+          key: ${{ runner.os }}-electron-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-electron-
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify version format
+        run: node scripts/release/verify-version.js
+
+      - name: Build renderer
+        run: pnpm --dir src/renderer run build
+
+      - name: Build electron
+        run: pnpm run build:electron
+
+      - name: Build Electron app (安装版 + 便携版)
+        # --publish never：electron-builder 在 CI 里检测到 tag 会自己去
+        # GitHub 建 Release 并上传产物。auto-build 的产物只作为 artifact
+        # 用来验证「这次提交能构建出可用的包」，不该出现在 Release 里。
+        run: pnpm run build:app -- --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ELECTRON_CACHE: ~/.cache/electron
+          ELECTRON_BUILDER_CACHE: ~/.cache/electron-builder
+
+      - name: Process portable version
+        run: node scripts/build/post-build.js
+
+      - name: List build results
+        run: |
+          Write-Host "构建结果:"
+          Get-ChildItem -Path dist_electron -Force
+
+      # 产物只留在 Actions Artifact 里，不进 Release 列表。
+      # 需要下载时从本 workflow 的 Artifacts 取。
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v5
+        with:
+          name: qnote-build-${{ github.run_number }}
+          path: |
+            dist_electron/*.exe
+            dist_electron/*.zip
+            dist_electron/latest.yml
+          retention-days: 30
+
+  # -----------------------------------------------------------------------
+  # macOS 验证构建
+  #
+  # 与 build-and-release.yml 的 build-mac 作业保持一致（同样的两个架构、
+  # 同样的 target），这样打 tag 之前就能知道 mac 链路通不通。
+  #
+  # 产物只留在 Actions Artifact 里，不进 Release —— 这个 workflow 本来就不发版。
+  # -----------------------------------------------------------------------
+  build-mac:
+    name: Build macOS (arm64 + x64)
+    runs-on: macos-15
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v5
+        with:
+          version: 10.32.0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Cache Electron
+        uses: actions/cache@v5
+        with:
+          path: ~/Library/Caches/electron
+          key: ${{ runner.os }}-electron-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-electron-
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify version format
+        run: node scripts/release/verify-version.js
+
+      - name: Build renderer
+        run: pnpm --dir src/renderer run build
+
+      - name: Build electron
+        run: pnpm run build:electron
+
+      - name: Build macOS app
+        # --publish never：这个 workflow 不创建 Release，
+        # electron-builder 不该自己去 GitHub 建草稿。
+        #
+        # GITHUB_REF_TYPE 是 GitHub 保留变量名，只能改进程环境变量 ——
+        # 改成 branch 是为了让 electron-builder 以为自己在分支上构建。
+        run: |
+          export GITHUB_REF_TYPE="branch"
+          pnpm run build:app -- --mac --arm64 --x64 --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ELECTRON_CACHE: ~/Library/Caches/electron
+          ELECTRON_BUILDER_CACHE: ~/Library/Caches/electron-builder
+
+      - name: List build results
+        run: Get-ChildItem -Path dist_electron -Force
+        shell: pwsh
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v5
+        with:
+          name: qnote-mac-build-${{ github.run_number }}
+          path: |
+            dist_electron/*.dmg
+            dist_electron/*.zip
+            dist_electron/latest-mac.yml
+            # blockmap 一并带上，产物集与正式发布的 build-mac 作业保持一致
+            dist_electron/*.blockmap
+          retention-days: 30

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+    <title>QNote</title>
+    <link rel="icon" type="image/x-icon" href="./icon.ico">
+    <!--
+      主题需在首屏绘制前落到 <html> 上。若等 React 挂载后再加 .dark，
+      暗色模式用户会先看到一帧浅色再跳变（flash of wrong theme）。
+      这段脚本故意内联且不依赖任何模块，必须排在 CSS 生效之后、入口脚本之前执行。
+      逻辑与 src/renderer/hooks/useTheme.ts 保持一致。
+    -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("qnote-theme");
+          var theme =
+            stored === "light" || stored === "dark" || stored === "system"
+              ? stored
+              : "system";
+          var dark =
+            theme === "dark" ||
+            (theme === "system" &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          var root = document.documentElement;
+          root.classList.toggle("dark", dark);
+          root.style.colorScheme = dark ? "dark" : "light";
+        } catch (e) {
+          /* localStorage 不可用时保持浅色默认 */
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>

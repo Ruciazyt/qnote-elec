@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>QNote 剪贴板</title>
+  <!--
+    主题：与主窗口共用 qnote-theme。弹窗是独立 BrowserWindow，但同源，
+    所以能直接读到用户在设置页选好的档位；万一 localStorage 不共享，
+    下面的 try/catch 会退回到跟随系统，不至于白屏或错色。
+    同样必须内联且早于 CSS 生效，否则弹窗会先闪一帧浅色。
+  -->
+  <script>
+    (function () {
+      try {
+        var stored = localStorage.getItem("qnote-theme");
+        var theme =
+          stored === "light" || stored === "dark" || stored === "system"
+            ? stored
+            : "system";
+        var dark =
+          theme === "dark" ||
+          (theme === "system" &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches);
+        var root = document.documentElement;
+        root.classList.toggle("dark", dark);
+        root.style.colorScheme = dark ? "dark" : "light";
+      } catch (e) {
+        /* 读不到就用浅色默认 */
+      }
+    })();
+  </script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/renderer/components/clipboard/popup-main.tsx"></script>
+</body>
+</html>

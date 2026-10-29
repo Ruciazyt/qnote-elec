@@ -1,0 +1,26 @@
+{
+  "cell": 32,
+  "scale": 2,
+  "sheetWidth": 1408,
+  "sheetHeight": 64,
+  "animations": {
+    "idle": {
+      "start": 0,
+      "frames": 6,
+      "fps": 2.5,
+      "desc": "待机：整只缓慢上下起伏（呼吸节奏），6 帧一循环"
+    },
+    "thinking": {
+      "start": 6,
+      "frames": 8,
+      "fps": 6,
+      "desc": "思考中：高频点头 + 头顶问号四相闪烁，8 帧一循环"
+    },
+    "drag": {
+      "start": 14,
+      "frames": 8,
+      "fps": 6,
+      "desc": "被拖拽中：整体抬高悬空，整体横摆并绕中线剪切出钟摆倾斜，8 帧一循环"
+    }
+  }
+}

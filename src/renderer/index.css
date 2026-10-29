@@ -1,0 +1,3238 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   CSS Variables — Design System (WCAG AA Compliant)
+   ========================================================================== */
+
+:root {
+  /* Core palette — light theme */
+  --background: 0 0% 98%;
+  /* 应用外框色 — 微信式布局：标题栏 + 导航侧栏 = 外框（灰），
+     内容面板 = 另一层（白，见 .content-panel）。
+     单独开一个 token 而不直接改 --background：后者被 39 处弹层/对话框/Toast 引用，
+     一旦调深会把所有浮层一起染色。 */
+  --app-frame: 0 0% 94%;
+  --foreground: 220 10% 22%;
+  --card: 0 0% 100%;
+  --card-foreground: 220 10% 22%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 220 10% 22%;
+  /* Brand — "Productivity Teal" hue 195°，避开典型 SaaS 蓝（221°）和 AI 紫（260°） */
+  --primary: 195 80% 38%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 195 30% 94%;
+  --secondary-foreground: 200 10% 22%;
+  --muted: 210 25% 94%;
+  --muted-foreground: 215 12% 52%;
+  --accent: 195 30% 92%;
+  --accent-foreground: 200 12% 22%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 214 22% 91%;
+  --input: 214 22% 91%;
+  --ring: 195 80% 38%;
+  --radius: 0.5rem;
+
+  /* Sidebar variables — light theme */
+  --sidebar-width: 16rem;
+  --sidebar-width-collapsed: 3.5rem;
+  /* 侧栏与标题栏同色
+     标题栏横跨整个窗口顶部、其中左侧一段正好压在侧栏上方，两者底色不一致的话
+     会在标题栏下方露出一条接缝。把 --sidebar-background 指向 --app-frame 后，
+     标题栏 + 侧栏合成同一个外框，中间不再有任何边框或投影；
+     内层的内容面板靠色差 + 圆角自己浮起来。 */
+  --sidebar-background: var(--app-frame);
+  --sidebar-foreground: 200 10% 22%;
+  --sidebar-border: 214 22% 91%;
+  /* 可见分割线
+     --sidebar-border / --border 都是 91% 亮度，正好落在笔记页两侧的面色之间
+     （侧栏 94% / 内容 98%），画出来不是一条边界，而是一段比两边都浅的脏过渡带。
+     分割线必须明显偏离两侧面色才读得出来，所以单独开这个 token，
+     只给「必须看得见边界」的地方用，不去动被 39 处弹层引用的 --border。 */
+  --divider: 214 16% 80%;
+  --sidebar-primary: 195 80% 38%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  /* hover 底色。原先取 93%，和 --app-frame（94%）几乎同亮，实测对比度只有
+     1.01:1 —— 这是"这里可点"的主信号，却是外壳里最弱的一层，等于没有。
+     现在取 84%，约 1.24:1（VS Code 侧栏 hover 同量级）：肉眼可辨，
+     又仍然明显弱于激活态的实心 teal，不会和选中态抢层级。 */
+  --sidebar-accent: 195 25% 84%;
+  --sidebar-accent-foreground: 200 10% 22%;
+
+  /* Semantic — success (used for copied/success feedback) */
+  --success: 152 64% 42%;
+  --success-foreground: 0 0% 100%;
+
+  /* Semantic — warning (used for window control hover, future warning states) */
+  --warning: 38 70% 45%;
+  --warning-foreground: 0 0% 100%;
+
+  /* Semantic — link（剪贴板里被识别成网址的正文用这个色）
+     刻意避开品牌青（--primary，195°）：卡片上置顶徽章、打开链接按钮、
+     编辑激活态都已经是 primary 色，链接再用同一色就分不出彼此。
+     蓝色是链接的通用约定，与正文（前景灰）也拉得开。
+     浅色模式下对卡片白底对比度 5.2:1（AA 正文标准）。 */
+  --link: 212 90% 42%;
+}
+
+.dark {
+  /* Core palette — dark theme (WCAG AA fixed) */
+  --background: 220 15% 10%;           /* #1a1a1f ✓ */
+  --app-frame: 220 15% 7%;             /* 外框比内容面板更暗，形成层次 */
+  --foreground: 195 15% 88%;           /* 微调至品牌色相 */
+  --card: 220 15% 12%;
+  --card-foreground: 195 15% 88%;
+  --popover: 220 15% 10%;
+  --popover-foreground: 195 15% 88%;
+  /* Brand — 深色模式下提亮，确保在暗背景上有 WCAG AA 对比度 */
+  --primary: 195 75% 55%;
+  --primary-foreground: 220 25% 8%;
+  --secondary: 195 18% 18%;
+  --secondary-foreground: 195 15% 85%;
+  --muted: 215 15% 18%;
+  --muted-foreground: 215 15% 60%;
+  --accent: 195 18% 20%;
+  --accent-foreground: 195 15% 85%;
+  --destructive: 0 62% 55%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 215 15% 20%;
+  --input: 215 15% 20%;
+  --ring: 195 75% 55%;
+
+  /* Sidebar variables — dark theme (WCAG AA fixed) */
+  --sidebar-width: 16rem;
+  --sidebar-width-collapsed: 3.5rem;
+  --sidebar-background: var(--app-frame);  /* 同 --app-frame，见浅色主题处的说明 */
+  --sidebar-foreground: 195 15% 85%;
+  --sidebar-border: 215 15% 20%;
+  /* 可见分割线（深色）—— 同浅色处的说明：必须明显偏离两侧深色面，
+     这里取 27% 亮度，浮在 7%（外框）和 10%（面板）之上。 */
+  --divider: 215 12% 30%;
+  --sidebar-primary: 195 75% 55%;
+  --sidebar-primary-foreground: 220 25% 8%;
+  /* 深色下的 hover 同样要离开背景 —— 17% 贴在 7% 的外框上几乎看不出变化，
+     提到 26% 后与浅色主题保持一致的"可辨但不抢戏"关系。 */
+  --sidebar-accent: 195 18% 26%;
+  --sidebar-accent-foreground: 195 15% 85%;
+
+  /* Semantic — success (used for copied/success feedback) */
+  --success: 152 58% 55%;
+  --success-foreground: 220 15% 8%;
+
+  /* Semantic — warning (used for window control hover, future warning states) */
+  --warning: 48 85% 60%;
+  --warning-foreground: 38 50% 18%;
+
+  /* Semantic — link（深色模式提亮，对暗色卡片底对比度 8.3:1） */
+  --link: 205 92% 70%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    margin: 0;
+  }
+  body {
+    @apply text-foreground;
+    background-color: hsl(var(--app-frame));
+    margin: 0;
+    overflow: hidden;
+  }
+}
+
+/* ==========================================================================
+   滚动条 — 默认隐藏，滚动时显示
+   全局规则：任意元素的滚动条都是 transparent 状态；html.is-scrolling
+   切换时短暂变为可见色。`overflow: overlay` 类似行为用纯 CSS 实现。
+
+   宽度 6px（比常见的 8px 更细），滑块做成圆角胶囊，
+   平时完全不可见，滚动时才淡入，闲置 800ms 后由 useScrollIndicator 移除。
+   ========================================================================== */
+@layer base {
+  /* Firefox + 通用 */
+  * {
+    scrollbar-width: none;
+    scrollbar-color: transparent transparent;
+  }
+  .is-scrolling * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.35) transparent;
+  }
+
+  /* Chromium / Webkit */
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: transparent;
+    /* 胶囊感：圆角取到高度一半 */
+    border-radius: 999px;
+    transition: background 0.2s ease;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.45);
+  }
+  .is-scrolling *::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.35);
+  }
+  .is-scrolling *::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.55);
+  }
+
+  /* 滚动条按钮（Chromium 默认会在两端画箭头，去掉更干净） */
+  *::-webkit-scrollbar-button {
+    display: none;
+  }
+
+  /* 角标（两条滚动条交汇的方块），同样去掉 */
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-lg border bg-card text-card-foreground shadow-sm;
+  }
+
+  .card-header {
+    @apply flex flex-col space-y-1.5 p-6;
+  }
+
+  .card-title {
+    @apply text-2xl font-semibold leading-none tracking-tight;
+  }
+
+  .card-content {
+    @apply p-6 pt-0;
+  }
+
+  .button {
+    @apply inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .button-primary {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90;
+  }
+
+  .button-secondary {
+    @apply bg-secondary text-secondary-foreground hover:bg-secondary/80;
+  }
+
+  .button-ghost {
+    @apply hover:bg-accent hover:text-accent-foreground;
+  }
+
+  .input {
+    @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  /* 侧边栏组件样式 */
+  .sidebar {
+    @apply fixed left-0 top-0 z-40 h-full w-[var(--sidebar-width)] border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-all duration-300;
+  }
+
+  .sidebar-collapsed {
+    @apply w-[var(--sidebar-width-collapsed)];
+  }
+
+  .sidebar-content {
+    @apply flex h-full flex-col gap-4 p-4;
+  }
+
+  .sidebar-group {
+    @apply space-y-3;
+  }
+
+  .sidebar-group-label {
+    @apply px-2 text-xs font-medium uppercase text-sidebar-foreground/60;
+  }
+
+  .sidebar-menu {
+    @apply space-y-1;
+  }
+
+  .sidebar-menu-item {
+    @apply flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground;
+  }
+
+  .sidebar-menu-item[data-active="true"] {
+    @apply bg-sidebar-primary text-sidebar-primary-foreground;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   滚动条样式统一由上方 @layer base 块负责（默认隐藏 / 滚动时显示）。
+
+   这里曾经还有一套非 layer 的 ::-webkit-scrollbar 规则，重复定义了 8px 宽 +
+   常驻可见的 thumb。CSS cascade 中非 layer 样式优先级高于 @layer，
+   那套规则会把 base 层的"滚动时才显示"彻底盖掉，导致滚动条永远常驻且偏粗。
+   现已移除，滚动条宽度与显隐统一在 @layer base 内调整。
+   --------------------------------------------------------------------------- */
+
+/* 动画效果 */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 卡片悬停效果 */
+.hover-card {
+  transition: all 0.2s ease-in-out;
+}
+
+.hover-card:hover {
+  transform: translateY(-2px);
+}
+
+/* 剪贴板卡片操作按钮 — 始终可见，hover 时增强边框与背景 */
+/* 剪贴板卡片左侧强调边框 — hover 时滑入，增加内容与卡片的视觉连接 */
+.card-accent-border {
+  position: relative;
+}
+
+.card-accent-border::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.6rem;
+  bottom: 0.6rem;
+  width: 2px;
+  border-radius: 0 2px 2px 0;
+  background: hsl(var(--primary));
+  opacity: 0;
+  transform: scaleY(0.4);
+  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: center;
+}
+
+.group:hover .card-accent-border::before,
+.group:focus-within .card-accent-border::before {
+  opacity: 1;
+  transform: scaleY(1);
+}
+
+/* 阴影过渡 */
+.shadow-transition {
+  transition: box-shadow 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* AI发送按钮 — send-btn-active / send-btn-idle / send-btn-ready / send-btn-disabled
+   已全部移除 2026-10-13。它们是一套彩色 glow（box-shadow 用 brand 色）+ 虚线禁用边框
+   + hover 上浮 + 触发时的过冲弹跳，而发送按钮是本应用最高频点击的元素。
+   现在改用 Button 默认实心样式 + 变暗的禁用态，见 AiChatPanel.tsx / AiChatSessionsPanel.tsx。
+   依据 DESIGN.md 的 Zero-Glow Rule：阴影是结构性的，不是装饰。 */
+
+/* AI 思考气泡 — 边框呼吸 + 背景脉冲，双重动画让"正在思考"状态更直观 */
+/* 边框在 primary 色与浅色间柔和切换，背景同步微微闪烁 */
+@keyframes thinkingShimmer {
+  0%, 100% { border-color: hsl(var(--primary) / 0.25); background-color: hsl(var(--background) / 0.88); }
+  50%       { border-color: hsl(var(--primary) / 0.5);  background-color: hsl(var(--primary) / 0.04); }
+}
+
+.ai-thinking-bubble {
+  animation: thinkingShimmer 1.8s ease-in-out infinite;
+}
+
+
+/* AI思考气泡 — 外层脉冲光晕，明确传达"正在思考"状态 */
+.thinking-glow {
+  position: relative;
+}
+
+.thinking-glow::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 1.2rem;
+  background: radial-gradient(ellipse at center, hsl(var(--primary) / 0.18) 0%, transparent 70%);
+  animation: thinkingGlowPulse 1.4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+@keyframes thinkingGlowPulse {
+  0%, 100% { opacity: 0.5; transform: scale(0.95); }
+  50% { opacity: 1; transform: scale(1.08); }
+}
+
+/* 像素宠物 —— 精灵图渲染
+ *
+ * image-rendering: pixelated 是硬性要求，不可省略。
+ * 浏览器默认用双线性插值缩放图片，像素块之间会被混出半透明灰边，
+ * 整张图看起来像"糊了的像素画"，而不是像素画本身。
+ * pixelated 让缩放走最近邻，每个像素块保持纯色边界。
+ *
+ * 尺寸约定：单元格 32px，渲染 64px（2 倍整数倍）。
+ * 非整数倍缩放会产生半像素边界，同样导致边缘发虚。
+ */
+.pixel-pet {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges; /* 老内核回退 */
+  vertical-align: middle;
+}
+
+/* 交互反馈：悬停时轻轻上浮
+ *
+ * 只用整数像素位移（translateY），不用 scale()。
+ * 原因：精灵图靠 image-rendering: pixelated 保持锐利，
+ * 但任何非整数倍缩放（哪怕 1.04 倍）都会让浏览器对位图重采样，
+ * 像素块宽度变成 2px/3px 混杂，锐利边缘立刻糊掉。
+ * 位移是合成层操作，不触碰像素本身，因此完全安全。
+ */
+.pixel-pet-action {
+  transition: transform 200ms ease-out;
+  cursor: grab;
+}
+.pixel-pet-action:hover {
+  transform: translateY(-2px);
+}
+.pixel-pet-action:active {
+  transform: translateY(0);
+  cursor: grabbing;
+}
+
+/* 拖动中：只留投影，不再 translateY。
+ *
+ * 抬起感现在由精灵图的 drag 姿态本身表达（垂耳 + 垂腿 + 睁圆眼），
+ * 再叠一个 -3px 位移会变成"抬了两次"，而且它会让整个精灵脱离
+ * 拖动计算用的 64px 命中框，手指与狗之间出现明显错位。
+ * drop-shadow 不触碰源像素栅格，因此不会破坏 image-rendering: pixelated。
+ */
+.pixel-pet-dragging {
+  filter: drop-shadow(0 6px 8px hsl(var(--primary) / 0.35));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pixel-pet-action,
+  .pixel-pet-action:hover,
+  .pixel-pet-action:active,
+  .pixel-pet-dragging {
+    transition: none;
+    transform: none;
+  }
+}
+
+/* AI聊天动画 */
+.animate-slide-in-up {
+  animation: slideInUp 0.4s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-pop-in {
+  animation: popIn 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes popIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 空状态图标 — 轻柔上下浮动 */
+.animate-float {
+  animation: floatUpDown 3s ease-in-out infinite;
+}
+
+/* 空状态文字 — 依次淡入（stagger） */
+.animate-fade-in-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.animate-fade-in-stagger > *:nth-child(2) { animation-delay: 120ms; }
+.animate-fade-in-stagger > *:nth-child(3) { animation-delay: 240ms; }
+
+.animate-fade-in-stagger > * {
+  animation: emptyFadeInUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  opacity: 0;
+}
+
+@keyframes emptyFadeInUp {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes floatUpDown {
+  0%, 100% {
+    opacity: 1;
+    transform: translateY(0px);
+  }
+  50% {
+    opacity: 0.85;
+    transform: translateY(-6px);
+  }
+}
+
+/* 空状态图标背景 — 柔和光晕脉冲 */
+.icon-glow-ring {
+  position: relative;
+}
+
+.icon-glow-ring::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 1.5rem;
+  background: radial-gradient(circle, hsl(var(--primary) / 0.12) 0%, transparent 70%);
+  animation: gentlePulse 2.5s ease-in-out infinite;
+}
+
+.icon-glow-ring::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 1.5rem;
+  background: transparent;
+  border: 1.5px solid hsl(var(--primary) / 0.15);
+}
+
+@keyframes gentlePulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+/* 类型徽章 hover 微交互 */
+.badge-hover {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.badge-hover:hover {
+  transform: scale(1.08);
+  box-shadow: 0 2px 8px hsl(var(--primary) / 0.15);
+}
+
+/* 空状态等待动画环 */
+.animate-pulse-ring {
+  animation: pulseRing 2s ease-in-out infinite;
+}
+
+@keyframes pulseRing {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+/* 消息气泡动画 */
+.message-bubble {
+  animation: messageSlideIn 0.3s ease-out;
+}
+
+@keyframes messageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* AI助手消息气泡 — 柔和阴影+浅背景，突出与用户消息的层级差异 */
+.ai-message-bubble {
+  background: hsl(var(--background) / 0.8);
+  border: 1px solid hsl(var(--border) / 0.8);
+  box-shadow: 0 1px 4px hsl(var(--foreground) / 0.04), 0 2px 12px hsl(var(--primary) / 0.06);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.ai-message-bubble:hover {
+  box-shadow: 0 2px 8px hsl(var(--foreground) / 0.06), 0 4px 16px hsl(var(--primary) / 0.08);
+  border-color: hsl(var(--primary) / 0.2);
+}
+
+/* 用户消息气泡 — 品牌色填充，hover 时轻微提亮，增强层次感 */
+.user-message-bubble {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border: 1px solid hsl(var(--primary) / 0.8);
+  box-shadow: 0 2px 8px hsl(var(--primary) / 0.25);
+  transition: box-shadow 0.2s ease, filter 0.2s ease, transform 0.15s ease;
+  cursor: default;
+}
+
+.user-message-bubble:hover {
+  filter: brightness(1.06);
+  box-shadow: 0 4px 14px hsl(var(--primary) / 0.35);
+  transform: translateY(-1px);
+}
+
+/* 输入框聚焦动画 */
+.input-focus {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.input-focus:hover {
+  border-color: hsl(var(--muted-foreground) / 0.35);
+}
+
+.input-focus:focus {
+  border-color: hsl(var(--primary) / 0.5);
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.12), 0 2px 8px hsl(var(--primary) / 0.08);
+  outline: none;
+  transform: scale(1.02);
+}
+
+/* .ai-input-focus 及其 :hover / :focus / ::placeholder 变体已移除 2026-10-13 ——
+   输入框改成"容器带边框、textarea 无边框"的写法后，这个类不再挂载。
+   placeholder 的渐隐效果由 ui/textarea 的 placeholder:text-muted-foreground 承担。 */
+
+/* .ai-input-icon / @keyframes iconReady 已移除 2026-10-13 ——
+   输入框左侧的 Bot 图标连同它的聚焦放大动画一起去掉了：它占掉 36px 宽度和
+   pl-9 的固定内边距，而"这里可以提问"这件事由 placeholder 和发送按钮已经说清了。
+   对齐主流 AI 对话输入框的做法。 */
+
+/* 语言选择下拉菜单 — 弹入动画，增加交互质感 */
+.language-select-dropdown {
+  animation: dropdownSlideIn 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: top left;
+}
+
+@keyframes dropdownSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.88) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* 按钮悬停动画 */
+.btn-hover {
+  transition: all 0.2s ease-in-out;
+}
+
+.btn-hover:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* 删除按钮悬停 — 红色加深+白字，强化危险操作意图 */
+/* Wobble replaced (2026-04-05): rotation wobble felt disorienting on repeated use.
+   Replaced with a gentle scale pulse (1.04 → 1.07 → 1.04) — conveys destructive intent
+   without rotational distraction. The scale pulse uses the spring cubic-bezier for
+   a satisfying tactile feel. */
+.btn-delete-hover {
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.btn-delete-hover:hover {
+  background-color: hsl(var(--destructive) / 0.18);
+  color: white;
+  border-color: hsl(var(--destructive) / 0.5);
+  box-shadow: 0 2px 10px hsl(var(--destructive) / 0.22);
+  animation: deleteBtnPulse 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes deleteBtnPulse {
+  0%   { transform: scale(1.0); }
+  40%  { transform: scale(1.07); }
+  70%  { transform: scale(1.02); }
+  100% { transform: scale(1.04); }
+}
+
+/* 复制成功状态 — 按钮轻微放大 + 绿色光晕，明确传达"已复制"成功感 */
+.copy-success-btn {
+  background-color: hsl(var(--success) / 0.12) !important;
+  border-color: hsl(var(--success) / 0.4) !important;
+  color: hsl(var(--success) / 0.9) !important;
+  box-shadow: 0 0 12px hsl(var(--success) / 0.2), 0 2px 8px hsl(var(--success) / 0.15) !important;
+  transform: scale(1.03);
+  transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* 复制成功 Check 图标 — 弹入 + 脉冲光晕 */
+.copy-success-check {
+  animation: copySuccessPop 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  filter: drop-shadow(0 0 4px hsl(var(--success) / 0.6));
+}
+
+@keyframes copySuccessPop {
+  0%   { transform: scale(0.5); opacity: 0; }
+  60%  { transform: scale(1.2); opacity: 1; }
+  80%  { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+
+/* 骨架屏加载卡片 — nth-child stagger 生效（覆盖 inline animationDelay）：
+   1. 用 animation-name/duration/timing/fill-mode 分开设置，不用 shorthand
+   2. nth-child 接管 animation-delay，确保 stagger 正确生效 */
+.clipboard-code > [data-skeleton-card] {
+  animation-name: fadeIn;
+  animation-duration: 0.3s;
+  animation-timing-function: ease-in-out;
+  animation-fill-mode: both;
+}
+.clipboard-code > [data-skeleton-card]:nth-child(1) { animation-delay: 0ms; }
+.clipboard-code > [data-skeleton-card]:nth-child(2) { animation-delay: 80ms; }
+.clipboard-code > [data-skeleton-card]:nth-child(3) { animation-delay: 160ms; }
+
+
+/* AI空状态示例按钮 — 弹性入场动画（stagger通过inline style） */
+.prompt-btn-enter {
+  animation: promptPopIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  opacity: 0;
+}
+
+@keyframes promptPopIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* 搜索框清除按钮 hover — 更明显的颜色反馈 */
+/* 默认隐藏(scale 缩小)，.visible/.focus-visible 时通过 transition 滑入 */
+.search-clear-btn {
+  box-shadow: none;
+  transition: color 0.2s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.2s ease, transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s cubic-bezier(0.22, 1, 0.36, 1), scale 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  opacity: 0;
+  scale: 0.5;
+}
+.search-clear-btn.visible,
+.search-clear-btn:focus-visible {
+  opacity: 1;
+  scale: 1;
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.4), 0 0 0 3px hsl(var(--primary) / 0.15);
+  outline: none;
+}
+
+/* When button is visible AND focused, prevent Tailwind focus-visible:scale-110 from
+   overriding the explicit scale:1 — .visible:focus-visible has higher specificity than
+   the Tailwind-compiled .search-clear-btn:focus-visible (same class count + pseudo). */
+.search-clear-btn.visible:focus-visible {
+  scale: 1 !important;
+  transform: scale(1) !important;
+}
+.search-clear-btn:hover {
+  color: hsl(var(--foreground));
+  background-color: hsl(var(--muted));
+}
+.search-clear-btn:active {
+  transform: scale(0.9);
+}
+
+/* 搜索框 — hover 边框过渡（鼠标悬停即反馈，无需聚焦） */
+/* 搜索框 placeholder — hover 时渐隐，提升输入引导感 */
+.search-input-hover {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease;
+}
+.search-input-hover::placeholder {
+  opacity: 0.55;
+  transition: opacity 0.2s ease;
+}
+.search-input-hover:hover {
+  border-color: hsl(var(--muted-foreground) / 0.35);
+  box-shadow: 0 0 0 1px hsl(var(--muted-foreground) / 0.1);
+}
+.search-input-hover:hover::placeholder {
+  opacity: 0.3;
+}
+
+/* 搜索框聚焦 — 柔和光晕，暗示输入就绪（去除 scale 避免 toolbar 内布局跳动） */
+.search-input-focus:focus {
+  border-color: hsl(var(--primary) / 0.5);
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.12), 0 2px 8px hsl(var(--primary) / 0.08);
+  outline: none;
+}
+
+/* AI思考中打字指示器 — 三点依次出现 */
+.typing-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+}
+
+.typing-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: hsl(var(--primary) / 0.75);
+  animation: typingDotAppear 0.9s ease-in-out infinite;
+  opacity: 0; /* base — keyframe immediately takes over, ensures dots start invisible */
+}
+
+.typing-dot-delay-0 { animation-delay: 0ms; }
+.typing-dot-delay-1 { animation-delay: 180ms; }
+.typing-dot-delay-2 { animation-delay: 360ms; }
+
+@keyframes typingDotAppear {
+  0% {
+    opacity: 0;
+    transform: scale(0.5) translateY(1px);
+  }
+  15% {
+    opacity: 1;
+    transform: scale(1) translateY(-1px);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1) translateY(0px);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.5) translateY(1px);
+  }
+}
+
+/* AI输入区顶部分隔线 — 柔和内阴影，明确划分消息区和输入区边界 */
+.ai-input-separator {
+  box-shadow: inset 0 1px 0 hsl(var(--border) / 0.5), 0 1px 4px hsl(var(--foreground) / 0.04);
+}
+
+/* AI消息区域顶部内阴影 — 消息从阴影下方浮出的感觉，增加层次感 */
+.ai-message-scroll {
+  box-shadow: inset 0 2px 10px hsl(var(--foreground) / 0.035);
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.ai-message-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* 加载动画 */
+.loading-dots {
+  display: inline-block;
+}
+
+.loading-dots::after {
+  content: "";
+  animation: loadingDots 1.5s infinite;
+}
+
+@keyframes loadingDots {
+  0%,
+  20% {
+    content: "";
+  }
+  40% {
+    content: ".";
+  }
+  60% {
+    content: "..";
+  }
+  80%,
+  100% {
+    content: "...";
+  }
+}
+
+/* 页面切换动画 */
+.page-transition {
+  animation: pageFadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes pageFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* AI消息时间戳 — 默认低透明度可见，hover 时提亮，增强交互反馈感 */
+.ai-timestamp {
+  opacity: 0.7;
+  transform: translateY(2px);
+  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.group:hover .ai-timestamp {
+  opacity: 0.92;
+  transform: translateY(0);
+}
+
+/* .visible wins over group:hover via !important — programmatic control always works */
+.ai-timestamp.visible {
+  opacity: 0.92 !important;
+  transform: translateY(0) !important;
+}
+
+/* ============================================================
+   AI Char Counter — consolidated pill badge (2026-04-03)
+   Progression: neutral pill → amber warning → red danger (pulsing)
+   Fixed: removed conflicting opacity duplicates across multiple session blocks
+   ============================================================ */
+
+/* Base pill: always visible, low-key when idle */
+.ai-char-counter {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background-color: hsl(var(--muted) / 0.6);
+  border: 1px solid hsl(var(--border) / 0.5);
+  color: hsl(var(--muted-foreground) / 0.75);
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    opacity 0.2s ease;
+}
+
+/* near-limit: amber pill — clear but not alarming, gentle pulse */
+.ai-char-counter.near-limit {
+  background-color: hsl(48 92% 95%);
+  border-color: hsl(38 90% 55% / 0.45);
+  color: hsl(38 75% 40%);
+  box-shadow: 0 0 0 1px hsl(38 90% 55% / 0.2);
+  animation: counterPulse 1.2s ease-in-out infinite;
+}
+
+.dark .ai-char-counter.near-limit {
+  background-color: hsl(38 60% 18% / 0.7);
+  border-color: hsl(38 60% 45% / 0.4);
+  color: hsl(48 90% 70%);
+  box-shadow: 0 0 0 1px hsl(38 60% 45% / 0.15);
+}
+
+/* at-limit: red pill — urgent, faster pulse to demand attention */
+.ai-char-counter.at-limit {
+  background-color: hsl(0 72% 95%);
+  border-color: hsl(0 72% 60% / 0.5);
+  color: hsl(0 70% 40%);
+  box-shadow: 0 0 0 1.5px hsl(0 72% 60% / 0.25);
+  font-weight: 700;
+  animation: counterPulse 0.8s ease-in-out infinite;
+}
+
+.dark .ai-char-counter.at-limit {
+  background-color: hsl(0 60% 20% / 0.7);
+  border-color: hsl(0 60% 50% / 0.5);
+  color: hsl(0 70% 65%);
+  box-shadow: 0 0 0 1.5px hsl(0 60% 50% / 0.2);
+}
+
+@keyframes counterPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.7; }
+}
+
+/* AI 流式输出光标闪烁（与打字机节奏一致） */
+@keyframes aiCaretBlink {
+  0%, 49%   { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+.animate-ai-caret {
+  animation: aiCaretBlink 1s steps(1, end) infinite;
+}
+
+/* ============================================================
+   UI Polishes — qnote-elec session 2026-04-01
+   ============================================================ */
+
+/* ============================================================ */
+
+/* ============================================================
+   UI Polishes — qnote-elec session 2026-04-02
+   ============================================================ */
+
+/* AI char counter — WCAG AA compliant warning/danger colors
+   near-limit amber: 5.2:1+ on both light and dark backgrounds (≥4.5:1 ✓)
+   at-limit red: uses destructive CSS var for consistent danger semantics */
+
+
+/* ============================================================
+   UI Polishes — qnote-elec session 2026-04-02 (morning)
+   ============================================================ */
+
+/* kbd 按键样式 — 增强"物理按键"感：内凹阴影 + 深色背景 + 立体边框
+   相比基础 bg-muted + border，视觉层级更清晰，用户一眼认出"键盘按键" */
+kbd.kbd-key {
+  background: linear-gradient(to bottom, hsl(var(--muted) / 0.9) 0%, hsl(var(--muted) / 0.7) 100%);
+  border: 1px solid hsl(var(--border) / 0.7);
+  border-bottom-width: 2px;
+  border-radius: 0.35rem;
+  box-shadow:
+    inset 0 1px 0 hsl(var(--foreground) / 0.06),
+    0 2px 4px hsl(var(--foreground) / 0.08);
+  color: hsl(var(--foreground) / 0.75);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0.1rem 0.4rem;
+  text-shadow: 0 1px 0 hsl(var(--foreground) / 0.05);
+  transition: box-shadow 0.15s ease, transform 0.1s ease, background 0.15s ease;
+  cursor: default;
+  user-select: none;
+}
+
+/* kbd 按键 hover — 轻微下沉 + 阴影收缩，模拟"按下"预备动作 */
+kbd.kbd-key:hover {
+  background: linear-gradient(to bottom, hsl(var(--muted) / 1) 0%, hsl(var(--muted) / 0.85) 100%);
+  box-shadow:
+    inset 0 1px 0 hsl(var(--foreground) / 0.08),
+    0 1px 2px hsl(var(--foreground) / 0.06);
+  transform: translateY(0.5px);
+}
+/* kbd 按键 active/pressed — 完全按下状态：下沉更深 + 阴影收缩，模拟物理按键扣下
+   与 hover 的"预备按下"形成渐进层次：hover 轻微下沉 → active 完全按下 */
+kbd.kbd-key:active {
+  transform: translateY(2px);
+  box-shadow:
+    inset 0 1px 3px hsl(var(--foreground) / 0.12),
+    0 0px 0px hsl(var(--foreground) / 0.04);
+  background: linear-gradient(to bottom, hsl(var(--muted) / 0.65) 0%, hsl(var(--muted) / 0.5) 100%);
+  transition-duration: 0.05s;
+}
+
+.dark kbd.kbd-key:active {
+  background: linear-gradient(to bottom, hsl(var(--muted) / 0.5) 0%, hsl(var(--muted) / 0.3) 100%);
+  box-shadow:
+    inset 0 1px 4px hsl(var(--foreground) / 0.18),
+    0 0px 0px hsl(var(--foreground) / 0.04);
+  transform: translateY(1.5px);
+}
+
+
+/* kbd 按键暗色模式适配 — 暗色背景下内凹感更明显 */
+.dark kbd.kbd-key {
+  background: linear-gradient(to bottom, hsl(var(--muted) / 0.8) 0%, hsl(var(--muted) / 0.55) 100%);
+  border-bottom-width: 1.5px;
+  box-shadow:
+    inset 0 1px 0 hsl(var(--foreground) / 0.12),
+    0 2px 4px hsl(var(--foreground) / 0.15);
+}
+
+/* 搜索清除按钮可见态 — 已有 ring 效果，增加浅色填充背景进一步提升可见性，
+   避免只有 ring 时在小屏幕上对比不足的问题 */
+.search-clear-btn.visible,
+.search-clear-btn:focus-visible {
+  background-color: hsl(var(--muted) / 0.65);
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.5), 0 0 0 3.5px hsl(var(--primary) / 0.18), 0 2px 8px hsl(var(--primary) / 0.12);
+}
+
+/* ============================================================
+   UI Polishes — qnote-elec session 2026-04-02 (afternoon)
+   ============================================================ */
+
+/* --------------------------------------------------------------------------
+   1. AI char counter — make it a visible pill badge, not low-opacity text
+   Progression: neutral pill → amber warning pill → red danger pill (pulsing)
+   ---------------------------------------------------------------------------- */
+
+/* Base pill: subtle, low-key when no content */
+
+
+/* --------------------------------------------------------------------------
+   2. Search toolbar — active/filtered state
+   When a keyword is entered, subtly shift the search bar toward primary
+   ---------------------------------------------------------------------------- */
+.search-input-active {
+  border-color: hsl(var(--primary) / 0.45) !important;
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.12), 0 2px 6px hsl(var(--primary) / 0.08) !important;
+  background-color: hsl(var(--primary) / 0.04);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, opacity 0.2s ease;
+}
+/* Active search: placeholder fades further to reduce visual noise while typing */
+.search-input-active::placeholder {
+  opacity: 0.38;
+  transition: opacity 0.2s ease;
+}
+.search-input-active:focus::placeholder {
+  opacity: 0.2;
+}
+
+
+/* ============================================================
+   UI Polishes — qnote-elec session 2026-04-02 (late)
+   ============================================================ */
+
+/* AI 消息复制按钮 — 改善 hover 透明度过渡，从 0.25 缓入到 1.0
+   替代直接使用 opacity-25 + group-hover:opacity-100（无过渡效果）
+   通过 CSS transition 实现丝滑的 opacity 渐变，配合父级 group_msg hover 触发 */
+.ai-msg-copy-btn {
+  transition: opacity 0.2s ease, background-color 0.18s ease, border-color 0.18s ease,
+    box-shadow 0.18s ease, transform 0.15s ease;
+  /* 默认低透明度 — 明确表示"有操作可用但默认隐藏" */
+  opacity: 0.3;
+}
+
+.ai-msg-copy-btn:hover {
+  opacity: 1;
+  background-color: hsl(var(--muted) / 0.75);
+  border-color: hsl(var(--muted-foreground) / 0.4);
+  box-shadow: 0 2px 8px hsl(var(--foreground) / 0.1);
+  transform: scale(1.08);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.ai-msg-copy-btn:active {
+  transform: scale(0.92);
+}
+
+/* 已复制成功状态 — 保持高亮，过渡更柔和 */
+.ai-msg-copy-btn.copied {
+  opacity: 1;
+  background-color: hsl(var(--success) / 0.12);
+  border-color: hsl(var(--success) / 0.4);
+  color: hsl(var(--success) / 0.9);
+  box-shadow: 0 0 10px hsl(var(--success) / 0.18);
+  transition: opacity 0.2s ease, background-color 0.2s ease, border-color 0.2s ease,
+    box-shadow 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+
+/* ---------------------------------------------------------------------------
+   AI message bubble — copy button inside bubble
+   Copy button moved from outside bubble (absolute, caused overflow clipping)
+   to inside bubble at bottom-right. Starts fully invisible, reveals on hover.
+   ---------------------------------------------------------------------------- */
+/* Inside-bubble copy button: start fully transparent, show on hover */
+.ai-message-bubble .ai-msg-copy-btn {
+  opacity: 0;
+  transition: opacity 0.2s ease, background-color 0.18s ease, border-color 0.18s ease,
+    box-shadow 0.18s ease, transform 0.15s ease;
+}
+.ai-message-bubble:hover .ai-msg-copy-btn {
+  opacity: 0.65;
+}
+/* Dark mode: slightly more visible at rest to contrast with dark bubble bg */
+.dark .ai-message-bubble .ai-msg-copy-btn {
+  opacity: 0;
+}
+.dark .ai-message-bubble:hover .ai-msg-copy-btn {
+  opacity: 0.75;
+}
+/* Hover: full opacity regardless of inside/outside placement */
+.ai-msg-copy-btn:hover {
+  opacity: 1;
+}
+
+/* ============================================================
+   UI Polishes — qnote-elec session 2026-04-02 (late-night)
+   ============================================================ */
+
+/* .ai-input-wrapper / .input-wrapper-focus-pop / @keyframes inputWrapperPop /
+   @keyframes inputWrapperGlowFlash 已移除 2026-10-13 ——
+   这套"聚焦时整框弹一下 + 打一道品牌色 glow"是 4 月为单行 input 写的。
+   输入框改成"容器 border + focus-within ring-2 ring-primary/20"之后，
+   focus 反馈由 Tailwind 直接表达，更准也更轻。Zero-Glow：阴影不该用品牌色。
+   剪贴板工具栏的 search-input-* 仍独立保留，未受影响。 */
+
+/* --------------------------------------------------------------------------
+   3. Clipboard card — language badge (active state indicator)
+   When a language is applied (highlightLanguage is set), show a small pill
+   badge next to the "格式化" button indicating which language is active.
+   This gives immediate feedback: "syntax highlighting is on for this card."
+   Design: muted pill, primary text, left accent bar matching the dropdown.
+   ---------------------------------------------------------------------------- */
+
+/* Language badge spring pop — fires once on first render
+   When a user applies a language format, the active badge springs into view
+   (scale 0.5 → 1.08 → 0.96 → 1.0) with a satisfying overshoot instead of
+   instantly appearing. Duration: 380ms. Uses the badge's existing
+   translateY(-0.5px) inline style as the initial vertical offset. */
+@keyframes langBadgePop {
+  0%   { opacity: 0; transform: translateY(-0.5px) scale(0.9); }
+  100% { opacity: 1; transform: translateY(-0.5px) scale(1); }
+}
+
+.lang-active-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 7px 1px 5px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  background-color: hsl(var(--primary) / 0.08);
+  border: 1px solid hsl(var(--primary) / 0.25);
+  color: hsl(var(--primary) / 0.85);
+  box-shadow: 0 0 0 1px hsl(var(--primary) / 0.06);
+  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease,
+    box-shadow 0.18s ease, transform 0.15s ease;
+  cursor: default;
+  white-space: nowrap;
+  /* Left accent bar */
+  border-left: 2px solid hsl(var(--primary) / 0.6);
+  border-left-radius: 2px 999px 999px 2px;
+  /* Lift badge slightly above baseline to visually align with the button text */
+  transform: translateY(-0.5px);
+}
+
+.lang-active-badge:hover {
+  background-color: hsl(var(--primary) / 0.14);
+  border-color: hsl(var(--primary) / 0.35);
+  box-shadow: 0 0 0 1px hsl(var(--primary) / 0.1), 0 2px 6px hsl(var(--primary) / 0.1);
+  transform: translateY(-0.5px) scale(1.03);
+}
+
+.dark .lang-active-badge {
+  background-color: hsl(var(--primary) / 0.15);
+  border-color: hsl(var(--primary) / 0.3);
+  color: hsl(var(--primary) / 0.9);
+}
+
+
+/* Spring pop animation class — applied to lang-active-badge on first render */
+.lang-badge-spring {
+  animation: langBadgePop 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+/* Hide the badge by default (JS will add it conditionally) */
+.lang-active-badge[hidden] {
+  display: none;
+}
+
+/* ============================================================
+   UI Polishes — qnote-elec session 2026-04-02 (night)
+   ============================================================ */
+
+/* --------------------------------------------------------------------------
+   1. Plain code block — max-height fade gradient (content overflow hint)
+   When plain code content exceeds ~5 lines (~120px), a soft gradient fade
+   appears at the bottom, hinting that there is scrollable content below.
+   Design: fade from transparent → muted background, sitting above content
+   but below the scrollbar (z-index layering). pointer-events:none ensures
+   scrolling is not blocked.
+   ---------------------------------------------------------------------------- */
+.code-block--plain {
+  position: relative;
+}
+
+/* Fade gradient: sits at bottom 30% of the code block, hinting at overflow */
+.code-block--plain::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 36%;
+  min-height: 48px;
+  background: linear-gradient(to bottom, hsl(var(--muted) / 0) 0%, hsl(var(--muted) / 0.55) 100%);
+  pointer-events: none;
+  z-index: 1;
+  border-radius: 0 0 calc(var(--radius) - 1px) calc(var(--radius) - 1px);
+  transition: opacity 0.2s ease;
+}
+
+/* On hover: reduce fade to hint that content is scrollable */
+.code-block--plain:hover::after {
+  opacity: 0.7;
+}
+
+/* Dark mode: use a subtle dark gradient to maintain background blend */
+.dark .code-block--plain::after {
+  background: linear-gradient(to bottom, hsl(var(--muted) / 0) 0%, hsl(var(--muted) / 0.35) 100%);
+}
+
+.dark .code-block--plain:hover::after {
+  opacity: 0.6;
+}
+
+/* --------------------------------------------------------------------------
+   2. AI message group — consecutive same-role indicator dot
+   When multiple AI messages appear consecutively (same role, no user message
+   between), the "empty" avatar column shows a small primary-color dot
+   instead of being blank. This gives users a subtle cue that this message
+   belongs to the same AI "turn" as the previous one — a grouping signal.
+   Design: 6px dot, centered in the w-6 avatar column, primary color with
+   soft glow, scales in on hover.
+   ---------------------------------------------------------------------------- */
+.ai-message-group-dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 0.25rem;
+}
+
+/* The dot: small primary circle, subtle glow, hidden by default */
+.ai-message-group-dot::before {
+  content: "";
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: hsl(var(--primary) / 0.35);
+  box-shadow: 0 0 4px hsl(var(--primary) / 0.2);
+  opacity: 0;
+  transform: scale(0.5);
+  transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), background 0.2s ease;
+}
+
+/* Show dot when parent group_msg is hovered — user is reviewing the thread */
+.group_msg:hover .ai-message-group-dot::before {
+  opacity: 1;
+  transform: scale(1);
+  background: hsl(var(--primary) / 0.5);
+}
+
+.dark .ai-message-group-dot::before {
+  background: hsl(var(--primary) / 0.3);
+  box-shadow: 0 0 5px hsl(var(--primary) / 0.25);
+}
+
+/* ============================================================
+   UI Polishes — qnote-elec session 2026-04-03 (morning)
+   ============================================================ */
+
+/* --------------------------------------------------------------------------
+   1. AI thinking indicator — pop-in entrance + enhanced glow
+   When AI starts thinking, the whole thinking row (avatar + bubble) springs
+   in from scale(0.7) + opacity:0 with a cubic overshoot, making the "AI is
+   processing" state feel immediate and energetic rather than just fading in.
+   The outer glow ring also starts larger and settles, adding a brief "flash"
+   of activity that draws the eye.
+   ---------------------------------------------------------------------------- */
+@keyframes thinkingPopIn {
+  0%   { opacity: 0; transform: scale(0.7) translateY(6px); }
+  60%  { opacity: 1; transform: scale(1.06) translateY(-1px); }
+  80%  { transform: scale(0.97) translateY(0.5px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Apply pop-in to the thinking row wrapper (avatar + bubble as a unit) */
+.ai-thinking-row {
+  animation: thinkingPopIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Glow ring: starts larger (scale 1.15) and fades into normal pulse — brief "flash" */
+@keyframes thinkingGlowFlash {
+  0%   { opacity: 0.9; transform: scale(1.15); }
+  40%  { opacity: 1;   transform: scale(1.0); }
+  100% { opacity: 0.7; transform: scale(1.0); }
+}
+
+.thinking-glow::before {
+  animation:
+    thinkingGlowFlash 0.5s ease-out both,
+    thinkingGlowPulse 1.4s ease-in-out 0.5s infinite;
+}
+
+/* --------------------------------------------------------------------------
+   2. AI empty state feature buttons — satisfying active/pressed state
+   The feature highlight buttons (e.g. "分析文本内容", "解释代码逻辑") already
+   have spring-in entrance + hover lift. Now add an explicit active state that
+   feels like a physical press: scale down, shadow reduces, slight Y offset.
+   This makes the buttons feel tactile and responsive on both mouse click and
+   keyboard activation.
+   ---------------------------------------------------------------------------- */
+.feature-highlight-btn {
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.15s cubic-bezier(0.22, 1, 0.36, 1),
+    color 0.2s ease;
+}
+
+.feature-highlight-btn:hover {
+  box-shadow: 0 4px 12px hsl(var(--primary) / 0.12), 0 1px 3px hsl(var(--primary) / 0.08);
+  transform: translateY(-1px) scale(1.02);
+  border-color: hsl(var(--primary) / 0.4);
+}
+
+.feature-highlight-btn:active {
+  transform: translateY(0px) scale(0.96);
+  box-shadow: 0 1px 3px hsl(var(--primary) / 0.08), 0 0 0 1px hsl(var(--primary) / 0.2);
+  transition-duration: 0.08s;
+  animation: featureBtnFlash 0.25s ease both;
+  background-color: hsl(var(--primary) / 0.12);
+}
+
+/* 按钮点击时短暂闪光 — 视觉上确认"点击已收到" */
+@keyframes featureBtnFlash {
+  0%   { box-shadow: 0 1px 3px hsl(var(--primary) / 0.08), 0 0 0 1px hsl(var(--primary) / 0.2), 0 0 12px hsl(var(--primary) / 0.25); }
+  100% { box-shadow: 0 1px 3px hsl(var(--primary) / 0.08), 0 0 0 1px hsl(var(--primary) / 0.2); }
+}
+
+/* Dark mode: keep the active press feeling but adjust shadow for dark bg */
+.dark .feature-highlight-btn:active {
+  box-shadow: 0 1px 4px hsl(var(--foreground) / 0.2), 0 0 0 1px hsl(var(--primary) / 0.25);
+}
+
+/* ============================================================
+   UI Polishes — qnote-elec session 2026-04-03 (afternoon)
+   ============================================================ */
+
+/* --------------------------------------------------------------------------
+   1. AI thinking indicator — "AI 思考中..." text label
+   The thinking dots alone (3 small circles appearing sequentially) can be
+   ambiguous — users might mistake them for a decorative element or loading
+   animation from another component. Adding an explicit "AI 思考中..." label
+   makes the state unambiguous, especially for first-time users or non-technical
+   users unfamiliar with the "typing dots" convention.
+   Design: muted-foreground text, 11px, centered below the dots, separated by a
+   small vertical gap. Only visible when aiLoading=true.
+   ---------------------------------------------------------------------------- */
+.ai-thinking-label {
+  display: block;
+  text-align: center;
+  font-size: 11px;
+  color: hsl(var(--muted-foreground) / 0.7);
+  margin-top: 4px;
+  letter-spacing: 0.02em;
+  animation: fadeIn 0.3s ease both;
+}
+
+/* --------------------------------------------------------------------------
+   2. AI message scroll area — frosted glass backdrop
+   The AI panel has a bg-muted/30 background. When messages scroll behind the
+   scroll fade gradients, adding backdrop-blur to the scroll area creates a
+   subtle frosted glass effect — messages appear to float above the panel bg
+   as they approach the top/bottom edges, adding perceived depth and premium
+   feel. This is a common iOS/macOS pattern (blur regions signal "content
+   continues in that direction").
+   Design: backdrop-blur-sm on the scroll area, combined with the existing
+   inset shadow. The blur is subtle (4px) so it doesn't interfere with
+   readability but still creates the layered glass feel.
+   ---------------------------------------------------------------------------- */
+.ai-message-scroll {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* --------------------------------------------------------------------------
+   3. AI thinking row — improved outer glow ring for the avatar
+   The avatar column (w-6) in the thinking row now has a soft primary-color
+   glow ring behind it (like a notification indicator). This draws the eye
+   more strongly to the "AI is processing" state, especially when the chat
+   area is long and the thinking indicator might otherwise be missed.
+   Design: pseudo-element behind the avatar circle, primary color with
+   radial gradient, subtle pulse animation.
+   ---------------------------------------------------------------------------- */
+@keyframes thinkingAvatarGlow {
+  0%, 100% { opacity: 0.6; transform: translateY(0) scale(1); }
+  50%       { opacity: 1;   transform: translateY(0) scale(1.15); }
+}
+
+.ai-thinking-avatar {
+  position: relative;
+}
+
+/* Soft glow ring — pulses gently to hint "AI is actively processing" */
+.ai-thinking-avatar::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: radial-gradient(circle, hsl(var(--primary) / 0.35) 0%, transparent 70%);
+  animation: thinkingAvatarGlow 1.4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* --------------------------------------------------------------------------
+   4. AI message bubble — user bubble: improve dark-on-primary readability
+   The user message bubble uses --primary (blue) which works well on light bg
+   but can have insufficient contrast on dark bg when --primary is mid-blue.
+   Adding a subtle brightness filter in dark mode ensures the user message
+   text remains legible and the bubble feels consistently solid.
+   ---------------------------------------------------------------------------- */
+.dark .user-message-bubble {
+  filter: brightness(1.08);
+}
+
+/* AI message bubble in dark mode: slightly lift the background to increase
+   text contrast against the dark panel bg */
+.dark .ai-message-bubble {
+  background: hsl(var(--card) / 0.9);
+  border-color: hsl(var(--border) / 0.6);
+}
+
+/* AI 回复改为无框平铺（对齐主流 AI 客户端的形态）。
+   保留 ai-message-bubble 这个 class 不能删 —— index.css 里
+   `.ai-message-bubble .ai-msg-copy-btn` 靠它做 hover 显现，
+   删了复制按钮会永远隐身。这里只把外框视觉抹掉。 */
+.ai-reply-plain,
+.ai-reply-plain:hover {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.dark .ai-reply-plain,
+.dark .ai-reply-plain:hover {
+  background: transparent;
+  border-color: transparent;
+}
+
+/* ============================================================
+   UI Polishes — qnote-elec session 2026-04-03 (late)
+   ============================================================ */
+
+/* .sidebar-active-indicator（左侧 3px 强调条）已移除。
+   它从来没被看见过：条的填充是 hsl(var(--primary)) = 195 80% 38%，
+   而激活项自己的底色 bg-sidebar-primary 也是 195 80% 38% —— 同色叠同色。
+   等于在一个主张"安静工具"的应用里，为最常被注意的元素加了一条看不见的装饰，
+   深色下那条 glow 还违反了 Zero-Glow（禁止品牌色 box-shadow）。
+   激活态现在只由底色 + 前景色表达，见 AppSidebar.tsx 的导航项 className。 */
+
+/* --------------------------------------------------------------------------
+   笔记文件列表 — 选中态
+   只改底色，不加强调条 / 描边 / 外投影。
+
+   之前用过两种画法都不合适：ring-1 画在 border box 之外，而列表行紧贴
+   overflow-y-auto 容器边缘，四周会被裁掉；改成 inset 左侧强调条虽然裁不到了，
+   但一条 2.5px 的竖杠在小尺寸列表行里视觉权重过高。最终收敛为纯底色 ——
+   和项目里 hover 用 bg-accent 的处理方式一致，选中/悬停读起来是一套语言。
+   -------------------------------------------------------------------------- */
+.note-row-active {
+  background-color: hsl(var(--primary) / 0.1);
+}
+
+/* 键盘聚焦同样走 inset，避免默认 outline 被滚动容器裁掉 */
+.note-row:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: -2px;
+}
+
+/* --------------------------------------------------------------------------
+   2. LeetCode sidebar — empty state entrance animation
+   Replace plain gray text with a staggered fade-in that includes a subtle
+   icon glow. Uses the same animation primitives (emptyFadeInUp stagger)
+   as the AI chat empty state for consistency.
+   ---------------------------------------------------------------------------- */
+.leetcode-empty-state {
+  animation: emptyFadeInUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 200ms;
+}
+
+/* --------------------------------------------------------------------------
+   3. LeetCode sidebar collection card — smoother hover lift
+   The existing cards use shadow-md on hover but lack a translateY for the
+   "lift" feeling. Adding a subtle -1px translateY + shadow expansion makes
+   the hover feel more tactile and consistent with the clipboard card hover
+   pattern.
+   ---------------------------------------------------------------------------- */
+.leetcode-collection-card {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.leetcode-collection-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px hsl(var(--foreground) / 0.08), 0 2px 4px hsl(var(--foreground) / 0.04);
+}
+
+.leetcode-collection-card:active {
+  transform: translateY(0);
+  transition-duration: 0.1s;
+}
+
+
+/* ============================================================
+   UI Polishes — qnote-elec session 2026-04-03 (evening)
+   ============================================================ */
+
+/* --------------------------------------------------------------------------
+   1. Sidebar navigation items — hover lift + active press micro-interactions
+   Sidebar menu items currently only change background on hover. Adding a
+   subtle translateY(-1px) lift on hover gives a tactile "elevated" feeling
+   consistent with the card hover pattern. The active (pressed) state uses
+   scale(0.97) + translateY(0) to feel like a physical button press.
+   Design doc §6.2: translateY(-1px) hover, scale(0.95) active.
+   -------------------------------------------------------------------------- */
+.sidebar-menu-btn {
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.sidebar-menu-btn:not([data-active="true"]):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px hsl(var(--foreground) / 0.06);
+}
+
+.sidebar-menu-btn:not([data-active="true"]):active {
+  transform: translateY(0) scale(0.97);
+  transition-duration: 0.08s;
+}
+
+/* 激活态的 hover 辉光与按压缩放已移除 —— 辉光是品牌色 box-shadow（Zero-Glow），
+   激活项已经有实心底色，不需要再叠一层描边和光晕。激活态现在完全静止。 */
+
+/* --------------------------------------------------------------------------
+   2. Clipboard list empty state — float animation for the icon
+   Reuses the existing @keyframes floatUpDown from the AI chat empty state,
+   but scoped here for clarity. The icon gently oscillates vertically to
+   draw attention and add life to the empty state.
+   -------------------------------------------------------------------------- */
+
+/* ============================================================
+   UI Polishes — qnote-elec session 2026-04-03 (night)
+   ============================================================ */
+
+/* --------------------------------------------------------------------------
+   1. Settings page — staggered card entrance animation
+   Settings cards previously rendered statically with no entrance effect.
+   Adding a staggered fade-in-up animation makes the page feel alive on
+   load, especially after a cold start. Uses the same cubic-bezier as
+   pageFadeIn for consistency.
+   Design: each card gets nth-child stagger (80ms gap), translateY(16px)
+   → 0 with opacity 0 → 1. Duration 0.45s, ease-out for snappy feel.
+   -------------------------------------------------------------------------- */
+.settings-grid > * {
+  animation: settingsCardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  opacity: 0;
+}
+.settings-grid > *:nth-child(1) { animation-delay: 60ms; }
+.settings-grid > *:nth-child(2) { animation-delay: 120ms; }
+.settings-grid > *:nth-child(3) { animation-delay: 180ms; }
+.settings-grid > *:nth-child(4) { animation-delay: 240ms; }
+.settings-grid > *:nth-child(5) { animation-delay: 300ms; }
+.settings-grid > *:nth-child(6) { animation-delay: 360ms; }
+
+@keyframes settingsCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   2. Settings card — enhanced hover with primary-color shadow + border
+   The existing hover:shadow-md is generic. Adding a primary-color ring
+   and subtle border shift makes hover feel intentional and consistent
+   with the clipboard card hover pattern (primary tinted shadow).
+   Also adds a slight translateY(-2px) lift for tactile feedback.
+   -------------------------------------------------------------------------- */
+.settings-card-hover {
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.22s ease, border-color 0.2s ease;
+}
+
+.settings-card-hover:hover {
+  transform: translateY(-2px);
+  border-color: hsl(var(--primary) / 0.2);
+  box-shadow: 0 4px 16px hsl(var(--primary) / 0.08), 0 2px 6px hsl(var(--foreground) / 0.04);
+}
+
+.settings-card-hover:active {
+  transform: translateY(0) scale(0.99);
+  transition-duration: 0.1s;
+}
+
+/* Dark mode: stronger shadow for depth on dark backgrounds */
+.dark .settings-card-hover:hover {
+  box-shadow: 0 4px 20px hsl(var(--primary) / 0.12), 0 2px 8px hsl(var(--foreground) / 0.08);
+}
+
+/* ============================================================
+   UI Polishes — qnote-elec session 2026-04-03 (night-late)
+   ============================================================ */
+
+/* --------------------------------------------------------------------------
+   1. Settings save button — success flash animation
+   When a save operation succeeds, the button briefly flashes green with a
+   soft glow ring, giving immediate visual feedback that the action completed.
+   Duration ~900ms: quick bright flash → settles → reverts to normal.
+   This supplements the toast notification with a more visceral, button-level
+   confirmation that users can feel without reading a toast message.
+   Design: green-tinted background + border, success glow ring, slight
+   scale-up then settle. Uses --success CSS variable for consistency.
+   -------------------------------------------------------------------------- */
+@keyframes saveFlash {
+  0%   { background-color: hsl(var(--success) / 0.15); border-color: hsl(var(--success) / 0.5); box-shadow: 0 0 0 3px hsl(var(--success) / 0.15), 0 0 16px hsl(var(--success) / 0.2); transform: scale(1.03); }
+  30%  { background-color: hsl(var(--success) / 0.12); border-color: hsl(var(--success) / 0.4); box-shadow: 0 0 0 2px hsl(var(--success) / 0.1), 0 0 10px hsl(var(--success) / 0.15); }
+  100% { background-color: transparent; border-color: transparent; box-shadow: none; transform: scale(1); }
+}
+
+.save-flash {
+  animation: saveFlash 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+  color: hsl(var(--success) / 0.9) !important;
+}
+
+/* Dark mode: slightly brighter success flash for visibility */
+.dark .save-flash {
+  background-color: hsl(var(--success) / 0.2);
+  box-shadow: 0 0 0 3px hsl(var(--success) / 0.2), 0 0 18px hsl(var(--success) / 0.25);
+}
+
+/* --------------------------------------------------------------------------
+   2. Sidebar group label — subtle separator line below
+   The "Tools" group label currently floats above the nav items with only
+   spacing as visual separation. Adding a thin bottom border creates a clear
+   hierarchy: label → divider → menu items. Uses the existing --border color
+   at reduced opacity to stay subtle.
+   -------------------------------------------------------------------------- */
+.sidebar-group-label-separator {
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
+  border-bottom: 1px solid hsl(var(--sidebar-border) / 0.5);
+}
+
+/* Dark mode: slightly more visible separator */
+.dark .sidebar-group-label-separator {
+  border-bottom-color: hsl(var(--sidebar-border) / 0.4);
+}
+
+/* ============================================================
+   UI Polishes — qnote-elec session 2026-04-03 (final)
+   ============================================================ */
+
+/* --------------------------------------------------------------------------
+   1. Settings card header — subtle icon-matched accent underline
+   Each card header icon has a unique color (green, purple, orange, etc).
+   Adding a thin bottom border that matches the icon color under the card
+   header creates a cohesive visual language: "this section is about
+   [icon color]". The bar is 2px tall, short (24px), left-aligned under
+   the icon, with a spring animation on load.
+   -------------------------------------------------------------------------- */
+.settings-header-accent {
+  position: relative;
+}
+
+.settings-header-accent::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(to right, currentColor 0%, currentColor 20%, transparent 100%);
+  opacity: 0.18;
+  border-radius: 0 2px 2px 0;
+}
+
+/* --------------------------------------------------------------------------
+   2. Settings stat badge — animated number counter
+   The vector count (已索引记录数) currently displays as a plain number.
+   Wrapping it in a pill badge with subtle background + border gives it
+   visual weight appropriate for a KPI stat. The number gets a brief
+   scale-in animation when it changes, drawing attention to data updates.
+   Design: pill shape, muted bg, primary-colored border, 2xl bold text.
+   -------------------------------------------------------------------------- */
+.stat-number-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background-color: hsl(var(--primary) / 0.08);
+  border: 1px solid hsl(var(--primary) / 0.2);
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: hsl(var(--primary) / 0.9);
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.stat-number-badge:hover {
+  background-color: hsl(var(--primary) / 0.12);
+  border-color: hsl(var(--primary) / 0.35);
+  transform: scale(1.06);
+}
+
+.dark .stat-number-badge {
+  background-color: hsl(var(--primary) / 0.15);
+  border-color: hsl(var(--primary) / 0.25);
+  color: hsl(var(--primary));
+}
+
+
+/* ============================================================
+   UI Polishes — qnote-elec session 2026-04-04
+   ============================================================ */
+
+/* --------------------------------------------------------------------------
+   1. Settings card — focus-within primary ring
+   When a user clicks into an input/select inside a settings card, the card
+   gets a primary-colored border + soft glow. This provides clear visual
+   context about which settings section is actively being edited, especially
+   on the 3-column grid layout where multiple cards are visible at once.
+   Uses :focus-within pseudo-class so it auto-triggers on any child focus
+   and auto-reverts on blur — no JS needed.
+   Design: primary border at 35% opacity, subtle ring + glow, slightly
+   elevated shadow to lift the active card above siblings.
+   -------------------------------------------------------------------------- */
+.settings-card-hover:focus-within {
+  border-color: hsl(var(--primary) / 0.35);
+  box-shadow:
+    0 0 0 2px hsl(var(--primary) / 0.10),
+    0 4px 16px hsl(var(--primary) / 0.08),
+    0 2px 6px hsl(var(--foreground) / 0.03);
+  transform: translateY(-1px);
+}
+
+.dark .settings-card-hover:focus-within {
+  border-color: hsl(var(--primary) / 0.30);
+  box-shadow:
+    0 0 0 2px hsl(var(--primary) / 0.12),
+    0 4px 20px hsl(var(--primary) / 0.10),
+    0 2px 8px hsl(var(--foreground) / 0.06);
+}
+
+/* --------------------------------------------------------------------------
+   2. Copyable path text — hover feedback + active press
+   Monospace path displays in the App Info card. Clicking copies the path
+   to clipboard. Adds cursor-pointer, a subtle background brightening on
+   hover, and a brief scale-down on click for tactile feedback.
+   Design: inherits existing bg-muted + font-mono styling; adds
+   hover brightening (bg-muted intensity up) and active press.
+   -------------------------------------------------------------------------- */
+.path-copyable {
+  cursor: pointer;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+  position: relative;
+}
+
+.path-copyable:hover {
+  background-color: hsl(var(--muted) / 0.9);
+  box-shadow: 0 0 0 1px hsl(var(--primary) / 0.15);
+}
+
+.path-copyable:active {
+  transform: scale(0.98);
+  background-color: hsl(var(--primary) / 0.08);
+}
+
+/* Copy success flash — briefly green-tinted after click */
+.path-copyable.copied {
+  background-color: hsl(var(--success) / 0.12) !important;
+  box-shadow: 0 0 0 1px hsl(var(--success) / 0.35) !important;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* ============================================================
+   UI Polishes — qnote-elec session 2026-04-04 (cron)
+   ============================================================ */
+
+/* --------------------------------------------------------------------------
+   1. Settings card hover — primary-colored background overlay
+   The existing hover only changes shadow + translateY. Adding a radial
+   gradient pseudo-element that fades in on hover creates a soft "glow
+   from center" effect, making the card feel alive and interactive.
+   The overlay is extremely subtle (2-4% opacity) so it doesn't clash
+   with card content. Uses ::after to avoid conflict with the existing
+   settings-header-accent ::after.
+   -------------------------------------------------------------------------- */
+.settings-card-hover {
+  position: relative;
+  overflow: hidden;
+}
+
+.settings-card-hover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(ellipse at 50% 30%, hsl(var(--primary) / 0.04) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.settings-card-hover:hover::after {
+  opacity: 1;
+}
+
+.dark .settings-card-hover::after {
+  background: radial-gradient(ellipse at 50% 30%, hsl(var(--primary) / 0.07) 0%, transparent 70%);
+}
+
+/* @keyframes sidebarActiveIn（激活态 0.95→1.04→1.0 弹跳）已移除。
+   每次切页都会播一次，而导航是本应用最高频的动作 —— 等于把全应用最响的一下
+   放在了最常发生的地方。它还是一条过冲曲线，DESIGN.md 的
+   "Confirmed Visual Rejections" 明确禁掉了这一类动画。 */
+
+/* ============================================================
+   UI Polishes — qnote-elec session 2026-04-04 (modal)
+   ============================================================ */
+
+/* --------------------------------------------------------------------------
+   1. Modal/Dialog — smooth spring entrance + backdrop fade
+   Confirmation dialogs (import, delete, overwrite) previously rendered
+   instantly with no transition, creating a jarring pop-in effect. Adding
+   a spring scale animation on the dialog card + a backdrop fade-in makes
+   modals feel intentional and polished. Uses the same cubic-bezier
+   overshoot as other spring animations in the app for consistency.
+   Backdrop fades from 0 → bg-black/30 over 200ms. Card springs in from
+   scale(0.92) + opacity 0 with a slight translateY offset.
+   -------------------------------------------------------------------------- */
+@keyframes modalPopIn {
+  0%   { opacity: 0; transform: scale(0.96) translateY(8px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes modalBackdropIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Backdrop overlay — subtle fade-in */
+.modal-backdrop {
+  animation: modalBackdropIn 0.2s ease-out both;
+}
+
+/* Dialog card — spring scale-in with overshoot */
+.modal-card {
+  animation: modalPopIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* --------------------------------------------------------------------------
+   2. Whiteboard file list — staggered action button reveal
+   When a file card is selected, its action buttons (导入/重命名/删除)
+   slide in as a group. Adding staggered transition-delay (60ms gap) to
+   each button creates a cascading reveal effect — buttons appear
+   one-by-one from left to right, guiding the eye and making the
+   interaction feel more deliberate.
+   Design: nth-child stagger via inline style override. The delay only
+   applies during the expand transition (selected state); collapse
+   happens simultaneously (delay: 0ms) to avoid a reverse cascade
+   that would feel sluggish.
+   -------------------------------------------------------------------------- */
+.file-action-btn-0 { transition-delay: 0ms !important; }
+.file-action-btn-1 { transition-delay: 50ms !important; }
+.file-action-btn-2 { transition-delay: 100ms !important; }
+
+/* When collapsing (not selected), all buttons disappear together */
+.file-action-btn-collapse { transition-delay: 0ms !important; }
+
+/* ============================================================
+   UI Polishes — qnote-elec session 2026-04-04 (morning)
+   ============================================================ */
+
+/* --------------------------------------------------------------------------
+   1. Clipboard image preview — max-height + overflow fade
+   Tall screenshots can dominate the card layout, pushing other content down.
+   Capping at 160px with a fade-out gradient at the bottom provides clear
+   visual feedback that "there is more image content below" without dedicating
+   excessive vertical space. The fade uses background-color blend so it works
+   on any image bg. Image shrinks naturally via height:auto when under limit.
+   Design: fade sits above the img (z-1, pointer-events-none), transitions
+   from transparent → muted/50% over 40px at bottom edge.
+   -------------------------------------------------------------------------- */
+.clipboard-img-preview {
+  position: relative;
+  max-height: 160px;
+  overflow: hidden;
+  border-radius: calc(var(--radius) - 1px);
+}
+
+.clipboard-img-preview img {
+  max-height: 160px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  display: block;
+  border-radius: 0;
+}
+
+/* Fade-out gradient at bottom — signals scrollable overflow */
+.clipboard-img-preview::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 40px;
+  background: linear-gradient(to bottom, hsl(var(--background) / 0) 0%, hsl(var(--background) / 0.75) 100%);
+  pointer-events: none;
+  z-index: 1;
+  border-radius: 0 0 calc(var(--radius) - 1px) calc(var(--radius) - 1px);
+  transition: opacity 0.2s ease;
+}
+
+/* Reduce fade slightly on hover so user can glimpse more of the image */
+.clipboard-img-preview:hover::after {
+  opacity: 0.6;
+}
+
+/* Dark mode: darker gradient for better contrast against dark panel bg */
+.dark .clipboard-img-preview::after {
+  background: linear-gradient(to bottom, hsl(var(--background) / 0) 0%, hsl(var(--background) / 0.8) 100%);
+}
+
+/* Clickable hint: cursor + slight brightness lift on hover */
+.clipboard-img-preview:hover img {
+  cursor: pointer;
+}
+
+/* --------------------------------------------------------------------------
+   2. Plain code block — horizontal scroll with edge fade
+   Plain code (no syntax highlight) has text that wraps with whitespace-pre-wrap,
+   which works for short snippets but creates awkward multi-line breaks for
+   long single-line strings (e.g. minified JSON, long paths). Switching to
+   horizontal scroll + fade gradient gives a clear affordance that content
+   continues horizontally — a more appropriate pattern for code than text-wrap.
+   The fade sits at the right edge, fades from transparent to muted/50%,
+   signaling "scroll right for more". scrollbar is styled consistently.
+   -------------------------------------------------------------------------- */
+.code-block--plain {
+  position: relative;
+  overflow-x: auto;
+}
+
+/* Right-edge fade gradient — signals content continues horizontally */
+.code-block--plain::before {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 28px;
+  background: linear-gradient(to right, hsl(var(--muted) / 0) 0%, hsl(var(--muted) / 0.3) 100%);
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  border-radius: 0 calc(var(--radius) - 1px) calc(var(--radius) - 1px) 0;
+}
+
+/* Show right fade when content is actually scrolled (via JS: .scrolled class) */
+.code-block--plain.scrolled::before {
+  opacity: 1;
+}
+
+/* Hover: hint that there's more content even when not scrolled yet */
+.code-block--plain:hover::before {
+  opacity: 0.6;
+}
+
+/* Dark mode: subtle dark tint for the right fade */
+.dark .code-block--plain::before {
+  background: linear-gradient(to right, hsl(var(--muted) / 0) 0%, hsl(var(--muted) / 0.25) 100%);
+}
+
+/* Scrollbar for horizontal scroll code blocks — thin, matches theme */
+.code-block--plain::-webkit-scrollbar {
+  height: 4px;
+}
+.code-block--plain::-webkit-scrollbar-track {
+  background: transparent;
+}
+.code-block--plain::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.2);
+  border-radius: 4px;
+}
+.code-block--plain::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.4);
+}
+
+/* ============================================================
+   UI Polishes — qnote-elec session 2026-04-04 (ui focus)
+   ============================================================ */
+
+/* --------------------------------------------------------------------------
+   1. AI Input Wrapper — spring pop animation on each focus event
+   When the user clicks into the AI chat input, the entire wrapper briefly
+   "pops" with a spring scale overshoot (1.0 → 1.015 → 1.0) + a brief
+   primary glow flash. This gives a tactile "click confirmed" feeling that
+   confirms the input is active, without distracting from the typing flow.
+   Animation is brief (350ms) and only plays on focus-within (each time
+   the user clicks into the input), not on every keystroke.
+   Design: scale overshoot + box-shadow flash, spring cubic-bezier.
+   --------------------------------------------------------------------------
+   2. User message bubble — copy button (symmetry with AI bubbles)
+   AI message bubbles have a copy button inside the bubble (appears on hover).
+   User message bubbles previously had no copy button — an inconsistency.
+   Now user bubbles also have an in-bubble copy button, styled with a
+   semi-transparent light background to maintain contrast against the
+   primary-filled bubble. The button is subtle (opacity 0.3 at rest, 1.0 on
+   hover) — consistent with the AI bubble copy button behavior.
+   -------------------------------------------------------------------------- */
+
+/* inputWrapperPop / inputWrapperGlowFlash / .input-wrapper-focus-pop 已移除
+   2026-10-13 —— 随 AI 输入框改版一并删除，详见上方 .ai-input-wrapper 的说明。
+   聚焦反馈现在由输入框容器的 focus-within ring 表达，不再有品牌色 glow 和过冲缩放。 */
+
+/* ============================================================
+   UI Polishes — qnote-elec session 2026-04-04 (ui focus)
+   ============================================================ */
+
+/* --------------------------------------------------------------------------
+   1. AI thinking bubble — scale "breathing" pulse animation
+   The existing thinkingShimmer animates border color and background opacity,
+   creating a color-shift effect. Adding a subtle scale pulse (1.0 → 1.015 → 1.0)
+   makes the bubble feel more alive — it gently "breathes" as it waits, making
+   the processing state feel energetic rather than static. The scale is very
+   subtle (1.5%) so it doesn't distract from content.
+   Design: cubic-bezier ease-in-out for a natural breathing rhythm, 2s cycle
+   (slightly slower than the shimmer to create layered motion depth).
+   --------------------------------------------------------------------------
+   2. AI keyboard shortcut hint — muted pill for better discoverability
+   The "Enter 发送 · Shift+Enter 换行" hint is currently plain italic text
+   at 10px with muted-foreground/60. First-time users may miss it entirely.
+   Converting it to a subtle pill badge (matching the char counter style)
+   makes the shortcut hint visually scannable — users will recognize the
+   "kbd hint" pattern from the char counter directly above it.
+   Design: rounded-full pill, bg-muted/60, slightly bolder text (10px/medium),
+   no border — just a subtle background lift for the hint text.
+   -------------------------------------------------------------------------- */
+
+/* Scale breathing pulse on AI thinking bubble — subtle, layered on top of shimmer */
+@keyframes thinkingBubbleBreath {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.015); }
+}
+
+.ai-thinking-bubble {
+  animation:
+    thinkingShimmer 1.8s ease-in-out infinite,
+    thinkingBubbleBreath 2.2s ease-in-out infinite,
+    thinkingShadowBreath 2.2s ease-in-out infinite;
+}
+
+/* Shadow breathes in sync with scale for a cohesive "lifted then settled" feel */
+@keyframes thinkingShadowBreath {
+  0%, 100% { box-shadow: 0 1px 4px hsl(var(--foreground) / 0.04), 0 2px 12px hsl(var(--primary) / 0.06); }
+  50%       { box-shadow: 0 3px 10px hsl(var(--foreground) / 0.06), 0 4px 18px hsl(var(--primary) / 0.12); }
+}
+
+/* Dark mode: slightly stronger shadow for depth on dark backgrounds */
+.dark .ai-thinking-bubble {
+  animation:
+    thinkingShimmer 1.8s ease-in-out infinite,
+    thinkingBubbleBreath 2.2s ease-in-out infinite,
+    thinkingShadowBreath 2.2s ease-in-out infinite;
+}
+
+/* AI input keyboard shortcut hint — pill badge style for discoverability */
+.ai-shortcut-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background-color: hsl(var(--muted) / 0.55);
+  font-size: 10px;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground) / 0.7);
+  letter-spacing: 0.01em;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  /* Subtle top-inner-shadow for a slight "pressed in" feel */
+  box-shadow: inset 0 1px 2px hsl(var(--foreground) / 0.04);
+}
+
+.ai-shortcut-hint:hover {
+  background-color: hsl(var(--muted) / 0.75);
+  color: hsl(var(--muted-foreground) / 0.85);
+}
+
+/* Dark mode: slightly more opaque bg for contrast on dark panel */
+.dark .ai-shortcut-hint {
+  background-color: hsl(var(--muted) / 0.5);
+  color: hsl(var(--muted-foreground) / 0.65);
+}
+
+.dark .ai-shortcut-hint:hover {
+  background-color: hsl(var(--muted) / 0.65);
+  color: hsl(var(--muted-foreground) / 0.8);
+}
+
+/* "Enter" text inside hint — slightly bolder to anchor the key name */
+.ai-shortcut-hint .hint-key {
+  font-weight: 600;
+  color: hsl(var(--foreground) / 0.65);
+}
+
+/* Dark mode: 78% opacity gives 4.59:1 vs 3.47:1 at 65% — WCAG AA ✓ */
+.dark .ai-shortcut-hint .hint-key {
+  color: hsl(var(--foreground) / 0.78);
+}
+
+/* Separator dot between the two shortcuts */
+.ai-shortcut-hint .hint-sep {
+  color: hsl(var(--muted-foreground) / 0.45);
+  font-size: 9px;
+}
+
+/* ============================================================
+   UI Polishes — qnote-elec session 2026-04-04 (ui: 2 targeted polishes)
+   ============================================================ */
+
+/* --------------------------------------------------------------------------
+   1. WhiteboardFileList — staggered entrance animation for file items
+   When the file list loads, all items currently appear at once with no animation.
+   Adding a fade + translateY entrance stagger (each item 60ms apart) makes the
+   list feel alive and gives users a sense of content loading progressively.
+   Uses nth-child to stagger inline style animationDelay from the component.
+   Design: consistent with ClipboardList skeleton stagger (80ms/step) but
+   slightly faster (60ms) since the whiteboard file list is typically smaller.
+   ---------------------------------------------------------------------------- */
+.wb-file-item {
+  animation: wbFileItemIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* nth-child stagger — relies on the component passing animationDelay inline */
+.wb-file-item:nth-child(1) { animation-delay: 0ms; }
+.wb-file-item:nth-child(2) { animation-delay: 60ms; }
+.wb-file-item:nth-child(3) { animation-delay: 120ms; }
+.wb-file-item:nth-child(4) { animation-delay: 180ms; }
+.wb-file-item:nth-child(5) { animation-delay: 240ms; }
+.wb-file-item:nth-child(n+6) { animation-delay: 300ms; }
+
+@keyframes wbFileItemIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Active/selected file item — keep it stable, don't re-animate on re-select */
+.wb-file-item.selected {
+  animation: none;
+}
+
+/* --------------------------------------------------------------------------
+   2. AI chat — user message bubble hover shadow lift
+   AI assistant bubbles already have hover:-translate-y-px + hover:shadow-md, giving
+   a tactile "lifted" feel on hover. User message bubbles lacked this, making
+   the two roles feel inconsistent. Adding a matching subtle shadow lift on
+   hover makes the user bubble feel equally tactile and responsive.
+   Design: matches ai-message-bubble hover treatment (translateY + shadow).
+   ---------------------------------------------------------------------------- */
+.user-message-bubble:hover {
+  box-shadow: 0 4px 12px hsl(var(--primary) / 0.12), 0 2px 6px hsl(var(--primary) / 0.08);
+  transform: translateY(-1px);
+}
+
+/* ============================================================
+   UI Polishes — qnote-elec session 2026-04-04 (ui: targeted)
+   ============================================================ */
+
+/* --------------------------------------------------------------------------
+   1. ClipboardToolbar search — spring pop animation on focus-within
+   起初是为了对齐当时 AI 输入框的 `.input-wrapper-focus-pop:focus-within`
+   （整框弹一下 + 打一道品牌色 glow）。AI 输入框 2026-10-13 改版时把那套 glow
+   去掉了，这条为"对齐"而存在的动画现在只是剪贴板搜索框自己的装饰 —— 保留原样，
+   尚未单独评估，但不再声称它与 AI 输入框保持一致。
+   Design: scale 1 → 1.012 → 1.0 (brief overshoot), glow ring blooms then settles,
+   duration 350ms.
+   ---------------------------------------------------------------------------- */
+@keyframes searchWrapperPop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.012); }
+  70%  { transform: scale(0.997); }
+  100% { transform: scale(1); }
+}
+
+@keyframes searchWrapperGlowFlash {
+  0%   { box-shadow: 0 0 0 3px hsl(var(--primary) / 0.22), 0 0 14px hsl(var(--primary) / 0.14); }
+  35%  { box-shadow: 0 0 0 3px hsl(var(--primary) / 0.14), 0 0 8px hsl(var(--primary) / 0.09); }
+  100% { box-shadow: 0 0 0 3px hsl(var(--primary) / 0.14), 0 0 10px hsl(var(--primary) / 0.10); }
+}
+
+.search-wrapper-focus-pop {
+  transition: box-shadow 0.2s ease;
+  border-radius: calc(var(--radius) * 1.2);
+}
+
+.search-wrapper-focus-pop:focus-within {
+  animation:
+    searchWrapperPop 0.35s cubic-bezier(0.22, 1, 0.36, 1) both,
+    searchWrapperGlowFlash 0.4s ease-out both;
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.14), 0 0 10px hsl(var(--primary) / 0.10);
+}
+
+.dark .search-wrapper-focus-pop:focus-within {
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.18), 0 0 12px hsl(var(--primary) / 0.12);
+}
+
+/* --------------------------------------------------------------------------
+   2a. Search result badge — spring pop entrance animation
+   The result count badge currently only has animate-fade-in (opacity + translateY).
+   Adding a spring scale overshoot (0.85 → 1.08 → 0.97 → 1.0) makes the badge
+   feel alive and responsive when it appears, reinforcing that results are loading.
+   Design: scale overshoot with opacity, duration 400ms, spring cubic-bezier.
+   ---------------------------------------------------------------------------- */
+@keyframes resultBadgePop {
+  0%   { opacity: 0; transform: scale(0.85); }
+  55%  { opacity: 1; transform: scale(1.08); }
+  75%  { transform: scale(0.97); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.result-badge-pop {
+  animation: resultBadgePop 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* --------------------------------------------------------------------------
+   2b. Clear All button — persistent "destructive intent" indicator
+   The Clear All button (trash icon) currently looks like a plain ghost
+   button when enabled — no visual cue that it's a destructive action until
+   you hover and see the red tint. Users scanning the toolbar can't easily
+   distinguish "delete" from other actions without hovering.
+   Adding a very subtle red background + red-tinted text at rest makes the
+   destructive intent immediately scannable: "this button deletes things".
+   The hover effect (from btn-delete-hover) intensifies the red, confirming
+   the action. Disabled state keeps opacity-50 so the button reads as
+   inactive without needing separate styling.
+   Design: bg-destructive/8, text-destructive/70, border-destructive/25 at rest;
+   hover: bg-destructive/15, border-destructive/45, text-destructive (full).
+   The tint is very subtle — barely noticeable against the toolbar bg — but
+   enough to signal "danger action" at a glance.
+   ---------------------------------------------------------------------------- */
+.btn-delete-enabled {
+  background-color: hsl(var(--destructive) / 0.08);
+  border-color: hsl(var(--destructive) / 0.25);
+  color: hsl(var(--destructive) / 0.75);
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.15s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.2s ease;
+}
+
+.btn-delete-enabled:hover {
+  background-color: hsl(var(--destructive) / 0.14);
+  border-color: hsl(var(--destructive) / 0.45);
+  color: hsl(var(--destructive) / 0.95);
+  box-shadow: 0 0 10px hsl(var(--destructive) / 0.15), 0 2px 8px hsl(var(--destructive) / 0.10);
+  transform: translateY(-1px) scale(1.02);
+}
+
+.btn-delete-enabled:active {
+  transform: translateY(0) scale(0.97);
+  transition-duration: 0.1s;
+}
+
+/* Dark mode: slightly more visible red tint for contrast on dark bg */
+.dark .btn-delete-enabled {
+  background-color: hsl(var(--destructive) / 0.12);
+  border-color: hsl(var(--destructive) / 0.30);
+  color: hsl(var(--destructive) / 0.70);
+}
+
+.dark .btn-delete-enabled:hover {
+  background-color: hsl(var(--destructive) / 0.20);
+  border-color: hsl(var(--destructive) / 0.55);
+  color: hsl(var(--destructive) / 0.95);
+}
+
+/* ============================================================
+   UI Polishes — qnote-elec session 2026-04-04 (cron)
+   ============================================================ */
+
+/* --------------------------------------------------------------------------
+   Path copy icon — Settings 应用信息 card
+   Previously the "click to copy" affordance on path items relied entirely on
+   the browser's title tooltip. Users had no visual cue at rest that the
+   items were interactive.
+
+   Fix: Each path item now has an absolute-positioned
+   Copy icon that fades in + slides in on hover, and transitions to a
+   green Check icon when the copy succeeds. This makes the affordance
+   discoverable at a glance without relying on hover text.
+
+   Structure:
+     <div class="path-copy-wrapper">   — relative container, handles click
+       <p class="path-copy-text">       — text content with truncate
+       <span class="path-copy-icon">   — absolute icon, top-right corner
+     </div>
+   -------------------------------------------------------------------------- */
+
+/* Wrapper — captures the full click area, groups hover state */
+.path-copy-wrapper {
+  cursor: pointer;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+  position: relative;
+}
+
+.path-copy-wrapper:hover {
+  background-color: hsl(var(--muted) / 0.9);
+  box-shadow: 0 0 0 1px hsl(var(--primary) / 0.15);
+}
+
+.path-copy-wrapper:active {
+  transform: scale(0.98);
+  background-color: hsl(var(--primary) / 0.08);
+}
+
+/* Text element — inherits bg from wrapper, no own background */
+.path-copy-text {
+  background-color: transparent !important;
+  transition: none;
+}
+
+/* Copy icon — absolute in top-right, hidden at rest */
+.path-copy-icon {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  color: hsl(var(--muted-foreground) / 0.5);
+  pointer-events: none;
+  /* Hidden at rest: fade out + slight scale down */
+  opacity: 0;
+  transform: translateY(-50%) scale(0.75);
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    color 0.15s ease;
+}
+
+/* Show icon on wrapper hover */
+.path-copy-wrapper:hover .path-copy-icon {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+  color: hsl(var(--muted-foreground) / 0.75);
+}
+
+/* Show icon when this specific path is copied (green check) */
+.path-copy-wrapper.copied .path-copy-icon {
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+  color: hsl(var(--success) / 0.85);
+}
+
+/* Copy success flash — green-tinted wrapper after click */
+.path-copy-wrapper.copied {
+  background-color: hsl(var(--success) / 0.10) !important;
+  box-shadow: 0 0 0 1px hsl(var(--success) / 0.30) !important;
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+/* Dark mode: slightly stronger icon opacity for visibility */
+.dark .path-copy-wrapper:hover .path-copy-icon {
+  color: hsl(var(--muted-foreground) / 0.7);
+}
+
+/* ============================================================
+   UI Polishes — qnote-elec session 2026-04-04 (ui: targeted)
+   ============================================================ */
+
+/* --------------------------------------------------------------------------
+   1. ClipboardList skeleton cards — nth-child stagger (CSS, not inline style)
+   Previously skeleton cards used inline `style={{ animationDelay: \`\${i * 80}ms\` }}`
+   which overrode the CSS nth-child rules in index.css. Now the inline style is
+   removed, letting the CSS nth-child selectors (0ms / 80ms / 160ms) control
+   the stagger properly. This fixes the visual overlap where all 3 skeleton
+   cards appeared simultaneously instead of cascading in.
+   -------------------------------------------------------------------------- */
+/* (No CSS changes needed — the nth-child rules in index.css already handle this.
+   Change was removing the inline style prop from the JSX Card element.) */
+
+/* --------------------------------------------------------------------------
+   2. Clipboard image type badge — CSS variable based, proper dark mode
+   Previously used hardcoded Tailwind amber colors (bg-amber-100 text-amber-700
+   etc.) which don't respond to CSS variable theming. The amber tone can look
+   too bright on dark backgrounds and doesn't follow the app's blue-grey palette.
+   Replacing with a warm amber-orange that uses CSS variables for light/dark
+   adaptation, consistent with the design system's color language.
+   Design: amber-orange pill badge, warm but not neon. Primary text color
+   for readability in both themes. Subtle border + low-opacity bg.
+   -------------------------------------------------------------------------- */
+.clipboard-image-badge {
+  background-color: hsl(30 70% 95%);
+  color: hsl(25 65% 40%);
+  border: 1px solid hsl(30 60% 80% / 0.5);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.clipboard-image-badge:hover {
+  background-color: hsl(30 70% 92%);
+  box-shadow: 0 2px 8px hsl(30 60% 65% / 0.15);
+  transform: scale(1.05);
+}
+
+/* Dark mode: warm amber-orange, visible but not neon against dark bg */
+.dark .clipboard-image-badge {
+  background-color: hsl(25 45% 18% / 0.85);
+  color: hsl(35 75% 65%);
+  border-color: hsl(30 45% 40% / 0.4);
+}
+
+.dark .clipboard-image-badge:hover {
+  background-color: hsl(25 45% 22% / 0.9);
+  box-shadow: 0 2px 10px hsl(30 50% 50% / 0.2);
+}
+
+/* ============================================================
+   UI Polishes — qnote-elec session 2026-04-05
+   ============================================================ */
+
+/* --------------------------------------------------------------------------
+   1. AI thinking bubble — spring pop entrance animation
+   The thinking bubble currently runs infinite animations (shimmer, breath, shadow
+   pulse) but has no one-shot entrance. Adding a spring pop-in (scale 0.7 + opacity 0
+   → scale 1 with overshoot) makes the "AI started thinking" moment feel immediate
+   and energetic rather than just fading in from nothing. The spring overshoot
+   (1.06 → 0.97 → 1.0) gives a satisfying "pop" that draws the eye.
+   animation-fill-mode: both ensures the final state (scale 1) is held while
+   infinite animations continue from their delays.
+   Design: matches the thinkingPopIn used for the thinking-row wrapper, but
+   applied to just the bubble for a layered entrance feel.
+   -------------------------------------------------------------------------- */
+@keyframes thinkingBubblePopIn {
+  0%   { opacity: 0; transform: scale(0.7); }
+  60%  { opacity: 1; transform: scale(1.06) translateY(-1px); }
+  80%  { transform: scale(0.97) translateY(0.5px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.ai-thinking-bubble {
+  animation:
+    thinkingBubblePopIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both,
+    thinkingShimmer 1.8s ease-in-out infinite,
+    thinkingBubbleBreath 2.2s ease-in-out infinite,
+    thinkingShadowBreath 2.2s ease-in-out infinite;
+}
+
+/* Dark mode: same layered animation stack */
+.dark .ai-thinking-bubble {
+  animation:
+    thinkingBubblePopIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both,
+    thinkingShimmer 1.8s ease-in-out infinite,
+    thinkingBubbleBreath 2.2s ease-in-out infinite,
+    thinkingShadowBreath 2.2s ease-in-out infinite;
+}
+
+/* --------------------------------------------------------------------------
+   2. AI thinking avatar — spring pop entrance to match the bubble
+   The thinking avatar (Bot icon in a pulsing circle) also needs a spring pop-in
+   so that the avatar and bubble enter together as a coordinated unit. The avatar
+   already has a thinkingAvatarGlow infinite pulse; adding a one-shot entrance
+   ensures it doesn't start fully formed — it pops in with the same spring energy
+   as the bubble, then settles into the gentle glow pulse.
+   Design: same spring cubic-bezier as bubble, scale 0.6 → 1 with overshoot.
+   -------------------------------------------------------------------------- */
+@keyframes thinkingAvatarPopIn {
+  0%   { opacity: 0; transform: scale(0.6); }
+  60%  { opacity: 1; transform: scale(1.12); }
+  80%  { transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.ai-thinking-avatar {
+  animation: thinkingAvatarPopIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both,
+             thinkingAvatarGlow 1.4s ease-in-out infinite;
+}
+
+/* --------------------------------------------------------------------------
+   3. Search result badge — force re-animation on keyword change
+   The result-badge-pop animation only plays on first mount. When the user
+   types a new keyword (which shows a different result count or hides the badge),
+   React re-mounts the badge element but the CSS animation does not replay
+   because the element's class name hasn't changed — React's key-based re-mount
+   does reset the animation state, but only if the animation-name is applied
+   fresh to the newly mounted element. Adding animation-name explicitly inside
+   result-badge-pop ensures that when the key changes and the element re-mounts,
+   the browser picks up the animation as new and plays it from the beginning.
+   (This is already handled correctly since React re-mounts on key change,
+   triggering the animation afresh. Documenting here for clarity.)
+   -------------------------------------------------------------------------- */
+
+/* --------------------------------------------------------------------------
+   4. AI thinking row — spring pop entrance for the whole thinking unit
+   The thinking row wrapper (avatar + bubble together) should spring in as one
+   unit when AI starts thinking. Previously it faded in. Adding a spring scale
+   pop (same animation as thinkingBubblePopIn) makes the "AI is processing"
+   state feel more immediate and impactful.
+   Design: coordinates with avatarPopIn and bubblePopIn — all three pop together
+   at the same time (0.45s spring), then settle while infinite animations continue.
+   -------------------------------------------------------------------------- */
+
+/* ============================================================
+   UI Polishes — qnote-elec session 2026-04-05 (ui: targeted)
+   ============================================================ */
+
+/* --------------------------------------------------------------------------
+   1. Confirmation dialog buttons — spring hover animations
+  The destructive "新建对话" / "确定清空" buttons and cancel buttons in NewChatDialog and
+   DeleteAllConfirmDialog previously had no hover micro-interaction — they just
+   changed background color via Tailwind's default hover. Adding btn-hover
+   (translateY + shadow lift) to the cancel button and btn-delete-hover
+   (scale pulse + red tint) to the destructive confirm button makes the
+   dialog actions feel tactile and responsive, consistent with clipboard
+   card action buttons and other interactive elements in the app.
+   Design: cancel button gets btn-hover lift, destructive button gets the
+   spring pulse scale animation (1.0 → 1.04 → 1.0) via btn-delete-hover.
+   --------------------------------------------------------------------------
+   2. ImageOcrDialog "开始识别" button — subtle loading pulse animation
+   When OCR is running, the button is disabled and shows a spinner. Previously
+   the disabled state was purely opacity-based (disabled:opacity-50), which
+   feels static and "dead" — no indication that something is actively processing.
+   Adding a gentle pulsing glow ring around the button while loading signals
+   "work is happening" more clearly than opacity alone. The pulse is subtle
+   (2px spread, 20% opacity) so it doesn't distract from the spinner content.
+   --------------------------------------------------------------------------
+   Dialog confirm button — spring hover (already has btn-hover/btn-delete-hover) */
+.dialog-confirm-btn {
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.15s cubic-bezier(0.22, 1, 0.36, 1),
+    color 0.18s ease;
+}
+
+.dialog-confirm-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px hsl(var(--destructive) / 0.2), 0 2px 6px hsl(var(--destructive) / 0.12);
+}
+
+.dialog-confirm-btn:active {
+  transform: translateY(0) scale(0.97);
+  transition-duration: 0.08s;
+}
+
+/* Dialog cancel button — same spring hover as other outline buttons */
+.dialog-cancel-btn {
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.dialog-cancel-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px hsl(var(--foreground) / 0.08), 0 1px 4px hsl(var(--foreground) / 0.04);
+}
+
+.dialog-cancel-btn:active {
+  transform: translateY(0) scale(0.97);
+  transition-duration: 0.08s;
+}
+
+/* OCR button — subtle pulse ring when loading to signal active processing */
+@keyframes ocrButtonPulse {
+  0%, 100% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0); }
+  50%       { box-shadow: 0 0 0 4px hsl(var(--primary) / 0.18); }
+}
+
+.ocr-loading-btn {
+  animation: ocrButtonPulse 1.4s ease-in-out infinite;
+}
+
+
+/* ============================================================
+   UI Polishes — qnote-elec session 2026-04-06 (ui: targeted)
+   ============================================================ */
+
+/* --------------------------------------------------------------------------
+   1. Language select dropdown — smooth close animation
+   The dropdown currently has a spring pop-in entrance (dropdownSlideIn: scale 0.88 → 1.0
+   with cubic overshoot), but no exit animation — it disappears instantly when
+   clicked outside. Adding a fade + scale-out closing animation makes the
+   dismissal feel intentional and consistent with the entrance. The closing
+   animation is faster (200ms) than the entrance (240ms) to feel snappy.
+   Applied via .language-select-dropdown-closing class toggled by JS before unmount.
+   Design: opacity 1→0 + scale 1→0.92, same spring cubic-bezier for cohesion.
+   -------------------------------------------------------------------------- */
+@keyframes dropdownSlideOut {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.92) translateY(-3px);
+  }
+}
+
+.language-select-dropdown-closing {
+  animation: dropdownSlideOut 0.2s cubic-bezier(0.4, 0, 1, 1) both;
+  pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+   2. Format button — enhanced hover affordance
+   The "格式化" button uses a dashed border that becomes solid on hover, but
+   the transition is subtle and the active/pressed state lacks feedback.
+   Improving: solid subtle border at rest (not dashed), more visible hover
+   background + primary tint + slight lift, explicit active press effect.
+   This makes the button clearly interactive at a glance without hovering.
+   -------------------------------------------------------------------------- */
+
+/* Format button base — subtle solid border, clear "button" feel at rest */
+.format-btn {
+  border: 1px solid hsl(var(--border) / 0.6) !important;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.15s cubic-bezier(0.22, 1, 0.36, 1),
+    color 0.18s ease;
+}
+
+.format-btn:hover {
+  background-color: hsl(var(--primary) / 0.08) !important;
+  border-color: hsl(var(--primary) / 0.4) !important;
+  box-shadow: 0 0 0 1px hsl(var(--primary) / 0.15), 0 2px 8px hsl(var(--primary) / 0.1) !important;
+  transform: translateY(-0.5px) scale(1.02);
+  color: hsl(var(--primary)) !important;
+}
+
+.format-btn:active {
+  transform: translateY(0) scale(0.96) !important;
+  box-shadow: 0 0 0 1px hsl(var(--primary) / 0.2) !important;
+  transition-duration: 0.08s;
+  background-color: hsl(var(--primary) / 0.12) !important;
+}
+
+.dark .format-btn {
+  border-color: hsl(var(--border) / 0.7) !important;
+}
+
+.dark .format-btn:hover {
+  background-color: hsl(var(--primary) / 0.12) !important;
+  border-color: hsl(var(--primary) / 0.45) !important;
+}
+
+/* --------------------------------------------------------------------------
+   3. Format button — spinning loader indicator
+   When formatting is in progress, the button shows a spinner + "格式化" text.
+   Making the spinner slightly larger (w-4 h-4) and adding a subtle primary
+   tint glow ring around the button while loading communicates "processing"
+   more clearly than opacity alone.
+   -------------------------------------------------------------------------- */
+.format-btn-loading {
+  position: relative;
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2), 0 0 10px hsl(var(--primary) / 0.12) !important;
+  transition: box-shadow 0.2s ease;
+}
+
+.format-btn-loading .format-spinner {
+  width: 14px;
+  height: 14px;
+  border-width: 1.5px;
+}
+
+/* --------------------------------------------------------------------------
+   4. Language active badge — enhanced hover micro-interaction
+   The badge currently has a scale(1.03) on hover. Making it also shift
+   slightly toward the dropdown direction (translateX 1px) creates a subtle
+   "tuck in" feeling that guides the user toward the language select action.
+   -------------------------------------------------------------------------- */
+.lang-active-badge:hover {
+  transform: translateY(-0.5px) translateX(1px) scale(1.03);
+}
+
+
+/* ============================================================
+   UI Polishes — qnote-elec session 2026-04-06 (ui: targeted)
+   ============================================================ */
+
+/* --------------------------------------------------------------------------
+   1. ClipboardToolbar — total record count badge
+   When the clipboard has records but no active search, a muted pill badge
+   in the toolbar shows "X 条记录". This gives users immediate awareness
+   of how many records they have collected without needing to scroll.
+   Design: same pill shape as result badge but muted colors (no primary tint),
+   small icon on the left, spring scale entrance animation on mount/change.
+   -------------------------------------------------------------------------- */
+@keyframes toolbarTotalBadgeIn {
+  0%   { opacity: 0; transform: scale(0.85) translateY(-2px); }
+  60%  { opacity: 1; transform: scale(1.04) translateY(0); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.toolbar-total-badge {
+  animation: toolbarTotalBadgeIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Dark mode: slightly more visible bg for the muted badge on dark sidebar/toolbar */
+.dark .toolbar-total-badge {
+  filter: brightness(1.05);
+}
+
+/* --------------------------------------------------------------------------
+   2. AppSidebar — app branding header
+   The sidebar now has a proper header with app icon and name ("QNote"), providing
+   app identity at a glance. The header is hidden when the sidebar collapses to
+   icon-only mode, keeping the nav clean. A subtle bottom separator visually
+   splits the brand zone from the navigation group below.
+   -------------------------------------------------------------------------- */
+/* Header container: flex row, icon + name + optional collapse toggle, h-9 */
+.sidebar-header-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.5rem;
+  min-height: 2.25rem;
+  border-bottom: 1px solid hsl(var(--sidebar-border) / 0.5);
+  transition: border-color 0.2s ease;
+}
+
+/* Dark mode: slightly stronger border for depth */
+.dark .sidebar-header-brand {
+  border-bottom-color: hsl(var(--sidebar-border) / 0.35);
+}
+
+/* App icon container: rounded square with primary tint */
+.sidebar-app-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.4rem;
+  background: hsl(var(--primary) / 0.1);
+  border: 1px solid hsl(var(--primary) / 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+/* .sidebar-app-name / .sidebar-app-name.sidebar-collapsed 已移除 ——
+   应用名 2026-09-29 起由标题栏承担，侧栏顶部不再有品牌区，这两个类名已无引用。 */
+
+/* .sidebar-collapse-toggle removed — 收起/展开开关已从侧栏顶部移到页脚，
+   改为直接复用 SidebarMenuButton（与导航项同一套几何与 hover / 按下反馈），
+   旧的那套独立样式连同它"贴在标题旁"的注释一起失效，留着只会误导。
+   见 components/core/AppSidebar.tsx 的 SidebarFooter。 */
+
+
+/* 毛玻璃外框
+   标题栏和导航侧栏共用，只负责半透明底 + 背景模糊：
+   backdrop-filter 不留任何退路分支 —— 目前的微信式布局里外框贴着窗口
+   边缘、底下只有纯色 body，模糊看不出效果；但一旦有内容从下方经过（滚动、
+   弹层、未来的可拖拽区域）它会自动生效，不必回来改这里。
+   注意：不要在这里加 border 或 inset 描边，浅色主题下会变成刺眼的白杠。 */
+.glass-frame {
+  background-color: hsl(var(--app-frame) / 0.78);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+.dark .glass-frame {
+  background-color: hsl(var(--app-frame) / 0.72);
+}
+
+/* .glass-edge-b / .glass-edge-r removed 2026-09-29 — 那两道"受光内高光"在浅色主题下
+   实际就是两条扎眼的白杠（标题栏下缘尤其明显），已按反馈全部去掉。
+   外框与内容面板的边界现在只靠面板自身的圆角和边距表达。 */
+
+
+/* 内容面板 — 微信式外框布局
+   外框（标题栏 + 导航侧栏）是 --app-frame，内容面板换成 --card 的白/深色底。
+   右/下留 8px、上方留 8px（组件上的 mt-12 = 标题栏 40px + 8px），
+   让四个圆角都能完整露出来；左侧贴住侧栏，圆角缺口正好对着外框，一样看得见。
+   不加任何投影：面板和外框靠色差 + 圆角区分就够，叠阴影反而显脏。 */
+.content-panel {
+  background-color: hsl(var(--card));
+  border-radius: 0.75rem;
+  margin-right: 8px;
+  margin-bottom: 8px;
+  box-shadow: none;
+}
+
+
+/* ============================================================
+   Neumorphic depth — soft shadows instead of 1px divider lines
+   区域之间不再用硬边框切割，改用同色系的柔和高光/暗部阴影表达层级：
+   光源固定在左上，所以"高光"在左上、"暗部"在右下，成对出现才有立体感。
+   阴影颜色跟随 --foreground（而非纯黑/纯白），深浅主题都能保持同色系的通透感。
+   ============================================================ */
+
+/* 卡片类区块：成对阴影，浮出表面
+   阴影比早期版本略重：内容面板改成白底之后，卡片自身也是 --card 白，
+   两面同色时"暗部"是唯一还能勾出边界的信号，alpha 需要给够。 */
+.neu-raised {
+  box-shadow:
+    2px 2px 6px -2px hsl(var(--foreground) / 0.16),
+    -1px -1px 3px 0 hsl(var(--background) / 0.9);
+}
+
+/* .neu-sidebar / .neu-sidebar-mirror removed 2026-09-29 — 改为微信式外框布局后，
+   侧栏和标题栏同属外框、同为 --app-frame，悬浮感只由内容面板承担。
+   侧栏若还带投影，会从外框里"抠"成独立一块，反而割裂。 */
+
+/* 底部横向分界（工具栏下缘）——只需单侧向内的投影
+   关键在 spread 必须是 0：负 spread 会把阴影矩形往内收，
+   再叠上 4px 模糊，贴着边缘的浓度会被摊到 0.03 上下，等于没画。
+   收紧成 blur 3px + spread 0，紧贴边缘的浓度才够，边缘清楚、远处仍柔。 */
+.neu-divider-b {
+  box-shadow: 0 1px 3px 0 hsl(var(--foreground) / 0.14);
+}
+
+/* 竖向分界（笔记文件树 / 编辑区之间）——.neu-divider-b 的横转竖
+   同一条规则：光源固定左上，投影只往暗的一侧落，所以这里是向右投影而不是向左。
+   两栏同处 --card 白底，一根 1px 实线会像外框残留的接缝，拟态暗部反而更像"分栏"。 */
+.neu-divider-r {
+  box-shadow: 1px 0 3px 0 hsl(var(--foreground) / 0.18);
+}
+
+/* hover 态：暗部加深 + 略微抬升，和 .shadow-transition 配合做过渡 */
+.neu-raised-hover {
+  transition: box-shadow 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.neu-raised-hover:hover {
+  box-shadow:
+    3px 3px 9px -2px hsl(var(--foreground) / 0.22),
+    -1px -1px 3px 0 hsl(var(--background) / 0.9);
+}
+
+.dark .neu-raised {
+  box-shadow:
+    2px 2px 6px -1px hsl(0 0% 0% / 0.55),
+    -1px -1px 3px 0 hsl(0 0% 100% / 0.04);
+}
+.dark .neu-divider-b {
+  box-shadow: 0 1px 3px 0 hsl(0 0% 0% / 0.45);
+}
+.dark .neu-divider-r {
+  box-shadow: 1px 0 3px 0 hsl(0 0% 0% / 0.5);
+}
+.dark .neu-raised-hover:hover {
+  box-shadow:
+    3px 3px 9px -2px hsl(0 0% 0% / 0.65),
+    -1px -1px 3px 0 hsl(0 0% 100% / 0.05);
+}
+
+/* 语言下拉展开态：主色光晕取代拟态阴影。
+   必须放在 .dark .neu-raised-hover:hover 之后 —— 同特异度下靠后的规则才生效，
+   否则会被上面这些更高特异度的暗色规则盖掉。 */
+.neu-raised-open {
+  box-shadow:
+    0 8px 24px hsl(var(--primary) / 0.14),
+    2px 2px 5px -1px hsl(var(--foreground) / 0.1);
+}
+.dark .neu-raised-open {
+  box-shadow:
+    0 8px 24px hsl(var(--primary) / 0.24),
+    2px 2px 6px -1px hsl(0 0% 0% / 0.55);
+}
+
+
+/* ============================================================
+   UI Polishes — qnote-elec session 2026-04-07 (ui: targeted)
+   ============================================================ */
+
+/* --------------------------------------------------------------------------
+   1. LeetCode collection card — spring pop on selection + active press state
+   Previously, clicking a collection card felt inert — it showed a selected ring
+   but had no spring press animation and no left accent bar to communicate
+   "this is the active item" at a glance. Now:
+   - Selected state: spring pop entrance (scale 0.95→1.04→1.0), left accent bar
+   - Active/press: scale(0.97) + shadow reduction for tactile click feedback
+   The spring pop only plays on initial selection (animation:none on .selected
+   prevents re-triggering on re-renders). Active press re-triggers every click.
+   -------------------------------------------------------------------------- */
+@keyframes leetcodeCardSelected {
+  0%   { transform: scale(0.95); }
+  50%  { transform: scale(1.04); }
+  100% { transform: scale(1.0); }
+}
+
+/* Selected card — spring pop on first selection, enhanced primary shadow */
+.leetcode-collection-card.selected {
+  animation: leetcodeCardSelected 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Left accent bar for selected state — communicates "active item" instantly */
+.leetcode-collection-card.selected::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 18%;
+  bottom: 18%;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: hsl(var(--sidebar-primary));
+  box-shadow: 0 0 6px hsl(var(--sidebar-primary) / 0.4);
+}
+
+/* Active/press — scale down for physical button press feel */
+.leetcode-collection-card:active {
+  transform: scale(0.97) translateY(0);
+  box-shadow: 0 1px 4px hsl(var(--foreground) / 0.06), 0 1px 2px hsl(var(--foreground) / 0.04);
+  transition-duration: 0.08s;
+}
+
+/* Dark mode: slightly more visible left accent */
+.dark .leetcode-collection-card.selected::before {
+  box-shadow: 0 0 8px hsl(var(--sidebar-primary) / 0.35);
+}
+
+/* --------------------------------------------------------------------------
+   2. LeetCode sidebar icon buttons — spring hover animation
+   The sidebar header buttons (create, import) and collapse toggle currently
+   use basic ghost hover (bg-muted). They lack the tactile spring hover
+   (translateY + shadow lift) that other buttons in the app have, making
+   them feel less polished than the clipboard card action buttons.
+   Adding .leetcode-sidebar-btn gives them consistent spring hover + active
+   press feel with other interactive elements.
+   -------------------------------------------------------------------------- */
+.leetcode-sidebar-btn {
+  transition:
+    background-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.15s cubic-bezier(0.22, 1, 0.36, 1),
+    color 0.15s ease;
+}
+
+.leetcode-sidebar-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px hsl(var(--foreground) / 0.08);
+}
+
+.leetcode-sidebar-btn:active {
+  transform: translateY(0) scale(0.93);
+  transition-duration: 0.08s;
+  box-shadow: 0 1px 3px hsl(var(--foreground) / 0.06);
+}
+
+/* Dark mode: slightly more visible shadow on dark bg */
+.dark .leetcode-sidebar-btn:hover {
+  box-shadow: 0 2px 10px hsl(var(--foreground) / 0.12);
+}
+
+.dark .leetcode-sidebar-btn:active {
+  box-shadow: 0 1px 4px hsl(var(--foreground) / 0.10);
+}
+
+/* ============================================================
+   UI Polishes — qnote-elec session 2026-04-07 (ui: targeted)
+   ============================================================ */
+
+/* --------------------------------------------------------------------------
+   1. ClipboardToolbar — search clear button spring pop-in entrance
+   The clear button currently appears via opacity/scale transition (0.5→1 scale)
+   which feels flat. Adding a spring overshoot animation (0.5→1.1→0.97→1.0)
+   when the button first becomes visible makes it feel like it "pops" into
+   existence rather than just fading in. The animation fires once on class add
+   (when user types the first character), then settles. Subsequent appearances
+   don't re-animate — the scale stays at 1.0 via .visible.
+   Design: brief spring scale overshoot, 300ms duration.
+   ---------------------------------------------------------------------------- */
+@keyframes searchClearBtnPopIn {
+  0%   { opacity: 0; transform: scale(0.5) rotate(-8deg); }
+  55%  { opacity: 1; transform: scale(1.12) rotate(2deg); }
+  75%  { transform: scale(0.96) rotate(-1deg); }
+  90%  { transform: scale(1.03) rotate(0.5deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+.search-clear-btn-pop-in {
+  animation: searchClearBtnPopIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* --------------------------------------------------------------------------
+   2. LeetCode Collection — empty state icon glow ring
+   The LeetCode collection empty state has the icon-glow-ring class but the
+   ::before pseudo-element (radial gradient pulse) is not rendering because the
+   parent div has no "relative" positioning context set explicitly. The
+   icon-glow-ring::before uses absolute inset positioning — it needs the
+   ancestor to be relative. Adding position-relative to the icon container
+   fixes the glow ring, making it pulse gently like the AiChatPanel and
+   ClipboardList empty states.
+   Design: icon-glow-ring already has the right styles (radial gradient,
+   gentlePulse animation); only needs the stacking context anchor.
+   ---------------------------------------------------------------------------- */
+/* Icon container needs position-relative for the ::before glow ring to anchor */
+.leetcode-empty-icon {
+  position: relative;
+}
+
+/* ============================================================
+   UI Polishes — qnote-elec session 2026-04-07 (ui: targeted)
+   ============================================================ */
+
+/* --------------------------------------------------------------------------
+   1. Copy success badge — spring pop animation on appear
+   The badge currently uses a simple scale(0.9)→scale(1) transition which feels
+   linear. Adding a spring overshoot animation (0.85→1.08→0.97→1) makes the
+   "已复制" confirmation feel more satisfying and responsive — the badge
+   "pops" into existence with a subtle bounce that signals "copy confirmed"
+   more clearly than a plain fade+scale.
+   Design: spring cubic-bezier overshoot, 350ms duration.
+   ---------------------------------------------------------------------------- */
+@keyframes copyBadgePop {
+  0%   { opacity: 0; transform: scale(0.92) translateY(2px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.copied-badge-spring {
+  animation: copyBadgePop 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+  /* Override the inline transition timing to let the animation play */
+  transition: none !important;
+}
+
+/* --------------------------------------------------------------------------
+   2. Index toggle button — spring pulse on click
+   The Pin button (index/unindex toggle) currently has no click feedback —
+   clicking it feels inert until the async vector operation completes. Adding
+   a brief spring scale pulse (1.0→1.2→1.0) on the button when clicked gives
+   immediate tactile confirmation that "the click was received." The pulse is
+   quick (280ms) so it doesn't delay the perceived response to the action.
+   Applied via JS: button gets spring-pulse class on click, removed after 280ms.
+   Design: spring cubic-bezier scale overshoot, 280ms duration.
+   ---------------------------------------------------------------------------- */
+@keyframes indexBtnPulse {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+.spring-pulse {
+  animation: indexBtnPulse 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Dark mode: slightly more saturated pulse for depth on dark bg */
+.dark .spring-pulse {
+  filter: brightness(1.1);
+}
+
+/* ============================================================
+   UI Polishes — qnote-elec session 2026-04-07 (cron: empty-state + scroll-fade)
+   ============================================================ */
+
+/* --------------------------------------------------------------------------
+   1. ClipboardList scroll fade gradients — hover opacity boost
+   The top/bottom fade gradients hint that scrollable content exists beyond the
+   visible area. On hover of the scroll container, the fades become slightly
+   more prominent (opacity boost + brighter gradient start), making the
+   "there's more content" signal clearer without being distracting at rest.
+   The hover state is triggered via .clipboard-scroll-container group hover.
+   Design: fade opacity increases ~20%, gradient start shifts slightly brighter.
+   -------------------------------------------------------------------------- */
+.clipboard-scroll-fade-top {
+  opacity: 0.85;
+  transition: opacity 0.25s ease, background-position 0.25s ease;
+  background: linear-gradient(to bottom, hsl(var(--background) / 0.88) 0%, transparent 100%);
+}
+
+.clipboard-scroll-container:hover .clipboard-scroll-fade-top {
+  opacity: 1;
+  background: linear-gradient(to bottom, hsl(var(--background) / 0.96) 0%, transparent 100%);
+}
+
+.clipboard-scroll-fade-bottom {
+  opacity: 0.7;
+  transition: opacity 0.25s ease;
+}
+
+.clipboard-scroll-container:hover .clipboard-scroll-fade-bottom {
+  opacity: 0.9;
+}
+
+/* Dark mode: slightly stronger fades for depth on dark backgrounds */
+.dark .clipboard-scroll-fade-top {
+  background: linear-gradient(to bottom, hsl(var(--background) / 0.85) 0%, transparent 100%);
+}
+.dark .clipboard-scroll-container:hover .clipboard-scroll-fade-top {
+  background: linear-gradient(to bottom, hsl(var(--background) / 0.94) 0%, transparent 100%);
+}
+.dark .clipboard-scroll-fade-bottom {
+  background: linear-gradient(to top, hsl(var(--background) / 0.80) 0%, transparent 100%);
+}
+.dark .clipboard-scroll-container:hover .clipboard-scroll-fade-bottom {
+  opacity: 0.88;
+  background: linear-gradient(to top, hsl(var(--background) / 0.88) 0%, transparent 100%);
+}
+
+/* ---------------------------------------------------------------------------
+   .day-sep-line removed 2026-09-29 — the date group separators no longer draw
+   gradient lines (cards now carry their own neumorphic depth), so these rules
+   had no remaining consumer.
+   -------------------------------------------------------------------------- */
+
+/* ---------------------------------------------------------------------------
+   Settings — vector count badge spring pop animation
+   When the vector count changes (user indexes new records), the badge plays
+   a one-shot spring overshoot animation (scale 1.0 → 1.18 → 0.96 → 1.0 with
+   a subtle primary glow pulse) to draw the user's eye to the updated stat.
+   The animation is triggered by adding the .vector-badge-pop class, which
+   re-fires when the class is re-applied after a subsequent count change.
+   -------------------------------------------------------------------------- */
+@keyframes vector-badge-pop {
+  0%   { transform: scale(1.0); }
+  50%  { transform: scale(1.1); }
+  100% { transform: scale(1.0); }
+}
+
+@keyframes vector-badge-glow-pulse {
+  0%   { box-shadow: 0 0 0 0 hsl(var(--primary) / 0); }
+  30%  { box-shadow: 0 0 0 4px hsl(var(--primary) / 0.25); }
+  100% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0); }
+}
+
+.vector-badge-pop {
+  animation:
+    vector-badge-pop 0.5s cubic-bezier(0.22, 1, 0.36, 1) both,
+    vector-badge-glow-pulse 0.5s ease-out both;
+}
+
+/* ---------------------------------------------------------------------------
+   .scrollbar-none — hide scrollbar while keeping scroll behaviour.
+   Used by the embedded browser's page-tab strip, where a visible scrollbar
+   would break the 1-row tab-strip layout. Firefox needs scrollbar-width;
+   Chromium/WebKit need the ::-webkit-scrollbar pseudo-element reset.
+   --------------------------------------------------------------------------- */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+

@@ -1,0 +1,10 @@
+#!/bin/sh
+# 提交信息校验钩子（Angular 提交规范）
+#
+# 由 scripts/git-hooks/setup-hooks.js 通过 `git config core.hooksPath .githooks` 启用。
+# core.hooksPath 是本地 .git/config 里的设置，不会被提交，克隆后需要跑一次
+# `pnpm run setup:hooks`。
+#
+# 校验逻辑在 scripts/git-hooks/verify-commit-msg.js，规则改动只改那一个文件。
+
+exec node "$(git rev-parse --show-toplevel)/scripts/git-hooks/verify-commit-msg.js" "$1"

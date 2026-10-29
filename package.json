@@ -1,0 +1,121 @@
+{
+  "name": "qnote",
+  "main": "./dist/main/index.js",
+  "version": "1.5.0",
+  "description": "A simple note taking app",
+  "author": "Ruciazyt",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "packageManager": "pnpm@10.32.0",
+  "scripts": {
+    "build": "cross-env NODE_ENV=production pnpm run clean && pnpm run build:all && pnpm run build:app && node scripts/build/post-build.js",
+    "clean": "rimraf dist dist_electron",
+    "build:main": "tsc -p build/tsconfig.main.json",
+    "build:preload": "tsc -p build/tsconfig.preload.json",
+    "build:electron": "pnpm run build:main && pnpm run build:preload",
+    "build:react": "pnpm --dir src/renderer run build",
+    "build:all": "pnpm run build:electron && pnpm run build:react",
+    "build:app": "node scripts/build/build-app.js",
+    "generate:icons": "node scripts/build/generate-icons.js",
+    "build-portable": "node scripts/build/build-app.js --win dir",
+    "electron:build": "electron-builder --publish=always --config build/electron-builder.json",
+    "watch": "tsc -p build/tsconfig.main.json -w",
+    "dev:renderer": "pnpm --dir src/renderer run dev",
+    "dev:electron": "wait-on http://localhost:5173 -t 60000 && node scripts/dev/wait-dist-stable.js && electron ./dist/main/index.js",
+    "dev": "node scripts/dev/kill-dev-electron.js && pnpm run build:electron && node scripts/dev/stamp-baseline.js && concurrently -n \"tsc,vite,app\" -c \"cyan,magenta,green\" \"pnpm run watch\" \"pnpm run dev:renderer\" \"pnpm run dev:electron\"",
+    "setup:hooks": "node scripts/git-hooks/setup-hooks.js",
+    "verify:commit": "node scripts/git-hooks/verify-commit-msg.js",
+    "verify:version": "node scripts/release/verify-version.js",
+    "verify:signature": "node scripts/build/verify-signature.js",
+    "patch:update-info": "node scripts/release/patch-update-info.js",
+    "release:patch": "node scripts/release/release.js patch",
+    "release:minor": "node scripts/release/release.js minor",
+    "release:major": "node scripts/release/release.js major",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "@types/node-fetch": "^2.6.12",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "archiver": "^7.0.1",
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "electron": "^45.1.0",
+    "electron-builder": "^26.18.0",
+    "electron-reloader": "^1.2.3",
+    "rimraf": "^5.0.10",
+    "typescript": "^5.6.3",
+    "wait-on": "^8.0.1"
+  },
+  "build": {
+    "appId": "com.ruciazyt.qnote",
+    "productName": "QNote",
+    "copyright": "Rucia zyt",
+    "asar": true,
+    "files": [
+      "dist/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "dist/renderer",
+        "to": "renderer"
+      },
+      {
+        "from": "resources",
+        "to": "resources"
+      }
+    ],
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "mac": {
+      "category": "public.app-category.productivity",
+      "artifactName": "${productName}-${version}-mac-${arch}.${ext}",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "build/icon.icns",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "QNote 用麦克风录制语音输入的笔记。"
+      }
+    },
+    "linux": {
+      "category": "Utility",
+      "artifactName": "${productName}-${version}-linux.${ext}"
+    },
+    "directories": {
+      "buildResources": "resources",
+      "output": "dist_electron"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "Ruciazyt",
+      "repo": "qnote-elec"
+    }
+  },
+  "dependencies": {
+    "@excalidraw/excalidraw": "^0.18.0",
+    "@langchain/anthropic": "1.5.11",
+    "@langchain/core": "1.2.13",
+    "@langchain/openai": "1.5.8",
+    "electron-updater": "^6.8.9",
+    "knex": "^3.1.0",
+    "node-fetch": "^2.7.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "sqlite3": "^5.1.7",
+    "zod": "^4.6.6"
+  }
+}

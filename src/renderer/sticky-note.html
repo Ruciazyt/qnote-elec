@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>QNote 便签</title>
+    <!--
+      主题：与主窗口共用 qnote-theme（同一个渲染层分区，localStorage 是共享的）。
+      这里的内联脚本必须在 CSS 生效前跑完，否则便签会先闪一帧浅色纸再跳变。
+      读不到 localStorage 时退回跟随系统，不会白屏或错色。
+    -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("qnote-theme");
+          var theme =
+            stored === "light" || stored === "dark" || stored === "system"
+              ? stored
+              : "system";
+          var dark =
+            theme === "dark" ||
+            (theme === "system" &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          var root = document.documentElement;
+          root.classList.toggle("dark", dark);
+          root.style.colorScheme = dark ? "dark" : "light";
+        } catch (e) {
+          /* 读不到就用浅色默认 */
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./components/sticky/sticky-main.tsx"></script>
+  </body>
+</html>

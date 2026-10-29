@@ -1,0 +1,100 @@
+.title-drag {
+  -webkit-app-region: drag;
+  /* 毛玻璃外框：半透明 + 背景模糊。 */
+  background-color: hsl(var(--app-frame) / 0.78);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  /* 不设任何 border / box-shadow：原先在标题栏下缘加过一道 inset 白色内高光，
+     在浅色下它就是一条明显的白杠，反而比没有更扎眼。
+     标题栏与内容面板的边界交给面板自己的圆角和边距去表达。 */
+}
+
+.dark .title-drag {
+  background-color: hsl(var(--app-frame) / 0.72);
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* ── Window control button base ── */
+.title-drag button {
+  -webkit-app-region: no-drag;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ── Minimize button — soft blue-grey hover ── */
+.title-drag button.window-btn-minimize:hover {
+  background-color: hsl(var(--primary) / 0.1);
+  color: hsl(var(--primary));
+  transform: scale(1.08);
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.1);
+}
+
+.title-drag button.window-btn-minimize:active {
+  transform: scale(0.92);
+  transition-duration: 0.08s;
+  background-color: hsl(var(--primary) / 0.15);
+  box-shadow: 0 0 0 1px hsl(var(--primary) / 0.12);
+}
+
+/* ── Maximize / Restore button — soft amber hover ── */
+.title-drag button.window-btn-maximize:hover {
+  background-color: hsl(var(--warning) / 0.12);
+  color: hsl(var(--warning));
+  transform: scale(1.08);
+  box-shadow: 0 0 0 2px hsl(var(--warning) / 0.18);
+}
+
+.dark .title-drag button.window-btn-maximize:hover {
+  background-color: hsl(var(--warning) / 0.18);
+  color: hsl(var(--warning));
+}
+
+.title-drag button.window-btn-maximize:active {
+  transform: scale(0.92);
+  transition-duration: 0.08s;
+  background-color: hsl(var(--warning) / 0.2);
+  box-shadow: 0 0 0 1px hsl(var(--warning) / 0.15);
+}
+
+.dark .title-drag button.window-btn-maximize:active {
+  background-color: hsl(var(--warning) / 0.25);
+}
+
+/* ── Close button — soft red hover (macOS-inspired) ── */
+.title-drag button:last-child {
+  color: hsl(var(--foreground) / 0.45);
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.title-drag button:last-child:hover {
+  background-color: hsl(var(--destructive) / 0.12);
+  color: hsl(var(--destructive));
+  box-shadow: 0 0 0 3px hsl(var(--destructive) / 0.08);
+  transform: scale(1.08);
+}
+
+.title-drag button:last-child:active {
+  transform: scale(0.92);
+  transition-duration: 0.08s;
+  background-color: hsl(var(--destructive) / 0.22);
+  box-shadow: 0 0 0 2px hsl(var(--destructive) / 0.15);
+}
+
+/* ── App name text ── */
+.title-drag p {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: hsl(var(--foreground));
+  margin: 0;
+  padding: 0;
+}
