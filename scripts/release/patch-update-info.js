@@ -58,11 +58,31 @@ function parseInstallerPath(text) {
   return match ? match[1].trim() : null;
 }
 
-/** 统计 yaml 里 sha512 / size 字段各出现多少次 */
+/**
+ * 统计 yaml 里的更新文件条目数与 sha512 字段数
+ *
+ * ## 为什么不能拿 sha512 的出现次数当「更新文件数」
+ *
+ * electron-builder 写的 latest.yml 里，同一个文件的哈希出现**两次**：
+ * files[] 下面一条，顶层还有一条（path / sha512 / size）。
+ * 所以「sha512 出现了几次」比「有几个更新文件」多一个，
+ * 拿它判断单文件更新信息，永远会把正常的 NSIS 产物误判成多文件。
+ *
+ * 真正的更新文件数是 files: 下面的条目数 —— 每条一个 - url:。
+ *
+ * @param {string} text
+ * @returns {{fileCount: number, sha512Count: number}}
+ */
 function countFields(text) {
-  const sha512Count = (text.match(/^[ \t]*sha512:[ \t]*/gm) || []).length;
-  const sizeCount = (text.match(/^[ \t]*size:[ \t]*/gm) || []).length;
-  return { sha512Count, sizeCount };
+  const lines = text.split('\n');
+  let fileCount = 0;
+  let sha512Count = 0;
+  for (const line of lines) {
+    const trimmed = line.trimStart();
+    if (trimmed.startsWith('- url:')) fileCount++;
+    if (trimmed.startsWith('sha512:')) sha512Count++;
+  }
+  return { fileCount, sha512Count };
 }
 
 /**
@@ -110,15 +130,15 @@ function main() {
     process.exit(1);
   }
 
-  const { sha512Count, sizeCount } = countFields(original);
+  const { fileCount, sha512Count } = countFields(original);
   if (sha512Count === 0) {
     console.error('❌ latest.yml 里没有 sha512 字段，不做改动。');
     process.exit(1);
   }
-  if (sha512Count > 1 && sizeCount > 1) {
+  if (fileCount > 1) {
     // NSIS 产物只有一个更新文件。多条记录说明格式变了，硬改容易改错。
     console.error(
-      `❌ latest.yml 里有 ${sha512Count} 条 sha512 记录，` +
+      `❌ latest.yml 里有 ${fileCount} 个更新文件，` +
         '当前脚本只支持单文件更新信息，不做改动。'
     );
     process.exit(1);
