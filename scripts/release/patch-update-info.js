@@ -46,19 +46,40 @@ function sha512Base64(file) {
  * 取顶层 `path:` 字段 —— electron-builder 写 NSIS 更新信息时，
  * 顶层 path 与 files[0].url 指向同一个文件。
  *
+ * 空白一律用 [ \t] 而不是 \s：\s 会连换行一起吃掉，
+ * 配合多行正则（/m）会让引擎在每个行首反复回溯，复杂度退化成平方级
+ * （SonarCloud S5852 判为安全漏洞）。yaml 的行内缩进本来也只有空格与制表符。
+ *
  * @param {string} text
  * @returns {string|null}
  */
 function parseInstallerPath(text) {
-  const match = text.match(/^path:\s*(.+?)\s*$/m);
+  const match = text.match(/^path:[ \t]*(\S.*)$/m);
   return match ? match[1].trim() : null;
 }
 
 /** 统计 yaml 里 sha512 / size 字段各出现多少次 */
 function countFields(text) {
-  const sha512Count = (text.match(/^\s*sha512:\s*/gm) || []).length;
-  const sizeCount = (text.match(/^\s*size:\s*/gm) || []).length;
+  const sha512Count = (text.match(/^[ \t]*sha512:[ \t]*/gm) || []).length;
+  const sizeCount = (text.match(/^[ \t]*size:[ \t]*/gm) || []).length;
   return { sha512Count, sizeCount };
+}
+
+/**
+ * 替换字段值，冒号后的原始空白原样保留
+ *
+ * 正则只负责把「字段名」和「冒号及其后内容」分开，具体取值交给这里处理 ——
+ * 值里可能有空格，交给正则去匹配反而容易写出回溯代价高的写法。
+ *
+ * @param {string} head 字段名部分（缩进 + 字段名）
+ * @param {string} tail 冒号及其后内容
+ * @param {string} value 新值
+ * @returns {string}
+ */
+function withValue(head, tail, value) {
+  const rest = tail.slice(1);
+  const blank = rest.slice(0, rest.length - rest.trimStart().length);
+  return `${head}:${blank}${value}`;
 }
 
 function main() {
@@ -107,8 +128,8 @@ function main() {
   const newSize = fs.statSync(installerPath).size;
 
   const patched = original
-    .replace(/^(\s*sha512:\s*).*$/gm, `$1${newSha512}`)
-    .replace(/^(\s*size:\s*).*$/gm, `$1${newSize}`);
+    .replace(/^([ \t]*sha512)(:[^\n]*)$/gm, (whole, head, tail) => withValue(head, tail, newSha512))
+    .replace(/^([ \t]*size)(:[^\n]*)$/gm, (whole, head, tail) => withValue(head, tail, newSize));
 
   if (patched === original) {
     console.log('ℹ️ latest.yml 的哈希已经是当前值，无需改动。');
