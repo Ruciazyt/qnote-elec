@@ -36,15 +36,15 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
         with:
           version: 10.32.0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: '22'
           cache: 'pnpm'
@@ -117,7 +117,7 @@ jobs:
         shell: pwsh
           
       - name: Cache Electron
-        uses: actions/cache@v5
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
           path: ~/.cache/electron
           key: ${{ runner.os }}-electron-${{ hashFiles('pnpm-lock.yaml') }}
@@ -218,7 +218,7 @@ jobs:
       - name: Upload unsigned installer for signing
         id: upload-unsigned-installer
         if: steps.signpath.outputs.enabled == 'true'
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
           name: unsigned-installer
           path: dist_electron/QNote-Setup-*.exe
@@ -227,7 +227,7 @@ jobs:
 
       - name: Sign installer with SignPath
         if: steps.signpath.outputs.enabled == 'true'
-        uses: signpath/github-action-submit-signing-request@v3
+        uses: signpath/github-action-submit-signing-request@f6d04783b4569d051e0c80105fe66e82819d0092 # v3
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
           organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
@@ -328,7 +328,7 @@ jobs:
           Get-ChildItem -Path dist_electron -Filter "*.zip" -Recurse | ForEach-Object { Write-Host $_.FullName }
           
       - name: Upload artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
           name: ${{ matrix.os }}-build
           path: |
@@ -371,22 +371,22 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
         with:
           version: 10.32.0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: '22'
           cache: 'pnpm'
           cache-dependency-path: pnpm-lock.yaml
 
       - name: Cache Electron
-        uses: actions/cache@v5
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
           path: ~/Library/Caches/electron
           key: ${{ runner.os }}-electron-${{ hashFiles('pnpm-lock.yaml') }}
@@ -484,7 +484,7 @@ jobs:
         shell: pwsh
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
           # 名字必须以 -build 结尾 —— release 作业按 "*-build" 下载
           name: mac-build
@@ -510,7 +510,7 @@ jobs:
     
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         
       # 只下载正式产物（*-build）。签名那步还会另外上传一个
       # unsigned-installer —— 那里面是没签名的安装包，绝不能进 Release。
@@ -520,7 +520,7 @@ jobs:
       # 未签名的 .dmg 被 Gatekeeper 拦，用户体验反而更差。
       # 打开仓库变量 MAC_RELEASE_ENABLED 之后 mac 产物才会一起发布。
       - name: Download Windows build artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
         with:
           pattern: "windows-*-build"
           path: artifacts
@@ -531,7 +531,7 @@ jobs:
         if: vars.MAC_RELEASE_ENABLED == 'true' || (needs.build-mac.outputs.signed == 'true' && needs.build-mac.outputs.notarized == 'true')
         # mac 构建失败时不阻断发版 —— Windows 的产物照常发布。
         continue-on-error: true
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
         with:
           pattern: "mac-*-build"
           path: artifacts-mac
@@ -615,7 +615,7 @@ jobs:
           [System.IO.File]::AppendAllText($env:GITHUB_OUTPUT, "mac_notes<<QNOTE_EOF`n" + ($macNotes -join "`n") + "`nQNOTE_EOF`n")
 
       - name: Create Release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
         with:
           # Release 标题要带产品名（AGENTS.md 第 3.3 节）。
           # 不写 name 时 action 直接拿 tag 名当标题，Release 列表里
