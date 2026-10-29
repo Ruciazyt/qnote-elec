@@ -178,4 +178,6 @@ jobs:
             dist_electron/*.dmg
             dist_electron/*.zip
             dist_electron/latest-mac.yml
+            # blockmap 一并带上，产物集与正式发布的 build-mac 作业保持一致
+            dist_electron/*.blockmap
           retention-days: 30
