@@ -12,9 +12,14 @@
 | `QNote-<版本>-mac-x64.dmg` | Intel 安装镜像 |
 | `QNote-<版本>-mac-arm64.zip` | 自动更新用的包（arm64） |
 | `QNote-<版本>-mac-x64.zip` | 自动更新用的包（x64） |
+| `*.dmg.blockmap` / `*.zip.blockmap` | 差分更新的依据，让更新只传变化的部分 |
 | `latest-mac.yml` | 自动更新元数据，记录版本号、文件名、SHA512 |
 
 dmg 与 zip 同时产出：mac 的自动更新走 zip 通道，dmg 不支持差分更新。
+
+blockmap 必须与产物发布在同一个 Release 里。electron-updater 按
+`<产物名>.blockmap` 去取它，算出这次要传哪些数据块；取不到不会报错，
+但会退化成整包下载 —— mac 的 zip 约 205MB，每次更新全量拉并不划算。
 
 两个架构在**同一次** electron-builder 调用里构建（`--mac --arm64 --x64`）。
 原因见 AGENTS.md 第 6.3 节 —— electron-builder 只会写一份 `latest-mac.yml`，
@@ -23,10 +28,9 @@ dmg 与 zip 同时产出：mac 的自动更新走 zip 通道，dmg 不支持差�
 构建只在 macOS 上进行。electron-builder 不支持在 Windows / Linux 上交叉构建
 mac 产物，所以 CI 里 mac 有独立的作业（`build-mac`），跑在 `macos-15` runner。
 
-## 二、mac 产物默认不进正式 Release
+## 二、mac 产物是否进正式 Release
 
-**默认状态下，CI 会构建 mac 产物并上传到 Actions Artifact，但不会发布到
-GitHub Release。** 发布到正式 Release 满足下面任一条件：
+mac 产物进正式 Release 满足下面任一条件：
 
 - 仓库变量 `MAC_RELEASE_ENABLED` 设为 `true`；
 - 产物已签名**且**已公证（见第三、四节）。这种包用户双击就能打开，
@@ -39,6 +43,10 @@ Settings → Secrets and variables → Actions → Variables → New repository 
 Name:  MAC_RELEASE_ENABLED
 Value: true
 ```
+
+**当前仓库已把 `MAC_RELEASE_ENABLED` 设为 `true`**，所以 mac 产物会随正式
+Release 一起发布。此时产物尚未签名（没有 Apple 开发者证书），
+Release 说明里会写明首次打开需要绕过 Gatekeeper 的办法（见第五节）。
 
 不默认打开的原因是：没有 Apple 开发者证书时产物是未签名的，macOS 的
 Gatekeeper 会拦住第一次打开，用户得额外做一步操作（见第五节）。是否值得

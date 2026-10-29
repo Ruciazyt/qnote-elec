@@ -317,6 +317,8 @@ macOS 产物由 CI 的 `build-mac` 作业产出（`macos-15` runner），
 - **dmg 与 zip 都要出**。mac 自动更新靠 zip，dmg 不支持差分更新。
 - **`latest-mac.yml` 必须与安装包在同一个 Release 里**，否则 mac 用户点
   「检查更新」会报「找不到更新源」。
+- **`.blockmap` 也要跟着产物发布**。electron-updater 按 `<产物名>.blockmap`
+  取差分依据，取不到会退化成整包下载（mac 的 zip 约 205MB）。
 - **图标不能用 `.ico`**。Electron 的 `nativeImage` 在 macOS / Linux 上读
   `.ico` 会得到空图，托盘图标直接抛「无法加载图标文件」。按平台选图标的
   逻辑集中在 `src/main/utils/assets.ts`，改图标相关代码先看它。

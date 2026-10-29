@@ -494,6 +494,10 @@ jobs:
             # latest-mac.yml 是 mac 自动更新的元数据文件（Windows 那份是 latest.yml）。
             # 少传这一个文件，mac 用户点「检查更新」就会报「找不到更新源」。
             dist_electron/latest-mac.yml
+            # blockmap 是差分更新的依据 —— electron-updater 按 <产物名>.blockmap
+            # 去 Release 上取，算出要传哪些块。缺了它不会报错，但会退化成整包下载
+            # （mac 的 zip 约 205MB，每次更新全量拉并不划算）。
+            dist_electron/*.blockmap
           retention-days: 30
 
   release:
@@ -577,7 +581,9 @@ jobs:
               'artifacts-mac/**/*.dmg',
               'artifacts-mac/**/*.zip',
               # mac 自动更新的元数据（Windows 那份是 latest.yml）
-              'artifacts-mac/**/latest-mac.yml'
+              'artifacts-mac/**/latest-mac.yml',
+              # 差分更新的依据，必须与产物在同一个 Release 里
+              'artifacts-mac/**/*.blockmap'
             )
 
             $macNotes += '## 🍎 macOS 版本'
