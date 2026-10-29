@@ -9,6 +9,11 @@
 !/build/tsconfig.main.json
 !/build/tsconfig.preload.json
 !/build/electron-builder.json
+# macOS 打包图标（由 scripts/build/generate-icons.js 从 icon.svg 生成）
+build/icon.icns
+# 运行时图标（托盘 / 窗口图标，macOS 与 Linux 用 PNG，Windows 用 icon.ico）
+resources/icon.png
+resources/icon-tray.png
 *.7z
 *.zip
 *.tar.gz

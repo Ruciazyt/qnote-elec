@@ -18,6 +18,7 @@
     "build:react": "pnpm --dir src/renderer run build",
     "build:all": "pnpm run build:electron && pnpm run build:react",
     "build:app": "node scripts/build/build-app.js",
+    "generate:icons": "node scripts/build/generate-icons.js",
     "build-portable": "node scripts/build/build-app.js --win dir",
     "electron:build": "electron-builder --publish=always --config build/electron-builder.json",
     "watch": "tsc -p build/tsconfig.main.json -w",
@@ -76,7 +77,19 @@
     },
     "mac": {
       "category": "public.app-category.productivity",
-      "artifactName": "${productName}-${version}-mac.${ext}"
+      "artifactName": "${productName}-${version}-mac-${arch}.${ext}",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "build/icon.icns",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "QNote 用麦克风录制语音输入的笔记。"
+      }
     },
     "linux": {
       "category": "Utility",

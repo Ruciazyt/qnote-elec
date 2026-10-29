@@ -47,6 +47,7 @@ import { createMainWindow, getMainWindow, showMainWindow, createTray } from "./c
 import { ClipboardPopupWindow } from "./core/window/clipboardPopup";
 import { registerGlobalShortcuts, unregisterAllShortcuts, registerVoiceShortcut, validateAccelerator, getRegisteredVoiceAccelerator } from "./core/shortcuts";
 import { markQuitting } from "./utils/appState";
+import { getAssetsDir, resolveAppIcon } from "./utils/assets";
 
 // ---------------------------------------------------------------------------
 // 单实例锁 —— 必须在任何 app.* 副作用之前获取
@@ -203,27 +204,6 @@ let tray: Tray | null = null;
 let DB: any;
 let fileWriter: FileWriter;
 
-function getAssetsDir() {
-  return !app.isPackaged
-    ? path.join(app.getAppPath(), "..", "..", "resources")
-    : path.join(process.resourcesPath, "resources");
-}
-
-function getAssetDirs() {
-  if (app.isPackaged) {
-    return [getAssetsDir()];
-  }
-
-  return [
-    getAssetsDir(),
-    path.join(app.getAppPath(), "..", "..", "src", "renderer", "public"),
-  ];
-}
-
-function resolveAssetPath(fileName: string) {
-  return path.join(getAssetsDir(), fileName);
-}
-
 /**
  * 语音快捷键被按下 —— 唤出主窗口（不展开 AI 对话框）后通知渲染层开始/结束录音
  *
@@ -257,18 +237,6 @@ function triggerVoiceInput(): void {
     restoredWindow: wasHidden,
   });
   mainWin.webContents.send("voice-hotkey:triggered");
-}
-
-function resolveFirstExistingAsset(filenames: string[]): string | null {
-  for (const name of filenames) {
-    for (const dir of getAssetDirs()) {
-      const assetPath = path.join(dir, name);
-      if (fs.existsSync(assetPath)) {
-        return assetPath;
-      }
-    }
-  }
-  return null;
 }
 
 // 注册所有IPC处理程序
@@ -558,7 +526,7 @@ void app
       log.info("资源文件路径:", assetPath);
 
       // 检查图标文件是否存在
-      const iconFile = resolveFirstExistingAsset(["icon.ico"]) ?? path.join(assetPath, "icon.ico");
+      const iconFile = resolveAppIcon() ?? path.join(assetPath, "icon.ico");
 
       if (!fs.existsSync(iconFile)) {
         log.error("图标文件不存在:", iconFile);

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  macOS 应用权限声明（entitlements）
+
+  ## 为什么需要
+
+  macOS 10.14 起，开启 Hardened Runtime 的应用在公证（notarization）时必须
+  声明权限，否则公证会被拒。本文件由 build/electron-builder.json 的
+  mac.entitlements / mac.entitlementsInherit 引用。
+
+  ## 各项的含义
+
+  - cs.allow-jit
+        V8 的 JIT 需要可写可执行的内存。没有它，开启 Hardened Runtime 后
+        渲染进程会直接崩溃（启动即退，控制台报 "V8 JIT" 相关错误）。
+  - cs.allow-unsigned-executable-memory
+        V8 的 CodeCache / WASM 编译需要。没有它同样启动即退。
+  - cs.allow-dyld-environment-variables
+        Chromium 的 dyld 插入机制需要。Electron 官方模板里也有这一项。
+  - cs.disable-library-validation
+        **本项目必需**：应用会加载 sqlite3 的原生模块（node_sqlite3.node），
+        它没有用本项目的签名身份签过。没有这一项时，Hardened Runtime 会拒绝
+        加载该动态库，表现为启动后数据库初始化失败。
+  - device.audio-input
+        语音输入要用麦克风。
+  - files.user-selected.read-write
+        用户选定的笔记目录、拖拽进来的文件需要读写权限。
+  - network.client
+        调用 LangChain / 百度 OCR 等网络接口。
+
+  ## 关于 App Sandbox
+
+  本文件**不含** com.apple.security.app-sandbox —— QNote 没有开启沙箱。
+  沙箱会让应用无法访问用户自定义的笔记目录、无法监听全局快捷键，
+  与现有功能冲突。
+-->
+<plist version="1.0">
+  <dict>
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    <key>com.apple.security.cs.allow-dyld-environment-variables</key>
+    <true/>
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+    <key>com.apple.security.device.audio-input</key>
+    <true/>
+    <key>com.apple.security.files.user-selected.read-write</key>
+    <true/>
+    <key>com.apple.security.network.client</key>
+    <true/>
+  </dict>
+</plist>

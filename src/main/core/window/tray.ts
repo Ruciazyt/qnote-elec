@@ -1,36 +1,8 @@
 import { Tray, Menu, nativeImage, app } from "electron";
-import * as path from "node:path";
-import * as fs from "node:fs";
 import { log } from "../../utils/log";
+import { getTrayIconSize, resolveTrayIcons } from "../../utils/assets";
 
 let tray: Tray | null = null;
-
-function getAssetDirs() {
-  if (app.isPackaged) {
-    return [path.join(process.resourcesPath, "resources")];
-  }
-
-  const appPath = app.getAppPath();
-  return [
-    path.join(appPath, "..", "..", "resources"),
-    path.join(appPath, "..", "..", "src", "renderer", "public"),
-  ];
-}
-
-function resolveExistingAssets(filenames: string[]): string[] {
-  const candidates: string[] = [];
-
-  for (const name of filenames) {
-    for (const dir of getAssetDirs()) {
-      const assetPath = path.join(dir, name);
-      if (fs.existsSync(assetPath) && !candidates.includes(assetPath)) {
-        candidates.push(assetPath);
-      }
-    }
-  }
-
-  return candidates;
-}
 
 function createTrayFromPath(iconPath: string): Tray {
   const iconImage = nativeImage.createFromPath(iconPath);
@@ -38,12 +10,14 @@ function createTrayFromPath(iconPath: string): Tray {
     throw new Error(`无法加载图标文件: ${iconPath}`);
   }
 
-  return new Tray(iconImage.resize({ width: 16, height: 16 }));
+  // 边长按平台取：Windows 任务栏是 16px，macOS 菜单栏是 16pt@2x = 32px。
+  const size = getTrayIconSize();
+  return new Tray(iconImage.resize({ width: size, height: size }));
 }
 
 export function createTray(): Tray | null {
   try {
-    const iconPaths = resolveExistingAssets(["icon.ico"]);
+    const iconPaths = resolveTrayIcons();
     if (iconPaths.length === 0) {
       log.warn("未找到托盘图标文件，跳过托盘初始化");
       return null;

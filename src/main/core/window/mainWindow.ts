@@ -4,43 +4,11 @@ import * as fs from "node:fs";
 import { app } from "electron";
 import { log } from "../../utils/log";
 import { markQuitting, shouldHideToTray } from "../../utils/appState";
+import { resolveAppIcon } from "../../utils/assets";
 
 let win: BrowserWindow | null = null;
 // 存储IPC监听器引用，用于清理
 const ipcListenerRefs: Array<{ channel: string; handler: (...args: any[]) => void }> = [];
-
-function getAssetsDir() {
-  return !app.isPackaged
-    ? path.join(app.getAppPath(), "..", "..", "resources")
-    : path.join(process.resourcesPath, "resources");
-}
-
-function getAssetDirs() {
-  if (app.isPackaged) {
-    return [getAssetsDir()];
-  }
-
-  return [
-    getAssetsDir(),
-    path.join(app.getAppPath(), "..", "..", "src", "renderer", "public"),
-  ];
-}
-
-function resolveAssetPath(fileName: string) {
-  return path.join(getAssetsDir(), fileName);
-}
-
-function resolveFirstExistingAsset(filenames: string[]): string | null {
-  for (const name of filenames) {
-    for (const dir of getAssetDirs()) {
-      const assetPath = path.join(dir, name);
-      if (fs.existsSync(assetPath)) {
-        return assetPath;
-      }
-    }
-  }
-  return null;
-}
 
 function getPreloadPath() {
   return path.join(__dirname, "..", "..", "preload.js");
@@ -88,7 +56,7 @@ export function cleanupMainWindowListeners(): void {
 export function createMainWindow(): BrowserWindow {
   log.info("开始创建主窗口...");
 
-  const iconPath = resolveFirstExistingAsset(["icon.ico"]);
+  const iconPath = resolveAppIcon();
   if (iconPath) {
     log.info("主窗口图标路径:", iconPath);
   } else {
