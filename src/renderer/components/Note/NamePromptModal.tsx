@@ -1,5 +1,15 @@
 import { Button } from "@/components/ui/button";
 
+/**
+ * 输入框挂载时主动聚焦
+ *
+ * JSX 上的 autoFocus 会被 a11y 规则（jsx-a11y/no-autofocus）判死，
+ * 改用 ref 回调：元素挂载的那一刻 focus，跟原来的 autoFocus 行为一致。
+ */
+function focusOnMount(node: HTMLInputElement | null) {
+  if (node) node.focus();
+}
+
 interface NamePromptModalProps {
   show: boolean;
   title: string;
@@ -39,7 +49,7 @@ export default function NamePromptModal({
             disabled:opacity-50 disabled:cursor-not-allowed"
           placeholder={placeholder}
           value={value}
-          autoFocus
+          ref={focusOnMount}
           disabled={busy}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => {

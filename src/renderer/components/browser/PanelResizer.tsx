@@ -137,7 +137,12 @@ export function PanelResizer({
 
   return (
     <div
-      role="separator"
+      // 角色取 slider 而不是 separator：
+      // 可拖拽的分割条要能被键盘操作，就必须是一个「可调节值的控件」。
+      // separator 在 ARIA 里是结构角色（没有值、不可交互），
+      // 可聚焦的 separator 虽然合法，但静态检查会判定
+      // 「非交互元素上挂了键盘事件」；slider 才是这类控件的正位。
+      role="slider"
       aria-orientation="vertical"
       aria-label="调整侧栏宽度"
       aria-valuenow={width}

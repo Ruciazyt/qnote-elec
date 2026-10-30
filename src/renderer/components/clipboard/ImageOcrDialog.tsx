@@ -67,7 +67,9 @@ export function ImageOcrDialog({
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 ring-1 ring-primary/20">
               <ImageIcon className="h-4 w-4 text-primary" />
             </span>
-            图片预览与 OCR 识别
+            {/* 图标块后面跟的是裸文本，间距由 flex gap 决定；
+                包进 span 让「图标块 / 文字」两段的间距不再有歧义。 */}
+            <span>图片预览与 OCR 识别</span>
           </DialogTitle>
         </DialogHeader>
 
@@ -110,7 +112,9 @@ export function ImageOcrDialog({
             <div className="shrink-0 border-t border-border p-4">
               <div className="flex items-end gap-3">
                 <div className="flex-1">
-                  <label className="mb-1.5 block text-sm font-medium text-foreground/80">
+                  <label
+                    htmlFor="ocr-type-select"
+                    className="mb-1.5 block text-sm font-medium text-foreground/80">
                     识别模式
                   </label>
                   {/* 三个选项的模式选择器保留原生 <select>：系统级下拉在桌面工具里
@@ -119,6 +123,7 @@ export function ImageOcrDialog({
                       border-border/70、ring-2 ring-primary/30），去掉 ring-offset
                       —— 偏移会在彩色 focus 环外留一圈白缝。 */}
                   <select
+                    id="ocr-type-select"
                     className="h-9 w-full rounded-md border border-border/70 bg-background px-3 text-sm text-foreground transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-50"
                     value={ocrType}
                     onChange={(e) =>
@@ -157,7 +162,7 @@ export function ImageOcrDialog({
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 ring-1 ring-primary/20">
                     <FileText className="h-3 w-3 text-primary" />
                   </span>
-                  识别结果
+                  <span>识别结果</span>
                 </h4>
                 {ocrResult && (
                   /* Status Badge 规格是 rounded-md(6px)，不是 pill */

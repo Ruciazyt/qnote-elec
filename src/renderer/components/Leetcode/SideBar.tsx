@@ -357,8 +357,9 @@ export default function Sidebar({ onSelectCollection, selectedCollectionId }: Si
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
-              <label className="text-sm font-medium mb-2 block">题单名称</label>
+              <label htmlFor="leetcode-collection-name" className="text-sm font-medium mb-2 block">题单名称</label>
               <Input
+                id="leetcode-collection-name"
                 value={newCollectionName}
                 onChange={(e) => setNewCollectionName(e.target.value)}
                 placeholder="请输入题单名称"
@@ -371,8 +372,9 @@ export default function Sidebar({ onSelectCollection, selectedCollectionId }: Si
               />
             </div>
             <div>
-              <label className="text-sm font-medium mb-2 block">题单总结（可选）</label>
+              <label htmlFor="leetcode-collection-summary" className="text-sm font-medium mb-2 block">题单总结（可选）</label>
               <Textarea
+                id="leetcode-collection-summary"
                 value={newCollectionSummary}
                 onChange={(e) => setNewCollectionSummary(e.target.value)}
                 placeholder="请输入题单总结"
@@ -405,10 +407,11 @@ export default function Sidebar({ onSelectCollection, selectedCollectionId }: Si
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
-              <label className="text-sm font-medium mb-2 block">
+              <label htmlFor="leetcode-import-text" className="text-sm font-medium mb-2 block">
                 导入内容（支持题目名称、编号、URL等，可包含多个题单）
               </label>
               <Textarea
+                id="leetcode-import-text"
                 value={importText}
                 onChange={(e) => setImportText(e.target.value)}
                 placeholder="例如：&#10;题单1：动态规划专题&#10;1. 两数之和&#10;2. 三数之和&#10;&#10;题单2：数组专题&#10;3. 最长回文子串&#10;或直接粘贴题目列表..."

@@ -60,7 +60,7 @@ export function TodoList({ todos, onToggle, onEdit, onDelete, onAttachmentClick 
           <ListChecks className="h-7 w-7 text-primary/60" />
         </div>
         <p className="text-base font-medium text-foreground/70 mb-1">这里空空如也</p>
-        <p className="text-sm text-muted-foreground/70">点右上角"+ 新建 Todo"创建一条任务</p>
+        <p className="text-sm text-muted-foreground/70">点右上角「+ 新建 Todo」创建一条任务</p>
       </div>
     );
   }

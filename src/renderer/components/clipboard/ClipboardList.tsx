@@ -1,4 +1,4 @@
-import React, { RefObject, useState } from "react";
+import React, { RefObject, useCallback, useState } from "react";
 import { formatDistanceToNow, format, isSameDay, isToday, isYesterday } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { Card } from "../ui/card";
@@ -267,6 +267,20 @@ export function ClipboardList({
   const [savingId, setSavingId] = useState<number | null>(null);
   /** 编辑框随内容长高；长文本横向滚动比纵向滚动更难改 */
   const editAreaRef = useAutoGrowTextarea(editingDraft);
+  /**
+   * 编辑框挂载时主动聚焦
+   *
+   * JSX 上的 autoFocus 会被 a11y 规则（jsx-a11y/no-autofocus）判死，
+   * 改用 ref 回调：元素挂载的那一刻 focus，跟原来的 autoFocus 行为一致。
+   * 回调里顺手把节点交给自动增长的 hook，两个需求共用一个 ref。
+   */
+  const attachEditArea = useCallback(
+    (node: HTMLTextAreaElement | null) => {
+      editAreaRef.current = node;
+      if (node) node.focus();
+    },
+    [editAreaRef]
+  );
   /** 快捷键提示要跟平台一致，macOS 上写 Ctrl 等于教错 */
   const modifierLabel =
     typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.userAgent) ? "⌘" : "Ctrl";
@@ -597,58 +611,62 @@ export function ClipboardList({
                 animationFillMode: "both",
               }}
               {...getHoldProps({ type: record.type, content: record.content })}>
-              <div
-                className="flex items-center gap-2 px-3 py-2 cursor-pointer"
-                onClick={() => togglePinnedExpanded(recordId)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  // 操作栏里的按钮自己处理回车/空格，这里只响应收起条本身获得焦点的情况
-                  if (e.target !== e.currentTarget) return;
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    togglePinnedExpanded(recordId);
-                  }
-                }}
-                aria-expanded={false}
-                title={previewText ? previewText.slice(0, 200) : "图片记录"}>
-                {/* 类型 */}
-                <span
-                  className={`flex-shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold uppercase tracking-wide transition-colors badge-hover ${
-                    record.type === "text"
-                      ? "bg-secondary/50 text-secondary-foreground border border-secondary/40 dark:bg-secondary/50 dark:text-secondary-foreground dark:border-secondary/30"
-                      : "clipboard-image-badge badge-hover"
-                  }`}>
-                  {record.type === "text" ? (
-                    "文本"
-                  ) : (
-                    <>
-                      <ImageIcon className="h-3 w-3" />
-                      图片
-                    </>
-                  )}
-                </span>
+              {/*
+                收起条拆成两块：【主区】与【操作栏】互为兄弟。
 
-                {/* 简述：宽度由 truncate 自适应，长内容不会被撑开 */}
-                {record.type === "text" ? (
+                之前主区是个 role="button" 的 div，操作栏套在里面，靠
+                stopPropagation 挡住冒泡 —— 两个问题：div 上挂 role="button"
+                不如真 <button> 语义正确；而「靠阻止冒泡来防止误触」本身就
+                说明结构错了。
+
+                现在主区是真按钮，操作栏是它的兄弟节点：点操作栏的按钮
+                本来就不会触发主区，不需要 stopPropagation。
+              */}
+              <div className="flex items-center gap-2 px-3 py-2">
+                <button
+                  type="button"
+                  onClick={() => togglePinnedExpanded(recordId)}
+                  aria-expanded={false}
+                  title={previewText ? previewText.slice(0, 200) : "图片记录"}
+                  className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 text-left">
+                  {/* 类型 */}
                   <span
-                    className={`flex-1 min-w-0 truncate text-xs font-mono ${
-                      recordUrl ? "text-link" : "text-foreground/80"
+                    className={`flex-shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-semibold uppercase tracking-wide transition-colors badge-hover ${
+                      record.type === "text"
+                        ? "bg-secondary/50 text-secondary-foreground border border-secondary/40 dark:bg-secondary/50 dark:text-secondary-foreground dark:border-secondary/30"
+                        : "clipboard-image-badge badge-hover"
                     }`}>
-                    {previewText || "（空内容）"}
+                    {record.type === "text" ? (
+                      "文本"
+                    ) : (
+                      <>
+                        <ImageIcon className="h-3 w-3" />
+                        图片
+                      </>
+                    )}
                   </span>
-                ) : (
-                  <span className="flex-1 min-w-0 flex items-center gap-1.5">
-                    <img
-                      src={record.content}
-                      alt=""
-                      className="h-5 w-5 rounded object-cover flex-shrink-0 border border-border/40"
-                    />
-                    <span className="truncate text-xs text-muted-foreground/80">图片记录</span>
-                  </span>
-                )}
 
-                <ChevronDown className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground/50 group-hover:text-muted-foreground/80 transition-colors" />
+                  {/* 简述：宽度由 truncate 自适应，长内容不会被撑开 */}
+                  {record.type === "text" ? (
+                    <span
+                      className={`flex-1 min-w-0 truncate text-xs font-mono ${
+                        recordUrl ? "text-link" : "text-foreground/80"
+                      }`}>
+                      {previewText || "（空内容）"}
+                    </span>
+                  ) : (
+                    <span className="flex-1 min-w-0 flex items-center gap-1.5">
+                      <img
+                        src={record.content}
+                        alt=""
+                        className="h-5 w-5 rounded object-cover flex-shrink-0 border border-border/40"
+                      />
+                      <span className="truncate text-xs text-muted-foreground/80">图片记录</span>
+                    </span>
+                  )}
+
+                  <ChevronDown className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground/50 group-hover:text-muted-foreground/80 transition-colors" />
+                </button>
 
                 {/*
                   操作栏：点按钮不触发展开。
@@ -660,11 +678,7 @@ export function ClipboardList({
                 <div
                   className="flex items-center gap-0.5 flex-shrink-0"
                   role="group"
-                  onClick={(e) => e.stopPropagation()}
-                  onKeyDown={(e) => {
-                    // 键盘事件同样要拦住：否则回车会连父级收起条的展开一起触发
-                    e.stopPropagation();
-                  }}>
+                  aria-label="记录操作">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -946,9 +960,8 @@ export function ClipboardList({
                 isEditing ? (
                   <div className="clipboard-edit-area animate-fade-in">
                     <textarea
-                      ref={editAreaRef}
+                      ref={attachEditArea}
                       value={editingDraft}
-                      autoFocus
                       spellCheck={false}
                       aria-label="编辑剪贴板内容"
                       onChange={(e) => setEditingDraft(e.target.value)}
@@ -1012,35 +1025,50 @@ export function ClipboardList({
                     </div>
                   </div>
                 ) : (
-                  <pre
+                  // 文本区双击即复制。这个交互之前挂在一个裸 <pre> 上：
+                  // <pre> 不是交互元素，双击也没有键盘等价路径，
+                  // 读屏与纯键盘用户根本用不了。
+                  // 换成真正的 <button>：双击照旧，另外 Enter/空格也能复制。
+                  <button
+                    type="button"
                     onDoubleClick={() => handleCopyRecord(record, recordId)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleCopyRecord(record, recordId);
+                      }
+                    }}
                     title="双击复制到剪贴板"
-                    className={`code-block cursor-copy text-sm font-medium leading-relaxed whitespace-pre-wrap break-words font-mono ${
-                      highlightLanguage
-                        ? "code-block--highlight"
-                        : "code-block--plain rounded-md bg-muted/30 pl-3 pr-2 py-2 border border-border/40"
-                    }`}>
-                    <code className={`${codeClassName} block${recordUrl ? " code--link" : ""}`}>{record.content}</code>
-                  </pre>
+                    className="block w-full text-left">
+                    <pre
+                      className={`code-block cursor-copy text-sm font-medium leading-relaxed whitespace-pre-wrap break-words font-mono ${
+                        highlightLanguage
+                          ? "code-block--highlight"
+                          : "code-block--plain rounded-md bg-muted/30 pl-3 pr-2 py-2 border border-border/40"
+                      }`}>
+                      <code className={`${codeClassName} block${recordUrl ? " code--link" : ""}`}>{record.content}</code>
+                    </pre>
+                  </button>
                 )
               ) : (
                 <div className="clipboard-img-preview">
-                  <img
-                    src={record.content}
-                    alt="Clipboard Image"
-                    className="max-w-full h-auto rounded-md shadow-sm cursor-pointer"
-                    role="button"
-                    tabIndex={0}
-                    aria-label="查看剪贴板图片"
+                  {/* 图片可点击放大。外面套一层真 <button>：
+                      img 上直接挂 role="button" 不符合 ARIA in HTML，
+                      真按钮则天然可聚焦、可回车触发。 */}
+                  <button
+                    type="button"
                     onClick={() => onImageClick(record.content)}
-                    onKeyDown={(e) => {
-                      // 图片可点击放大，键盘也要有一条等价路径
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        onImageClick(record.content);
-                      }
-                    }}
-                  />
+                    aria-label="查看剪贴板图片"
+                    title="点击查看大图"
+                    className="block w-full cursor-pointer">
+                    <img
+                      src={record.content}
+                      // alt 里不要再出现「图片」二字 —— 读屏本来就会念出「图像」，
+                      // 重复一遍反而变成「图像，剪贴板图片」。
+                      alt="剪贴板中的内容"
+                      className="max-w-full h-auto rounded-md shadow-sm"
+                    />
+                  </button>
                 </div>
               )}
 

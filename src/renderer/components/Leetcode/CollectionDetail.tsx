@@ -450,9 +450,11 @@ export default function CollectionDetail({ collectionId, onRefresh }: Collection
           {/* 题目列表 */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium">题目列表</label>
+              {/* 分组说明，不是某个控件的标签 */}
+              <span className="text-sm font-medium">题目列表</span>
               <div className="flex items-center gap-2">
                 <Input
+                  id="leetcode-new-problem-link"
                   value={newProblemLink}
                   onChange={(e) => setNewProblemLink(e.target.value)}
                   placeholder="输入题目链接"
