@@ -303,9 +303,14 @@ class StickyNoteManager {
     const webContentsId = win.webContents.id;
 
     if (!app.isPackaged) {
-      win.loadURL(`${DEV_SERVER_URL}/sticky-note.html`);
+      // loadURL 失败会 reject，接住并记日志，免得变成"未处理的Promise拒绝"
+      win.loadURL(`${DEV_SERVER_URL}/sticky-note.html`).catch((error) => {
+        log.error("[stickyNote] 加载开发服务器页面失败:", error);
+      });
     } else {
-      win.loadFile(path.join(process.resourcesPath, "renderer", "dist", "sticky-note.html"));
+      win.loadFile(path.join(process.resourcesPath, "renderer", "dist", "sticky-note.html")).catch((error) => {
+        log.error("[stickyNote] 加载 HTML 失败:", error);
+      });
     }
 
     win.once("ready-to-show", () => {
