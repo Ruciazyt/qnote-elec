@@ -952,8 +952,7 @@ export default function Settings() {
                       ），Claude 格式不能带（如{" "}
                       <span className="font-mono text-foreground/70">
                         https://api.minimax.cn/anthropic
-                      </span>
-                      ）。也可直接贴完整路径，服务会自动识别并补全。切换协议时记得
+                      </span>）。也可直接贴完整路径，服务会自动识别并补全。切换协议时记得
                       同步改这里，否则请求会打到不存在的地址。
                     </>
                   }>
@@ -1041,9 +1040,8 @@ export default function Settings() {
                   label="全局快捷键"
                   hint={
                     <>
-                      按一次开始录音，再按一次结束并提问。识别使用
+                      按一次开始录音，再按一次结束并提问。识别使用{" "}
                       <span className="font-mono text-foreground/70">
-                        {" "}
                         MiniMax ASR
                       </span>
                       ，凭据复用上方「AI助手」的 API Key；识别端点固定为 MiniMax
@@ -1547,7 +1545,7 @@ export default function Settings() {
               />
               <CardContent className="px-5 pb-5 pt-0">
                 <p className="text-[12px] text-muted-foreground/80 leading-relaxed mb-3">
-                  切换后立即生效并自动记住。选择"跟随系统"时，系统主题变化会同步应用。
+                  切换后立即生效并自动记住。选择&quot;跟随系统&quot;时，系统主题变化会同步应用。
                 </p>
                 <div
                   role="radiogroup"

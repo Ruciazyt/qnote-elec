@@ -372,8 +372,9 @@ export default function SkillsPage() {
 
             <div className="space-y-3">
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-foreground/80">技能名</label>
+                <label htmlFor="skill-name-input" className="text-xs font-medium text-foreground/80">技能名</label>
                 <Input
+                  id="skill-name-input"
                   value={draftName}
                   onChange={(e) => setDraftName(e.target.value)}
                   placeholder="如：翻译成英文"
@@ -383,8 +384,9 @@ export default function SkillsPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-foreground/80">技能内容</label>
+                <label htmlFor="skill-content-textarea" className="text-xs font-medium text-foreground/80">技能内容</label>
                 <textarea
+                  id="skill-content-textarea"
                   value={draftContent}
                   onChange={(e) => setDraftContent(e.target.value)}
                   placeholder={
@@ -400,7 +402,10 @@ export default function SkillsPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[11px] text-muted-foreground/70">插入示例</label>
+                {/* 这行是一组按钮的分组说明，不是某个表单控件的标签 ——
+                    用 <span> 而不是 <label>，否则读屏会把整组按钮念成
+                    某个输入框的标签。 */}
+                <span className="text-[11px] text-muted-foreground/70">插入示例</span>
                 <div className="flex flex-wrap gap-1.5">
                   {SKILL_EXAMPLES.map((ex) => (
                     <button
@@ -460,9 +465,10 @@ export default function SkillsPage() {
 
             <div className="space-y-3">
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-foreground/80">技能 URL</label>
+                <label htmlFor="skill-import-url" className="text-xs font-medium text-foreground/80">技能 URL</label>
                 <div className="flex gap-2">
                   <Input
+                    id="skill-import-url"
                     value={importUrl}
                     onChange={(e) => setImportUrl(e.target.value)}
                     onKeyDown={(e) => {

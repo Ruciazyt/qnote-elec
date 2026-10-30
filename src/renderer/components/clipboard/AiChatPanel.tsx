@@ -60,8 +60,6 @@ interface AiChatPanelProps {
   activeSkillId?: string | null;
   /** Skill：切换选中的技能（传 null 表示取消选中） */
   onSelectSkill?: (skillId: string | null) => void;
-  /** Latest clipboard text content — shown as contextual prompt in empty state */
-  latestClipboardContent?: string;
   /** 待发送的图片附件（输入框里的预览条） */
   aiImages?: AiImageAttachment[];
   /** 追加图片附件 */
@@ -147,8 +145,6 @@ export const AiChatPanel = memo(function AiChatPanel({
 
   // 输入区在加载历史/生成中整体停用 —— 具体输入框长什么样见 AiComposer
   const isInputDisabled = aiLoading || isHistoryLoading;
-
-  // latestClipboardContent 仍作为 prop 接收但暂未在空状态使用，预留给后续扩展
 
   return (
     <TooltipProvider>
@@ -467,11 +463,15 @@ export const AiChatPanel = memo(function AiChatPanel({
          * 居中弹窗会被下面的原生网页视图盖住。
          */}
         {previewImage && (
-          <div
-            className="absolute inset-0 z-30 flex items-center justify-center bg-background/90 backdrop-blur-sm animate-fade-in"
-            onClick={() => setPreviewImage(null)}
-            role="dialog"
-            aria-label="查看图片">
+          // 浮层本体是一个可聚焦的按钮：点任意处关闭。
+          // 之前用带 role="dialog" 的 div + onClick，鼠标能关、键盘关不了，
+          // 而且 role 挂在 div 上也不符合 ARIA in HTML。
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-background/90 backdrop-blur-sm animate-fade-in">
+            <button
+              type="button"
+              onClick={() => setPreviewImage(null)}
+              aria-label="关闭预览"
+              className="absolute inset-0 h-full w-full cursor-zoom-out" />
             <img
               src={aiImageDataUrl(previewImage)}
               alt={previewImage.name || "附件图片"}

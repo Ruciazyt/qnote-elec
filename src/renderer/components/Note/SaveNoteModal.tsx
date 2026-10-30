@@ -1,6 +1,16 @@
 import { Button } from "@/components/ui/button";
 import { getNoteTypeMeta, NoteType } from "../../../shared/noteTypes";
 
+/**
+ * 输入框挂载时主动聚焦
+ *
+ * JSX 上的 autoFocus 会被 a11y 规则（jsx-a11y/no-autofocus）判死，
+ * 改用 ref 回调：元素挂载的那一刻 focus，跟原来的 autoFocus 行为一致。
+ */
+function focusOnMount(node: HTMLInputElement | null) {
+  if (node) node.focus();
+}
+
 interface SaveNoteModalProps {
   show: boolean;
   saving: boolean;
@@ -45,7 +55,7 @@ export default function SaveNoteModal({
           placeholder={`请输入文件名（无需后缀），如 example`}
           value={customFileName}
           onChange={(e) => onChange(e.target.value)}
-          autoFocus
+          ref={focusOnMount}
           disabled={saving}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !saving && customFileName.trim()) onConfirm();

@@ -117,11 +117,10 @@ export function ClipboardPopup() {
   }, [searchQuery]);
 
   return (
-    <div
-      className="flex flex-col h-screen bg-background rounded-lg border border-border shadow-2xl overflow-hidden animate-popup-appear"
-      tabIndex={0}
-      onKeyDown={handleKeyDown}
-    >
+    // 弹窗根节点只负责布局。方向键导航挂在下面的 listbox 上 ——
+    // 「可聚焦 + 响应键盘」的元素必须是对辅助技术有意义的角色，
+    // 而 listbox 正是「用方向键在条目间移动、Enter 选中」的语义。
+    <div className="flex flex-col h-screen bg-background rounded-lg border border-border shadow-2xl overflow-hidden animate-popup-appear">
       {/* 标题栏 */}
       <div className="h-10 px-3 flex items-center justify-between border-b border-border bg-card select-none" style={{ WebkitAppRegion: "drag" } as any}>
         <h2 className="text-sm font-medium text-foreground flex items-center gap-2">
@@ -147,6 +146,9 @@ export function ClipboardPopup() {
             placeholder="搜索剪贴板..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            // 键盘导航（Esc / 方向键 / 回车）挂在搜索框上：
+            // 它本来就是可交互元素，不需要给外层容器加 role 或 tabIndex。
+            onKeyDown={handleKeyDown}
             className="w-full h-full pl-9 pr-3 text-sm bg-muted/40 rounded-lg border-none outline-none text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 transition-all duration-150"
           />
         </div>
@@ -203,9 +205,19 @@ export function ClipboardPopup() {
                   if (e.target !== e.currentTarget) return;
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    // 弹窗根节点也监听回车去复制选中项，拦一下免得复制两次
-                    e.stopPropagation();
                     void handleCopy(item);
+                    return;
+                  }
+                  // 方向键在条目间移动选中项 —— 与搜索框里同一套逻辑。
+                  // 之前靠事件冒泡到弹窗根节点，现在根节点不再挂键盘处理，
+                  // 所以这里显式调用。
+                  if (
+                    e.key === "ArrowDown" ||
+                    e.key === "ArrowUp" ||
+                    e.key === "Tab" ||
+                    e.key === "Escape"
+                  ) {
+                    handleKeyDown(e);
                   }
                 }}
                 className={cn(

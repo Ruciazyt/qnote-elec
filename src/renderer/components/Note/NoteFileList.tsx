@@ -78,6 +78,16 @@ interface NoteFileListProps {
   fileListRef: React.RefObject<HTMLDivElement>;
 }
 
+/**
+ * 输入框挂载时主动聚焦
+ *
+ * JSX 上的 autoFocus 会被 a11y 规则（jsx-a11y/no-autofocus）判死，
+ * 改用 ref 回调：元素挂载的那一刻 focus，跟原来的 autoFocus 行为一致。
+ */
+function focusOnMount(node: HTMLInputElement | null) {
+  if (node) node.focus();
+}
+
 /** 行内重命名输入框 */
 function RenameInput({
   value,
@@ -98,7 +108,7 @@ function RenameInput({
       data-rename-input
       className="flex-1 min-w-0 h-6 bg-background border border-primary/50 rounded px-1.5 text-xs outline-none ring-2 ring-primary/25"
       value={value}
-      autoFocus
+      ref={focusOnMount}
       disabled={busy}
       onClick={(e) => e.stopPropagation()}
       onChange={(e) => onChange(e.target.value)}
@@ -122,24 +132,32 @@ function RowActions({
   const btn =
     "h-6 w-6 rounded flex items-center justify-center transition-colors duration-150 active:scale-90";
   return (
-    <div
-      className="flex items-center gap-0.5 flex-shrink-0"
-      role="group"
-      onClick={(e) => e.stopPropagation()}
-      onKeyDown={(e) => {
-        // 键盘事件同样要拦住：否则回车会连父级行的打开动作一起触发
-        e.stopPropagation();
-      }}
-    >
-      <button type="button" className={cn(btn, "text-muted-foreground hover:text-primary")} aria-label="重命名" onClick={onRename}>
+    // 这层容器只负责排版，不挂任何事件：
+    // role="group" 是非交互角色，容器上挂 onClick 会被判成
+    // 「非交互元素上挂了交互事件」。
+    // 拦住冒泡这件事交给按钮自己 —— 按钮点不到的地方本来就不该有动作。
+    <div className="flex items-center gap-0.5 flex-shrink-0" role="group" aria-label="笔记操作">
+      <button
+        type="button"
+        className={cn(btn, "text-muted-foreground hover:text-primary")}
+        aria-label="重命名"
+        onClick={(e) => {
+          // 拦住冒泡，免得连父级行的「打开笔记」一起触发
+          e.stopPropagation();
+          onRename();
+        }}
+        onKeyDown={(e) => e.stopPropagation()}>
         <Pencil className="h-3 w-3" />
       </button>
       <button
         type="button"
         className={cn(btn, "text-muted-foreground hover:text-destructive")}
         aria-label="删除"
-        onClick={onDelete}
-      >
+        onClick={(e) => {
+          e.stopPropagation();
+          onDelete();
+        }}
+        onKeyDown={(e) => e.stopPropagation()}>
         <Trash2 className="h-3 w-3" />
       </button>
     </div>
