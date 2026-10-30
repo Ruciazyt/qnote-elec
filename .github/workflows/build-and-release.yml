@@ -533,16 +533,32 @@ jobs:
         continue-on-error: true
         uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
         with:
-          pattern: "mac-*-build"
+          # artifact 名是 "mac-build"（见 build-mac 作业的 Upload artifacts 步骤）。
+          # 早先这里写的是 "mac-*-build" —— 匹配不到 "mac-build"，
+          # 下载步骤静默取回 0 个 artifact，Release 里就没有 mac 产物，
+          # 而且整条流水线不报错。Windows 侧写的是 "windows-*-build"，
+          # 能匹配 "windows-latest-build"，所以只有 mac 漏了。
+          pattern: "mac-build"
           path: artifacts-mac
           
       - name: List downloaded artifacts
         run: |
           echo "下载的构建文件:"
           find artifacts -type f \( -name "*.exe" -o -name "*.zip" -o -name "latest.yml" \) | sort
+          # artifacts-mac 即使一个文件都没下到也会被创建，
+          # 所以这里数实际文件数，而不是只看目录在不在。
+          # mac 发布开关没打开时，下载步骤整个被跳过，目录也不存在 ——
+          # 那种情况下 find 会以非零码退出，而 runner 的 bash 带 -eo pipefail，
+          # 不先判目录存在就直接 find，会把整个步骤带崩。
+          mac_count=0
           if [ -d artifacts-mac ]; then
+            mac_count=$(find artifacts-mac -type f | wc -l)
+          fi
+          if [ "$mac_count" -gt 0 ]; then
             echo "下载的 macOS 构建文件:"
             find artifacts-mac -type f \( -name "*.dmg" -o -name "*.zip" -o -name "latest-mac.yml" \) | sort
+          else
+            echo "没有下载到 macOS 构建文件（mac 发布开关未开启时属正常）"
           fi
 
       # 汇总要发布的文件清单与 macOS 说明段。
@@ -574,9 +590,26 @@ jobs:
           #   - 产物已签名且已公证 —— 这种包用户双击就能开，没有 Gatekeeper 的问题，
           #     不必再等维护者手动开开关。
           # 两个条件都没满足时，mac 产物只留在 Actions Artifact 里。
-          $macReady = (Test-Path 'artifacts-mac')
+          #
+          # 注意：不能只看目录存不存在。download-artifact 在一个都没匹配到时
+          # 仍会建出空目录，Test-Path 判 true，但里面没有任何文件 ——
+          # 结果就是 mac 产物一个都没进 Release，而流水线一声不响。
+          # 所以这里按真实文件判断。
+          $macFiles = @(
+            Get-ChildItem -Path 'artifacts-mac' -Recurse -File -ErrorAction SilentlyContinue |
+              Where-Object { $_.Name -match '\.(dmg|zip)$' -or $_.Name -eq 'latest-mac.yml' -or $_.Name -like '*.blockmap' }
+          )
+          $macReady = ($macFiles.Count -gt 0)
           $macSignedOk = ($env:MAC_SIGNED -eq 'true' -and $env:MAC_NOTARIZED -eq 'true')
-          if ($macReady -and ($env:MAC_RELEASE_ENABLED -eq 'true' -or $macSignedOk)) {
+          $macWanted = ($env:MAC_RELEASE_ENABLED -eq 'true' -or $macSignedOk)
+
+          if ($macWanted -and -not $macReady) {
+            # 开关是开的却一个 mac 产物都没下到 —— 这是异常状态，必须显式说出来，
+            # 否则就是「发布成功但用户拿不到 mac 版」这种查起来极费劲的问题。
+            Write-Host "::warning title=macOS 产物缺失::已开启 mac 发布开关，但 artifacts-mac 里没有找到任何 mac 产物（dmg/zip/latest-mac.yml/blockmap）。本次 Release 将只包含 Windows 产物。"
+          }
+
+          if ($macReady -and $macWanted) {
             $files += @(
               'artifacts-mac/**/*.dmg',
               'artifacts-mac/**/*.zip',
