@@ -410,6 +410,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("todo:update", id, patch),
   todoDelete: (id: number) => ipcRenderer.invoke("todo:delete", id),
   todoToggle: (id: number) => ipcRenderer.invoke("todo:toggle", id),
+  todoArchive: (id: number) => ipcRenderer.invoke("todo:archive", id),
+  todoUnarchive: (id: number) => ipcRenderer.invoke("todo:unarchive", id),
 
   // 本地记忆索引 API
   addToMemory: (noteId: number) => ipcRenderer.invoke("add-to-memory", noteId),

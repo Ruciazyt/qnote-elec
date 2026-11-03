@@ -1,4 +1,4 @@
-import { Pencil, Trash2, ListChecks, Paperclip } from "lucide-react";
+import { Pencil, Trash2, ListChecks, Paperclip, Archive, ArchiveRestore } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -10,8 +10,15 @@ interface TodoListProps {
   onToggle: (todo: Todo) => void;
   onEdit: (todo: Todo) => void;
   onDelete: (todo: Todo) => void;
+  /** 归档：归档后这条只出现在「归档」页签 */
+  onArchive?: (todo: Todo) => void;
+  /** 取消归档：放回待办列表 */
+  onUnarchive?: (todo: Todo) => void;
   /** 点击附件缩略图时回调（用于放大查看） */
   onAttachmentClick?: (attachment: TodoAttachment, todo: Todo) => void;
+  /** 空列表时的标题/提示，不传则用默认文案 */
+  emptyTitle?: string;
+  emptyHint?: string;
 }
 
 const PRIORITY_META: Record<TodoPriority, { label: string; className: string }> = {
@@ -52,15 +59,27 @@ function formatCreated(date: string): string {
   }
 }
 
-export function TodoList({ todos, onToggle, onEdit, onDelete, onAttachmentClick }: TodoListProps) {
+export function TodoList({
+  todos,
+  onToggle,
+  onEdit,
+  onDelete,
+  onArchive,
+  onUnarchive,
+  onAttachmentClick,
+  emptyTitle,
+  emptyHint,
+}: TodoListProps) {
   if (todos.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-4">
           <ListChecks className="h-7 w-7 text-primary/60" />
         </div>
-        <p className="text-base font-medium text-foreground/70 mb-1">这里空空如也</p>
-        <p className="text-sm text-muted-foreground/70">点右上角「+ 新建 Todo」创建一条任务</p>
+        <p className="text-base font-medium text-foreground/70 mb-1">{emptyTitle ?? "这里空空如也"}</p>
+        <p className="text-sm text-muted-foreground/70">
+          {emptyHint ?? "点右上角「+ 新建 Todo」创建一条任务"}
+        </p>
       </div>
     );
   }
@@ -71,6 +90,7 @@ export function TodoList({ todos, onToggle, onEdit, onDelete, onAttachmentClick 
         const priority = PRIORITY_META[todo.priority];
         const due = formatDueDate(todo.due_date, todo.completed);
         const completed = todo.completed === 1;
+        const archived = Boolean(todo.archived_at);
         const attachments = todo.attachments || [];
         const attachmentCount = attachments.length;
         return (
@@ -108,6 +128,25 @@ export function TodoList({ todos, onToggle, onEdit, onDelete, onAttachmentClick 
                   </TooltipTrigger>
                   <TooltipContent side="top" sideOffset={4}>
                     <p className="text-xs">编辑</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={() => (archived ? onUnarchive?.(todo) : onArchive?.(todo))}
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 hover:bg-primary/10 hover:text-primary"
+                      aria-label={archived ? "取消归档" : "归档"}>
+                      {archived ? (
+                        <ArchiveRestore className="h-3.5 w-3.5" />
+                      ) : (
+                        <Archive className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" sideOffset={4}>
+                    <p className="text-xs">{archived ? "取消归档" : "归档"}</p>
                   </TooltipContent>
                 </Tooltip>
                 <Tooltip>

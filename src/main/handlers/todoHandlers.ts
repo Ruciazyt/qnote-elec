@@ -22,6 +22,8 @@ export interface TodoRow {
   due_date: string | null;
   completed: 0 | 1;
   completed_at: string | null;
+  /** 归档时间；null 表示未归档 */
+  archived_at: string | null;
   created_at: string;
   updated_at: string;
   /** 附件列表 */
@@ -94,6 +96,7 @@ function serializeTodo(row: any): TodoRow {
     due_date: row.due_date ?? null,
     completed: row.completed ? 1 : 0,
     completed_at: row.completed_at ?? null,
+    archived_at: row.archived_at ?? null,
     created_at: row.created_at,
     updated_at: row.updated_at,
     attachments: parseAttachments(row.attachments),
@@ -108,8 +111,18 @@ export function registerTodoHandlers(DB: any) {
       const rows = await DB.from("todo").select("*");
       const items = rows.map(serializeTodo);
       // 排序：未完成按优先级（高→低）+ 截止日期升序（无截止日期排最后）+ 创建时间倒序；
-      // 已完成按完成时间倒序
+      // 已完成按完成时间倒序；归档项一律排在最后
       items.sort((a, b) => {
+        // 归档项沉底：界面上归档是独立页签，混在待办列表里会让人以为还有活没干
+        const aa = a.archived_at ? 1 : 0;
+        const ba = b.archived_at ? 1 : 0;
+        if (aa !== ba) return aa - ba;
+        // 归档区内部按归档时间倒序（最近归档的排最前）
+        if (aa === 1) {
+          const at = a.archived_at ? new Date(a.archived_at).getTime() : 0;
+          const bt = b.archived_at ? new Date(b.archived_at).getTime() : 0;
+          return bt - at;
+        }
         if (a.completed !== b.completed) {
           return a.completed - b.completed;
         }
@@ -143,6 +156,7 @@ export function registerTodoHandlers(DB: any) {
         due_date: input.due_date ?? null,
         completed: 0,
         completed_at: null,
+        archived_at: null,
         created_at: now,
         updated_at: now,
         attachments: serializeAttachments(input.attachments),
@@ -197,6 +211,47 @@ export function registerTodoHandlers(DB: any) {
       return serializeTodo(row);
     } catch (err) {
       log.error("切换Todo状态失败", err);
+      throw err;
+    }
+  });
+
+  /**
+   * 归档：记下归档时间，归档后这条只出现在「归档」页签里。
+   * 重复归档不会刷新归档时间 —— 幂等，避免连点两次把顺序打乱。
+   */
+  ipcMain.handle("todo:archive", async (_event: IpcMainInvokeEvent, id: number) => {
+    try {
+      const existing = await DB.from("todo").where("id", id).first();
+      if (!existing) {
+        throw new Error(`Todo ${id} 不存在`);
+      }
+      const now = new Date();
+      const [row] = await DB.from("todo").where("id", id).update({
+        archived_at: existing.archived_at ?? now,
+        updated_at: now,
+      }).returning("*");
+      return serializeTodo(row);
+    } catch (err) {
+      log.error("归档Todo失败", err);
+      throw err;
+    }
+  });
+
+  /** 取消归档：清掉归档时间，这条回到待办列表 */
+  ipcMain.handle("todo:unarchive", async (_event: IpcMainInvokeEvent, id: number) => {
+    try {
+      const existing = await DB.from("todo").where("id", id).first();
+      if (!existing) {
+        throw new Error(`Todo ${id} 不存在`);
+      }
+      const now = new Date();
+      const [row] = await DB.from("todo").where("id", id).update({
+        archived_at: null,
+        updated_at: now,
+      }).returning("*");
+      return serializeTodo(row);
+    } catch (err) {
+      log.error("取消归档Todo失败", err);
       throw err;
     }
   });

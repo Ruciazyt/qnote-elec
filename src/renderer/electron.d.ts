@@ -240,6 +240,8 @@ interface ElectronAPI {
   todoUpdate: (id: number, patch: import("./components/todo/types").TodoUpdateInput) => Promise<import("./components/todo/types").Todo>;
   todoDelete: (id: number) => Promise<boolean>;
   todoToggle: (id: number) => Promise<import("./components/todo/types").Todo>;
+  todoArchive: (id: number) => Promise<import("./components/todo/types").Todo>;
+  todoUnarchive: (id: number) => Promise<import("./components/todo/types").Todo>;
 
   // Memory index
   addToMemory: (noteId: number) => Promise<{ success: boolean; error?: string }>;

@@ -20,6 +20,8 @@ export interface Todo {
   due_date: string | null;
   completed: 0 | 1;
   completed_at: string | null;
+  /** 归档时间；null 表示未归档。归档后只在「归档」页签出现 */
+  archived_at: string | null;
   created_at: string;
   updated_at: string;
   /** 附件列表 */

@@ -6,13 +6,22 @@ import { TodoEditDialog } from "@/components/todo/TodoEditDialog";
 import { TodoList } from "@/components/todo/TodoList";
 import type { Todo, TodoPriority, TodoAttachment } from "@/components/todo/types";
 
-type Filter = "all" | "active" | "completed";
+type Filter = "all" | "active" | "completed" | "archived";
 
 const FILTERS: { key: Filter; label: string }[] = [
   { key: "all", label: "全部" },
   { key: "active", label: "待办" },
   { key: "completed", label: "已完成" },
+  { key: "archived", label: "归档" },
 ];
+
+/** 归档页签空列表时的提示 —— 与「全部」页签的引导语不同 */
+const EMPTY_HINT: Partial<Record<Filter, { title: string; hint: string }>> = {
+  archived: {
+    title: "归档区是空的",
+    hint: "在待办列表里点「归档」按钮，收起来的任务会放到这里",
+  },
+};
 
 export default function TodoPage() {
   const { toast } = useToast();
@@ -42,19 +51,25 @@ export default function TodoPage() {
   }, [load]);
 
   const filtered = useMemo(() => {
-    if (filter === "active") return todos.filter((t) => t.completed === 0);
-    if (filter === "completed") return todos.filter((t) => t.completed === 1);
-    return todos;
+    // 用真值判断而不是 !== null：字段缺失（undefined）时应当算「未归档」，
+    // 写成 !== null 会把 undefined 误判成已归档
+    if (filter === "archived") return todos.filter((t) => Boolean(t.archived_at));
+    // 归档项只在「归档」页签出现，其余页签一律不显示
+    const live = todos.filter((t) => !t.archived_at);
+    if (filter === "active") return live.filter((t) => t.completed === 0);
+    if (filter === "completed") return live.filter((t) => t.completed === 1);
+    return live;
   }, [todos, filter]);
 
-  const counts = useMemo(
-    () => ({
-      all: todos.length,
-      active: todos.filter((t) => t.completed === 0).length,
-      completed: todos.filter((t) => t.completed === 1).length,
-    }),
-    [todos]
-  );
+  const counts = useMemo(() => {
+    const live = todos.filter((t) => !t.archived_at);
+    return {
+      all: live.length,
+      active: live.filter((t) => t.completed === 0).length,
+      completed: live.filter((t) => t.completed === 1).length,
+      archived: todos.filter((t) => Boolean(t.archived_at)).length,
+    };
+  }, [todos]);
 
   const openCreate = () => {
     setEditing(null);
@@ -117,6 +132,28 @@ export default function TodoPage() {
     }
   };
 
+  const handleArchive = async (todo: Todo) => {
+    try {
+      await window.electron.todoArchive(todo.id);
+      toast({ title: "Todo 已归档", description: "之后只在「归档」页签里能看到" });
+      await load();
+    } catch (err) {
+      console.error("归档 Todo 失败", err);
+      toast({ title: "归档失败", variant: "destructive" });
+    }
+  };
+
+  const handleUnarchive = async (todo: Todo) => {
+    try {
+      await window.electron.todoUnarchive(todo.id);
+      toast({ title: "Todo 已取消归档" });
+      await load();
+    } catch (err) {
+      console.error("取消归档 Todo 失败", err);
+      toast({ title: "取消归档失败", variant: "destructive" });
+    }
+  };
+
   return (
     <div className="flex h-full flex-col px-6 py-4 overflow-hidden">
       <div className="flex items-center justify-between mb-4 flex-shrink-0">
@@ -165,7 +202,11 @@ export default function TodoPage() {
           onToggle={handleToggle}
           onEdit={openEdit}
           onDelete={handleDelete}
+          onArchive={handleArchive}
+          onUnarchive={handleUnarchive}
           onAttachmentClick={handleAttachmentClick}
+          emptyTitle={EMPTY_HINT[filter]?.title}
+          emptyHint={EMPTY_HINT[filter]?.hint}
         />
         )}
       </div>

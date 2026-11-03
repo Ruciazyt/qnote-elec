@@ -301,6 +301,8 @@ async function createTodosTable(DB: Knex): Promise<void> {
       table.timestamp("updated_at").defaultTo(DB.fn.now());
       // 附件列表 — 存储为 JSON 字符串，包含 image 等类型附件的 dataUrl
       table.text("attachments").defaultTo("[]");
+      // 归档时间 — NULL 表示未归档。归档后只在「归档」页签里出现
+      table.timestamp("archived_at");
     });
     log.info("Todo表创建成功");
   } catch (err) {
@@ -322,6 +324,23 @@ async function addTodoAttachmentsColumn(DB: Knex): Promise<void> {
     }
   } catch (err) {
     log.error("添加 todo attachments 字段失败", err);
+  }
+}
+
+// 为已存在的 todo 表添加 archived_at 字段（兼容旧版本数据库）
+async function addTodoArchivedAtColumn(DB: Knex): Promise<void> {
+  try {
+    const columns = await DB.raw("PRAGMA table_info(todo)");
+    const hasArchivedAtColumn = columns.some((col: any) => col.name === "archived_at");
+    if (!hasArchivedAtColumn) {
+      // 旧数据一律视为未归档
+      await DB.raw("ALTER TABLE todo ADD COLUMN archived_at TIMESTAMP DEFAULT NULL");
+      log.info("已为 todo 表添加 archived_at 字段");
+    } else {
+      log.info("todo 表的 archived_at 字段已存在");
+    }
+  } catch (err) {
+    log.error("添加 todo archived_at 字段失败", err);
   }
 }
 
@@ -724,6 +743,9 @@ export async function migrateRun(path?: string): Promise<void> {
 
     // 检查并添加 todo 表的 attachments 字段（兼容旧版本数据库）
     await addTodoAttachmentsColumn(DB);
+
+    // 检查并添加 todo 表的 archived_at 字段（兼容旧版本数据库）
+    await addTodoArchivedAtColumn(DB);
 
     // 检查并添加note表的is_pinned_to_ai字段
     await addNoteTableColumns(DB);
