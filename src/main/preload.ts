@@ -412,6 +412,18 @@ contextBridge.exposeInMainWorld("electron", {
   todoToggle: (id: number) => ipcRenderer.invoke("todo:toggle", id),
   todoArchive: (id: number) => ipcRenderer.invoke("todo:archive", id),
   todoUnarchive: (id: number) => ipcRenderer.invoke("todo:unarchive", id),
+  /**
+   * 订阅 Todo 列表变更
+   *
+   * 待办页是 keep-alive 的，切走不卸载；待办的增删改除了发生在待办页自身，
+   * 也可能来自剪贴板那边新建。没有这个通知，待办页只能等下次挂载才拿到
+   * 最新数据，表现为"要重启才生效"。
+   */
+  onTodosChanged: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on("todo:changed", listener);
+    return () => ipcRenderer.removeListener("todo:changed", listener);
+  },
 
   // 本地记忆索引 API
   addToMemory: (noteId: number) => ipcRenderer.invoke("add-to-memory", noteId),

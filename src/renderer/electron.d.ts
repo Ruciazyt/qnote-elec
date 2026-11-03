@@ -242,6 +242,8 @@ interface ElectronAPI {
   todoToggle: (id: number) => Promise<import("./components/todo/types").Todo>;
   todoArchive: (id: number) => Promise<import("./components/todo/types").Todo>;
   todoUnarchive: (id: number) => Promise<import("./components/todo/types").Todo>;
+  /** 订阅 Todo 列表变更（待办页用它跨页刷新），返回取消订阅函数 */
+  onTodosChanged: (callback: () => void) => () => void;
 
   // Memory index
   addToMemory: (noteId: number) => Promise<{ success: boolean; error?: string }>;

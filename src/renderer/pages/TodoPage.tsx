@@ -50,6 +50,23 @@ export default function TodoPage() {
     void load();
   }, [load]);
 
+  /**
+   * 订阅待办列表变更
+   *
+   * 待办页是 keep-alive 的：切走只是 display:none，组件不卸载，列表只在
+   * 挂载时拉一次。剪贴板那边新建的待办不会触发本页重新拉数据，用户看到的
+   * 就是"要重启才生效"。主进程在任何待办增删改后都会广播 todo:changed，
+   * 这里跟着重拉一次。
+   *
+   * 本页自己的增删改也会收到这条广播，等于同一份数据拉两次 —— 保留本页
+   * 显式的 load() 是为了让本地操作立刻有反馈，不必等广播的时序。
+   */
+  useEffect(() => {
+    return window.electron.onTodosChanged(() => {
+      void load();
+    });
+  }, [load]);
+
   const filtered = useMemo(() => {
     // 用真值判断而不是 !== null：字段缺失（undefined）时应当算「未归档」，
     // 写成 !== null 会把 undefined 误判成已归档

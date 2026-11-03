@@ -1,4 +1,4 @@
-import { ipcMain, IpcMainInvokeEvent } from "electron";
+import { ipcMain, IpcMainInvokeEvent, BrowserWindow } from "electron";
 import { log } from "../utils/log";
 
 /** 附件类型 — 当前仅支持 image（基于 base64 dataUrl） */
@@ -105,6 +105,29 @@ function serializeTodo(row: any): TodoRow {
 
 const PRIORITY_RANK: Record<string, number> = { high: 0, medium: 1, low: 2 };
 
+/**
+ * 广播 Todo 列表变更
+ *
+ * 待办页是 keep-alive 的（切走只是 display:none，组件不卸载），列表只在
+ * 挂载时拉一次。剪贴板那边新建待办时，待办页收不到任何通知，用户看到的
+ * 就是"必须重启才生效"。这里把变更广播给所有窗口，待办页订阅后重拉列表。
+ *
+ * 广播给所有窗口而不是只发回调用方：剪贴板弹窗、主窗口是不同 WebContents，
+ * 只发给调用方的话另一个窗口里的列表还是旧的。
+ */
+function broadcastTodosChanged() {
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (win.isDestroyed()) continue;
+    try {
+      win.webContents.send("todo:changed");
+    } catch (err) {
+      // 通知失败不能反过来让写操作变成失败 —— 数据已经落库了，
+      // 用户看到的应该是"已创建"而不是"添加失败"
+      log.warn("广播 Todo 变更失败", err);
+    }
+  }
+}
+
 export function registerTodoHandlers(DB: any) {
   ipcMain.handle("todo:list", async () => {
     try {
@@ -162,6 +185,7 @@ export function registerTodoHandlers(DB: any) {
         attachments: serializeAttachments(input.attachments),
       };
       const [row] = await DB.from("todo").insert(payload).returning("*");
+      broadcastTodosChanged();
       return serializeTodo(row);
     } catch (err) {
       log.error("创建Todo失败", err);
@@ -178,6 +202,7 @@ export function registerTodoHandlers(DB: any) {
       if (patch.due_date !== undefined) update.due_date = patch.due_date;
       if (patch.attachments !== undefined) update.attachments = serializeAttachments(patch.attachments);
       const [row] = await DB.from("todo").where("id", id).update(update).returning("*");
+      broadcastTodosChanged();
       return serializeTodo(row);
     } catch (err) {
       log.error("更新Todo失败", err);
@@ -188,6 +213,7 @@ export function registerTodoHandlers(DB: any) {
   ipcMain.handle("todo:delete", async (_event: IpcMainInvokeEvent, id: number) => {
     try {
       const removed = await DB.from("todo").where("id", id).delete();
+      if (removed > 0) broadcastTodosChanged();
       return removed > 0;
     } catch (err) {
       log.error("删除Todo失败", err);
@@ -208,6 +234,7 @@ export function registerTodoHandlers(DB: any) {
         completed_at: wasCompleted ? null : now,
         updated_at: now,
       }).returning("*");
+      broadcastTodosChanged();
       return serializeTodo(row);
     } catch (err) {
       log.error("切换Todo状态失败", err);
@@ -230,6 +257,7 @@ export function registerTodoHandlers(DB: any) {
         archived_at: existing.archived_at ?? now,
         updated_at: now,
       }).returning("*");
+      broadcastTodosChanged();
       return serializeTodo(row);
     } catch (err) {
       log.error("归档Todo失败", err);
@@ -249,6 +277,7 @@ export function registerTodoHandlers(DB: any) {
         archived_at: null,
         updated_at: now,
       }).returning("*");
+      broadcastTodosChanged();
       return serializeTodo(row);
     } catch (err) {
       log.error("取消归档Todo失败", err);
