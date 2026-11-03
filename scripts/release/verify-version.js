@@ -26,13 +26,13 @@ const GIT = resolveExe('git');
 const VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
 
 /**
- * 当前发布线 —— 1.6.x
+ * 当前发布线 —— 1.7.x
  *
- * 1.5.x 从 1.5.0 起步，这期间累积了一个功能级提交（支持 macOS 打包），
- * 按 semver 规则它要求 minor 版本，minor 落在 1.6.0 ——
- * 所以换到 1.6.x。换线理由见 AGENTS.md 第 3.1 节。
+ * 1.6.x 从 1.6.0 起步，这期间累积了三个功能级提交 —— Markdown 表格支持、
+ * 待办归档、剪贴板面板。按 semver 规则它们要求 minor 版本，minor
+ * 落在 1.7.0 —— 所以换到 1.7.x。换线理由见 AGENTS.md 第 3.1 节。
  */
-const RELEASE_LINE = { major: 1, minor: 6 };
+const RELEASE_LINE = { major: 1, minor: 7 };
 
 /** 读取根 package.json 的 version */
 function readVersion() {
