@@ -5,6 +5,7 @@ import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import Placeholder from "@tiptap/extension-placeholder";
 import Image from "@tiptap/extension-image";
+import { TableKit } from "@tiptap/extension-table";
 import { Markdown } from "@tiptap/markdown";
 import {
   Undo2,
@@ -29,10 +30,16 @@ import {
   Heading2,
   Heading3,
   Pilcrow,
+  Table,
+  Rows3,
+  Columns3,
+  Trash2,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import "@/styles/note-editor.css";
 import { NoteFileEntry } from "../../../../shared/noteTypes";
@@ -100,6 +107,69 @@ const ToolDivider = () => (
   <div className="hidden xl:block w-px h-4 bg-[hsl(var(--divider))] mx-0.5 flex-shrink-0" />
 );
 
+/**
+ * 表格尺寸选择器。
+ *
+ * 悬停时按格子位置高亮 rows×cols 的矩形，点击即插入。
+ * 移出网格后回到默认的 3×3 —— 高亮块留在最后一次悬停处会让用户
+ * 以为已经选中了那个尺寸。
+ */
+function TableGridPicker({ onPick }: { onPick: (rows: number, cols: number) => void }) {
+  const MAX = 8;
+  const [hover, setHover] = useState({ rows: 3, cols: 3 });
+
+  return (
+    <div
+      className="grid grid-cols-8 gap-1 w-max"
+      onMouseLeave={() => setHover({ rows: 3, cols: 3 })}
+    >
+      {Array.from({ length: MAX * MAX }).map((_, i) => {
+        const r = Math.floor(i / MAX);
+        const c = i % MAX;
+        const active = r < hover.rows && c < hover.cols;
+        return (
+          <button
+            key={i}
+            type="button"
+            aria-label={`${r + 1} 行 ${c + 1} 列`}
+            className={cn(
+              "h-5 w-5 rounded-sm border transition-colors",
+              active
+                ? "bg-primary border-primary"
+                : "border-border hover:border-primary/60"
+            )}
+            onMouseEnter={() => setHover({ rows: r + 1, cols: c + 1 })}
+            onClick={() => onPick(r + 1, c + 1)}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+/** 表格操作按钮（弹层内的一行一个动作） */
+function TableOpButton({
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  icon: LucideIcon;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      className="h-8 justify-start gap-1.5 px-2 text-xs"
+      onClick={onClick}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      {label}
+    </Button>
+  );
+}
+
 const RichTextEditor = forwardRef<NoteEditorHandle, RichTextEditorProps>(function RichTextEditor(
   { file, dirPath, onSaved, onRequestSaveAs },
   ref
@@ -107,6 +177,7 @@ const RichTextEditor = forwardRef<NoteEditorHandle, RichTextEditorProps>(functio
   const [dirty, setDirty] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkValue, setLinkValue] = useState("");
+  const [tableOpen, setTableOpen] = useState(false);
   const [insertingImage, setInsertingImage] = useState(false);
   /** 已经灌进编辑器的条目路径。
    *  另存为后父组件会把 file 换成新条目，这里记下来就能跳过重新加载 ——
@@ -172,6 +243,10 @@ const RichTextEditor = forwardRef<NoteEditorHandle, RichTextEditorProps>(functio
         HTMLAttributes: { class: "rounded-md" },
       }),
       Placeholder.configure({ placeholder: "在这里开始写…" }),
+      // 表格必须显式挂上：@tiptap/markdown 的解析器只认 schema 里已注册的节点，
+      // schema 里没有 table 的话，marked 切出来的 table token 会被静默丢掉 ——
+      // 表头和表身的文字都不剩，看起来就是「表格整块没了」。
+      TableKit,
       Markdown,
     ],
     // 空文档起步，实际内容由下面的 effect 按文件加载
@@ -293,6 +368,7 @@ const RichTextEditor = forwardRef<NoteEditorHandle, RichTextEditorProps>(functio
       blockquote: e?.isActive("blockquote") ?? false,
       codeBlock: e?.isActive("codeBlock") ?? false,
       link: e?.isActive("link") ?? false,
+      inTable: e?.isActive("table") ?? false,
       canUndo: e?.can().undo() ?? false,
       canRedo: e?.can().redo() ?? false,
     }),
@@ -410,6 +486,84 @@ const RichTextEditor = forwardRef<NoteEditorHandle, RichTextEditorProps>(functio
           </ToolButton>
 
           <ToolDivider />
+
+          {/* 表格：插入用尺寸选择器；光标在表内时追加行列增删 */}
+          <Popover open={tableOpen} onOpenChange={setTableOpen}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                aria-label="表格"
+                aria-pressed={toolbar.inTable}
+                className={cn(
+                  "h-7 w-7 rounded flex items-center justify-center transition-all duration-150",
+                  toolbar.inTable
+                    ? "bg-primary/15 text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent active:scale-90"
+                )}
+              >
+                <Table className="h-3.5 w-3.5" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="start" sideOffset={6} className="w-64 p-3">
+              <p className="text-xs text-muted-foreground mb-2">插入表格</p>
+              <TableGridPicker
+                onPick={(rows, cols) => {
+                  chain()?.insertTable({ rows, cols, withHeaderRow: true }).run();
+                  setTableOpen(false);
+                }}
+              />
+              {toolbar.inTable && (
+                <>
+                  <Separator className="my-3" />
+                  <p className="text-xs text-muted-foreground mb-1.5">当前表格</p>
+                  <div className="grid grid-cols-2 gap-0.5">
+                    <TableOpButton
+                      icon={Rows3}
+                      label="上方插入行"
+                      onClick={() => chain()?.addRowBefore().run()}
+                    />
+                    <TableOpButton
+                      icon={Rows3}
+                      label="下方插入行"
+                      onClick={() => chain()?.addRowAfter().run()}
+                    />
+                    <TableOpButton
+                      icon={Columns3}
+                      label="左侧插入列"
+                      onClick={() => chain()?.addColumnBefore().run()}
+                    />
+                    <TableOpButton
+                      icon={Columns3}
+                      label="右侧插入列"
+                      onClick={() => chain()?.addColumnAfter().run()}
+                    />
+                    <TableOpButton
+                      icon={Minus}
+                      label="删除当前行"
+                      onClick={() => chain()?.deleteRow().run()}
+                    />
+                    <TableOpButton
+                      icon={Minus}
+                      label="删除当前列"
+                      onClick={() => chain()?.deleteColumn().run()}
+                    />
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 w-full mt-1 justify-start gap-1.5 px-2 text-xs text-destructive hover:text-destructive"
+                    onClick={() => {
+                      chain()?.deleteTable().run();
+                      setTableOpen(false);
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    删除表格
+                  </Button>
+                </>
+              )}
+            </PopoverContent>
+          </Popover>
 
           <ToolDivider />
 

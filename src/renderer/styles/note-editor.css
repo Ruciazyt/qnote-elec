@@ -97,6 +97,52 @@
   color: hsl(var(--muted-foreground));
 }
 
+/* ── 表格 ──
+   编辑态下 TipTap 用 TableView 渲染节点，结构是
+   div.tableWrapper > table > colgroup + tbody，
+   外层 wrapper 负责横向滚动；复制粘贴进来的表格则是裸 <table>，
+   两种形态都要管到，所以选择器同时覆盖 table 和 .tableWrapper 下的 table。 */
+.tiptap .tableWrapper {
+  overflow-x: auto;
+  margin: 0.9em 0;
+}
+.tiptap table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 0.9em 0;
+}
+.tiptap .tableWrapper table {
+  margin: 0;
+}
+.tiptap th,
+.tiptap td {
+  border: 1px solid hsl(var(--border));
+  padding: 0.4em 0.6em;
+  vertical-align: top;
+  position: relative;
+}
+.tiptap th {
+  background-color: hsl(var(--muted));
+  font-weight: 600;
+  text-align: left;
+}
+/* 单元格里的段落不该再带上下外边距，否则行高会被撑开 */
+.tiptap th > p,
+.tiptap td > p {
+  margin: 0;
+}
+/* 选中单元格的高亮：prosemirror-tables 给选中的格子加 .selectedCell，
+   官方推荐的画法是盖一层半透明色块（不能直接改背景色，会盖住文字） */
+.tiptap .selectedCell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background-color: hsl(var(--primary) / 0.14);
+  pointer-events: none;
+}
+
 /* ── 行内代码 ── */
 .tiptap code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
