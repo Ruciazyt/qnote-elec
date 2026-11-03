@@ -1,15 +1,29 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
-import { X, Search, ClipboardList } from "lucide-react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import {
+  X,
+  ClipboardList,
+  AppWindow,
+  Image as ImageIcon,
+  Type,
+  Check,
+  AlertCircle,
+} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useStickyHold } from "@/hooks/useStickyHold";
 import { detectUrl } from "@/utils/urlDetect";
+import {
+  CLIPBOARD_PANEL_ITEM_COUNT,
+  formatAccelerator,
+  type ClipboardPanelPosition,
+} from "@shared/clipboardPanel";
 
 interface ClipboardItem {
   id: number;
   content: string;
   type: "text" | "image";
+  /** ISO 时间串 */
   time: string;
 }
 
@@ -17,37 +31,78 @@ interface ClipboardItem {
 // 类型定义见 src/renderer/electron.d.ts
 
 function formatRelativeTime(dateStr: string): string {
+  if (!dateStr) return "";
   try {
     const date = new Date(dateStr);
+    if (Number.isNaN(date.getTime())) return "";
     return formatDistanceToNow(date, { addSuffix: true, locale: zhCN });
   } catch {
-    return dateStr;
+    return "";
   }
 }
 
+/**
+ * 剪贴板面板
+ *
+ * 由全局快捷键唤出（组合在设置页可配，默认 Ctrl+Shift+C），展示最近 5 条剪贴板记录。
+ * 布局两档（设置页可切）：
+ *   - 底部：卡片横排一条，贴在屏幕下沿，和系统 Win+V 的观感一致
+ *   - 侧边：卡片竖排一列，贴在屏幕右沿
+ *
+ * 面板是「随手看一眼」的浮层：点一条即复制，面板**留在原地**，
+ * 标题栏里弹一个「已复制」小徽标、卡片右上角打个对勾；
+ * 按 Esc、点右上角关闭按钮，或点到面板外面才收起。
+ */
 export function ClipboardPopup() {
   const [items, setItems] = useState<ClipboardItem[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [position, setPosition] = useState<ClipboardPanelPosition>("bottom");
+  /** 标题栏展示的唤出快捷键；读的是用户实际配置的那个组合 */
+  const [hotkey, setHotkey] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const listRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * 复制结果徽标
+   *
+   * 复制完不关面板 —— 原来点一下就收起，用户想连着复制两条就得唤出两次，
+   * 手感太急。现在面板留着，标题栏里冒一个小徽标告诉用户复制成了哪一条。
+   */
+  const [copyToast, setCopyToast] = useState<{
+    tone: "success" | "error";
+    message: string;
+  } | null>(null);
+  /** 刚刚复制成功的那一条；用于在卡片上打对勾角标 */
+  const [copiedId, setCopiedId] = useState<number | null>(null);
+  const copyToastTimer = useRef<number | null>(null);
 
   /**
    * 「按住 1.2 秒 → 变成屏幕便签」
    *
-   * 这个小窗本来就常驻在光标旁边，按住一条记录 1.2 秒，
+   * 这个面板本来就是常驻在光标旁边的快捷面板，按住一条记录 1.2 秒，
    * 就在光标处生成一张便签 —— 不用把它拖到别处。
-   * 长按过程中弹窗不会因为失焦而消失（主进程那边有兜底）。
+   * 长按过程中面板不会因为失焦而消失（主进程那边有兜底）。
    */
   const { getHoldProps, holding, holdNode } = useStickyHold();
 
-  const loadHistory = useCallback(async () => {
+  const isBottom = position === "bottom";
+
+  const load = useCallback(async () => {
     setIsLoading(true);
     try {
-      const history = await window.electron.popupGetClipboardHistory(20);
-      setItems(history || []);
+      const [history, pos, key] = await Promise.all([
+        window.electron.popupGetClipboardHistory(CLIPBOARD_PANEL_ITEM_COUNT),
+        window.electron.getClipboardPanelPosition(),
+        window.electron.getClipboardPanelHotkey(),
+      ]);
+      // 再截一刀：主进程那边也限了条数，但两边都守一道更保险
+      setItems((history ?? []).slice(0, CLIPBOARD_PANEL_ITEM_COUNT));
+      setPosition(pos.ok && pos.position ? pos.position : "bottom");
+      // 快捷键会变（用户可以在设置页改），所以每次刷新都重新读，
+      // 不能把写死的那串留在标题栏上
+      setHotkey(key.ok && key.accelerator ? key.accelerator : "");
+      setSelectedIndex(0);
     } catch (err) {
-      console.error("Failed to load clipboard history:", err);
+      console.error("加载剪贴板历史失败:", err);
       setItems([]);
     } finally {
       setIsLoading(false);
@@ -55,241 +110,268 @@ export function ClipboardPopup() {
   }, []);
 
   useEffect(() => {
-    void loadHistory();
-  }, [loadHistory]);
+    void load();
+  }, [load]);
 
-  // 滚动到选中项
-  useEffect(() => {
-    if (listRef.current && items.length > 0) {
-      const selectedEl = listRef.current.querySelector(`[data-index="${selectedIndex}"]`) as HTMLElement;
-      if (selectedEl) {
-        selectedEl.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  // 主进程复用同一个窗口：第二次唤出时推一条刷新指令，把旧数据换掉
+  useEffect(
+    () =>
+      window.electron.onPopupRefresh(() => {
+        void load();
+      }),
+    [load]
+  );
+
+  /**
+   * 弹一条复制结果提示，1.6 秒后自动消失
+   *
+   * 连续复制多条时只保留最后一条提示 —— 旧的不清掉的话，
+   * 提示会一条叠一条堆在面板底部。
+   */
+  const showCopyToast = useCallback(
+    (tone: "success" | "error", message: string, itemId: number | null) => {
+      setCopyToast({ tone, message });
+      setCopiedId(itemId);
+      if (copyToastTimer.current !== null) {
+        window.clearTimeout(copyToastTimer.current);
       }
-    }
-  }, [selectedIndex, items]);
+      copyToastTimer.current = window.setTimeout(() => {
+        setCopyToast(null);
+        setCopiedId(null);
+        copyToastTimer.current = null;
+      }, 1600);
+    },
+    []
+  );
 
-  const filteredItems = items.filter((item) => {
-    if (!searchQuery.trim()) return true;
-    return item.content.toLowerCase().includes(searchQuery.toLowerCase());
-  });
+  // 面板被销毁时把定时器收掉，别让它在窗口没了之后还挂着
+  useEffect(
+    () => () => {
+      if (copyToastTimer.current !== null) {
+        window.clearTimeout(copyToastTimer.current);
+        copyToastTimer.current = null;
+      }
+    },
+    []
+  );
 
-  const handleCopy = useCallback(async (item: ClipboardItem) => {
-    const result = await window.electron.popupCopyClipboardItem(item.id);
-    if (result.success) {
-      window.electron.closePopup();
-    }
-  }, []);
+  const handleCopy = useCallback(
+    async (item: ClipboardItem) => {
+      const result = await window.electron.popupCopyClipboardItem(item.id);
+      if (result.success) {
+        // 复制成功：留在原地，弹提示告诉用户复制成了哪一条
+        showCopyToast("success", "已复制", item.id);
+      } else {
+        showCopyToast("error", result.error || "复制失败", null);
+      }
+    },
+    [showCopyToast]
+  );
 
   const handleClose = useCallback(() => {
     window.electron.closePopup();
   }, []);
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
+  const handleOpenApp = useCallback(() => {
+    window.electron.showMainWindow();
+  }, []);
+
+  // 键盘导航挂在 window 上：面板整体没有可聚焦的输入框，
+  // 但它是当前前台窗口，键盘事件直接落到这里
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        e.preventDefault();
         handleClose();
         return;
       }
-      if (e.key === "ArrowDown" || (e.key === "Tab" && !e.shiftKey)) {
+      // 上下左右都映射到「上一条/下一条」：两种布局下手感一致，
+      // 用户不用先想自己看到的是横排还是竖排
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") {
         e.preventDefault();
-        setSelectedIndex((i) => Math.min(i + 1, filteredItems.length - 1));
+        setSelectedIndex((i) => Math.min(i + 1, items.length - 1));
         return;
       }
-      if (e.key === "ArrowUp" || (e.key === "Tab" && e.shiftKey)) {
+      if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
         e.preventDefault();
         setSelectedIndex((i) => Math.max(i - 1, 0));
         return;
       }
       if (e.key === "Enter") {
         e.preventDefault();
-        if (filteredItems[selectedIndex]) {
-          void handleCopy(filteredItems[selectedIndex]);
-        }
-        return;
+        const item = items[selectedIndex];
+        if (item) void handleCopy(item);
       }
-    },
-    [filteredItems, selectedIndex, handleCopy, handleClose]
-  );
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [items, selectedIndex, handleCopy, handleClose]);
 
-  // 重置选中索引
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [searchQuery]);
-
-  return (
-    // 弹窗根节点只负责布局。方向键导航挂在下面的 listbox 上 ——
-    // 「可聚焦 + 响应键盘」的元素必须是对辅助技术有意义的角色，
-    // 而 listbox 正是「用方向键在条目间移动、Enter 选中」的语义。
-    <div className="flex flex-col h-screen bg-background rounded-lg border border-border shadow-2xl overflow-hidden animate-popup-appear">
-      {/* 标题栏 */}
-      <div className="h-10 px-3 flex items-center justify-between border-b border-border bg-card select-none" style={{ WebkitAppRegion: "drag" } as any}>
-        <h2 className="text-sm font-medium text-foreground flex items-center gap-2">
-          <ClipboardList className="w-4 h-4 text-muted-foreground" />
-          最近剪贴板
-        </h2>
-        <button
-          onClick={handleClose}
-          className="w-6 h-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors duration-150"
-          style={{ WebkitAppRegion: "no-drag" } as any}
-          aria-label="关闭"
-        >
-          <X className="w-4 h-4" />
-        </button>
-      </div>
-
-      {/* 搜索框 */}
-      <div className="h-10 px-3 py-2 border-b border-border bg-card/50">
-        <div className="relative h-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
-          <input
-            type="text"
-            placeholder="搜索剪贴板..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            // 键盘导航（Esc / 方向键 / 回车）挂在搜索框上：
-            // 它本来就是可交互元素，不需要给外层容器加 role 或 tabIndex。
-            onKeyDown={handleKeyDown}
-            className="w-full h-full pl-9 pr-3 text-sm bg-muted/40 rounded-lg border-none outline-none text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/20 transition-all duration-150"
-          />
+  const renderCard = (item: ClipboardItem, index: number) => {
+    const isSelected = index === selectedIndex;
+    // 整条内容就是一个网址时，正文换成链接色 —— 与主列表同一口径
+    const isLink = item.type === "text" && detectUrl(item.content) !== null;
+    return (
+      <div
+        key={item.id}
+        role="button"
+        tabIndex={0}
+        aria-label={`复制第 ${index + 1} 条记录`}
+        onClick={() => void handleCopy(item)}
+        onKeyDown={(e) => {
+          // 回车/空格在这里就地处理并阻断冒泡：
+          // 冒到 window 上会被全局监听再处理一次，变成复制两遍。
+          // preventDefault 顺带挡掉浏览器对 role="button" 的默认回车动作。
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            e.stopPropagation();
+            void handleCopy(item);
+          }
+        }}
+        className={cn(
+          "group relative flex flex-col rounded-xl border p-3 text-left transition-all duration-150 cursor-pointer overflow-hidden",
+          isBottom ? "h-[180px] w-[232px] shrink-0" : "h-[92px] w-full shrink-0",
+          isSelected
+            ? "bg-primary/[0.08] border-primary/40 shadow-[0_4px_16px_hsl(var(--primary)/0.12)]"
+            : "bg-card border-border/70 hover:border-primary/25",
+          holding ? "opacity-60" : ""
+        )}
+        title="按住 1.2 秒即可变成屏幕便签"
+        {...getHoldProps({ type: item.type, content: item.content })}
+      >
+        {/* 内容区 */}
+        <div className="flex-1 min-h-0 overflow-hidden">
+          {item.type === "image" ? (
+            <img
+              src={item.content}
+              alt="剪贴板图片"
+              className="h-full w-full object-contain bg-muted/20 rounded-md"
+            />
+          ) : (
+            <pre
+              className={cn(
+                "font-mono text-[13px] leading-relaxed whitespace-pre-wrap break-all overflow-hidden",
+                isBottom ? "line-clamp-5" : "line-clamp-2",
+                isLink ? "text-link" : "text-foreground"
+              )}>
+              {item.content}
+            </pre>
+          )}
+        </div>
+        {/* 刚复制成功的那条：右上角打一个对勾角标
+            —— 只标角不遮内容，用户还要读这条记录 */}
+        {copiedId === item.id && (
+          <div
+            className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white shadow-md"
+            title="已复制">
+            <Check className="h-3 w-3" />
+          </div>
+        )}
+        {/* 底部 meta 行：序号 / 类型 / 字符数 / 时间 */}
+        <div className="mt-2 pt-1.5 border-t border-border/40 flex items-center gap-1.5 text-[11px] text-muted-foreground shrink-0">
+          <span className="tabular-nums">{index + 1}</span>
+          {item.type === "image" ? (
+            <ImageIcon className="h-3 w-3" />
+          ) : (
+            <Type className="h-3 w-3" />
+          )}
+          {item.type === "text" && (
+            <span className="tabular-nums">{item.content.length} 个字符</span>
+          )}
+          <span className="ml-auto truncate">{formatRelativeTime(item.time)}</span>
         </div>
       </div>
+    );
+  };
 
-      {/* 列表 */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-1 scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent" ref={listRef}>
-        {isLoading ? (
-          <>
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="p-3 rounded-lg bg-card border border-border animate-pulse">
-                <div className="space-y-2">
-                  <div className="h-4 bg-muted rounded w-3/4" />
-                  <div className="h-4 bg-muted rounded w-1/2" />
-                </div>
-                <div className="mt-3 flex justify-between">
-                  <div className="h-3 bg-muted rounded w-16" />
-                </div>
-              </div>
-            ))}
-          </>
-        ) : filteredItems.length === 0 ? (
-          searchQuery ? (
-            <div className="flex flex-col items-center justify-center h-full text-center p-6 animate-fade-in">
-              <div className="relative mb-4">
-                <div className="absolute inset-0 bg-primary/10 rounded-full blur-xl scale-75" />
-                <div className="relative w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                  <Search className="w-7 h-7 text-primary/60 animate-float" style={{ animationDuration: '3s' }} />
-                </div>
-              </div>
-              <p className="text-sm font-medium text-foreground/70 mb-1">未找到匹配的记录</p>
-              <p className="text-xs text-muted-foreground/70">尝试其他关键词</p>
+  return (
+    // 外层透明：窗口本身是 transparent 的，这层 padding 专门给面板的投影
+    // 留出绘制空间（主进程那边按同样的 16px 算窗口尺寸，两边对得上）
+    <div className="h-screen w-screen p-4">
+      <div
+        className={cn(
+          "h-full w-full flex flex-col overflow-hidden animate-popup-appear",
+          "bg-background/95 backdrop-blur-xl border border-border shadow-2xl",
+          isBottom ? "rounded-xl" : "rounded-2xl"
+        )}>
+        {/* 标题栏 */}
+        <div className="h-9 px-3 flex items-center justify-between border-b border-border/60 bg-card/70 shrink-0 select-none">
+          <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <ClipboardList className="h-3.5 w-3.5" />
+            剪贴板
+            {hotkey && (
+              <kbd className="rounded border border-border/70 bg-muted/50 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground/80">
+                {formatAccelerator(hotkey)}
+              </kbd>
+            )}
+            {/* 复制结果徽标：贴在标题栏里，不遮卡片内容
+                —— 面板留在原地不关，1.6 秒后自动淡出 */}
+            {copyToast && (
+              <span
+                className={cn(
+                  "animate-copy-badge inline-flex items-center gap-1 rounded-full px-1.5 py-0.5",
+                  "text-[10px] font-medium leading-none",
+                  copyToast.tone === "success"
+                    ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                    : "bg-destructive/15 text-destructive"
+                )}
+                role="status"
+                aria-live="polite">
+                {copyToast.tone === "success" ? (
+                  <Check className="h-2.5 w-2.5" />
+                ) : (
+                  <AlertCircle className="h-2.5 w-2.5" />
+                )}
+                {copyToast.message}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-0.5">
+            <button
+              type="button"
+              onClick={handleOpenApp}
+              className="h-6 w-6 rounded flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors duration-150"
+              aria-label="在应用中打开"
+              title="在应用中打开">
+              <AppWindow className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={handleClose}
+              className="h-6 w-6 rounded flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors duration-150"
+              aria-label="关闭"
+              title="关闭">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+
+        {/* 卡片区 */}
+        <div
+          className={cn(
+            "flex-1 min-h-0 p-3 gap-2.5",
+            isBottom
+              ? "flex flex-row overflow-x-auto"
+              : "flex flex-col overflow-y-auto"
+          )}>
+          {isLoading ? (
+            <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground">
+              加载中…
+            </div>
+          ) : items.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center gap-1 text-center">
+              <ClipboardList className="h-6 w-6 text-muted-foreground/40" />
+              <p className="text-xs text-muted-foreground">还没有剪贴板记录</p>
+              <p className="text-[11px] text-muted-foreground/70">
+                复制点内容就会出现在这里
+              </p>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center h-full text-center p-6 animate-fade-in">
-              <p className="text-sm font-medium text-foreground/70 mb-1">暂无剪贴板记录</p>
-              <p className="text-xs text-muted-foreground/70">开始复制内容即可自动记录</p>
-            </div>
-          )
-        ) : (
-          filteredItems.map((item, index) => {
-            const isSelected = index === selectedIndex;
-            // 整条内容就是一个网址时，正文换成链接色 —— 与主列表同一口径
-            const isLink = item.type === "text" && detectUrl(item.content) !== null;
-            return (
-              <div
-                key={item.id}
-                data-index={index}
-                role="button"
-                tabIndex={0}
-                onClick={() => void handleCopy(item)}
-                onKeyDown={(e) => {
-                  // 行内的「复制」按钮自己处理回车/空格，这里只响应条目本身获得焦点的情况
-                  if (e.target !== e.currentTarget) return;
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    void handleCopy(item);
-                    return;
-                  }
-                  // 方向键在条目间移动选中项 —— 与搜索框里同一套逻辑。
-                  // 之前靠事件冒泡到弹窗根节点，现在根节点不再挂键盘处理，
-                  // 所以这里显式调用。
-                  if (
-                    e.key === "ArrowDown" ||
-                    e.key === "ArrowUp" ||
-                    e.key === "Tab" ||
-                    e.key === "Escape"
-                  ) {
-                    handleKeyDown(e);
-                  }
-                }}
-                className={cn(
-                  "group relative p-3 rounded-lg border transition-all duration-150 cursor-pointer",
-                  "flex flex-col gap-2",
-                  isSelected
-                    ? "bg-primary/[0.07] border-primary/30 shadow-[0_4px_12px_hsl(var(--primary)/0.1)]"
-                    : "bg-card border-border hover:border-primary/20 hover:shadow-sm",
-                  holding ? "opacity-60" : ""
-                )}
-                title="按住 1.2 秒即可变成屏幕便签"
-                {...getHoldProps({ type: item.type, content: item.content })}
-              >
-                {/* Left glow indicator — radiates behind selected item */}
-                {isSelected && (
-                  <div
-                    aria-hidden="true"
-                    className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-[calc(100%-12px)] rounded-full shadow-[0_0_8px_hsl(var(--primary)/0.5),0_0_16px_hsl(var(--primary)/0.2)] pointer-events-none"
-                  />
-                )}
-                {/* Left accent bar — keyboard selection indicator */}
-                {isSelected && (
-                  <div className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-primary rounded-full shadow-[0_2px_6px_hsl(var(--primary)/0.3)]" />
-                )}
-                {item.type === "image" ? (
-                  <div className="flex items-start gap-2 min-w-0">
-                    <div className="relative">
-                      <img
-                        src={item.content}
-                        alt="剪贴板图片"
-                        className="max-h-[160px] max-w-full w-auto rounded object-contain bg-muted/20"
-                      />
-                    </div>
-                    <button
-                      className={cn(
-                        "text-xs transition-colors shrink-0 ml-auto",
-                        isSelected
-                          ? "text-primary opacity-100"
-                          : "text-muted-foreground opacity-0 group-hover:opacity-100"
-                      )}
-                      onClick={(e) => { e.stopPropagation(); void handleCopy(item); }}
-                    >
-                      复制
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-start gap-2 min-w-0">
-                    <pre className={cn("flex-1 min-w-0 text-[13px] font-mono whitespace-pre-wrap break-all", isLink ? "text-link" : "text-foreground", isSelected && "ml-0")}>
-                      {item.content}
-                    </pre>
-                    <button
-                      className={cn(
-                        "text-xs transition-colors shrink-0",
-                        isSelected
-                          ? "text-primary opacity-100"
-                          : "text-muted-foreground opacity-0 group-hover:opacity-100"
-                      )}
-                      onClick={(e) => { e.stopPropagation(); void handleCopy(item); }}
-                    >
-                      复制
-                    </button>
-                  </div>
-                )}
-                <div className="text-xs text-muted-foreground flex items-center justify-between w-full pt-1 border-t border-border/40">
-                  <span>{formatRelativeTime(item.time)}</span>
-                </div>
-              </div>
-            );
-          })
-        )}
+            items.map(renderCard)
+          )}
+        </div>
+        {holdNode}
       </div>
-      {holdNode}
     </div>
   );
 }

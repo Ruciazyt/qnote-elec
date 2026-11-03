@@ -19,7 +19,11 @@ import { log, installStdoutGuard } from "./utils/log";
 import { parseExternalUrl } from "./utils/externalUrl";
 import * as fs from "fs";
 import { setBaiduKeys } from "./utils/baiduOCR";
-import { configManager, DEFAULT_VOICE_HOTKEY } from "./utils/config";
+import {
+  configManager,
+  DEFAULT_VOICE_HOTKEY,
+  DEFAULT_CLIPBOARD_PANEL_HOTKEY,
+} from "./utils/config";
 import { vectorStore } from "./utils/vectorStore";
 import { initSettingsStore } from "./utils/settingsStore";
 import { registerFileHandlers } from "./handlers/fileHandlers";
@@ -45,7 +49,14 @@ import { parseAddShortcutArg, repairContextMenu } from "./utils/shellContextMenu
 import { registerAsrHandlers } from "./handlers/asrHandlers";
 import { createMainWindow, getMainWindow, showMainWindow, createTray } from "./core/window";
 import { ClipboardPopupWindow } from "./core/window/clipboardPopup";
-import { registerGlobalShortcuts, unregisterAllShortcuts, registerVoiceShortcut, validateAccelerator, getRegisteredVoiceAccelerator } from "./core/shortcuts";
+import {
+  unregisterAllShortcuts,
+  registerVoiceShortcut,
+  validateAccelerator,
+  getRegisteredVoiceAccelerator,
+  registerClipboardPanelShortcut,
+  getRegisteredPanelAccelerator,
+} from "./core/shortcuts";
 import { markQuitting } from "./utils/appState";
 import { getAssetsDir, resolveAppIcon } from "./utils/assets";
 
@@ -205,6 +216,24 @@ let DB: any;
 let fileWriter: FileWriter;
 
 /**
+ * 剪贴板面板快捷键被按下 —— 显示/隐藏面板
+ *
+ * 定义在模块作用域：启动时要注册一次、设置页改快捷键时要重新注册，
+ * 两处都得能引用它。
+ */
+function toggleClipboardPanel(): void {
+  const clipboardPopup = ClipboardPopupWindow.getInstance();
+  if (clipboardPopup.isVisible()) {
+    clipboardPopup.hide();
+    return;
+  }
+  // show() 要读位置配置，是异步的；失败也不能让快捷键把整个进程带崩
+  void clipboardPopup.show().catch((err) => {
+    log.error("[clipboardPopup] 显示剪贴板面板失败", err);
+  });
+}
+
+/**
  * 语音快捷键被按下 —— 唤出主窗口（不展开 AI 对话框）后通知渲染层开始/结束录音
  *
  * ## 为什么执行在渲染进程
@@ -361,6 +390,65 @@ function registerWindowScopedHandlers() {
         return {
           ok: false,
           error: `${result.error}。已恢复为默认快捷键 ${DEFAULT_VOICE_HOTKEY}`,
+        };
+      }
+      return { ok: false, error: `${result.error}，且默认快捷键也注册失败` };
+    }
+    return result;
+  });
+
+  // ============================================================
+  // 剪贴板面板快捷键
+  // ============================================================
+  ipcMain.handle("clipboard-panel:get-hotkey", async () => {
+    try {
+      // 返回「实际生效」的组合，而不是库里存的那个。
+      // 两者可能不一致：启动时如果这个组合被别的软件占着，库里的值没变，
+      // 但它其实没注册上。设置页要如实告诉用户哪种情况。
+      const registered = getRegisteredPanelAccelerator();
+      const configured = await configManager.getClipboardPanelHotkey();
+      return {
+        ok: true,
+        accelerator: registered ?? configured,
+        active: registered !== null,
+      };
+    } catch (err) {
+      log.error("[clipboardPanel] 读取面板快捷键失败", err);
+      return { ok: false, error: "读取面板快捷键失败" };
+    }
+  });
+
+  ipcMain.handle("clipboard-panel:set-hotkey", async (_event, accelerator: string) => {
+    // 先做语法校验再落库 —— 不然一个写错的组合会被存进去，
+    // 之后每次启动都注册失败，而用户根本不知道自己存了什么。
+    // 校验这一步尤其重要：Electron 的解析器会**静默丢弃**不认识的修饰键
+    // （"fn+c" 会被当成裸的 "c"，全局抢占正常打字）。
+    const check = validateAccelerator(accelerator);
+    if (!check.ok) {
+      return { ok: false, error: check.error };
+    }
+    try {
+      await configManager.setClipboardPanelHotkey(accelerator);
+    } catch (err) {
+      log.error("[clipboardPanel] 保存面板快捷键失败", err);
+      return { ok: false, error: "保存失败" };
+    }
+    // 配置存下来了，但系统热键可能已被别的程序占着 —— 把真实结果回传，
+    // 让设置页能如实告诉用户"存了但没生效"，而不是假装一切正常。
+    const result = registerClipboardPanelShortcut(accelerator, toggleClipboardPanel);
+    if (!result.ok) {
+      // 回滚到默认组合，并同步写回存储。
+      // 不能只改内存：否则数据库里留着一个永远注册失败的组合，
+      // 每次启动都会走一遍同样的失败，而用户界面显示的却是"已保存"。
+      await configManager.setClipboardPanelHotkey(DEFAULT_CLIPBOARD_PANEL_HOTKEY);
+      const fallback = registerClipboardPanelShortcut(
+        DEFAULT_CLIPBOARD_PANEL_HOTKEY,
+        toggleClipboardPanel
+      );
+      if (fallback.ok) {
+        return {
+          ok: false,
+          error: `${result.error}。已恢复为默认快捷键 ${DEFAULT_CLIPBOARD_PANEL_HOTKEY}`,
         };
       }
       return { ok: false, error: `${result.error}，且默认快捷键也注册失败` };
@@ -673,26 +761,30 @@ void app
         showMainWindow();
       });
 
-      // 注册快捷键小窗
-      const clipboardPopup = ClipboardPopupWindow.getInstance();
-
-      // 保留 registerGlobalShortcuts 第二个参数以避免改 shortcuts.ts 接口
-      registerGlobalShortcuts(
-        () => {
-          if (clipboardPopup.isVisible()) {
-            clipboardPopup.hide();
-          } else {
-            clipboardPopup.show();
+      // 注册剪贴板面板快捷键。
+      //
+      // 组合由用户在设置页填写（默认 Control+Shift+C），启动时从库里读出来注册。
+      // 这里刻意不写死任何一个组合：
+      //   - "fn+c" Electron 收不到（Fn 被键盘驱动在很低的层消费掉），
+      //     硬写会被解析器静默丢弃成裸 "c"，全局抢占正常打字；
+      //   - "Super+C" 在 Windows 11 上被 Copilot 占着，注册必然失败。
+      // 用户填什么就注册什么，注册不上只记日志、不拖垮启动 ——
+      // 托盘菜单里另有「剪贴板面板」兜底入口。
+      void (async () => {
+        try {
+          const accelerator = await configManager.getClipboardPanelHotkey();
+          const result = registerClipboardPanelShortcut(accelerator, toggleClipboardPanel);
+          if (!result.ok) {
+            log.warn(`[clipboardPanel] 面板快捷键未生效：${result.error}`);
           }
-        },
-        () => {
-          /* no-op：AI 弹窗已移除，Ctrl+Shift+A 不再做任何事 */
+        } catch (err) {
+          log.error("[clipboardPanel] 注册面板快捷键失败", err);
         }
-      );
+      })();
 
       // 注册语音输入快捷键（收起为宠物时用）。
-      // 放在 registerGlobalShortcuts 之后：若两者撞键，后注册的会失败并打出
-      // 明确的 warn 日志，而不是静默覆盖掉剪贴板小窗的 Ctrl+Shift+V。
+      // 放在面板快捷键之后：若两者撞键，后注册的会失败并打出
+      // 明确的 warn 日志，而不是静默覆盖掉先注册的那个。
       void (async () => {
         try {
           const accelerator = await configManager.getVoiceHotkey();

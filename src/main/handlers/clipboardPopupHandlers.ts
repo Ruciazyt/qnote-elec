@@ -8,8 +8,20 @@ export function registerClipboardPopupHandlers() {
   ipcMain.handle("popup-get-clipboard-history", async (_event, limit = 20) => {
     try {
       const db = getDB();
-      const rows = await db.select("*").from("note").orderByRaw("COALESCE(pinned_at, 0) DESC, created_at DESC").limit(limit);
-      return rows;
+      // 置顶的排最前，组内按时间倒序 —— 与主窗口剪贴板列表同一口径
+      const rows = await db
+        .select("*")
+        .from("note")
+        .orderByRaw("COALESCE(pinned_at, 0) DESC, created_at DESC")
+        .limit(limit);
+      // 规整成面板要的形状：时间统一转成字符串，
+      // 否则渲染层拿到的是 SQLite 的原始时间格式，格式化会失败
+      return rows.map((row: any) => ({
+        id: row.id,
+        type: row.type || "text",
+        content: row.content,
+        time: row.created_at ? new Date(row.created_at).toISOString() : "",
+      }));
     } catch (err) {
       log.error("popup-get-clipboard-history error:", err);
       return [];

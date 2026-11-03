@@ -58,6 +58,17 @@ export function createTray(): Tray | null {
         },
       },
       {
+        label: "剪贴板面板",
+        click: () => {
+          // 全局快捷键在设置页可配，而任何组合都可能被别的程序占着
+          // （系统保留键、其它软件注册的热键），注册失败时托盘菜单是兜底入口
+          const { ClipboardPopupWindow } = require('./clipboardPopup');
+          void ClipboardPopupWindow.getInstance()
+            .show()
+            .catch((err) => log.error("从托盘打开剪贴板面板失败", err));
+        },
+      },
+      {
         label: "退出",
         click: () => {
           app.quit();

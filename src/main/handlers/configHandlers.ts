@@ -3,6 +3,7 @@ import { configManager } from "../utils/config";
 import { setBaiduKeys } from "../utils/baiduOCR";
 import { log } from "../utils/log";
 import { app } from "electron";
+import { isClipboardPanelPosition } from "../../shared/clipboardPanel";
 
 // 注：原先这里有一个 get-latest-release handler，用 GitHub API 查最新版本号。
 // 它已被 src/main/core/updater.ts 的 electron-updater 方案取代并删除，原因是：
@@ -40,6 +41,33 @@ export function registerConfigHandlers() {
     } catch (error) {
       log.error("获取应用信息失败", error);
       return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  /** 读取剪贴板面板的展示位置（底部横排 / 侧边竖排） */
+  ipcMain.handle("clipboard-panel:get-position", async () => {
+    try {
+      const position = await configManager.getClipboardPanelPosition();
+      return { ok: true, position };
+    } catch (error) {
+      log.error("读取剪贴板面板位置失败", error);
+      return { ok: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  /** 保存剪贴板面板的展示位置 */
+  ipcMain.handle("clipboard-panel:set-position", async (_event, position: unknown) => {
+    // 落库前先验合法性：这个值直接决定窗口坐标与尺寸，
+    // 脏值会让面板跑到屏幕外面
+    if (!isClipboardPanelPosition(position)) {
+      return { ok: false, error: "无效的面板位置" };
+    }
+    try {
+      await configManager.setClipboardPanelPosition(position);
+      return { ok: true };
+    } catch (error) {
+      log.error("保存剪贴板面板位置失败", error);
+      return { ok: false, error: error instanceof Error ? error.message : String(error) };
     }
   });
 }

@@ -488,6 +488,34 @@ interface ElectronAPI {
   // 窗口控制（仅 ClipboardPopup 使用）
   closePopup: () => void;
   showMainWindow: () => void;
+  /** 主进程通知面板刷新数据 */
+  onPopupRefresh: (callback: () => void) => () => void;
+  /** 读取剪贴板面板的展示位置 */
+  getClipboardPanelPosition: () => Promise<{
+    ok: boolean;
+    position?: import("@shared/clipboardPanel").ClipboardPanelPosition;
+    error?: string;
+  }>;
+  /** 保存剪贴板面板的展示位置 */
+  setClipboardPanelPosition: (
+    position: import("@shared/clipboardPanel").ClipboardPanelPosition
+  ) => Promise<{ ok: boolean; error?: string }>;
+  /**
+   * 读取剪贴板面板的全局快捷键
+   *
+   * accelerator 是**实际生效**的组合；active 表示它是否真的注册上了
+   * （启动时可能被别的软件占住而没注册成功）。
+   */
+  getClipboardPanelHotkey: () => Promise<{
+    ok: boolean;
+    accelerator?: string;
+    active?: boolean;
+    error?: string;
+  }>;
+  /** 保存并注册剪贴板面板的全局快捷键；注册失败时主进程会回滚到默认组合 */
+  setClipboardPanelHotkey: (
+    accelerator: string
+  ) => Promise<{ ok: boolean; error?: string }>;
 
   // ==================== 屏幕便签 API ====================
   // 把一条剪贴板记录拖出程序窗口 → 变成压在桌面上的小纸条

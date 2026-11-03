@@ -44,6 +44,24 @@ export function showMainWindow(): void {
   win.show();
 }
 
+/**
+ * 把主窗口收起来（藏进托盘）。
+ *
+ * 与 showMainWindow 对称：任务栏图标一并摘掉，唤回入口只剩托盘图标
+ * 和全局快捷键。剪贴板面板弹出时用它让位 —— 面板是临时浮层，
+ * 主窗口压在下面既挡视线又会互相抢焦点。
+ */
+export function hideMainWindow(): void {
+  if (!win || win.isDestroyed()) {
+    return;
+  }
+  if (!win.isVisible()) {
+    return;
+  }
+  win.hide();
+  win.setSkipTaskbar(true);
+}
+
 // 清理所有注册的IPC监听器
 export function cleanupMainWindowListeners(): void {
   for (const { channel, handler } of ipcListenerRefs) {

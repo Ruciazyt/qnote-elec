@@ -43,6 +43,10 @@ import {
   Sun,
   Moon,
   Palette,
+  ClipboardList,
+  PanelBottom,
+  PanelRight,
+  Keyboard,
 } from "lucide-react";
 import { ClearVectorConfirmDialog } from "./ClearVectorConfirmDialog";
 import { ImportDatabaseConfirmDialog } from "./ImportDatabaseConfirmDialog";
@@ -57,6 +61,8 @@ import {
   type AccentSpec,
 } from "./settings-card";
 import { cn } from "@/lib/utils";
+import type { ClipboardPanelPosition } from "@shared/clipboardPanel";
+import { formatAccelerator } from "@shared/clipboardPanel";
 
 export { ACCENTS, SettingsCard, SettingsCardHeader };
 export type { AccentKey, AccentSpec };
@@ -164,6 +170,22 @@ const THEME_LABELS: Record<Theme, string> = {
   light: "浅色",
   dark: "深色",
   system: "跟随系统",
+};
+
+/** 剪贴板面板的展示位置两档选项 */
+const PANEL_POSITION_OPTIONS: Array<{
+  value: ClipboardPanelPosition;
+  label: string;
+  hint: string;
+  icon: React.ComponentType<{ className?: string }>;
+}> = [
+  { value: "bottom", label: "底部横排", hint: "卡片横排一条，贴在屏幕下沿", icon: PanelBottom },
+  { value: "side", label: "侧边竖排", hint: "卡片竖排一列，贴在屏幕右沿", icon: PanelRight },
+];
+
+const PANEL_POSITION_LABELS: Record<ClipboardPanelPosition, string> = {
+  bottom: "底部横排",
+  side: "侧边竖排",
 };
 
 /**
@@ -762,13 +784,156 @@ export default function Settings() {
     { tone: "success" | "destructive"; message: string } | null
   >(null);
 
+  // ============================================================
+  // 剪贴板面板（快捷键唤出的浮层）
+  // ============================================================
+
+  const [panelPosition, setPanelPosition] = useState<ClipboardPanelPosition>("bottom");
+  const [isSavingPanelPosition, setIsSavingPanelPosition] = useState(false);
+
+  /** 实际生效的面板快捷键 */
+  const [panelHotkey, setPanelHotkey] = useState("");
+  const [panelHotkeyInput, setPanelHotkeyInput] = useState("");
+  const [isSavingPanelHotkey, setIsSavingPanelHotkey] = useState(false);
+  /**
+   * 这个快捷键当前是否真的注册上了
+   *
+   * 库里存的值和生效的值可能不一致：启动时这个组合被别的软件占着就没注册上，
+   * 界面却显示"已保存"。这个标志用来把这种情况如实告诉用户。
+   */
+  const [panelHotkeyActive, setPanelHotkeyActive] = useState(true);
+  /** 最近一次保存结果；null = 还没保存过 */
+  const [panelHotkeyStatus, setPanelHotkeyStatus] = useState<
+    { tone: "success" | "destructive"; message: string } | null
+  >(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const result = await window.electron.getClipboardPanelPosition();
+        if (cancelled) return;
+        if (result.ok && result.position) setPanelPosition(result.position);
+      } catch (err) {
+        console.error("读取剪贴板面板位置失败", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const result = await window.electron.getClipboardPanelHotkey();
+        if (cancelled) return;
+        if (result.ok && result.accelerator) {
+          setPanelHotkey(result.accelerator);
+          setPanelHotkeyInput(result.accelerator);
+          setPanelHotkeyActive(result.active !== false);
+        }
+      } catch (err) {
+        console.error("读取剪贴板面板快捷键失败", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleSavePanelPosition = async (position: ClipboardPanelPosition) => {
+    setIsSavingPanelPosition(true);
+    try {
+      const result = await window.electron.setClipboardPanelPosition(position);
+      if (result.ok) {
+        setPanelPosition(position);
+        toast({ title: "剪贴板面板位置已保存", description: PANEL_POSITION_LABELS[position] });
+      } else {
+        toast({
+          title: "保存失败",
+          description: result.error,
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "保存失败",
+        description: err instanceof Error ? err.message : "未知错误",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingPanelPosition(false);
+    }
+  };
+
+  /**
+   * 面板快捷键预设
+   *
+   * Control+Shift+C 是默认值：三个平台写法一致（macOS 上 Ctrl+Shift+C 不会
+   * 抢全系统的 Cmd+C），也不碰系统保留键。
+   *
+   * 刻意**不提供** Win+C / Fn+C 这类预设：
+   *   - Win+C 在 Windows 11 上被 Copilot 占着，注册必然失败；
+   *   - Fn 键到不了应用层（被键盘驱动拦截），Electron 的解析器还会把它
+   *     **静默丢弃**成裸的 "c"，导致全局抢占正常打字。
+   * 想用笔记本上的 Fn+C，先确认驱动把它映射成了哪个键，再填那个组合。
+   */
+  const PANEL_HOTKEY_PRESETS: Array<{ label: string; value: string; hint?: string }> = [
+    { label: "Ctrl+Shift+C", value: "Control+Shift+C", hint: "默认，三平台通用" },
+    { label: "Ctrl+Shift+V", value: "Control+Shift+V", hint: "旧版剪贴板小窗的习惯键" },
+    { label: "Alt+C", value: "Alt+C", hint: "少按一个键" },
+  ];
+
+  const handleSavePanelHotkey = async () => {
+    const accelerator = panelHotkeyInput.trim();
+    if (!accelerator) {
+      setPanelHotkeyStatus({ tone: "destructive", message: "快捷键不能为空" });
+      return;
+    }
+    setIsSavingPanelHotkey(true);
+    try {
+      const result = await window.electron.setClipboardPanelHotkey(accelerator);
+      if (result.ok) {
+        setPanelHotkey(accelerator);
+        setPanelHotkeyActive(true);
+        setPanelHotkeyStatus({ tone: "success", message: "已生效" });
+        toast({
+          title: "剪贴板面板快捷键已保存",
+          description: `按 ${formatAccelerator(accelerator)} 即可唤出面板`,
+        });
+      } else {
+        // 主进程在注册失败时会回滚到默认组合，所以这里把回滚后的值读回来，
+        // 否则输入框会停留在一个其实没生效的组合上。
+        const current = await window.electron.getClipboardPanelHotkey();
+        if (current.ok && current.accelerator) {
+          setPanelHotkey(current.accelerator);
+          setPanelHotkeyInput(current.accelerator);
+          setPanelHotkeyActive(current.active !== false);
+        }
+        setPanelHotkeyStatus({
+          tone: "destructive",
+          message: result.error || "注册失败",
+        });
+      }
+    } catch (err) {
+      setPanelHotkeyStatus({
+        tone: "destructive",
+        message: err instanceof Error ? err.message : "保存失败",
+      });
+    } finally {
+      setIsSavingPanelHotkey(false);
+    }
+  };
+
   // 快捷键预设：只保留 F1。
   //
   // F1 专门对应笔记本的 Fn+1 —— Fn 键本身到不了应用层，但多数笔记本开着
   // 「Fn 作为功能键」时，会由驱动把 Fn+1 映射成 F1 送给系统。
   //
-  // 只留这一个是有意的：带修饰键的组合要用户自己判断与既有快捷键的关系
-  // （Ctrl+Shift+V 是剪贴板小窗、Ctrl+Shift+A 曾是旧 AI 弹窗），而 F1 落在
+  // 只留这一个是有意的：带修饰键的组合要用户自己判断与其它全局快捷键的关系
+  // （Ctrl+Shift+C 是剪贴板面板、Ctrl+Enter 唤出主窗口），而 F1 落在
   // 功能键区、几乎不会和别的软件撞键，是「按一下就开始录音」最不容易失败的
   // 选择。accelerator 输入框仍然保留，需要别的组合直接手填即可。
   const VOICE_HOTKEY_PRESETS: Array<{ label: string; value: string; hint?: string }> = [
@@ -1583,6 +1748,175 @@ export default function Settings() {
                       </button>
                     );
                   })}
+                </div>
+              </CardContent>
+            </SettingsCard>
+
+            {/* 剪贴板面板 — 快捷键唤出的浮层 */}
+            <SettingsCard accent={ACCENTS.accent}>
+              <SettingsCardHeader
+                accent={ACCENTS.accent}
+                icon={ClipboardList}
+                title="剪贴板面板"
+                subtitle="快捷键唤出最近 5 条剪贴板记录"
+                status={
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {/* 快捷键没注册上时用琥珀色标出 —— 界面显示"已保存"，
+                        实际按了没反应，是最难查的一类问题 */}
+                    {panelHotkey && (
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1 text-[11px] font-medium px-2 py-1 rounded-md border",
+                          panelHotkeyActive
+                            ? "bg-muted/50 text-muted-foreground border-border/60"
+                            : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30"
+                        )}
+                        title={
+                          panelHotkeyActive
+                            ? "当前生效的唤出快捷键"
+                            : "这个快捷键没能注册（可能已被其它程序占用）"
+                        }>
+                        <Keyboard className="h-3 w-3" />
+                        {formatAccelerator(panelHotkey)}
+                      </span>
+                    )}
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-1 rounded-md bg-primary/10 text-primary border border-primary/25">
+                      {panelPosition === "bottom" ? (
+                        <PanelBottom className="h-3 w-3" />
+                      ) : (
+                        <PanelRight className="h-3 w-3" />
+                      )}
+                      {PANEL_POSITION_LABELS[panelPosition]}
+                    </span>
+                  </div>
+                }
+              />
+              <CardContent className="px-5 pb-5 pt-0 space-y-4">
+                <p className="text-[12px] text-muted-foreground/80 leading-relaxed">
+                  按下快捷键会先把应用收起来，再在屏幕上弹出这个面板；点一条即复制并关闭。
+                  位置可以选屏幕底部横排或右侧竖排，改完立即生效。
+                </p>
+
+                {/* 快捷键 */}
+                <Field
+                  label="唤出快捷键"
+                  hint={
+                    <>
+                      用 Ctrl / Alt / Shift 加一个字母或功能键，例如 Ctrl+Shift+C。
+                      Win 键在 Electron 里写作 <span className="font-mono text-foreground/70">Super</span>。
+                      <br />
+                      <span className="font-mono text-foreground/70">fn</span> 键填不了 ——
+                      它被键盘驱动拦截、到不了应用。笔记本上若已把 Fn+C 映射成功能键，
+                      请直接填那个功能键（如 F9）。
+                      <br />
+                      组合被别的软件占用时会注册不上，这时可以从托盘菜单「剪贴板面板」打开。
+                    </>
+                  }>
+                  <Input
+                    value={panelHotkeyInput}
+                    onChange={(e) => {
+                      setPanelHotkeyInput(e.target.value);
+                      setPanelHotkeyStatus(null);
+                    }}
+                    placeholder="Control+Shift+C"
+                    spellCheck={false}
+                    className="h-9 bg-muted/30 font-mono focus-visible:bg-background"
+                  />
+                </Field>
+
+                {/* 快捷键预设：省得用户去记 accelerator 的确切拼写 */}
+                <div className="flex flex-wrap gap-1.5">
+                  {PANEL_HOTKEY_PRESETS.map((preset) => (
+                    <button
+                      key={preset.value}
+                      type="button"
+                      title={preset.hint}
+                      onClick={() => {
+                        setPanelHotkeyInput(preset.value);
+                        setPanelHotkeyStatus(null);
+                      }}
+                      className={cn(
+                        "rounded-md border px-2.5 py-1 text-[11px] transition-colors",
+                        "border-border/60 text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+                        panelHotkey === preset.value && "border-primary/50 bg-primary/10 text-primary"
+                      )}>
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="relative">
+                  <div className="flex gap-2 pt-1">
+                    <Button
+                      onClick={handleSavePanelHotkey}
+                      disabled={isSavingPanelHotkey || !panelHotkeyInput.trim()}
+                      className="flex-1 h-9 btn-hover">
+                      {isSavingPanelHotkey ? "保存中…" : "保存快捷键"}
+                    </Button>
+                  </div>
+                  {panelHotkeyStatus && (
+                    <p
+                      className={cn(
+                        "mt-2 text-[11px] leading-relaxed",
+                        panelHotkeyStatus.tone === "success"
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-destructive"
+                      )}
+                      aria-live="polite">
+                      {panelHotkeyStatus.message}
+                    </p>
+                  )}
+                  {!panelHotkeyActive && !panelHotkeyStatus && (
+                    <p className="mt-2 text-[11px] leading-relaxed text-amber-600 dark:text-amber-400">
+                      当前快捷键没能注册（可能已被其它程序占用），请换一个组合或用托盘菜单打开面板。
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <p className="text-[12px] font-medium text-foreground/80 mb-2">面板位置</p>
+                  <div
+                    role="radiogroup"
+                    aria-label="剪贴板面板位置"
+                    className="grid grid-cols-2 gap-2">
+                    {PANEL_POSITION_OPTIONS.map((option) => {
+                      const selected = panelPosition === option.value;
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          role="radio"
+                          aria-checked={selected}
+                          disabled={isSavingPanelPosition}
+                          onClick={() => void handleSavePanelPosition(option.value)}
+                          className={cn(
+                            "flex flex-col items-center gap-1 rounded-lg px-3 py-3 border transition-all duration-200 cursor-pointer",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
+                            "disabled:opacity-60 disabled:cursor-not-allowed",
+                            selected
+                              ? "bg-primary/[0.08] border-primary/45 shadow-[0_2px_8px_hsl(var(--primary)/0.14)]"
+                              : "bg-card border-border hover:border-primary/25 hover:bg-primary/[0.04]"
+                          )}>
+                          <option.icon
+                            className={cn(
+                              "h-4 w-4 transition-colors",
+                              selected ? "text-primary" : "text-muted-foreground"
+                            )}
+                          />
+                          <span
+                            className={cn(
+                              "text-[12px] font-medium transition-colors",
+                              selected ? "text-primary" : "text-foreground/80"
+                            )}>
+                            {option.label}
+                          </span>
+                          <span className="text-[11px] text-muted-foreground/70 text-center leading-snug">
+                            {option.hint}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </CardContent>
             </SettingsCard>

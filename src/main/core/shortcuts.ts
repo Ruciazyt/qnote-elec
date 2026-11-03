@@ -4,31 +4,33 @@ import { log } from "../utils/log";
 type VoidFn = () => void;
 
 /**
- * 注册全局快捷键
- * macOS: Command+Shift+V
- * Windows/Linux: CommandOrControl+Shift+V
+ * 剪贴板面板的全局快捷键 —— 用户可在设置页自定义
  *
- * AI 弹窗的快捷键（Command+Shift+A）已随 popup AI 一起移除 ——
- * 浮框面板 / 主窗口的 AI 助手仍然可用，但不再有独立小窗入口。
- * 该键位如今由语音输入复用，见 registerVoiceShortcut。
+ * 这里刻意不做任何「按平台挑组合」的硬编码：组合由用户在设置页填，
+ * 存在数据库里，启动时读出来注册。默认值见 config.ts 的
+ * DEFAULT_CLIPBOARD_PANEL_HOTKEY。
+ *
+ * ## 为什么不用固定的 Win+C
+ *
+ * Windows 11 把 Win+C 绑给了 Copilot，RegisterHotKey 抢不过系统保留键，
+ * 注册会直接失败（失败只返回 false，不抛异常）。
+ *
+ * ## 为什么也不支持 Fn 键
+ *
+ * Electron 的 accelerator 修饰键只有
+ * Command / Control / CommandOrControl / Alt / Option / AltGr / Shift / Super / Meta，
+ * **没有 Fn**。而 Fn 键在 Windows 上由键盘固件和驱动在很低的层就消费掉了，
+ * 根本不会作为修饰键送到应用。
+ *
+ * 更糟的是解析器对不认识的修饰键是**静默丢弃**而不是报错：
+ * 实测 `globalShortcut.register("fn+1", …)` 返回 true（看着像注册成功了），
+ * 实际注册的是裸的 "1" —— 用户在任何一个输入框里敲数字 1 都会触发。
+ * 所以 Fn 组合一律在 validateAccelerator 里直接拒掉。
+ *
+ * 想知道自己的键盘上 Fn+C 到底被驱动送成了什么，可以在设置页试填
+ * 那个组合：填 Fn+C 会被明确拒绝，填 F 开头或媒体键能注册上就说明驱动
+ * 是那样映射的。
  */
-export function registerGlobalShortcuts(
-  onClipboard: VoidFn,
-  /** 保留参数以避免改动调用方签名；当前 no-op（popup AI 已移除） */
-  _onAi: VoidFn
-): void {
-  const isMac = process.platform === "darwin";
-  const clipboardKey = isMac ? "Command+Shift+V" : "CommandOrControl+Shift+V";
-
-  if (globalShortcut.register(clipboardKey, onClipboard)) {
-    log.info(`✓ [shortcuts] 注册成功: ${clipboardKey} → 剪贴板小窗`);
-  } else {
-    log.warn(`✗ [shortcuts] 注册失败: ${clipboardKey}（已被占用）→ 剪贴板小窗`);
-    if (isMac) {
-      log.warn("[shortcuts] macOS 用户请在系统偏好设置 → 隐私 → 辅助功能 中授权 QNote");
-    }
-  }
-}
 
 /** Electron 支持的修饰键（小写比较）。除此之外的任何 token 都会被解析器静默丢弃。 */
 const SUPPORTED_MODIFIERS = new Set([
@@ -125,12 +127,21 @@ export function validateAccelerator(accelerator: string): AcceleratorCheck {
           ok: false,
           error:
             "Electron 不支持 fn 键 —— 它被键盘驱动拦截、不会送到应用。" +
-            "若笔记本已把 Fn+1 映射为功能键，请改填 F1。",
+            "若笔记本已把 Fn 组合映射成功能键，请改填那个功能键（如 F1 / F9）。",
+        };
+      }
+      // "Win" 是 Windows 用户最自然的写法，但它不是 Electron 的修饰键名 ——
+      // 解析器会**静默丢弃**它，剩下的裸键被全局注册（"Win+C" 实际变成抢占裸 C）。
+      // 所以这里明确告诉用户正确写法，而不是只说"不认识"。
+      if (lower === "win") {
+        return {
+          ok: false,
+          error: "Win 键在 Electron 里叫 Super，请改填 Super+C。",
         };
       }
       return {
         ok: false,
-        error: `无法识别的修饰键「${modifier}」。可用：Ctrl / Alt / Shift / Command / CommandOrControl。`,
+        error: `无法识别的修饰键「${modifier}」。可用：Ctrl / Alt / Shift / Super（Win 键）/ Command / CommandOrControl。`,
       };
     }
   }
@@ -217,8 +228,68 @@ export function unregisterVoiceShortcut(): void {
   registeredVoiceAccelerator = null;
 }
 
+/** 当前已注册的剪贴板面板快捷键；用于改配置时先注销旧的 */
+let registeredPanelAccelerator: string | null = null;
+
+/** 供调用方查询当前生效的面板快捷键（设置页回显、排查"按了没反应"时用） */
+export function getRegisteredPanelAccelerator(): string | null {
+  return registeredPanelAccelerator;
+}
+
+/**
+ * 注册剪贴板面板快捷键
+ *
+ * 与语音快捷键同一套逻辑：先校验语法，再交给系统注册，
+ * 两者都如实回报结果（ok / error），由调用方决定要不要回滚配置。
+ *
+ * @param accelerator 用户配置的 accelerator（已通过 validateAccelerator）
+ * @param onTrigger   触发回调
+ * @returns 注册结果。ok=false 时 error 说明原因（多为被其它软件占用）
+ */
+export function registerClipboardPanelShortcut(
+  accelerator: string,
+  onTrigger: VoidFn
+): AcceleratorCheck {
+  unregisterClipboardPanelShortcut();
+
+  const check = validateAccelerator(accelerator);
+  if (!check.ok) {
+    return check;
+  }
+
+  try {
+    const ok = globalShortcut.register(accelerator, onTrigger);
+    if (!ok) {
+      const message = `快捷键「${accelerator}」注册失败，可能已被其它程序占用`;
+      log.warn(`✗ [shortcuts] ${message} → 剪贴板面板`);
+      return { ok: false, error: message };
+    }
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    const message = `快捷键「${accelerator}」注册出错：${reason}`;
+    log.warn(`✗ [shortcuts] ${message} → 剪贴板面板`);
+    return { ok: false, error: message };
+  }
+
+  registeredPanelAccelerator = accelerator;
+  log.info(`✓ [shortcuts] 注册成功: ${accelerator} → 剪贴板面板`);
+  return { ok: true };
+}
+
+export function unregisterClipboardPanelShortcut(): void {
+  if (!registeredPanelAccelerator) return;
+  try {
+    globalShortcut.unregister(registeredPanelAccelerator);
+    log.info(`[shortcuts] 已注销剪贴板面板快捷键: ${registeredPanelAccelerator}`);
+  } catch {
+    /* ignore */
+  }
+  registeredPanelAccelerator = null;
+}
+
 export function unregisterAllShortcuts(): void {
   unregisterVoiceShortcut();
+  unregisterClipboardPanelShortcut();
   globalShortcut.unregisterAll();
   log.info("[shortcuts] 所有快捷键已注销");
 }

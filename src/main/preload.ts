@@ -590,6 +590,55 @@ contextBridge.exposeInMainWorld("electron", {
   closePopup: () => ipcRenderer.send("popup-close"),
   showMainWindow: () => ipcRenderer.send("popup-show-main-window"),
 
+  /**
+   * 主进程通知面板刷新数据
+   *
+   * 面板窗口是复用的：第二次唤出时渲染层手里还是上一次的数据，
+   * 主进程在 show() 里推一条这个指令，渲染层重新拉历史和位置配置。
+   */
+  onPopupRefresh: (callback: () => void) => {
+    const listener = () => callback();
+    ipcRenderer.on("popup:refresh", listener);
+    return () => ipcRenderer.removeListener("popup:refresh", listener);
+  },
+
+  /** 读取剪贴板面板的展示位置（底部横排 / 侧边竖排） */
+  getClipboardPanelPosition: (): Promise<{
+    ok: boolean;
+    position?: "bottom" | "side";
+    error?: string;
+  }> => ipcRenderer.invoke("clipboard-panel:get-position"),
+
+  /** 保存剪贴板面板的展示位置 */
+  setClipboardPanelPosition: (
+    position: "bottom" | "side"
+  ): Promise<{ ok: boolean; error?: string }> =>
+    ipcRenderer.invoke("clipboard-panel:set-position", position),
+
+  /**
+   * 读取剪贴板面板的全局快捷键
+   *
+   * 返回的是**实际生效**的组合（已注册的那个），以及它是否真的注册上了 ——
+   * 库里存的值和生效值可能不一致（启动时被别的软件占住就没注册上）。
+   */
+  getClipboardPanelHotkey: (): Promise<{
+    ok: boolean;
+    accelerator?: string;
+    active?: boolean;
+    error?: string;
+  }> => ipcRenderer.invoke("clipboard-panel:get-hotkey"),
+
+  /**
+   * 保存并注册剪贴板面板的全局快捷键
+   *
+   * 返回值如实反映语法校验与系统注册两个环节的结果；
+   * 注册失败时主进程会回滚到默认组合，设置页需要把回滚后的值读回来。
+   */
+  setClipboardPanelHotkey: (
+    accelerator: string
+  ): Promise<{ ok: boolean; error?: string }> =>
+    ipcRenderer.invoke("clipboard-panel:set-hotkey", accelerator),
+
   // ==================== 屏幕便签 API ====================
   // 把一条剪贴板记录拖出程序窗口 → 变成压在桌面上的小纸条
 

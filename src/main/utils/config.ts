@@ -3,6 +3,11 @@ import * as path from "path";
 import type { Knex } from "knex";
 import { app } from "electron";
 import { log } from "./log";
+import {
+  DEFAULT_CLIPBOARD_PANEL_POSITION,
+  isClipboardPanelPosition,
+  type ClipboardPanelPosition,
+} from "../../shared/clipboardPanel";
 
 type Theme = "light" | "dark" | "system";
 type AiProvider = "openai" | "deepseek" | "claude";
@@ -24,12 +29,27 @@ interface LegacyAppConfig {
 /**
  * 语音输入的默认全局快捷键
  *
- * 选 F1：它落在功能键区，不与既有快捷键（Ctrl+Shift+V 剪贴板小窗等）冲突，
- * 也不像带修饰键的组合那样容易和别的软件撞键 ——「按一下就开始录音」最不容易
- * 失败的选择。笔记本上 Fn+1 会被驱动映射成 F1，正好对上大多数用户按的物理键。
+ * 选 F1：它落在功能键区，不与其它全局快捷键（Ctrl+Shift+C 剪贴板面板、
+ * Ctrl+Enter 唤出主窗口）冲突，也不像带修饰键的组合那样容易和别的软件撞键 ——
+ * 「按一下就开始录音」最不容易失败的选择。笔记本上 Fn+1 会被驱动映射成 F1，
+ * 正好对上大多数用户按的物理键。
  * 导出成常量是为了让注册失败时的回滚路径和首次启动共用同一个值。
  */
 export const DEFAULT_VOICE_HOTKEY = "F1";
+
+/**
+ * 剪贴板面板的默认全局快捷键
+ *
+ * 选 Ctrl+Shift+C 的理由：
+ *   - 不跟系统保留键冲突（Win+C 在 Windows 11 上被 Copilot 占了）
+ *   - 三个平台写法一致，不用在 macOS 上退让（macOS 的 Command+C 是全系统复制，
+ *     抢不得）
+ *   - 不是任何 Windows 资源管理器级别的键（F2 改名、F3 搜索都被系统用了，
+ *     全局注册会把它们从资源管理器手里抢走）
+ *
+ * 用户可以在设置页改成任意可用组合；改不动的话托盘菜单里也有「剪贴板面板」兜底。
+ */
+export const DEFAULT_CLIPBOARD_PANEL_HOTKEY = "Control+Shift+C";
 
 const DEFAULT_CONFIG = {
   baiduApiKey: "",
@@ -40,6 +60,8 @@ const DEFAULT_CONFIG = {
   aiModel: "",
   aiBaseUrl: "",
   voiceHotkey: DEFAULT_VOICE_HOTKEY,
+  clipboardPanelHotkey: DEFAULT_CLIPBOARD_PANEL_HOTKEY,
+  clipboardPanelPosition: DEFAULT_CLIPBOARD_PANEL_POSITION,
   chromaServerUrl: "local-memory",
   embeddingServiceUrl: "local-memory",
 };
@@ -52,6 +74,8 @@ const SETTINGS_KEYS = {
   AI_MODEL: "ai_model",
   AI_BASE_URL: "ai_base_url",
   VOICE_HOTKEY: "voice_hotkey",
+  CLIPBOARD_PANEL_HOTKEY: "clipboard_panel_hotkey",
+  CLIPBOARD_PANEL_POSITION: "clipboard_panel_position",
   THEME: "theme",
   CHROMA_URL: "chroma_server_url",
   EMBEDDING_URL: "embedding_service_url",
@@ -230,6 +254,23 @@ class ConfigManager {
     log.info("Voice hotkey stored in database", { accelerator });
   }
 
+  /**
+   * 剪贴板面板的全局快捷键（Electron accelerator 语法）
+   *
+   * 存的是「用户想按的那个组合」，能不能真注册由 shortcuts.ts 在运行时判定。
+   */
+  async getClipboardPanelHotkey(): Promise<string> {
+    return this.getSetting(
+      SETTINGS_KEYS.CLIPBOARD_PANEL_HOTKEY,
+      DEFAULT_CONFIG.clipboardPanelHotkey
+    );
+  }
+
+  async setClipboardPanelHotkey(accelerator: string): Promise<void> {
+    await this.upsertSetting(SETTINGS_KEYS.CLIPBOARD_PANEL_HOTKEY, accelerator);
+    log.info("剪贴板面板快捷键已保存", { accelerator });
+  }
+
   async getTheme(): Promise<Theme> {
     const value = await this.getSetting(SETTINGS_KEYS.THEME, DEFAULT_CONFIG.theme as string);
     if (value === "light" || value === "dark" || value === "system") {
@@ -240,6 +281,28 @@ class ConfigManager {
 
   async setTheme(theme: Theme): Promise<void> {
     await this.upsertSetting(SETTINGS_KEYS.THEME, theme);
+  }
+
+  /**
+   * 剪贴板面板的展示位置（底部横排 / 侧边竖排）
+   *
+   * 读出来的一定是合法值：库里存了脏数据就退回默认值，
+   * 绝不把非法值透给调用方 —— 这个值直接决定窗口坐标和尺寸。
+   */
+  async getClipboardPanelPosition(): Promise<ClipboardPanelPosition> {
+    const value = await this.getSetting(
+      SETTINGS_KEYS.CLIPBOARD_PANEL_POSITION,
+      DEFAULT_CONFIG.clipboardPanelPosition
+    );
+    return isClipboardPanelPosition(value) ? value : DEFAULT_CONFIG.clipboardPanelPosition;
+  }
+
+  async setClipboardPanelPosition(position: ClipboardPanelPosition): Promise<void> {
+    if (!isClipboardPanelPosition(position)) {
+      throw new Error(`无效的剪贴板面板位置: ${position}`);
+    }
+    await this.upsertSetting(SETTINGS_KEYS.CLIPBOARD_PANEL_POSITION, position);
+    log.info("剪贴板面板位置已保存", { position });
   }
 
   getConfigPath(): string {
