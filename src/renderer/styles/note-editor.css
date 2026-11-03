@@ -209,3 +209,59 @@
 .tiptap br.ProseMirror-trailingBreak {
   display: none;
 }
+
+/* ==========================================================================
+   编辑区滚动条 — 溢出时常驻
+   ==========================================================================
+
+   ## 为什么要单独一套
+
+   全局那套是「滚动时才显示、停下 800ms 后隐藏」（index.css 的 is-scrolling）。
+   在编辑区里这体感很差：
+
+     - 滚动条一藏一现，正文区宽度跟着变 → 内容重排 → 行数变化 → 滚动位置跳动；
+     - 长文档里滚动条反复闪，读起来一直在抖。
+
+   所以编辑区的滑块改成常驻：内容溢出时一直看得见，一眼知道还剩多少。
+
+   ## 为什么这样就不会抖
+
+   全局机制已经改成「宽度恒定 + 只换滑块颜色」（详见 index.css 里的说明），
+   滚动条是 6px 的悬浮胶囊、不占宽度，宽高都不会变。
+
+   这里只改滑块颜色：
+
+     - 常驻态用低对比度的灰（muted-foreground / 0.3），不干扰阅读；
+     - 滚动时略微加深（0.45），给一点「正在滚」的反馈 —— 只改颜色不改宽度，
+       不产生位移。
+
+   本文件不在 @layer 里 → 未分层样式的优先级高于 @layer base，
+   天然压得住全局那几条，不用拼特异性。
+   ========================================================================== */
+.note-editor-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.note-editor-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.note-editor-scroll::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  /* 胶囊感：圆角取到高度一半 */
+  border-radius: 999px;
+  transition: background 0.2s ease;
+}
+.note-editor-scroll::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+/* 滚动时略微加深，给一点「正在滚」的反馈 —— 只改颜色不改宽度，不产生位移 */
+.is-scrolling .note-editor-scroll::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.45);
+}
+.is-scrolling .note-editor-scroll::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.6);
+}
+/* 两端不要箭头按钮（原生滚动条才有，这里用不上） */
+.note-editor-scroll::-webkit-scrollbar-button {
+  display: none;
+}

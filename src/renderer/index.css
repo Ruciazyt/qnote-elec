@@ -151,19 +151,40 @@
 
    宽度 6px（比常见的 8px 更细），滑块做成圆角胶囊，
    平时完全不可见，滚动时才淡入，闲置 800ms 后由 useScrollIndicator 移除。
+
+   ── 为什么全篇不用 scrollbar-color ──
+   实测（Chromium 140 / Windows）出来的三条硬约束：
+
+   1. `::-webkit-scrollbar` 伪元素一旦被作者写过就生效，但**只要元素上出现了
+      `scrollbar-color`，浏览器就会整个忽略该元素的伪元素**，滚动条退化成
+      系统原生样式：12px 宽、两端带箭头按钮。
+   2. `scrollbar-color` 是**可继承**属性。祖先上声明一次，整条继承链的伪元素
+      全部失效 —— 即使子元素自己写 `scrollbar-color: revert` 也救不回来
+      （revert 只回退「值」，回退不了「是否被声明过」这个标记）。
+   3. `scrollbar-width` 反而无害：祖先写 none、子元素写 auto，伪元素照样生效。
+
+   所以 `scrollbar-color` 全篇不出现，显隐一律交给伪元素的滑块颜色控制。
+
+   ── 为什么 scrollbar-width 固定成 auto ──
+   之前是在 `none ⇄ thin` 之间来回切：静止时滚动条整个消失、占位 0px，
+   一开始滚动就变成原生 12px 并占位 —— 正文宽度突变 → 内容重排 → 行数变化
+   → 滚动位置跳动，这就是「一直在抖」。
+
+   固定成 auto 之后：滚动条始终是 6px 的胶囊，占位宽度**恒定不变**，
+   宽高都不会突变，自然不会重排。显隐靠滑块颜色淡入淡出。
+
+   （应用还开了 OverlayScrollbar 特性开关，开启时这条胶囊是悬浮的、不占宽度；
+   无论哪种，占位都是恒定的，都不会引起重排。）
+
+   （编辑区要「溢出时常驻」，滑块颜色写死在 note-editor.css 里。）
    ========================================================================== */
 @layer base {
-  /* Firefox + 通用 */
+  /* Chromium / Webkit */
   * {
-    scrollbar-width: none;
-    scrollbar-color: transparent transparent;
-  }
-  .is-scrolling * {
-    scrollbar-width: thin;
-    scrollbar-color: hsl(var(--muted-foreground) / 0.35) transparent;
+    /* 必须是 auto：声明 none 会让浏览器忽略伪元素，滚动条变成原生样式 */
+    scrollbar-width: auto;
   }
 
-  /* Chromium / Webkit */
   *::-webkit-scrollbar {
     width: 6px;
     height: 6px;

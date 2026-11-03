@@ -653,8 +653,11 @@ const RichTextEditor = forwardRef<NoteEditorHandle, RichTextEditorProps>(functio
           </Button>
         </div>
 
-        {/* 编辑区 */}
-        <div className="flex-1 min-h-0 overflow-y-auto">
+        {/* 编辑区
+            note-editor-scroll：滚动条常驻（内容溢出时一直可见），
+            宽度恒定所以不会引起正文重排。
+            详见 src/renderer/styles/note-editor.css 里的说明。 */}
+        <div className="flex-1 min-h-0 overflow-y-auto note-editor-scroll">
           <EditorContent editor={editor} />
         </div>
       </div>
