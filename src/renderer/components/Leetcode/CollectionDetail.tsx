@@ -400,7 +400,7 @@ export default function CollectionDetail({ collectionId, onRefresh }: Collection
               </div>
             ) : (
               <div
-                className="flex items-center gap-2 group cursor-pointer hover:bg-gray-50 p-2 rounded -ml-2"
+                className="flex items-center gap-2 group cursor-pointer hover:bg-muted p-2 rounded -ml-2"
                 role="button"
                 tabIndex={0}
                 aria-label={`编辑题单名称：${collection.name}`}
@@ -413,7 +413,7 @@ export default function CollectionDetail({ collectionId, onRefresh }: Collection
                   }
                 }}>
                 <span className="text-lg font-semibold flex-1">{collection.name}</span>
-                <Edit2 className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <Edit2 className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
             )}
           </div>
@@ -441,7 +441,7 @@ export default function CollectionDetail({ collectionId, onRefresh }: Collection
               </div>
             ) : (
               <div
-                className="group cursor-pointer hover:bg-gray-50 p-2 rounded -ml-2"
+                className="group cursor-pointer hover:bg-muted p-2 rounded -ml-2"
                 role="button"
                 tabIndex={0}
                 aria-label="编辑题单总结"
@@ -454,10 +454,10 @@ export default function CollectionDetail({ collectionId, onRefresh }: Collection
                   }
                 }}>
                 <div className="flex items-start justify-between">
-                  <p className="text-sm text-gray-700 flex-1 whitespace-pre-wrap">
-                    {collection.summary || <span className="text-gray-400">点击添加总结</span>}
+                  <p className="text-sm text-foreground/80 flex-1 whitespace-pre-wrap">
+                    {collection.summary || <span className="text-muted-foreground">点击添加总结</span>}
                   </p>
-                  <Edit2 className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity mt-1" />
+                  <Edit2 className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity mt-1" />
                 </div>
               </div>
             )}
@@ -494,12 +494,15 @@ export default function CollectionDetail({ collectionId, onRefresh }: Collection
             <div className="space-y-2">
               {collection.problems?.map((problem, index) => {
                 const getDifficultyColor = (difficulty?: string) => {
-                  if (!difficulty) return "bg-gray-200 text-gray-600";
+                  // 难度徽章走语义 token，不写死调色板原色（docs/UI-GUIDELINES.md 第二节）：
+                  // easy → success、medium → warning、hard → destructive。
+                  // 底色用透明度档，深浅色模式下自动跟随主题。
+                  if (!difficulty) return "bg-muted text-muted-foreground";
                   const d = difficulty.toLowerCase();
-                  if (d === "easy") return "bg-green-100 text-green-700";
-                  if (d === "medium") return "bg-orange-100 text-orange-700";
-                  if (d === "hard") return "bg-red-100 text-red-700";
-                  return "bg-gray-200 text-gray-600";
+                  if (d === "easy") return "bg-success/15 text-success";
+                  if (d === "medium") return "bg-warning/15 text-warning";
+                  if (d === "hard") return "bg-destructive/15 text-destructive";
+                  return "bg-muted text-muted-foreground";
                 };
                 
                 const getDifficultyText = (difficulty?: string) => {
@@ -518,14 +521,14 @@ export default function CollectionDetail({ collectionId, onRefresh }: Collection
                 return (
                   <div
                     key={index}
-                    className="flex items-center gap-2 p-2 border rounded hover:bg-gray-50">
+                    className="flex items-center gap-2 p-2 border border-border rounded hover:bg-muted">
                     <Button
                       size="icon"
                       variant="ghost"
                       aria-label={`${problem.is_completed ? "标记为未完成" : "标记为已完成"}：${problemTitle}`}
                       title={problem.is_completed ? "标记为未完成" : "标记为已完成"}
                       className={`h-6 w-6 ${
-                        problem.is_completed ? "text-green-600" : "text-gray-400"
+                        problem.is_completed ? "text-success" : "text-muted-foreground"
                       }`}
                       onClick={() => handleToggleProblem(index, problem.id)}>
                       <Check className="h-4 w-4" />
@@ -535,7 +538,7 @@ export default function CollectionDetail({ collectionId, onRefresh }: Collection
                       target="_blank"
                       rel="noopener noreferrer"
                       className={`flex-1 text-sm truncate ${
-                        problem.is_completed ? "line-through text-gray-500" : ""
+                        problem.is_completed ? "line-through text-muted-foreground" : ""
                       }`}
                       title={problem.link}
                       onClick={(e) => {
@@ -563,14 +566,14 @@ export default function CollectionDetail({ collectionId, onRefresh }: Collection
                       aria-label={`删除题目：${problemTitle}`}
                       title="删除题目"
                       onClick={() => handleDeleteProblem(index)}>
-                      <Trash2 className="h-4 w-4 text-red-500" />
+                      <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
                 );
               })}
 
               {(!collection.problems || collection.problems.length === 0) && (
-                <div className="text-center text-sm text-gray-500 py-8">
+                <div className="text-center text-sm text-muted-foreground py-8">
                   暂无题目，在上方输入链接添加题目
                 </div>
               )}

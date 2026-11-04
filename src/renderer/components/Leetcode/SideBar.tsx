@@ -3,7 +3,7 @@ import { useCollapsedState } from "@/hooks/useCollapsedState";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
 import { Progress } from "../ui/progress";
 import { ChevronLeft, ChevronRight, Plus, Trash2, Edit, FileText, ListChecks } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -49,6 +49,9 @@ export default function Sidebar({ onSelectCollection, selectedCollectionId }: Si
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+  // 删除目标的名字在「打开确认框那一刻」存下来。
+  // 不能等到确认删除后再去列表里反查 —— 列表这时已经刷新，目标可能已经不在里面了。
+  const [deleteTargetName, setDeleteTargetName] = useState("");
   const [importProgress, setImportProgress] = useState<{
     stage: "parsing" | "fetching" | "creating";
     progress: number;
@@ -100,9 +103,10 @@ export default function Sidebar({ onSelectCollection, selectedCollectionId }: Si
     };
   }, []);
 
-  const handleDelete = async (id: number, e: React.MouseEvent) => {
+  const handleDelete = async (id: number, name: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setDeleteTargetId(id);
+    setDeleteTargetName(name);
     setShowDeleteDialog(true);
   };
 
@@ -111,6 +115,7 @@ export default function Sidebar({ onSelectCollection, selectedCollectionId }: Si
     const id = deleteTargetId;
     setShowDeleteDialog(false);
     setDeleteTargetId(null);
+    setDeleteTargetName("");
 
     try {
       const success = await window.electron.deleteLeetcodeCollection(id);
@@ -264,10 +269,22 @@ export default function Sidebar({ onSelectCollection, selectedCollectionId }: Si
        展开态用 w-64（256px），这一页不支持拖拽调宽，维持原状。 */
     <div
       className={cn(
-        "border-r border-sidebar-border bg-sidebar h-full flex flex-col transition-all duration-200",
+        "bg-sidebar h-full flex flex-col transition-all duration-200",
+        // 展开态的边界线是 1px 语义边框（border-border/60，不分强度档）。
+        // 折叠态换用下面那条等色 inset 阴影 —— 两者不能同时存在：
+        // 边框会占掉内容盒，48px 轨的内容盒只剩 47px，
+        // 折叠按钮就不左右对称（左边 8px、右边只剩 7px）。
+        sidebarCollapsed ? null : "border-r border-border/60",
         !sidebarCollapsed && "w-64"
       )}
-      style={sidebarCollapsed ? { width: PANEL_COLLAPSED_WIDTH } : undefined}>
+      style={{
+        width: sidebarCollapsed ? PANEL_COLLAPSED_WIDTH : undefined,
+        // 折叠态的分隔线用 inset 阴影画，不占内容盒：
+        // 颜色与展开态的 border-border/60 完全等价，两态切换时线的位置不动。
+        ...(sidebarCollapsed
+          ? { boxShadow: "inset -1px 0 0 0 hsl(var(--border) / 0.6)" }
+          : null),
+      }}>
       {/* 头部行 —— 与通用面板件（panel/layout.ts）同一套几何。
 
           内边距走行内样式（PANEL_COLLAPSED_BUTTON_INSET / PANEL_HEADER_PADDING_X），
@@ -300,7 +317,13 @@ export default function Sidebar({ onSelectCollection, selectedCollectionId }: Si
           className="leetcode-sidebar-btn h-8 w-8 shrink-0">
           {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </Button>
-        {!sidebarCollapsed && <h3 className="font-bold text-lg ml-2 text-left flex-1">题单</h3>}
+        {!sidebarCollapsed && (
+          /* 面板头部标题统一 14px medium + text-foreground（跨域一致性口径，
+             架构师定的）：全应用 bold 侧栏标题只有笔记页和题单页这两处 18px，
+             其余 25+ 处都是 12–13px medium，18px 是孤例。
+             页面主标题（h1）才用 text-xl font-bold。 */
+          <h3 className="text-sm font-medium ml-2 text-left flex-1 text-foreground">题单</h3>
+        )}
         {!sidebarCollapsed && (
           /* 两个操作按钮之间留 8px（gap-2）—— 同规格相邻图标按钮不能贴死，
              规范见 docs/UI-GUIDELINES.md 第三节。 */
@@ -387,7 +410,7 @@ export default function Sidebar({ onSelectCollection, selectedCollectionId }: Si
                     aria-label={`删除题单：${collection.name}`}
                     title="删除题单"
                     className="h-7 w-7 hover:bg-destructive/10 text-destructive hover:text-destructive"
-                    onClick={(e) => handleDelete(collection.id, e)}>
+                    onClick={(e) => handleDelete(collection.id, collection.name, e)}>
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
@@ -530,6 +553,7 @@ export default function Sidebar({ onSelectCollection, selectedCollectionId }: Si
         if (!isOpen) {
           setShowDeleteDialog(false);
           setDeleteTargetId(null);
+          setDeleteTargetName("");
         }
       }}>
         <DialogContent className="max-w-md">
@@ -538,18 +562,24 @@ export default function Sidebar({ onSelectCollection, selectedCollectionId }: Si
               <Trash2 className="h-5 w-5 text-destructive" />
               删除题单
             </DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-muted-foreground">
-              确定要删除这个题单吗？
+            {/* 正文必须由 DialogDescription 承载。
+                ui/dialog 不会自动生成描述节点，只有真的渲染了它，
+                Radix 才把它的 id 接上 aria-describedby；
+                正文放在普通 <p> 里 → 弹窗打开那一瞬间读屏只念得到标题，
+                「删的是哪一个题单」用户听不出来。 */}
+            <DialogDescription>
+              确定要删除
+              <span className="font-bold break-all"> {deleteTargetName} </span>
+              吗？
               <br />
               <span className="text-destructive font-medium">此操作不可逆！</span>
-            </p>
-          </div>
+            </DialogDescription>
+          </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => {
               setShowDeleteDialog(false);
               setDeleteTargetId(null);
+              setDeleteTargetName("");
             }}>
               取消
             </Button>

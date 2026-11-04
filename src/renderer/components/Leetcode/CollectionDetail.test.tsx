@@ -1,7 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import CollectionDetail from "./CollectionDetail";
+import CollectionDetail, {
+  extractProblemSlug,
+  extractProblemTitle,
+  slugToTitle,
+} from "./CollectionDetail";
 import { createElectronStub } from "../../test/electron-stub";
 
 /**
@@ -278,6 +282,88 @@ describe("题单详情页", () => {
       });
 
       expect(screen.getByText("暂无题目，在上方输入链接添加题目")).toBeInTheDocument();
+    });
+  });
+});
+
+/**
+ * 题目标题解析的纯函数
+ *
+ * 这三个函数只做字符串解析，没有副作用也没有依赖 —— 边界比组件路径更值得测：
+ * 非法 URL、没有 /problems/ 段的路径、超长链接的截断，都是用户真会粘进来的东西。
+ */
+describe("题目标题解析（纯函数）", () => {
+  describe("extractProblemSlug", () => {
+    it("从路径里取出 slug", () => {
+      expect(extractProblemSlug("https://leetcode.cn/problems/two-sum/")).toBe("two-sum");
+    });
+
+    it("末尾斜杠可带可不带", () => {
+      expect(extractProblemSlug("https://leetcode.cn/problems/two-sum")).toBe("two-sum");
+    });
+
+    it("只认 pathname，query 不参与", () => {
+      expect(extractProblemSlug("https://leetcode.cn/problems/two-sum/?env=prod")).toBe(
+        "two-sum"
+      );
+    });
+
+    it("非法 URL 返回 null", () => {
+      expect(extractProblemSlug("not-a-url")).toBeNull();
+      expect(extractProblemSlug("")).toBeNull();
+    });
+
+    it("路径里没有 /problems/ 段返回 null", () => {
+      expect(extractProblemSlug("https://example.com/solutions/two-sum")).toBeNull();
+      expect(extractProblemSlug("https://example.com/problems/")).toBeNull();
+    });
+  });
+
+  describe("slugToTitle", () => {
+    it("按连字符分词，每段首字母大写后用空格连接", () => {
+      expect(slugToTitle("two-sum")).toBe("Two Sum");
+      expect(slugToTitle("add-two-numbers")).toBe("Add Two Numbers");
+    });
+
+    it("空字符串返回空串，不抛错", () => {
+      expect(slugToTitle("")).toBe("");
+    });
+
+    it("已经大写的词不改写", () => {
+      expect(slugToTitle("Two-Sum")).toBe("Two Sum");
+    });
+
+    it("只按连字符分词，下划线不动", () => {
+      expect(slugToTitle("two_sum")).toBe("Two_sum");
+    });
+  });
+
+  describe("extractProblemTitle", () => {
+    it("缓存标题优先", () => {
+      expect(extractProblemTitle("https://leetcode.cn/problems/two-sum/", "两数之和")).toBe(
+        "两数之和"
+      );
+    });
+
+    it("缓存标题是空串时按没有缓存处理，走 URL 兜底", () => {
+      expect(extractProblemTitle("https://leetcode.cn/problems/two-sum/", "")).toBe("Two Sum");
+    });
+
+    it("没有缓存标题时按 slug 生成", () => {
+      expect(extractProblemTitle("https://leetcode.cn/problems/two-sum/")).toBe("Two Sum");
+    });
+
+    it("URL 里取不到 slug 时退回域名", () => {
+      expect(extractProblemTitle("https://example.com/problems/")).toBe("example.com");
+    });
+
+    it("非法 URL 且不太长时原样返回", () => {
+      expect(extractProblemTitle("not-a-url")).toBe("not-a-url");
+    });
+
+    it("非法 URL 且超过 50 字时截断并加省略号", () => {
+      const long = "x".repeat(60);
+      expect(extractProblemTitle(long)).toBe(`${"x".repeat(50)}...`);
     });
   });
 });

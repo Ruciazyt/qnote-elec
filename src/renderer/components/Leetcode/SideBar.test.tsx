@@ -347,6 +347,28 @@ describe("题单页侧栏折叠按钮", () => {
       expect(deleteButtons).toHaveLength(2);
       expect(new Set(editButtons.map((b) => b.getAttribute("aria-label"))).size).toBe(2);
     });
+
+    // 已启用：@浏览器工具开发 已把删除确认框的正文改成 DialogDescription 承载，
+    // 目标名在打开弹窗那一刻存进 state（UI设计校验 的改动清单）。
+    it("删除确认弹窗的描述节点里带着题单名", async () => {
+      const user = userEvent.setup();
+      window.localStorage.setItem(STORAGE_KEY, "false");
+      await renderSidebar();
+
+      await screen.findByText("动态规划专题");
+      await user.click(screen.getByRole("button", { name: "删除题单：动态规划专题" }));
+
+      // 弹窗打开那一瞬间，读屏念的是 aria-describedby 指向的那段文本。
+      // ui/dialog 不会自动生成描述节点 —— 只有真的渲染了 DialogDescription，
+      // Radix 才会把它的 id 接上去；正文放在普通 <p> 里就等于没被朗读，
+      // 「删的是哪一个」用户还是听不出来。
+      const dialog = screen.getByRole("dialog");
+      const describedBy = dialog.getAttribute("aria-describedby");
+      expect(describedBy).toBeTruthy();
+
+      const description = document.getElementById(describedBy!);
+      expect(description?.textContent).toContain("动态规划专题");
+    });
   });
 
   describe("题单列表", () => {

@@ -39,6 +39,19 @@ export default {
 					DEFAULT: 'hsl(var(--destructive))',
 					foreground: 'hsl(var(--destructive-foreground))'
 				},
+				// 成功 / 已完成 / 通过 —— 语义色一组，位置紧跟 destructive 之后。
+				// 命名与 CSS 变量同名（--success → success），改一处两处都对得上。
+				success: {
+					DEFAULT: 'hsl(var(--success))',
+					foreground: 'hsl(var(--success-foreground))'
+				},
+				// 警告 / 中等难度 —— index.css 里 --warning / --warning-foreground 早就有了
+				// （明暗两套主题各一份），只是没注册进 Tailwind，用 bg-warning / text-warning
+				// 生成不出规则。注册在这里，语义色就齐了。
+				warning: {
+					DEFAULT: 'hsl(var(--warning))',
+					foreground: 'hsl(var(--warning-foreground))'
+				},
 				muted: {
 					DEFAULT: 'hsl(var(--muted))',
 					foreground: 'hsl(var(--muted-foreground))'

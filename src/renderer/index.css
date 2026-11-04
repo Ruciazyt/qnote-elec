@@ -2932,12 +2932,10 @@ kbd.kbd-key:active {
   box-shadow: 0 1px 3px 0 hsl(var(--foreground) / 0.14);
 }
 
-/* 竖向分界（笔记文件树 / 编辑区之间）——.neu-divider-b 的横转竖
-   同一条规则：光源固定左上，投影只往暗的一侧落，所以这里是向右投影而不是向左。
-   两栏同处 --card 白底，一根 1px 实线会像外框残留的接缝，拟态暗部反而更像"分栏"。 */
-.neu-divider-r {
-  box-shadow: 1px 0 3px 0 hsl(var(--foreground) / 0.18);
-}
+/* 竖向分界（笔记文件树 / 编辑区之间）已移除 2026-11-04 ——
+   竖向分栏统一改用 1px 语义边框（border-r border-border/60），
+   折叠态用等价 inset 阴影画同一条线，位置与颜色一致。
+   拟态投影只在横向（工具栏下缘）保留，见上面的 .neu-divider-b。 */
 
 /* hover 态：暗部加深 + 略微抬升，和 .shadow-transition 配合做过渡 */
 .neu-raised-hover {
@@ -2956,9 +2954,6 @@ kbd.kbd-key:active {
 }
 .dark .neu-divider-b {
   box-shadow: 0 1px 3px 0 hsl(0 0% 0% / 0.45);
-}
-.dark .neu-divider-r {
-  box-shadow: 1px 0 3px 0 hsl(0 0% 0% / 0.5);
 }
 .dark .neu-raised-hover:hover {
   box-shadow:

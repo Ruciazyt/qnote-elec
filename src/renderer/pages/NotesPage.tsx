@@ -878,28 +878,43 @@ export default function NotesPage() {
       <div ref={rootRef} className="flex h-full w-full relative">
         {/* ── 左：统一文件树 ──
             不再自带底色 —— 它是内容面板的左半部分，不是第二个侧栏。
-            分栏靠 .neu-divider-r 的单侧投影（和工具栏下缘同一条规则），
-            不画 1px 实线：两栏同在白底上，实线看着像外框残留的接缝。
 
-            relative + z-10 是必须的，不能省
-            侧栏是 position:static，它的 box-shadow 在绘制顺序第 3 步（常规块级背景）
-            就画完了；而右栏的编辑区是 absolute inset-0，属于第 6 步（定位后代），
-            后画、盖在上面。.neu-divider-r 的投影是向右溢出约 3px 的，那 3px
-            落在右栏范围内 —— Excalidraw 的 canvas 不透明，于是把投影整条盖掉，
-            表现为「只有绘图 tab 下分割线消失」，文本/图片因为背景透明反而正常。
-            加上 z-10 让侧栏自成一个正 z-index 层叠上下文、排到第 7 步最后画，
-            投影就始终压在画布之上。
+            分栏线统一成 1px 语义边框（border-r border-border/60），
+            不再投影：竖向分栏用 --border 这一个 token，明暗两套主题下
+            看起来是同一种线。
+
+            两态各用一种画法，但颜色与位置一致，切换时这条线不移动、不变淡：
+            - 展开态：border-r border-border/60（1px 边框，占内容盒 1px）
+            - 折叠态：inset -1px 0 0 0 hsl(var(--border) / 0.6)
+              —— 用投影而不是边框，是因为折叠轨只有 48px，按钮要左右各留 8px；
+              换成 1px 边框会让内容盒变成 47px，按钮右边只剩 7px，左右就不等宽了。
+
+            transition 只过渡 width（原来是 transition-all）：
+            过渡 all 会把 box-shadow 一起带上，收起那一帧阴影从「无」淡入、
+            边框瞬间消失，这条线就会闪一下、强度也变了。
+
+            relative + z-10 保留：侧栏是 position:static，边框在绘制顺序第 3 步
+            就画完了；右栏的编辑区是 absolute inset-0，属于第 6 步（定位后代），
+            后画。现在的边框不再溢出到右栏，本来不会被盖，但保留 z-10 可以让
+            「侧栏右缘永远压在画布之上」这件事不依赖任何隐含假设。
 
             这里刻意不加 items-center：收起时靠父容器居中，宽度过渡的那一帧
             轨道还是 288px 宽，按钮会先跳到 128px 处再滑回轨道正中，
             看起来就是横向跳一下。折叠轨的按钮改用固定左内边距锚定，
             见下面头部行那段注释。 */}
         <div
-          className="relative z-10 h-full shrink-0 flex flex-col p-0 transition-all duration-300 neu-divider-r"
+          className={`relative z-10 h-full shrink-0 flex flex-col p-0 transition-[width] duration-300 ${
+            sidebarCollapsed ? "" : "border-r border-border/60"
+          }`}
           style={{
             // 收起时固定为折叠轨宽（NOTE_SIDEBAR_COLLAPSED_WIDTH = 48），
             // 展开时用拖出来的宽度
             width: sidebarCollapsed ? NOTE_SIDEBAR_COLLAPSED_WIDTH : effectiveSidebarWidth,
+            // 折叠态的边界线：inset 阴影，不占内容盒（原因见上面的注释）。
+            // 颜色与展开态的 border-border/60 是同一个 --border token。
+            ...(sidebarCollapsed
+              ? { boxShadow: "inset -1px 0 0 0 hsl(var(--border) / 0.6)" }
+              : null),
             // 拖拽期间把 transition 关掉 —— 300ms 的宽度过渡会让侧栏慢半拍地
             // 追着指针跑。用行内样式而不是再加一个 transition-none 类：
             // 两个类都写 transition-property，谁赢取决于它们在样式表里的先后，
@@ -954,9 +969,12 @@ export default function NotesPage() {
               </TooltipContent>
             </Tooltip>
             {!sidebarCollapsed && (
-              /* 颜色交给 text-foreground：这一列现在是内容面板的一部分，
+              /* 侧栏标题走 14px medium（text-sm font-medium）：
+                 全应用只有页面主标题 h1 用 text-xl font-bold，
+                 侧栏标题这一级用 text-sm，副信息/计数用 text-xs。
+                 颜色交给 text-foreground —— 这一列现在是内容面板的一部分，
                  不该继续用为外框侧栏设计的 --sidebar-* token */
-              <h3 className="font-bold text-lg ml-2 text-left flex-1 text-foreground">
+              <h3 className="text-sm font-medium ml-2 text-left flex-1 text-foreground">
                 笔记
               </h3>
             )}
@@ -964,8 +982,10 @@ export default function NotesPage() {
 
           {!sidebarCollapsed && (
             <>
-              {/* 整个路径行都可点开目录选择器，未设置时用虚线提示可交互 */}
-              <div className="flex items-center gap-2 px-3 mb-2 flex-shrink-0">
+              {/* 整个路径行都可点开目录选择器，未设置时用虚线提示可交互。
+                  px-2(8px)：与头部切换按钮、文件树外框同一条左边线，
+                  之前这里用 px-3(12px)，整列左边线是 8/12/8 三种 */}
+              <div className="flex items-center gap-2 px-2 mb-2 flex-shrink-0">
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
@@ -1065,7 +1085,7 @@ export default function NotesPage() {
             也会挡住侧栏边缘的点击。
             side="left" —— 笔记侧栏在左、分割线贴着它的右缘，往右拖才是加宽。
             浏览器页侧栏在右（方向相反），那边用默认值。
-            transparentAtRest 是必须的 —— 视觉分割由侧栏的 .neu-divider-r 承担，
+            transparentAtRest 是必须的 —— 视觉分割由侧栏右缘那条 1px 边框承担，
             这 7px 只做拖拽热区，静止时不能是一条实底带子。 */}
         {!sidebarCollapsed && (
           <PanelResizer

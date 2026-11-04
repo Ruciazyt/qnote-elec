@@ -191,9 +191,25 @@ export function ResizableSidebar({
         ? <ChevronLeft className="h-4 w-4" />
         : <ChevronRight className="h-4 w-4" />;
 
-  /** 收起时标题与操作区整体退场（宽度归零 + 淡出） */
+  /**
+   * 收起时标题与操作区整体退场（宽度归零 + 淡出）
+   *
+   * `invisible`（visibility: hidden）是这里的关键一项：
+   * 光靠 opacity-0 + pointer-events-none 挡不住键盘 ——
+   * pointer-events-none 只管鼠标，里面的按钮仍然留在 Tab 序里，
+   * 键盘用户会 Tab 到一个看不见的按钮上，焦点框消失、
+   * 读屏却念出按钮名。visibility:hidden 才会把它移出焦点序。
+   *
+   * 但 visibility 是「一步到位」切过去的：直接加 invisible，
+   * 元素会立刻消失，淡出过渡（opacity）就没了动静。
+   * 所以要给它一个 transition-delay：先把 opacity 淡到 0，
+   * 等淡完了再切 visibility。反过来（展开时）用 delay-0，
+   * 立刻可见、再淡入。
+   */
   const hiddenWhenCollapsed =
-    "w-0 overflow-hidden opacity-0 pointer-events-none transition-opacity duration-150";
+    "w-0 overflow-hidden opacity-0 pointer-events-none invisible transition-[opacity,visibility] duration-150 delay-150";
+  const shownWhenExpanded =
+    "opacity-100 visible transition-[opacity,visibility] duration-150 delay-0";
 
   return (
     <>
@@ -205,11 +221,29 @@ export function ResizableSidebar({
           // 用行内样式而不是再加一个 class：类之间谁赢取决于样式表里的先后，
           // 行内样式优先级最高，不会被 transition-[width] 之类的类盖掉。
           ...(resizing ? { transitionProperty: "none" } : null),
+          // 折叠态的分隔线用等色 inset 阴影画，不占内容盒：
+          // 边框会让内容盒少 1px（48 - 1 = 47），按钮就不左右对称
+          //（左边留白 8px、右边只剩 7px）。inset 阴影画在盒内、不占布局，
+          // 颜色与展开态的 border-border/60 完全等价，两态切换时线的位置也不动。
+          ...(collapsed
+            ? {
+                boxShadow:
+                  side === "left"
+                    ? "inset -1px 0 0 0 hsl(var(--border) / 0.6)"
+                    : "inset 1px 0 0 0 hsl(var(--border) / 0.6)",
+              }
+            : null),
         }}
         className={cn(
           "flex h-full min-h-0 flex-col flex-shrink-0 overflow-hidden",
-          side === "left" ? "border-r" : "border-l",
-          "border-border/60",
+          // 展开态的边界线是 1px 语义边框（border-border/60，不分强度档）；
+          // 折叠态改用上面那条 inset 阴影 —— 两者不能同时存在，
+          // 边框会占掉内容盒，破坏折叠轨按钮的左右对称。
+          collapsed
+            ? null
+            : side === "left"
+              ? "border-r border-border/60"
+              : "border-l border-border/60",
           "transition-[width] ease-out motion-reduce:transition-none",
           collapsing ? "duration-150" : "duration-[220ms]",
           className
@@ -219,6 +253,12 @@ export function ResizableSidebar({
             横向内边距走行内样式（PANEL_COLLAPSED_BUTTON_INSET / PANEL_HEADER_PADDING_X），
             不用 Tailwind 的 px-/pl- 类：类名里的数字是写死的，
             跟共享常量各走各的，改了常量类名不会跟着变。
+
+            行高用 h-12 + pt-2 + pb-2 —— 内容盒正好 32px，折叠按钮 32px 填满它，
+            于是按钮落在轨道顶端往下 8px 处，上下各留 8px。
+            笔记页、快捷方式面板、题单页的折叠按钮都是距顶 8px；
+            这里原来用固定 h-10 居中，只有 4px，跨页面切换时按钮会上下跳 4px。
+            两态共用同一行高与同一内边距，折叠↔展开时按钮的纵向位置也不变。
 
             折叠态两条硬规则（都在 panel/layout.ts 里写明了原因）：
             1. gap 必须是 0 —— 标题与操作区虽然宽度归零（w-0），gap 照样占位，
@@ -232,7 +272,7 @@ export function ResizableSidebar({
             paddingRight: collapsed ? 0 : PANEL_HEADER_PADDING_X,
           }}
           className={cn(
-            "flex items-center h-10 flex-shrink-0",
+            "flex items-center h-12 pt-2 pb-2 flex-shrink-0",
             collapsed ? "gap-0" : "gap-2"
           )}>
           {/* 折叠按钮：32×32（PANEL_COLLAPSED_BUTTON_SIZE）。
@@ -253,7 +293,7 @@ export function ResizableSidebar({
           <div
             className={cn(
               "flex items-center gap-2 min-w-0 transition-opacity duration-150",
-              collapsed ? hiddenWhenCollapsed : "flex-1 opacity-100"
+              collapsed ? hiddenWhenCollapsed : cn("flex-1", shownWhenExpanded)
             )}>
             {title}
           </div>

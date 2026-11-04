@@ -37,7 +37,7 @@ export function BrowserSidePanel({
       style={{ width }}
       aria-label="浏览器侧栏">
       {/* 侧栏头部 — 视图切换 + 关闭 */}
-      <div className="flex items-center gap-1 px-2 py-1.5 border-b border-border/50 flex-shrink-0">
+      <div className="flex items-center gap-1 px-2 py-1.5 border-b border-border/60 flex-shrink-0">
         <button
           type="button"
           onClick={() => onViewChange("bookmarks")}

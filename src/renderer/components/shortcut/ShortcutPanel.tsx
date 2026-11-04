@@ -433,8 +433,8 @@ export function ShortcutPanel() {
           // 收起态用内阴影画分隔线，不画边框：
           // 边框会占掉内容盒（48 - 1 = 47px），按钮居中就落在 7.5px 的小数位置，
           // 左右留白变成 7.5 / 8.5，不相等。inset 阴影画在盒内、不占布局，
-          // 颜色与展开态的 border-border/40 一致，切换时那条线也不挪位置。
-          boxShadow: "inset 1px 0 0 0 hsl(var(--border) / 0.4)",
+          // 颜色与展开态的 border-border/60 完全等价，切换时那条线也不挪位置。
+          boxShadow: "inset 1px 0 0 0 hsl(var(--border) / 0.6)",
         }}>
         {/* 切换按钮：32×32（PANEL_COLLAPSED_BUTTON_SIZE），落在轨道正中，
             左右各留 8px（PANEL_COLLAPSED_BUTTON_INSET），focus 描边四边都露得出来。
@@ -457,13 +457,27 @@ export function ShortcutPanel() {
         {/* 竖排标签 + 角标：保持可点，点了也能展开。
             原来是整条轨一个按钮（箭头 + 文字 + 角标全塞在一个 button 里），
             那样 focus 描边会绕满整条轨、贴着窗口右缘被裁掉，
-            所以把箭头拆成独立的 32×32 按钮，标签自己留一个点击区。 */}
+            所以把箭头拆成独立的 32×32 按钮，标签自己留一个点击区。
+
+            可访问名称要与箭头按钮区分开：两个都叫「展开快捷方式」的话，
+            读屏用户会听到两次一模一样的名字，分不清哪个是箭头、哪个是标签
+            （docs/UI-GUIDELINES.md 第五节）。标签这个按「内容」命名 ——
+            它显示的是面板名「快捷方式」和条目数角标，名称里带上条目数，
+            两者的信息量就分开了。title 用短名，保持原生悬停提示的惯例。
+
+            mx-1 是为了让 focus 描边完整落在轨内：这个面板贴在窗口右缘，
+            描边向外扩 1px 会超出视口，用户看到的焦点框就缺一条右边。
+            左右各内缩 4px，描边（按钮盒外 1px）离轨道边缘还剩 3px。
+
+            mb-1 同理管下边：这个按钮是 flex-1，会一直撑到轨道底部，
+            不留底边距的话描边往下的那 1px 会落到轨道外面被裁掉，
+            焦点框缺一条底边。留 4px 底边距，描边离底边也还剩 3px。 */}
         <button
           type="button"
           onClick={() => setCollapsed(false)}
           title="展开快捷方式"
-          aria-label="展开快捷方式"
-          className="flex-1 flex flex-col items-center gap-3 py-3 text-muted-foreground/60 hover:text-foreground hover:bg-accent/40 transition-colors">
+          aria-label={`展开快捷方式面板（${items.length} 项）`}
+          className="flex-1 mx-1 mb-1 flex flex-col items-center gap-3 py-3 text-muted-foreground/60 hover:text-foreground hover:bg-accent/40 transition-colors">
           <span className="text-[11px] tracking-widest select-none" style={{ writingMode: "vertical-rl" }}>
             快捷方式
           </span>
@@ -480,7 +494,7 @@ export function ShortcutPanel() {
   // ---------------------------------------------------------------- 展开态
   return (
     <aside
-      className="shrink-0 border-l border-border/40 flex flex-col min-h-0 transition-[width] duration-200 ease-out"
+      className="shrink-0 border-l border-border/60 flex flex-col min-h-0 transition-[width] duration-200 ease-out"
       style={{ width: SHORTCUT_PANEL_WIDTH }}>
       {/* 头部：标题 + 操作区。
           左右内边距走行内样式（PANEL_HEADER_PADDING_X = 8px），和折叠轨里
@@ -492,11 +506,11 @@ export function ShortcutPanel() {
           paddingLeft: PANEL_HEADER_PADDING_X,
           paddingRight: PANEL_HEADER_PADDING_X,
         }}
-        className="flex items-center gap-1 h-11 border-b border-border/40 shrink-0">
+        className="flex items-center gap-1 h-11 border-b border-border/60 shrink-0">
         <LayoutGrid className="h-4 w-4 text-muted-foreground/60 shrink-0" />
-        <span className="text-[12px] font-medium text-foreground/80 flex-1 truncate">快捷方式</span>
+        <span className="text-sm font-medium text-foreground flex-1 truncate">快捷方式</span>
         {items.length > 0 && (
-          <span className="text-[10px] text-muted-foreground/50 tabular-nums shrink-0">{items.length}</span>
+          <span className="text-xs text-muted-foreground/60 tabular-nums shrink-0">{items.length}</span>
         )}
         <Button
           variant="ghost"
@@ -533,12 +547,12 @@ export function ShortcutPanel() {
 
       {/* 面板级设置：系统右键菜单开关 + 清空 */}
       {showShellRow && (
-        <div className="px-3 py-2.5 border-b border-border/40 flex flex-col gap-2.5 shrink-0 animate-fade-in">
+        <div className="px-3 py-2.5 border-b border-border/60 flex flex-col gap-2.5 shrink-0 animate-fade-in">
           {shellStatus?.supported ? (
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
-                  <div className="text-[12px] font-medium text-foreground/85">系统右键菜单</div>
+                  <div className="text-xs font-medium text-foreground">系统右键菜单</div>
                   <div className="text-[10px] text-muted-foreground/60 leading-snug mt-0.5">
                     {shellBroken
                       ? "菜单项在，但点了没反应"

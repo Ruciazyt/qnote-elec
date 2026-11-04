@@ -89,14 +89,15 @@ describe("快捷方式面板（ShortcutPanel）", () => {
     it("渲染两个可点元素：32×32 箭头按钮 + 竖排标签", async () => {
       await renderPanel();
 
-      const buttons = screen.getAllByRole("button", { name: "展开快捷方式" });
-      expect(buttons).toHaveLength(2);
+      // 箭头按钮叫「展开快捷方式」，竖排标签叫「展开快捷方式面板（N 项）」——
+      // 两个名称必须能区分开，否则读屏会听到两次同一个名字
+      const arrow = screen.getByRole("button", { name: "展开快捷方式" });
+      expect(classTokens(arrow)).toContain("h-8");
+      expect(classTokens(arrow)).toContain("w-8");
 
-      const arrow = buttons.find((b) => classTokens(b).includes("h-8"));
-      expect(arrow).toBeDefined();
-      expect(classTokens(arrow as HTMLElement)).toContain("w-8");
+      const label = screen.getByRole("button", { name: /展开快捷方式面板/ });
+      expect(label).not.toBe(arrow);
 
-      const label = buttons.find((b) => b !== arrow) as HTMLElement;
       const vertical = Array.from(label.querySelectorAll("span")).find(
         (s) => s.style.writingMode === "vertical-rl"
       );
@@ -119,9 +120,7 @@ describe("快捷方式面板（ShortcutPanel）", () => {
       const user = userEvent.setup();
       await renderPanel();
 
-      const arrow = screen
-        .getAllByRole("button", { name: "展开快捷方式" })
-        .find((b) => classTokens(b).includes("h-8")) as HTMLElement;
+      const arrow = screen.getByRole("button", { name: "展开快捷方式" });
       await user.click(arrow);
 
       expect(getAside().style.width).toBe(`${SHORTCUT_PANEL_WIDTH}px`);
@@ -132,9 +131,7 @@ describe("快捷方式面板（ShortcutPanel）", () => {
       const user = userEvent.setup();
       await renderPanel();
 
-      const label = screen
-        .getAllByRole("button", { name: "展开快捷方式" })
-        .find((b) => !classTokens(b).includes("h-8")) as HTMLElement;
+      const label = screen.getByRole("button", { name: /展开快捷方式面板/ });
       await user.click(label);
 
       expect(getAside().style.width).toBe(`${SHORTCUT_PANEL_WIDTH}px`);
@@ -182,7 +179,9 @@ describe("快捷方式面板（ShortcutPanel）", () => {
       await user.click(screen.getByRole("button", { name: "收起快捷方式" }));
 
       expect(getAside().style.width).toBe(`${SHORTCUT_PANEL_COLLAPSED_WIDTH}px`);
-      expect(screen.getAllByRole("button", { name: "展开快捷方式" })).toHaveLength(2);
+      // 折叠态两个可点元素：箭头 + 竖排标签，名称各不相同
+      expect(screen.getByRole("button", { name: "展开快捷方式" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /展开快捷方式面板/ })).toBeInTheDocument();
     });
   });
 
