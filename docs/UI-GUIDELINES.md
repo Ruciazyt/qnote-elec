@@ -60,7 +60,12 @@
 - **文字不要用透明度档**：语义色做文字必须用实心值（或 `text-foreground`），
   `/80` 叠在白底上对比度会掉到 2~3:1，连小字都过不了 4.5:1。
 - **没有对应语义 token 的信息色**：难度徽章这类要现定映射 ——
-  建议 easy → `success`、medium → `muted`、hard → `destructive`（浅底 + `destructive` 字）。
+  easy → `success`、medium → `muted`、hard → `destructive`，
+  **语义色做底色（浅色调，如 `bg-success/15`）、文字用 `text-foreground`**。
+  不要把语义色当文字色：落在同色 15% 浅底上只有 3.9:1 左右，过不了 AA 4.5:1；
+  换成「浅底 + 语义色字 + `text-foreground` 字」后实测浅色 10.02 / 10.58 / 9.63、
+  暗色 9.74 / 10.68 / 11.47（无头 Electron 像素实测，文字取字形核心像素、
+  底色取出现次数最多的像素）。这是量出来的结论，不是口味问题。
 
 - [ ] 颜色只走语义 token，不写死色值：`bg-background`、`bg-card`、`bg-muted`、
       `text-foreground`、`text-muted-foreground`、`border-border`、`bg-primary`、
@@ -456,3 +461,5 @@ canvas 不透明会把投影整条盖掉 —— 笔记页靠 `relative z-10` 把
 | 2026-11-04 | `pages/NotesPage.tsx` 笔记页侧栏（真实构建产物 + 真实 DOM 实测） | 通过：折叠轨 48、展开态 `border-r` 1px、折叠态同色 inset 阴影（浅 `rgba(227,231,237,0.6)` / 深 `rgba(43,50,59,0.6)`）、两态按钮 x 恒为 176（零位移）、标题 14px/500/`text-foreground`/行高 20px、`ml-2`、头部行左内边距与路径行、文件树列同为 8px；`transition-[width]` 下边框全程 1px 不闪。另有 1 处必改（头部行缺 `overflow-hidden` → 展开首帧标题墨迹画到右栏工具条上，14px/约 40ms；改法必须连 `mt-2`/`mb-2` 一起换成 `pt-2`/`pb-2`） | 笔记开发 |
 | 2026-11-04 | 四个可折叠侧栏的折叠几何一致性（笔记 / 题单 / 应用管理 / 快捷方式） | 通过：四页共用 `panel/layout.ts` 的一套数（轨 48、按钮 32、内缩 8），实测折叠态按钮一律落在 8..40、左右留白各 8px、描边外扩 1px 后仍余 7px；`layout.test.ts` 用等式锁死（轨宽 = 内缩×2 + 按钮边长、内缩 = 展开态头部左内边距），全仓再无写死的 40/44 折叠轨。遗留 1 处（笔记页头部行缺 `overflow-hidden`，与上一行同一件） | UI设计校验 |
 | 2026-11-04 | 规范校准（第九节测量方法复核） | 第 5 条原写「无头窗口先 `win.focus()` 即可」不成立：实测隐藏窗口（`show:false`）无论加不加 `win.focus()`，`:focus-visible` 都不成立，只有**已显示**的窗口（可放在屏幕外）才成立，已按实测四种情况改写；补第 12 条（用仓库 Tailwind 配置单独编复刻页 CSS，不必整包构建，并提醒 `--content` 必须指向复刻页）与第 13 条（`elementFromPoint` 区分「几何溢出」与「真的画出来」） | UI设计校验 |
+| 2026-11-04 | `pages/NotesPage.tsx` 头部行裁剪复验（真实渲染层） | 上一行的必改项已改并提交（`4205d80`）：头部行加 `overflow-hidden`、`mt-2`/`mb-2` 换 `pt-2`/`pb-2`。复验通过：轨道右缘外取样条深色像素由 **434 个降到 0 个**（墨迹不再画到右栏）、focus 描边四边完整（按钮上缘比行上缘低 8px）、两态几何未回归（按钮 x 恒 176、轨 48/288、浅深线色不变、标题仍 14px/500/foreground） | UI设计校验 |
+| 2026-11-04 | `components/Leetcode/SideBar.tsx` + `CollectionDetail.tsx` 题单页第五节验收（交付后复核） | 三项全部结项：轨宽改走共享常量 `PANEL_COLLAPSED_WIDTH`（`SideBar.test.tsx` 已用等式锁死）、展开态 `border-r border-border/60` 与折叠态同色 inset 阴影、标题 `text-sm font-medium` + `text-foreground`；删除确认框已是 `DialogTitle` + `DialogDescription` + 句式「确定要删除题单「{name}」吗？」+ 名字 `font-medium text-foreground` + 不可逆单独一行；难度徽章按语义色做底色 + `text-foreground` 做字（实测浅色 10.02/10.58/9.63）。另修正规范一处与实现相反的表述：第二节原写徽章「浅底 + `destructive` 字」，已改为「语义色做底色 + `text-foreground` 做字」并附实测对比度 | UI设计校验 |
