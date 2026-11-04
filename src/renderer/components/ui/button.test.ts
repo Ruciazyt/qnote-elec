@@ -44,13 +44,14 @@ function baseRingWidth(): number {
 }
 
 describe("按钮基类的焦点指示器", () => {
-  it.skip("基类的焦点指示器厚度 ≥ 2px（WCAG 2.2 SC 2.4.11）", () => {
-    // 已知不达标：基类是 focus-visible:ring-1（1px 环）。
+  it("基类的焦点指示器厚度 ≥ 2px（WCAG 2.2 SC 2.4.11）", () => {
+    // 2026-11-04 @UI设计校验 已把基类从 focus-visible:ring-1 改成 ring-2，
+    // 这条门禁随之转为常绿（改之前挂着 it.skip，去掉 skip 验过它确实会红：
+    // expected 1 to be greater than or equal to 2）。
     //
-    // 这是全应用共用的默认值，改它影响所有没自己指定环宽的按钮 ——
-    // docs/UI-GUIDELINES.md 第五节要求这类改动「单独提一次，不夹在别的改动里」。
-    // 缺陷已报 @Chief 定归属（components/ui/ 是共用组件，没有域 owner）。
-    // 归属方改完把这条的 skip 去掉。
+    // 提醒：环宽是全局决定。再往粗改之前先核余量 ——
+    // panel/layout.ts 里 PANEL_RAIL_LABEL_INSET 的注释写明「描边 2px 时余量降到
+    // 2px，到 3px 就只剩 1px」，那处是全仓库贴视口右缘最紧的按钮。
     expect(baseRingWidth()).toBeGreaterThanOrEqual(2);
   });
 });
