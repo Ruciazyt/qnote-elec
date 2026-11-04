@@ -29,8 +29,12 @@ interface CollectionDetailProps {
 
 // Window.electron type is declared in src/electron.d.ts
 
+/* 这三个是纯函数：只吃字符串、不碰组件状态 —— 导出给测试直接覆盖边界
+   （非法 URL、非 /problems/ 路径、slug 分词、标题截断）。
+   行为一个字没改，只是把作用域从模块内提到模块外。 */
+
 // 从 LeetCode URL 中提取 slug
-function extractProblemSlug(url: string): string | null {
+export function extractProblemSlug(url: string): string | null {
   try {
     const urlObj = new URL(url);
     const pathname = urlObj.pathname;
@@ -42,7 +46,7 @@ function extractProblemSlug(url: string): string | null {
 }
 
 // 从 slug 生成标题（备用方案）
-function slugToTitle(slug: string): string {
+export function slugToTitle(slug: string): string {
   return slug
     .split("-")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -50,7 +54,7 @@ function slugToTitle(slug: string): string {
 }
 
 // 从 LeetCode URL 中提取题目标题
-function extractProblemTitle(url: string, cachedTitle?: string): string {
+export function extractProblemTitle(url: string, cachedTitle?: string): string {
   // 如果有缓存的标题，直接使用
   if (cachedTitle) {
     return cachedTitle;
