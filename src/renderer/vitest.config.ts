@@ -24,7 +24,17 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./test/setup.ts"],
-    include: ["**/*.{test,spec}.{ts,tsx}"],
+    // 扫描范围比本目录大：src/shared 与 src/main 里有一批纯逻辑
+    // （清单解析、图片附件校验、AI 分块构建器）没有任何用例守着，
+    // 它们却同时被主进程和渲染层依赖 —— 一处改错两边都坏。
+    //
+    // 这两个目录不在渲染层的 node_modules 依赖图里，用例只 import
+    // 被测模块本身，不 import electron / knex，因此不需要额外 mock。
+    include: [
+      "**/*.{test,spec}.{ts,tsx}",
+      "../shared/**/*.{test,spec}.{ts,tsx}",
+      "../main/**/*.{test,spec}.{ts,tsx}",
+    ],
     exclude: ["**/node_modules/**", "**/dist/**"],
     restoreMocks: true,
   },
