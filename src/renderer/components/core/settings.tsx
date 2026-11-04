@@ -47,6 +47,7 @@ import {
   PanelBottom,
   PanelRight,
   Keyboard,
+  Boxes,
 } from "lucide-react";
 import { ClearVectorConfirmDialog } from "./ClearVectorConfirmDialog";
 import { ImportDatabaseConfirmDialog } from "./ImportDatabaseConfirmDialog";
@@ -1989,6 +1990,19 @@ export default function Settings() {
                     setSidebarTabs({
                       ...sidebarTabs,
                       browser: !sidebarTabs.browser,
+                    })
+                  }
+                  accent={ACCENTS.accent}
+                />
+                <SidebarTabToggle
+                  icon={Boxes}
+                  title="应用"
+                  description="按文件夹管理本机项目 + 启动与预览"
+                  enabled={sidebarTabs.apps}
+                  onToggle={() =>
+                    setSidebarTabs({
+                      ...sidebarTabs,
+                      apps: !sidebarTabs.apps,
                     })
                   }
                   accent={ACCENTS.accent}

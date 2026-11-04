@@ -1,4 +1,4 @@
-import { Home, Settings, BookOpen, PenTool, PanelLeftClose, PanelLeftOpen, ListChecks, Globe, Sparkles } from "lucide-react";
+import { Home, Settings, BookOpen, PenTool, PanelLeftClose, PanelLeftOpen, ListChecks, Globe, Sparkles, Boxes } from "lucide-react";
 import { Link, useLocation } from "react-router";
 import {
   Sidebar,
@@ -58,6 +58,12 @@ const items: SidebarItem[] = [
     url: "/browser",
     icon: Globe,
     tabKey: "browser",
+  },
+  {
+    title: "应用",
+    url: "/apps",
+    icon: Boxes,
+    tabKey: "apps",
   },
   {
     title: "AI 技能",

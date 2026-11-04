@@ -10,6 +10,7 @@ export interface SidebarTabsConfig {
   todos: boolean;
   leetcode: boolean;
   browser: boolean;
+  apps: boolean;
   settings: boolean;
 }
 
@@ -21,6 +22,9 @@ export const DEFAULT_SIDEBAR_TABS: SidebarTabsConfig = {
   leetcode: false,
   // 浏览器默认开启 — 装完即可用
   browser: true,
+  // 应用管理默认开启 —— 它是本机项目的一站式入口，
+  // 关掉之后用户既不知道有这个功能、也没法在设置页里把它找回来（设置页自己可能被关）。
+  apps: true,
   // 设置默认开启 — 否则用户没法进设置页开启其他标签（先有鸡还是先有蛋）
   settings: true,
 };
@@ -46,6 +50,8 @@ export function loadSidebarTabs(): SidebarTabsConfig {
         typeof parsed.leetcode === "boolean" ? parsed.leetcode : DEFAULT_SIDEBAR_TABS.leetcode,
       // 老版本 localStorage 里没有 browser 字段，回落默认值（开启）
       browser: typeof parsed.browser === "boolean" ? parsed.browser : DEFAULT_SIDEBAR_TABS.browser,
+      // 老版本 localStorage 里没有 apps 字段，回落默认值（开启）
+      apps: typeof parsed.apps === "boolean" ? parsed.apps : DEFAULT_SIDEBAR_TABS.apps,
       settings:
         typeof parsed.settings === "boolean" ? parsed.settings : DEFAULT_SIDEBAR_TABS.settings,
     };
