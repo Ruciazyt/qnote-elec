@@ -112,6 +112,11 @@
       现状：`components/ui/button.tsx` 基类是 `focus-visible:ring-1`，
       实测 1px 环面积 = 1px × 128px 周长 = 128px² < 2px 周长所需的 256px²，不达标。
       这是全应用共用默认值，改动影响所有按钮，**单独提一次**，不夹在别的改动里。
+- [ ] **看不见的控件必须移出焦点序**。只写 `opacity-0` + `pointer-events-none`
+      挡不住键盘 —— `pointer-events-none` 只管鼠标，里面的按钮仍在 Tab 序里：
+      键盘用户会 Tab 到看不见的控件上，焦点框消失、读屏却念出按钮名。
+      用 `visibility: hidden`（或 `inert`），并保留一段淡出过渡。
+      折叠态的标题区、操作区、内容区三块都要这样处理，不能只处理其中一块。
 
 ## 六、跨页一致性
 
@@ -172,7 +177,7 @@
 | --- | --- | --- | --- | --- | --- |
 | 笔记页 `pages/NotesPage.tsx` | 48（inset 阴影，不占内容盒） | 8..40 | 8px | 8px | 8px |
 | 题单页 `Leetcode/SideBar.tsx` | 48（inset 阴影，不占内容盒） | 8..40 | 8px | 8px | 8px |
-| 应用页 `panel/ResizableSidebar.tsx` | 48（inset 阴影，不占内容盒） | 8..40 | 8px | 8px | 4px（固定 `h-10` 行） |
+| 应用页 `panel/ResizableSidebar.tsx` | 48（inset 阴影，不占内容盒） | 8..40 | 8px | 8px | 8px（`h-12` + `pt-2`/`pb-2`，内容盒正好 32px） |
 | 快捷方式面板 `shortcut/ShortcutPanel.tsx` | 48（inset 阴影，不占内容盒） | 8..40 | 8px | 8px | 8px |
 
 五条规则：
@@ -213,6 +218,17 @@
 
 - [ ] 长文本用 `truncate` + `title`，并给父级 `min-w-0`
 - [ ] 窄窗口：侧栏有最小宽度，主内容区不被挤没
+- [ ] **折叠/隐藏区域的退场动效，三块区域要一致**：同一面板里标题区、操作区、
+      内容区的退场时长与节奏必须一致 —— 别一块淡出、一块瞬间消失。
+      淡出总时长不要超过面板的宽度过渡（220ms），否则会显得迟钝；
+      也不要在淡出前留一段「没反应」的延迟：`transition-delay` 会把 opacity 和
+      visibility 一起拖住，看起来就是先卡住再消失。
+      做法是 opacity 立即开始过渡、visibility 延迟到淡完那一刻再切：
+      收起 `[transition:opacity_150ms,visibility_0s_150ms]`、
+      展开 `[transition:opacity_150ms,visibility_0s_0ms]`。
+      （`transition-opacity` 只过渡 opacity，visibility 不在列表里会**立即**切换，
+      等于没有淡出；`transition-[opacity,visibility]` 则能被 `tailwind-merge`
+      正确合并成一条。）
 - [ ] **展开/收起动画期间内容不溢出到相邻区域**。
       宽度过渡时头部行的内容宽度是瞬间切换的，轨道还没长开时头部行就已是展开态的宽度，
       标题与操作按钮会画到右侧主内容区上（题单页实测溢出 99px，持续 200ms）。
@@ -387,3 +403,5 @@ canvas 不透明会把投影整条盖掉 —— 笔记页靠 `relative z-10` 把
 | 2026-11-04 | 规范校准（架构师定案后） | 第十一节由「待拍板」改写为「定稿与理由」：分隔线定稿为展开态 `border-border/60` + 折叠态等价 inset 阴影，标题定稿为 `text-sm font-medium` + `text-foreground`，并写入验收标准五条；第七节规则 2 的状态句同步（原文写「题单页与应用页目前是 `border-r`」，改后已不成立） | UI设计校验 |
 | 2026-11-04 | 规范校准（复核后收尾） | 第三节标题条目补「不用 `text-foreground/80`、`/85` 中间档」并作为唯一完整版，第六节标题条目压缩为指向第三节的引用（同一规则原写两遍）；第二节 `success` 反例加时态并写死定值（浅色 `152 60% 32%` / 暗色 `152 58% 55%`）；`neu-divider-r` 已删除的表述同步到第六节与第十一节 | UI设计校验 |
 | 2026-11-04 | 复核实测：`index.css` 的 `--success` 与 `.neu-divider-r` | `.neu-divider-r` 已删，笔记页改 1px `border-border/60` + 折叠态 inset 阴影、标题 `text-sm font-medium`、路径行 `px-2`，与第十一节定稿一致；`--success` 去重只做了一半 —— 浅色现存 `152 64% 42%` 而非口径的 32%，实心文字在白底卡片上只有 2.79:1 | 浏览器工具开发 |
+| 2026-11-04 | `components/Leetcode/SideBar.tsx` 侧栏折叠/展开几何（40px 轨 → 48px 共享常量） | 通过：折叠轨 48、按钮 8..40、两态零位移（实测 0）、focus 描边四边余量 7px、内容列 `px-2` 与头部左沿同在 8px、标题 14px medium、操作按钮间距 8px；深浅两态分隔线同为 `rgba(43,50,59,0.6)`/`rgba(227,231,237,0.6)`。另有 1 处必改（删除确认框正文缺对象类别与「」） | 浏览器工具开发 |
+| 2026-11-04 | `panel/ResizableSidebar.tsx` + `shortcut/ShortcutPanel.tsx` 折叠退场与焦点描边 | `invisible` 把隐藏区移出焦点序的方向正确（Tab 不再跳进看不见的「导入」）；竖排标签加 `mb-1` 后描边四边余量 3px 通过。另有 1 处必改（内容区折叠态的 visibility 不在过渡列表 → 瞬间消失，与标题/操作区的淡出不一致，且淡出前有 150ms 停顿） | 应用平台开发 |
