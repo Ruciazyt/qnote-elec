@@ -1,12 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { UserEvent } from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import NotesPage from "./NotesPage";
 import { createElectronStub } from "../test/electron-stub";
 import { NOTE_SIDEBAR_COLLAPSED_WIDTH } from "@/components/Note/layout";
+import type { NoteTreeNode } from "@shared/noteTypes";
 import {
   PANEL_COLLAPSED_BUTTON_INSET,
+  PANEL_COLLAPSED_BUTTON_SIZE,
   PANEL_HEADER_PADDING_X,
 } from "@/components/panel/layout";
 
@@ -36,8 +39,15 @@ vi.mock("@/components/Note/editors/ExcalidrawEditor", async () => {
  * 这批锁的是折叠轨几何修复：折叠轨宽 48、头部行行内 paddingLeft 8 / paddingRight 0、
  * 侧栏容器不再 items-center 居中、折叠按钮补 aria-expanded。
  *
- * jsdom 量不到真实像素，所以几何全部断言**行内样式**（style.width / style.paddingLeft）
- * 与类名 —— 这两个恰好就是实现里写几何的地方。
+ * 另外锁了后一轮的规范统一（笔记开发 发的需求清单）：
+ * - 分栏线两态各一种画法 —— 展开态是 1px 语义边框，折叠态是画在轨道右缘的 inset 阴影
+ *   （阴影不占内容盒，换成 1px 边框的话 48 轨里按钮右边会少 1px、左右就不等宽了）；
+ * - 容器只过渡 width，阴影不跟着一起淡入；
+ * - 侧栏标题「笔记」是 14px medium，不是 18px bold；
+ * - 路径行左边线收到 8px（px-2），与头部按钮、文件树同一条线。
+ *
+ * jsdom 量不到真实像素，所以几何全部断言**行内样式**（style.width / style.paddingLeft /
+ * style.boxShadow）与类名 —— 这两个恰好就是实现里写几何的地方。
  */
 
 /** useCollapsedState 的 key */
@@ -61,12 +71,23 @@ function classTokens(el: Element): string[] {
   return (el.getAttribute("class") ?? "").split(/\s+/).filter(Boolean);
 }
 
-async function renderNotesPage() {
+/**
+ * 渲染笔记页。
+ *
+ * tree 可以换成别的树，electron 可以塞自己的桩（断删除接口调用）。
+ */
+async function renderNotesPage(
+  options: {
+    tree?: NoteTreeNode[];
+    electron?: Record<string, unknown>;
+  } = {}
+) {
   window.electron = createElectronStub({
     getFilePath: vi.fn().mockResolvedValue("D:\\notes"),
-    getNoteTree: vi.fn().mockResolvedValue(TREE),
+    getNoteTree: vi.fn().mockResolvedValue(options.tree ?? TREE),
     // 订阅要返回退订函数（组件把它当 effect 的 cleanup 用）
     onNotesChanged: vi.fn(() => () => {}),
+    ...options.electron,
   });
 
   const utils = render(
@@ -138,6 +159,41 @@ describe("笔记页左栏折叠轨（NotesPage）", () => {
       expect(classTokens(sidebar)).not.toContain("items-center");
     });
 
+    it("折叠态的边界线画在轨道右缘的 inset 阴影上，不占内容盒", async () => {
+      await renderNotesPage();
+
+      const sidebar = getSidebar();
+      // 阴影落在最外 1px，内容盒仍是 48 —— 换成 1px 边框的话按钮右边会少 1px
+      expect(sidebar.style.boxShadow).toBe("inset -1px 0 0 0 hsl(var(--border) / 0.6)");
+      // 折叠态不画边框
+      expect(classTokens(sidebar)).not.toContain("border-r");
+    });
+
+    it("容器只过渡宽度，阴影不跟着一起淡入", async () => {
+      await renderNotesPage();
+
+      const tokens = classTokens(getSidebar());
+      expect(tokens).toContain("transition-[width]");
+      expect(tokens).not.toContain("transition-all");
+    });
+
+    it("折叠轨里按钮左右各留 8px（轨宽 48 = 8 + 32 + 8）", async () => {
+      await renderNotesPage();
+
+      const header = getHeaderRow();
+      const toggle = getToggle();
+
+      // 按钮本体 32×32
+      expect(classTokens(toggle)).toEqual(expect.arrayContaining(["h-8", "w-8"]));
+      // 等式：轨宽 - 按钮宽 = 左右各一份内边距
+      expect(NOTE_SIDEBAR_COLLAPSED_WIDTH - PANEL_COLLAPSED_BUTTON_SIZE).toBe(
+        2 * PANEL_COLLAPSED_BUTTON_INSET
+      );
+      // 头部左内边距就是那 8，右边同宽
+      expect(header.style.paddingLeft).toBe(`${PANEL_COLLAPSED_BUTTON_INSET}px`);
+      expect(getSidebar().style.width).toBe(`${NOTE_SIDEBAR_COLLAPSED_WIDTH}px`);
+    });
+
     it("不渲染标题、路径行与文件列表", async () => {
       await renderNotesPage();
 
@@ -188,12 +244,47 @@ describe("笔记页左栏折叠轨（NotesPage）", () => {
       ).toBeTruthy();
     });
 
+    it("标题「笔记」是 14px medium，不是 18px bold", async () => {
+      await renderNotesPage();
+
+      const tokens = classTokens(screen.getByText("笔记"));
+      expect(tokens).toContain("text-sm");
+      expect(tokens).toContain("font-medium");
+      expect(tokens).not.toContain("text-lg");
+      expect(tokens).not.toContain("font-bold");
+    });
+
+    it("展开态用 1px 语义边框画分栏线，不再用阴影", async () => {
+      await renderNotesPage();
+
+      const sidebar = getSidebar();
+      const tokens = classTokens(sidebar);
+      expect(tokens).toContain("border-r");
+      expect(tokens).toContain("border-border/60");
+      // 展开态没有 inset 阴影
+      expect(sidebar.style.boxShadow).toBe("");
+      // 宽度动画只过渡 width
+      expect(tokens).toContain("transition-[width]");
+      expect(tokens).not.toContain("transition-all");
+    });
+
     it("渲染路径行与文件列表", async () => {
       await renderNotesPage();
 
       expect(screen.getByText("D:\\notes")).toBeInTheDocument();
       // 文件行显示的是去掉扩展名的名字
       expect(screen.getByText("读书笔记")).toBeInTheDocument();
+    });
+
+    it("路径行左边线与文件树对齐（px-2 = 8px）", async () => {
+      await renderNotesPage();
+
+      // 路径文字所在的按钮 → 它的父容器就是路径行
+      const pathButton = screen.getByText("D:\\notes").closest("button") as HTMLElement;
+      const pathRow = pathButton.parentElement as HTMLElement;
+      const tokens = classTokens(pathRow);
+      expect(tokens).toContain("px-2");
+      expect(tokens).not.toContain("px-3");
     });
 
     it("侧栏宽度取持久化的展开宽度", async () => {
@@ -310,6 +401,264 @@ describe("笔记页左栏折叠轨（NotesPage）", () => {
       // 键盘步长 16
       expect(getSidebar().style.width).toBe("304px");
       expect(window.localStorage.getItem(WIDTH_KEY)).toBe("304");
+    });
+  });
+});
+
+/**
+ * 删除确认框的回归
+ *
+ * 这批锁的是「破坏性确认框文案口径」（docs/UI-GUIDELINES.md 第十节）落到笔记页：
+ * - 弹窗用 ui/dialog，有 role="dialog"、有焦点管理、Esc 能关；
+ * - 标题只写动作 + 对象类别（删除文件夹 / 删除笔记），**不带名字** ——
+ *   标题是弹窗的可访问名称，名字太长会把它撑成一整句话；
+ * - 正文由 DialogDescription 承载，aria-describedby 指得到，
+ *   读屏在弹窗打开那一瞬间念得出「删的是哪一个」；
+ * - 名字用「」包住，字重是 font-medium（不是 font-bold）；
+ * - 不可逆提示单独一行，text-destructive。
+ *
+ * 断言不绑文案全文 —— 只断「描述节点里有目标名」「名字被「」包住」
+ * 这类结构性事实，改措辞不会误伤。
+ */
+
+/** 一个文件夹 + 根目录下一个文件 */
+const DELETE_TREE: NoteTreeNode[] = [
+  {
+    kind: "folder",
+    name: "读书笔记",
+    relPath: "读书笔记",
+    childCount: 2,
+    children: [
+      {
+        kind: "file",
+        name: "深度阅读.md",
+        relPath: "读书笔记/深度阅读.md",
+        path: "D:\\notes\\读书笔记\\深度阅读.md",
+        type: "markdown",
+        ext: ".md",
+        size: 128,
+        mtime: 1700000000,
+      },
+    ],
+  },
+  {
+    kind: "file",
+    name: "随手记.md",
+    relPath: "随手记.md",
+    path: "D:\\notes\\随手记.md",
+    type: "markdown",
+    ext: ".md",
+    size: 64,
+    mtime: 1700000000,
+  },
+];
+
+/**
+ * 文件树里那一行。
+ *
+ * 行本身是 role="button" 的 div；文件夹里那个展开箭头的 span 也是 role="button"，
+ * 但它在名字 span 外面，closest 从名字往上找只会命中行本身。
+ */
+function getTreeRow(displayName: string): HTMLElement {
+  return screen.getByText(displayName).closest("[role='button']") as HTMLElement;
+}
+
+/**
+ * 打开某个条目的删除确认框。
+ *
+ * 行尾的操作按钮默认不渲染（悬停或选中才露出来），所以先悬停那一行。
+ * rowText 是行上显示的文字（文件去掉了扩展名），ariaName 是按钮可访问名称里的原名。
+ *
+ * 用 fireEvent.click 而不是 user.click：jsdom 里元素没有尺寸，userEvent 的指针
+ * 移动会先给行派发 mouseleave —— 行尾按钮靠 hovered 才渲染，于是按钮在 click
+ * 落地前就被卸载了（实测：按钮 isConnected 变 false、onDelete 调用 0 次）。
+ * fireEvent 只派发 click，不动 hover 状态，React 的 onClick 正常触发。
+ */
+async function openDeleteDialog(
+  user: UserEvent,
+  opts: { rowText: string; ariaName: string }
+): Promise<HTMLElement> {
+  await user.hover(getTreeRow(opts.rowText));
+  fireEvent.click(screen.getByRole("button", { name: `删除 ${opts.ariaName}` }));
+  return screen.getByRole("dialog");
+}
+
+/** 弹窗的描述节点 —— aria-describedby 指的那一段 */
+function getDescription(dialog: HTMLElement): HTMLElement {
+  const id = dialog.getAttribute("aria-describedby");
+  expect(id).toBeTruthy();
+  const node = document.getElementById(id!);
+  expect(node).toBeTruthy();
+  return node as HTMLElement;
+}
+
+describe("笔记页删除确认框（ui/dialog）", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    // 展开态才有文件树
+    window.localStorage.setItem(COLLAPSED_KEY, "false");
+  });
+
+  describe("删除文件夹", () => {
+    it("标题只说类别不带名字，描述节点点名文件夹", async () => {
+      const user = userEvent.setup();
+      await renderNotesPage({ tree: DELETE_TREE });
+
+      const dialog = await openDeleteDialog(user, {
+        rowText: "读书笔记",
+        ariaName: "读书笔记",
+      });
+
+      // 可访问名称来自 DialogTitle：只有动作 + 对象类别
+      expect(dialog).toHaveAccessibleName("删除文件夹");
+      expect(dialog).not.toHaveAccessibleName(/读书笔记/);
+
+      // 正文由 DialogDescription 承载，读屏念得到「删的是哪一个」
+      const description = getDescription(dialog);
+      expect(description.textContent).toContain("读书笔记");
+      // 名字用「」包住
+      expect(description.textContent).toContain("「读书笔记」");
+    });
+
+    it("目标名是 font-medium，不是 font-bold", async () => {
+      const user = userEvent.setup();
+      await renderNotesPage({ tree: DELETE_TREE });
+
+      const dialog = await openDeleteDialog(user, {
+        rowText: "读书笔记",
+        ariaName: "读书笔记",
+      });
+
+      const description = getDescription(dialog);
+      const nameSpan = Array.from(description.querySelectorAll("span")).find(
+        (el) => el.textContent?.trim() === "读书笔记"
+      );
+      expect(nameSpan).toBeTruthy();
+
+      const tokens = classTokens(nameSpan!);
+      expect(tokens).toContain("font-medium");
+      expect(tokens).not.toContain("font-bold");
+    });
+
+    it("不可逆提示单独一行，且不是点名那一句", async () => {
+      const user = userEvent.setup();
+      await renderNotesPage({ tree: DELETE_TREE });
+
+      const dialog = await openDeleteDialog(user, {
+        rowText: "读书笔记",
+        ariaName: "读书笔记",
+      });
+
+      const description = getDescription(dialog);
+      const hint = Array.from(description.querySelectorAll("*")).find(
+        (el) =>
+          classTokens(el).some((t) => t.includes("text-destructive")) &&
+          (el.textContent ?? "").trim().length > 0
+      );
+      expect(hint).toBeTruthy();
+
+      // 提示自己一段，不跟「确定要删除…」混在一起
+      expect(hint!.textContent).not.toContain("确定要删除");
+      // 前面是个换行 —— 单独一行
+      expect(hint!.previousElementSibling?.tagName).toBe("BR");
+    });
+
+    it("Esc 能关掉弹窗", async () => {
+      const user = userEvent.setup();
+      await renderNotesPage({ tree: DELETE_TREE });
+
+      await openDeleteDialog(user, { rowText: "读书笔记", ariaName: "读书笔记" });
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+      await user.keyboard("{Escape}");
+      await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    });
+
+    it("点「取消」能关掉弹窗，且不调删除接口", async () => {
+      const user = userEvent.setup();
+      const deleteNoteFolder = vi.fn().mockResolvedValue(true);
+      await renderNotesPage({
+        tree: DELETE_TREE,
+        electron: { deleteNoteFolder, deleteNoteFile: vi.fn().mockResolvedValue(true) },
+      });
+
+      await openDeleteDialog(user, { rowText: "读书笔记", ariaName: "读书笔记" });
+      await user.click(screen.getByRole("button", { name: "取消" }));
+
+      await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+      expect(deleteNoteFolder).not.toHaveBeenCalled();
+    });
+
+    it("点「确定删除」走 deleteNoteFolder", async () => {
+      const user = userEvent.setup();
+      const deleteNoteFolder = vi.fn().mockResolvedValue(true);
+      const deleteNoteFile = vi.fn().mockResolvedValue(true);
+      await renderNotesPage({
+        tree: DELETE_TREE,
+        electron: { deleteNoteFolder, deleteNoteFile },
+      });
+
+      await openDeleteDialog(user, { rowText: "读书笔记", ariaName: "读书笔记" });
+      await user.click(screen.getByRole("button", { name: "确定删除" }));
+
+      await waitFor(() =>
+        expect(deleteNoteFolder).toHaveBeenCalledWith("D:\\notes", "读书笔记")
+      );
+      expect(deleteNoteFile).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("删除文件", () => {
+    it("标题只说类别不带名字，描述节点点名文件", async () => {
+      const user = userEvent.setup();
+      await renderNotesPage({ tree: DELETE_TREE });
+
+      const dialog = await openDeleteDialog(user, {
+        rowText: "随手记",
+        ariaName: "随手记.md",
+      });
+
+      expect(dialog).toHaveAccessibleName("删除笔记");
+      expect(dialog).not.toHaveAccessibleName(/随手记/);
+
+      const description = getDescription(dialog);
+      expect(description.textContent).toContain("随手记.md");
+      expect(description.textContent).toContain("「随手记.md」");
+    });
+
+    it("点「确定删除」走 deleteNoteFile", async () => {
+      const user = userEvent.setup();
+      const deleteNoteFolder = vi.fn().mockResolvedValue(true);
+      const deleteNoteFile = vi.fn().mockResolvedValue(true);
+      await renderNotesPage({
+        tree: DELETE_TREE,
+        electron: { deleteNoteFolder, deleteNoteFile },
+      });
+
+      await openDeleteDialog(user, { rowText: "随手记", ariaName: "随手记.md" });
+      await user.click(screen.getByRole("button", { name: "确定删除" }));
+
+      await waitFor(() =>
+        expect(deleteNoteFile).toHaveBeenCalledWith("D:\\notes", "随手记.md")
+      );
+      expect(deleteNoteFolder).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("文件树上的删除按钮", () => {
+    it("可访问名称带上该项名字，列表里多个条目能互相区分", async () => {
+      const user = userEvent.setup();
+      await renderNotesPage({ tree: DELETE_TREE });
+
+      await user.hover(getTreeRow("随手记"));
+      expect(
+        screen.getByRole("button", { name: "删除 随手记.md" })
+      ).toBeInTheDocument();
+
+      await user.hover(getTreeRow("读书笔记"));
+      expect(
+        screen.getByRole("button", { name: "删除 读书笔记" })
+      ).toBeInTheDocument();
     });
   });
 });

@@ -431,16 +431,19 @@ export function ShortcutPanel() {
         style={{
           width: SHORTCUT_PANEL_COLLAPSED_WIDTH,
           // 收起态用内阴影画分隔线，不画边框：
-          // 边框会占掉内容盒（48 - 1 = 47px），按钮居中就落在 7.5px 的小数位置，
-          // 左右留白变成 7.5 / 8.5，不相等。inset 阴影画在盒内、不占布局，
+          // 边框会占掉内容盒（48 - 1 = 47px），按钮锚在距右缘 8px 处，
+          // 右侧就只剩 7px，左右留白不相等。inset 阴影画在盒内、不占布局，
           // 颜色与展开态的 border-border/60 完全等价，切换时那条线也不挪位置。
           boxShadow: "inset 1px 0 0 0 hsl(var(--border) / 0.6)",
         }}>
-        {/* 切换按钮：32×32（PANEL_COLLAPSED_BUTTON_SIZE），落在轨道正中，
-            左右各留 8px（PANEL_COLLAPSED_BUTTON_INSET），focus 描边四边都露得出来。
+        {/* 切换按钮：32×32（PANEL_COLLAPSED_BUTTON_SIZE），锚在「距面板右缘 8px」
+            （PANEL_COLLAPSED_BUTTON_INSET）—— 和展开态头部里那个收起按钮同一个 x，
+            折叠↔展开时按钮原地不动，只是旁边的面板在变宽变窄。
 
-            它和展开态头部里那个收起按钮在同一个 x 上（都离面板右缘 8px），
-            折叠↔展开时按钮原地不动，只是旁边的面板在变宽变窄。 */}
+            这里用居中实现：收起轨 48px、内容盒也是 48px（分隔线是 inset 阴影，
+            画在盒内不占布局），(48 - 32) / 2 = 8，正好等于 PANEL_COLLAPSED_BUTTON_INSET，
+            与左锚的三页同值。前提是分隔线不占内容盒 —— 若哪天改回真边框
+            （内容盒 47px），这里要改成显式锚定，否则会漂 0.5px（见 panel/layout.ts）。 */}
         <div className="flex justify-center pt-2 shrink-0">
           <Button
             type="button"

@@ -494,15 +494,24 @@ export default function CollectionDetail({ collectionId, onRefresh }: Collection
             <div className="space-y-2">
               {collection.problems?.map((problem, index) => {
                 const getDifficultyColor = (difficulty?: string) => {
-                  // 难度徽章走语义 token，不写死调色板原色（docs/UI-GUIDELINES.md 第二节）：
-                  // easy → success、medium → warning、hard → destructive。
-                  // 底色用透明度档，深浅色模式下自动跟随主题。
-                  if (!difficulty) return "bg-muted text-muted-foreground";
+                  // 难度徽章走语义 token，不写死调色板原色（docs/UI-GUIDELINES.md 第二节）。
+                  // 映射按文档第二节的难度口径：easy → success、medium → muted、hard → destructive，
+                  // 语义色放在底色上（透明度档），文字用 text-foreground。
+                  //
+                  // 为什么文字不用语义色：语义色当文字色要过 AA 的 4.5:1，
+                  // 而 success(152 60% 32%) 只有落在纯白卡片上才勉强够（4.73:1）——
+                  // 徽章底色是同色 15% 的浅底，叠上去就掉下来了。
+                  // 无头 Electron 像素实测（真实落点：Card 白底）：
+                  //   语义色当文字 —— 浅色 3.91 / 2.63 / 3.81，暗色 6.40 / 4.63 / 3.34
+                  //   语义色放底色、文字 text-foreground —— 浅色 10.02 / 10.58 / 9.63，
+                  //                                    暗色 9.74 / 10.68 / 11.47
+                  // 差别是量出来的，不是推的：文字取字形核心像素、底色取出现次数最多的像素。
+                  if (!difficulty) return "bg-muted text-foreground";
                   const d = difficulty.toLowerCase();
-                  if (d === "easy") return "bg-success/15 text-success";
-                  if (d === "medium") return "bg-warning/15 text-warning";
-                  if (d === "hard") return "bg-destructive/15 text-destructive";
-                  return "bg-muted text-muted-foreground";
+                  if (d === "easy") return "bg-success/15 text-foreground";
+                  if (d === "medium") return "bg-muted text-foreground";
+                  if (d === "hard") return "bg-destructive/15 text-foreground";
+                  return "bg-muted text-foreground";
                 };
                 
                 const getDifficultyText = (difficulty?: string) => {

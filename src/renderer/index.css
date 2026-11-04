@@ -61,8 +61,13 @@
   --sidebar-accent: 195 25% 84%;
   --sidebar-accent-foreground: 200 10% 22%;
 
-  /* Semantic — success (used for copied/success feedback) */
-  --success: 152 64% 42%;
+  /* Semantic — success (used for copied/success feedback)
+
+     浅色取值 152 60% 32%：作为文字色落在 --card(0 0% 100%) 上是 4.73:1，
+     过正文对比度 4.5:1 的线；原先的 152 64% 42% 只有 2.79:1，
+     10px 的徽章文字用它过不了线。暗色取 152 58% 55%（9.0:1）。
+     定值见 docs/UI-GUIDELINES.md 第二节。 */
+  --success: 152 60% 32%;
   --success-foreground: 0 0% 100%;
 
   /* Semantic — warning (used for window control hover, future warning states) */

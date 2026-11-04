@@ -301,9 +301,18 @@ export default function Sidebar({ onSelectCollection, selectedCollectionId }: Si
           overflow-hidden 是必须的：宽度过渡的那一帧轨道还是窄的，
           头部行内容却是展开态的宽度（按钮 + 标题 + 两个操作按钮），
           不裁的话它们会画到右侧主内容区上（实测溢出 99px，持续 200ms，
-          见 docs/UI-GUIDELINES.md 第八节）。 */}
+          见 docs/UI-GUIDELINES.md 第八节）。
+
+          上下留白用 pt-2 pb-2（内边距），不能用 mt-2 mb-2（外边距）：
+          overflow-hidden 的裁剪区是元素自己的盒（padding box）。
+          用外边距时，行的盒正好从按钮上边缘开始（按钮 8..40，行 8..40），
+          按钮 focus 描边画在盒外的那 1px（7 和 40）就被裁掉了 ——
+          实测描边只剩左右两条竖边，上下两条横边整条消失。
+          改成内边距后行是 0..48，按钮仍在 8..40（上下各留 8px不变），
+          裁剪区罩得住整个描边，四边完整。
+          这套 h-12 + pt-2 + pb-2 与通用面板件 ResizableSidebar 一致。 */}
       <div
-        className="flex items-center mb-2 mt-2 flex-shrink-0 overflow-hidden"
+        className="flex items-center pt-2 pb-2 flex-shrink-0 overflow-hidden"
         style={{
           paddingLeft: PANEL_COLLAPSED_BUTTON_INSET,
           paddingRight: sidebarCollapsed ? 0 : PANEL_HEADER_PADDING_X,
@@ -434,6 +443,13 @@ export default function Sidebar({ onSelectCollection, selectedCollectionId }: Si
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>新建题单</DialogTitle>
+            {/* 新建不是破坏性操作，但弹窗仍然要有描述节点：
+                只有真的渲染了 DialogDescription，Radix 才把它的 id 接进
+                aria-describedby，读屏打开那一瞬间才念得出这个弹窗是干嘛的
+                （docs/UI-GUIDELINES.md 第十节第六条）。 */}
+            <DialogDescription>
+              给这份题单起个名字，它会出现在左侧题单列表里。
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
@@ -484,6 +500,11 @@ export default function Sidebar({ onSelectCollection, selectedCollectionId }: Si
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>导入题单</DialogTitle>
+            {/* 同新建：弹窗要有描述节点，读屏打开时才知道这是什么。
+                正文只说明格式，不写操作后果 —— 导入不是破坏性操作。 */}
+            <DialogDescription>
+              粘贴题目名称、编号或 LeetCode 链接，支持一次导入多份题单。
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
@@ -566,11 +587,15 @@ export default function Sidebar({ onSelectCollection, selectedCollectionId }: Si
                 ui/dialog 不会自动生成描述节点，只有真的渲染了它，
                 Radix 才把它的 id 接上 aria-describedby；
                 正文放在普通 <p> 里 → 弹窗打开那一瞬间读屏只念得到标题，
-                「删的是哪一个题单」用户听不出来。 */}
+                「删的是哪一个题单」用户听不出来。
+
+                文案按 docs/UI-GUIDELINES.md 第十节的口径：
+                句式固定「确定要删除{对象类别}「{name}」吗？」——
+                动词、对象类别、目标名三段齐全，名字用「」包住且
+                font-medium text-foreground（能从正文里扫出来），
+                不可逆提示单独一行。名字逐字来自数据，不用「这个」「它」指代。 */}
             <DialogDescription>
-              确定要删除
-              <span className="font-bold break-all"> {deleteTargetName} </span>
-              吗？
+              确定要删除题单「<span className="font-medium text-foreground break-all">{deleteTargetName}</span>」吗？
               <br />
               <span className="text-destructive font-medium">此操作不可逆！</span>
             </DialogDescription>

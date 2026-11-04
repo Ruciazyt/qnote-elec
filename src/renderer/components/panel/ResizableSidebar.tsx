@@ -263,9 +263,12 @@ export function ResizableSidebar({
             折叠态两条硬规则（都在 panel/layout.ts 里写明了原因）：
             1. gap 必须是 0 —— 标题与操作区虽然宽度归零（w-0），gap 照样占位，
                会把按钮整体往左挤：按钮贴住轨道左缘，focus 描边左侧被轨道裁掉。
-            2. 不能用 justify-center 居中 —— 轨道带 1px 分隔边框，内容盒 47px，
-               居中会算出 7.5px 的小数偏移，左右留白不相等。
-               改用固定左内边距把按钮锚在 8px，8+32+8=48，正好轨道正中。 */}
+            2. 不能用 justify-center 居中 —— 折叠态的分隔线是 inset 阴影、
+               不占内容盒（内容盒 48px），居中恰好也是 8px、看着等价，
+               但它把按钮位置绑在「分隔线不占内容盒」这个前提上；
+               分隔线一旦换回真边框（内容盒 47px），居中就变成 7.5px 的小数偏移，
+               左右留白不相等。改用固定左内边距把按钮锚在 8px，
+               8+32+8=48，正好轨道正中。 */}
         <div
           style={{
             paddingLeft: collapsed ? PANEL_COLLAPSED_BUTTON_INSET : PANEL_HEADER_PADDING_X,
@@ -302,7 +305,7 @@ export function ResizableSidebar({
             <div
               className={cn(
                 "flex items-center gap-1 flex-shrink-0 transition-opacity duration-150",
-                collapsed ? hiddenWhenCollapsed : "opacity-100"
+                collapsed ? hiddenWhenCollapsed : shownWhenExpanded
               )}>
               {actions}
             </div>
@@ -313,7 +316,11 @@ export function ResizableSidebar({
         <div
           className={cn(
             "flex-1 min-h-0 transition-opacity duration-150",
-            collapsed ? "opacity-0 pointer-events-none" : "opacity-100"
+            // 折叠态同样要移出焦点序 —— children 里可能有按钮和链接，
+            // opacity-0 + pointer-events-none 只挡鼠标，键盘仍能 Tab 进去。
+            collapsed
+              ? "opacity-0 pointer-events-none invisible"
+              : "opacity-100 visible"
           )}>
           {children}
         </div>

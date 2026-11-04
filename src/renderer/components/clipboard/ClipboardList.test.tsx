@@ -94,10 +94,7 @@ describe("剪贴板列表「已复制」徽章", () => {
     expect(tokens).not.toContain("opacity-0");
   });
 
-  // 待启用：@待办剪贴板开发 把徽章文字色改成实心 success token。
-  // 现状是 text-success/80 + dark:text-success/90 —— 透明度档做文字色，
-  // 叠在白底上对比度只有 2~3:1，而这是 10px 的小字（docs/UI-GUIDELINES.md 第二节）。
-  it.skip("徽章的文字色走实心 success token，不用透明度档", () => {
+  it("徽章的文字色走实心 success token，不用透明度档", () => {
     const { container } = renderList();
 
     const tokens = classTokens(findBadge(container));

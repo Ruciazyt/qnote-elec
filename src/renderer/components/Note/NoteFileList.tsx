@@ -123,9 +123,23 @@ function RenameInput({
 
 /** 行尾操作按钮 —— 悬停/选中时占据时间的位置，不产生布局跳动 */
 function RowActions({
+  name,
   onRename,
   onDelete,
 }: {
+  /**
+   * 目标条目的名字，逐字来自 node.name。
+   *
+   * 必须由调用方传进来：名字只有行组件那一层有，
+   * 在这里靠 relPath 之类的推算就是另找了一份来源。
+   *
+   * 它要进可访问名称：文件树一屏有多个条目，
+   * 每个按钮都只叫「删除」的话，读屏用户听到的是一串分不清的「删除」
+   * （规范 §五「同组重复控件的名称要能互相区分」）。
+   * 删除确认框正文里的目标名也是这一份数据（规范 §十 规则 7），
+   * 两处必须对得上。
+   */
+  name: string;
   onRename: () => void;
   onDelete: () => void;
 }) {
@@ -140,7 +154,9 @@ function RowActions({
       <button
         type="button"
         className={cn(btn, "text-muted-foreground hover:text-primary")}
-        aria-label="重命名"
+        // 名字不截断，也不塞进可见文本 —— 可见的仍是这个图标按钮，
+        // 只有可访问名称带上了目标名。
+        aria-label={`重命名 ${name}`}
         onClick={(e) => {
           // 拦住冒泡，免得连父级行的「打开笔记」一起触发
           e.stopPropagation();
@@ -152,7 +168,7 @@ function RowActions({
       <button
         type="button"
         className={cn(btn, "text-muted-foreground hover:text-destructive")}
-        aria-label="删除"
+        aria-label={`删除 ${name}`}
         onClick={(e) => {
           e.stopPropagation();
           onDelete();
@@ -401,6 +417,7 @@ export default function NoteFileList({
               <div className="w-[46px] flex justify-end flex-shrink-0">
                 {(showActions || isActiveFolder) && (
                   <RowActions
+                    name={node.name}
                     onRename={() => onRenameStart(node)}
                     onDelete={() => onDelete(node)}
                   />
@@ -455,6 +472,7 @@ export default function NoteFileList({
           <div className="w-[46px] flex justify-end flex-shrink-0">
             {showActions ? (
               <RowActions
+                name={node.name}
                 onRename={() => onRenameStart(node)}
                 onDelete={() => onDelete(node)}
               />

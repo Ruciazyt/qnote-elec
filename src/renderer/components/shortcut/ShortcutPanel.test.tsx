@@ -116,6 +116,18 @@ describe("快捷方式面板（ShortcutPanel）", () => {
       expect(classTokens(arrowWrapper)).toContain("justify-center");
     });
 
+    it("竖排标签留出底边距，focus 描边下边不被轨道裁掉", async () => {
+      await renderPanel();
+
+      // 竖排标签是 flex-1，会一直撑到轨道底部。不留底边距的话，
+      // focus 描边往下的那 1px 会落到轨道外面被裁掉，焦点框缺一条底边
+      // （实测底边余量是 -1px）。
+      const label = screen.getByRole("button", { name: /展开快捷方式面板/ });
+      const tokens = classTokens(label);
+      expect(tokens).toContain("mb-1");
+      expect(tokens).toContain("mx-1");
+    });
+
     it("点箭头按钮能展开面板", async () => {
       const user = userEvent.setup();
       await renderPanel();

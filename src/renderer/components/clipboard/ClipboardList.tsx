@@ -1093,8 +1093,8 @@ export function ClipboardList({
                     right after the timestamp when user copies a record */}
                 <span
                   className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold
-                    bg-success/10 text-success/80 border border-success/25
-                    dark:bg-success/15 dark:text-success/90 dark:border-success/30
+                    bg-success/10 text-success border border-success/25
+                    dark:bg-success/15 dark:text-success dark:border-success/30
                     shadow-[0_0_8px_hsl(var(--success)/0.2)]
                     transition-all duration-200
                     ${copiedId === recordId ? "opacity-100 scale-100 copied-badge-spring" : "opacity-0 scale-90 pointer-events-none"}

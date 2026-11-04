@@ -7,8 +7,16 @@
   useRef,
   useState,
 } from "react";
-import { ChevronLeft, ChevronRight, FolderOpen, ExternalLink } from "lucide-react";
+import { ChevronLeft, ChevronRight, FolderOpen, ExternalLink, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { useRouteActive } from "@/hooks/useRouteActive";
@@ -1234,37 +1242,71 @@ export default function NotesPage() {
           </div>
         )}
 
+        {/* 删除确认框：用 ui/dialog（shadcn 那套），不用手写的 fixed inset-0 遮罩。
+            手写遮罩没有 role="dialog"、没有焦点管理，Esc 也关不掉。
+
+            文案按 docs/UI-GUIDELINES.md 第十节「破坏性确认框文案口径」：
+            - 标题只写动作 + 对象类别，不带名字（标题是弹窗的可访问名称，要短）；
+            - 正文句式固定「确定要删除{对象类别}「{name}」吗？」，三段齐全；
+            - 名字用「」包住，font-medium text-foreground，长名 break-all；
+            - 不可逆提示单独一行，text-destructive font-medium；
+            - 正文必须由 DialogDescription 承载 ——
+              ui/dialog 不会自动生成描述节点，只有真的渲染了它，
+              Radix 才把它的 id 接上 aria-describedby；放在普通 <p> 里，
+              弹窗打开那一瞬间读屏只念得到标题，「删的是哪一个」听不出来。
+              正文里有 <br/> 和嵌套高亮 span，用 asChild 把内容包进去。 */}
         {showDeleteModal && pendingDelete && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 modal-backdrop">
-            <div className="bg-card rounded-lg shadow-lg p-6 w-80 border border-border modal-card">
-              <h4 className="font-semibold text-lg mb-2 text-card-foreground">删除确认</h4>
-              {pendingDelete.kind === "folder" ? (
-                <p className="text-sm text-muted-foreground mb-4">
-                  确定要删除文件夹{" "}
-                  <span className="font-bold text-foreground break-all">{pendingDelete.name}</span>{" "}
-                  吗？
-                  <br />
-                  <span className="text-destructive">
-                    其中的 {pendingDelete.childCount} 个条目会一并永久删除，无法恢复。
-                  </span>
-                </p>
-              ) : (
-                <p className="text-sm text-muted-foreground mb-4">
-                  确定要删除 <span className="font-bold break-all">{pendingDelete.name}</span> 吗？
-                  <br />
-                  文件将被永久删除，无法恢复。
-                </p>
-              )}
-              <div className="flex justify-end gap-2">
+          <Dialog
+            open={showDeleteModal}
+            onOpenChange={(isOpen) => {
+              // Esc 与点遮罩都走这里
+              if (!isOpen) setShowDeleteModal(false);
+            }}
+          >
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Trash2 className="h-5 w-5 text-destructive" />
+                  {pendingDelete.kind === "folder" ? "删除文件夹" : "删除笔记"}
+                </DialogTitle>
+                {pendingDelete.kind === "folder" ? (
+                  <DialogDescription asChild>
+                    <p className="text-sm text-muted-foreground">
+                      确定要删除文件夹「
+                      <span className="font-medium text-foreground break-all">
+                        {pendingDelete.name}
+                      </span>
+                      」吗？
+                      <br />
+                      <span className="text-destructive font-medium">
+                        其中的 {pendingDelete.childCount} 个条目会一并永久删除，无法恢复。
+                      </span>
+                    </p>
+                  </DialogDescription>
+                ) : (
+                  <DialogDescription asChild>
+                    <p className="text-sm text-muted-foreground">
+                      确定要删除笔记「
+                      <span className="font-medium text-foreground break-all">
+                        {pendingDelete.name}
+                      </span>
+                      」吗？
+                      <br />
+                      <span className="text-destructive font-medium">此操作不可逆！</span>
+                    </p>
+                  </DialogDescription>
+                )}
+              </DialogHeader>
+              <DialogFooter>
                 <Button variant="outline" onClick={() => setShowDeleteModal(false)}>
                   取消
                 </Button>
                 <Button variant="destructive" onClick={handleDeleteConfirm}>
                   确定删除
                 </Button>
-              </div>
-            </div>
-          </div>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         )}
 
         <NamePromptModal

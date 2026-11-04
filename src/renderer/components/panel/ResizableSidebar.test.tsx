@@ -226,6 +226,54 @@ describe("可折叠侧栏（ResizableSidebar）", () => {
       expect(tokens).not.toContain("w-0");
       expect(screen.getByRole("button", { name: "导入" })).toBeInTheDocument();
     });
+
+    it("折叠态标题与操作区真正移出焦点序（invisible），键盘不会 Tab 到看不见的按钮", () => {
+      renderSidebar({ defaultCollapsed: true });
+      const header = getHeaderRow();
+
+      // pointer-events-none 只挡鼠标，挡不住键盘：
+      // 里面的按钮仍在 Tab 序里，键盘用户会聚焦到一个看不见的东西上，
+      // 焦点框消失、读屏却念出按钮名。必须靠 invisible（visibility:hidden）。
+      const titleWrapper = header.children[1] as HTMLElement;
+      expect(classTokens(titleWrapper)).toContain("invisible");
+
+      const actionsWrapper = header.children[2] as HTMLElement;
+      expect(classTokens(actionsWrapper)).toContain("invisible");
+    });
+
+    it("折叠态内容区同样移出焦点序", () => {
+      renderSidebar({ defaultCollapsed: true });
+      // 内容容器是 aside 的最后一个子元素
+      const content = getAside().lastElementChild as HTMLElement;
+      expect(classTokens(content)).toContain("invisible");
+    });
+
+    it("展开态标题、操作区与内容都恢复可见（visible）", () => {
+      renderSidebar();
+      const header = getHeaderRow();
+
+      const titleWrapper = header.children[1] as HTMLElement;
+      expect(classTokens(titleWrapper)).toContain("visible");
+      expect(classTokens(titleWrapper)).not.toContain("invisible");
+
+      const actionsWrapper = header.children[2] as HTMLElement;
+      expect(classTokens(actionsWrapper)).toContain("visible");
+      expect(classTokens(actionsWrapper)).not.toContain("invisible");
+
+      const content = getAside().lastElementChild as HTMLElement;
+      expect(classTokens(content)).toContain("visible");
+      expect(classTokens(content)).not.toContain("invisible");
+    });
+
+    it("退场用延迟切换 visibility —— 先淡出、再隐藏，淡出效果不丢", () => {
+      renderSidebar({ defaultCollapsed: true });
+      const titleWrapper = getHeaderRow().children[1] as HTMLElement;
+      const tokens = classTokens(titleWrapper);
+
+      // visibility 是「一步到位」切过去的，直接加 invisible 会让元素瞬间消失、
+      // 淡出过渡失效。所以退场时给 visibility 加延迟：opacity 先淡完再隐藏。
+      expect(tokens).toContain("delay-150");
+    });
   });
 
   describe("头部形态：只有标题占位（应用管理页的真实 DOM）", () => {
