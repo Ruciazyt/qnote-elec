@@ -173,6 +173,21 @@ function readPackageVersion() {
     return JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
 }
 
+/**
+ * 根 package.json 里有没有 test 脚本
+ *
+ * 用来区分「没有测试可跑」与「测试跑挂了」—— 这两件事必须分开处理，
+ * 见 main() 里第 6 步的说明。
+ */
+function hasTestScript() {
+    try {
+        const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+        return typeof pkg.scripts?.test === 'string' && pkg.scripts.test.trim() !== '';
+    } catch {
+        return false;
+    }
+}
+
 function main() {
     const rawType = process.argv[2] || 'patch'; // patch, minor, major
 
@@ -233,12 +248,31 @@ function main() {
         console.log('📦 安装工作区依赖...');
         execFileSync(PNPM, ['install'], { stdio: 'inherit', cwd: ROOT, shell: IS_WIN });
 
-        // 6. 运行测试（如果有的话）
+        // 6. 运行测试
+        //
+        // 这里原来是无条件 catch 住所有异常并提示「跳过测试步骤」——
+        // 那在没有测试脚本的年代没问题，但仓库接上 vitest 之后，
+        // 一条红测试会被这条 catch 悄悄吃掉，脚本照样 bump、打 tag、推上去，
+        // 等于测试完全不构成门禁。
+        //
+        // 所以先看根 package.json 里有没有 test 脚本：
+        //   有 → 跑，失败就中止发版
+        //   没有 → 才算跳过
         console.log('🧪 运行测试...');
-        try {
-            execFileSync(PNPM, ['test'], { stdio: 'inherit', cwd: ROOT, shell: IS_WIN });
-        } catch (error) {
-            console.log('⚠️  没有找到测试脚本，跳过测试步骤');
+        if (!hasTestScript()) {
+            console.log('ℹ️  没有找到测试脚本，跳过测试步骤');
+        } else {
+            try {
+                execFileSync(PNPM, ['test'], { stdio: 'inherit', cwd: ROOT, shell: IS_WIN });
+            } catch (error) {
+                console.error('');
+                console.error('❌ 单元测试未通过，发版中止');
+                console.error('');
+                console.error('   测试脚本存在但执行失败 —— 这是真实的测试失败，不是缺少脚本。');
+                console.error('   请修好测试或回退相关改动后再发版。');
+                console.error('');
+                process.exit(1);
+            }
         }
 
         // 7. 更新版本号
@@ -314,4 +348,5 @@ module.exports = {
     collectCommitTypes,
     checkReleaseTypeAgainstCommits,
     readPackageVersion,
+    hasTestScript,
 };
