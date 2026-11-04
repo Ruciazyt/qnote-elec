@@ -947,9 +947,22 @@ export default function NotesPage() {
               之前这里是「收起时 px-0 + 父容器 items-center 居中」：
               收起那一帧宽度还在从 288 往 48 过渡，轨道还是宽的，
               按钮先被摆到 128px 处，再一路滑回 4px —— 看着就是横跳一下；
-              而且轨道只有 40px 时，8 + 32 + 8 已经放不下，左右留白只有 4px。 */}
+              而且轨道只有 40px 时，8 + 32 + 8 已经放不下，左右留白只有 4px。
+
+              上下留白用内边距（pt-2/pb-2）而不是外边距（mt-2/mb-2），行上再带 overflow-hidden：
+              - overflow-hidden 的裁剪区是这一行自己的 padding box。外边距在盒外，
+                只加 overflow-hidden 的话按钮上缘正好贴着行盒上缘，focus 描边向外扩的
+                那 1px 落在裁剪区外，上下两条会被整条裁掉；换成内边距后按钮上缘比
+                行盒上缘低 8px，描边四边完整。
+              - 按钮的垂直位置两种写法一样（都落在容器顶 8..40）：
+                外边距是整行下移 8，内边距是行内留 8。
+              - overflow-hidden 治的是展开首帧：轨道从 48px 长到 288px 的那 300ms 里，
+                标题刚挂上就被压成 min-content（一个汉字 14px 宽），两个汉字竖排，
+                墨迹画到轨道右缘外 14px（轨道右缘 x=48、标题盒右缘 x=62），压在右栏工具条上。
+                加了裁剪后墨迹被限制在轨道内
+                （走查实测：轨道外 40×36 采样条里深色像素由 434 个降到 0 个）。 */}
           <div
-            className="flex items-center mb-2 mt-2 flex-shrink-0"
+            className="flex items-center pt-2 pb-2 flex-shrink-0 overflow-hidden"
             style={{
               paddingLeft: PANEL_COLLAPSED_BUTTON_INSET,
               paddingRight: sidebarCollapsed ? 0 : PANEL_HEADER_PADDING_X,
