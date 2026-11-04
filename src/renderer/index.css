@@ -70,8 +70,19 @@
   --success: 152 60% 32%;
   --success-foreground: 0 0% 100%;
 
-  /* Semantic — warning (used for window control hover, future warning states) */
-  --warning: 38 70% 45%;
+  /* Semantic — warning（标题栏「最大化/还原」按钮的 hover 与 active 态）
+
+     浅色取值 38 70% 35%：hue 38、saturation 70 不动，只调 lightness。
+     - 作为文字/图形色落在 --card(0 0% 100%) 上是 4.76:1，
+       与 --success（4.73:1）、--destructive（4.80:1）同档；
+     - 原先的 38 70% 45% 只有 3.06:1：当正文色过不了 4.5:1，
+       当图形色（标题栏那个按钮的 hover 图标，底色是 --app-frame 0 0% 94%）
+       更是只有 2.68:1，连图形元素的 3:1 线都不到；
+     - 再压到 32% 是 5.50:1，但那个色读起来偏深棕、比成功色重，所以取 35%。
+
+     暗色 48 85% 60% 不动（深色卡片底上是 8.0:1，已远超标准）。
+     定值见 docs/UI-GUIDELINES.md 第二节。 */
+  --warning: 38 70% 35%;
   --warning-foreground: 0 0% 100%;
 
   /* Semantic — link（剪贴板里被识别成网址的正文用这个色）
