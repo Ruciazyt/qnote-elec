@@ -121,19 +121,23 @@ export const PANEL_HEADER_PADDING_X = 8;
  * 折叠轨上有两个可聚焦控件，**描边来源不一样**，别混：
  *
  * - 顶部那个展开箭头走 ui/button 的 `<Button>`，吃基类的 ring。
- *   基类 `components/ui/button.tsx` 现在是 `focus-visible:ring-1`，即 1px 描边；
- *   箭头锚在内缩 8px 处，描边外扩 1px 之后左右各还剩 **7px**。
+ *   按钮盒落在 8..40、轨宽 48，基类 `focus-visible:ring-1` 时描边外扩 1px
+ *   → 落在 7..41，离轨边各余 **7px**；基类改成 ring-2 后外扩 2px
+ *   → 落在 6..42，余 **6px**，仍不会被裁。
  * - 这个竖排标签按钮是**原生 <button>**，不是 ui/button 的 Button ——
- *   它身上**没有** Tailwind 的 ring（实测 box-shadow: none），
- *   焦点指示走浏览器默认轮廓。所以它今天是白拿余量，不是被 ring 吃掉的；
- *   上面那 4px 内缩是照着「1px 描边」定的：真给它加上 1px 环，
- *   左右各还剩 **3px**，四边完整。
- * - 若基类 ring 加粗到 2px：这里余量降到 **2px** ——
- *   仍满足「描边与轨道边缘至少留 2px」，四边依然完整。
- * - **不能再粗到 3px**：只剩 1px，描边几乎贴住视口边缘，
- *   而且这条轨在窗口最右侧、右缘余量本来就比别处紧张。
+ *   它身上**没有** focus-visible:ring 类（实测 box-shadow: none），
+ *   焦点指示是浏览器默认 outline（Chromium 约 1px）。
+ *   4px 内缩 + 描边外扩 1px → 落在 3..45，离左右边缘各余 **3px**，底边同理。
+ *   **基类 ring 怎么改都影响不到它** —— 它不吃 ring，余量恒为 3px。
  *
- * 基类要不要改成 ring-2 由架构师定归属；这里只管把余量写准。
+ * 「ring 加粗到 2px，这里余量就降到 2px」这个说法在本仓库里**没有实际发生的地方**：
+ * 那条结论成立的条件是「ring 变 2px，且按钮距 overflow-hidden 容器边缘不足 2px」，
+ * 而贴边的按钮都够 —— 箭头离轨边 8px，竖排标签离轨边 4px。
+ *
+ * **ring-2 是上限，不要再往上粗**：ring-3 时箭头那处余量降到 5px；
+ * 竖排标签哪天若被补上 ring（它现在没有），4px 内缩 − 3px 只剩 1px，
+ * 描边几乎贴住视口边缘。基类 ring 粗细是全局决定，架构师已定案 ring-2。
+ *
  * 描边粗细改之前先量这一处的余量。
  */
 export const PANEL_RAIL_LABEL_INSET = 4;
