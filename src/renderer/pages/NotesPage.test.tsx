@@ -421,7 +421,10 @@ describe("笔记页左栏折叠轨（NotesPage）", () => {
  * 这类结构性事实，改措辞不会误伤。
  */
 
-/** 一个文件夹 + 根目录下一个文件 */
+/** 名字特别长的一个条目：用来验可访问名称是完整的，不被截断 */
+const LONG_NAME = "一份标题特别长的笔记用来验证可访问名称不会被截断.md";
+
+/** 一个文件夹 + 根目录下两个文件 */
 const DELETE_TREE: NoteTreeNode[] = [
   {
     kind: "folder",
@@ -446,6 +449,17 @@ const DELETE_TREE: NoteTreeNode[] = [
     name: "随手记.md",
     relPath: "随手记.md",
     path: "D:\\notes\\随手记.md",
+    type: "markdown",
+    ext: ".md",
+    size: 64,
+    mtime: 1700000000,
+  },
+  {
+    // 名字特别长：用来验可访问名称是完整的，不被截断
+    kind: "file",
+    name: LONG_NAME,
+    relPath: LONG_NAME,
+    path: `D:\\notes\\${LONG_NAME}`,
     type: "markdown",
     ext: ".md",
     size: 64,
@@ -645,8 +659,8 @@ describe("笔记页删除确认框（ui/dialog）", () => {
     });
   });
 
-  describe("文件树上的删除按钮", () => {
-    it("可访问名称带上该项名字，列表里多个条目能互相区分", async () => {
+  describe("文件树行尾按钮", () => {
+    it("删除按钮的可访问名称带上该项名字，列表里多个条目能互相区分", async () => {
       const user = userEvent.setup();
       await renderNotesPage({ tree: DELETE_TREE });
 
@@ -659,6 +673,48 @@ describe("笔记页删除确认框（ui/dialog）", () => {
       expect(
         screen.getByRole("button", { name: "删除 读书笔记" })
       ).toBeInTheDocument();
+    });
+
+    it("重命名按钮同理，名称是「重命名 + 目标名」", async () => {
+      const user = userEvent.setup();
+      await renderNotesPage({ tree: DELETE_TREE });
+
+      await user.hover(getTreeRow("随手记"));
+      expect(
+        screen.getByRole("button", { name: "重命名 随手记.md" })
+      ).toBeInTheDocument();
+    });
+
+    it("名字很长时可访问名称仍是完整的，不截断", async () => {
+      const user = userEvent.setup();
+      await renderNotesPage({ tree: DELETE_TREE });
+
+      // 行上可见文字去掉了扩展名（stripExt），可访问名称带全名
+      await user.hover(getTreeRow("一份标题特别长的笔记用来验证可访问名称不会被截断"));
+
+      const del = screen.getByRole("button", {
+        name: `删除 ${LONG_NAME}`,
+      });
+      expect(del).toHaveAttribute("aria-label", `删除 ${LONG_NAME}`);
+      expect(del.getAttribute("aria-label")).toHaveLength(`删除 ${LONG_NAME}`.length);
+    });
+
+    it("确认框正文里的目标名与触发按钮的名称是同一份数据", async () => {
+      const user = userEvent.setup();
+      await renderNotesPage({ tree: DELETE_TREE });
+
+      // 按钮的可访问名称里带的那个名字，就是确认框正文该点名的那个
+      await user.hover(getTreeRow("随手记"));
+      const trigger = screen.getByRole("button", { name: /^删除 / });
+      const nameInButton = (trigger.getAttribute("aria-label") ?? "").replace(/^删除 /, "");
+      expect(nameInButton).toBe("随手记.md");
+
+      const dialog = await openDeleteDialog(user, {
+        rowText: "随手记",
+        ariaName: "随手记.md",
+      });
+      const description = getDescription(dialog);
+      expect(description.textContent).toContain(`「${nameInButton}」`);
     });
   });
 });
