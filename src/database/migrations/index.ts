@@ -528,6 +528,81 @@ async function ensureTable(DB: Knex, tableName: string, creator: (DB: Knex) => P
   }
 }
 
+/**
+ * 应用管理 —— 项目表
+ *
+ * 一个项目 = 用户导入的一个文件夹 + 一份 qnote.json 清单。
+ * 清单解析结果直接落在表里（command / preview / status / error），
+ * 界面不必为了显示一个列表再去读一遍磁盘。
+ *
+ * path 唯一：同一个文件夹只登记一次，且它是"这个项目在哪"的唯一依据。
+ */
+async function createAppProjectTable(DB: Knex): Promise<void> {
+  try {
+    await DB.schema.createTable("app_project", (table: Knex.TableBuilder) => {
+      table.increments("id").primary();
+      /** 展示名；清单里写了 name 就用它，否则用文件夹名 */
+      table.text("name").notNullable();
+      /** 项目根目录绝对路径 */
+      table.text("path").notNullable().unique();
+      /** 'ready' | 'missing-manifest' | 'invalid-manifest' */
+      table.string("status").notNullable().defaultTo("missing-manifest");
+      /** 清单原文，出错时展示给用户看 */
+      table.text("manifest_text");
+      /** 规范化后的启动命令 */
+      table.text("command");
+      /** 预览入口：相对路径或 http(s) 网址 */
+      table.text("preview");
+      /** 项目简介 */
+      table.text("description");
+      /** 不可用原因 */
+      table.text("error");
+      table.integer("sort_order").notNullable().defaultTo(0);
+      table.timestamp("created_at").defaultTo(DB.fn.now());
+      table.timestamp("updated_at").defaultTo(DB.fn.now());
+    });
+    log.info("应用项目表创建成功");
+  } catch (err) {
+    log.error("创建应用项目表失败:", err);
+    throw err;
+  }
+}
+
+/**
+ * 应用管理 —— 表结构迁移
+ *
+ * ## 为什么需要这一步
+ *
+ * 早期版本用的是「工作区 + 工作区下的项目」两层结构：
+ * app_workspace 存根目录，app_project 挂 workspace_id 外键。
+ * 现在改成「直接导入项目文件夹」，工作区这层没了，app_project 也就不需要外键。
+ *
+ * 这套结构还没发过版，但开发库里可能已经建过旧表 ——
+ * 直接 ensureTable 不会改已有表的结构，旧表会带着 workspace_id 留下来，
+ * 而新代码不再写这个列，于是插入时报 NOT NULL 约束失败。
+ * 所以这里显式检查列结构，是旧形状就重建。
+ */
+async function migrateAppProjectSchema(DB: Knex): Promise<void> {
+  try {
+    const hasTable = await DB.schema.hasTable("app_project");
+    if (hasTable) {
+      const columns = await DB.raw("PRAGMA table_info(app_project)");
+      const isLegacy = columns.some((column: any) => column.name === "workspace_id");
+      if (isLegacy) {
+        await DB.raw("DROP TABLE app_project");
+        log.info("检测到旧版 app_project 表结构（带 workspace_id），已重建");
+      }
+    }
+
+    await ensureTable(DB, "app_project", createAppProjectTable);
+
+    // 工作区概念已废弃 —— 表留着只会让人误以为还有这回事
+    await DB.raw("DROP TABLE IF EXISTS app_workspace");
+  } catch (err) {
+    log.error("迁移应用项目表结构失败:", err);
+  }
+}
+
 // 为note表添加新字段
 async function addNoteTableColumns(DB: Knex): Promise<void> {
   try {
@@ -768,6 +843,9 @@ export async function migrateRun(path?: string): Promise<void> {
 
     // 主页快捷方式表
     await ensureTable(DB, "shortcut", createShortcutTable);
+
+    // 应用管理：项目表（结构随「导入文件夹」模型调整过，带迁移）
+    await migrateAppProjectSchema(DB);
 
     // 检查并添加leetcode_problem表的title字段
     await addLeetcodeProblemTitleColumn(DB);
