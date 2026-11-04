@@ -4,6 +4,7 @@ import {
   PANEL_COLLAPSED_BUTTON_SIZE,
   PANEL_COLLAPSED_WIDTH,
   PANEL_HEADER_PADDING_X,
+  PANEL_RAIL_LABEL_INSET,
   PANEL_RESIZER_WIDTH,
   clampPanelWidth,
 } from "./layout";
@@ -53,6 +54,27 @@ describe("折叠轨道几何常量", () => {
     expect(PANEL_COLLAPSED_BUTTON_SIZE).toBe(32);
     expect(PANEL_COLLAPSED_BUTTON_INSET).toBe(8);
     expect(PANEL_HEADER_PADDING_X).toBe(8);
+  });
+
+  it("竖排标签内缩：左右各留一次，描边外扩 1px 后仍余 ≥2px", () => {
+    // 竖排标签是折叠轨上的第二个可聚焦控件，贴着窗口右缘。
+    // 不留内缩的话，focus 描边向外扩的那 1px 会超出视口，焦点框缺一条右边；
+    // 不留底边距的话，描边往下的 1px 落到轨外，焦点框缺一条底边。
+    expect(PANEL_RAIL_LABEL_INSET).toBe(4);
+
+    // 1px 描边：外扩后离边缘还剩 3px
+    expect(PANEL_RAIL_LABEL_INSET - 1).toBe(3);
+    // 描边加粗到 2px 后余量降到 2px，仍完整可见
+    expect(PANEL_RAIL_LABEL_INSET - 2).toBeGreaterThanOrEqual(2);
+    // 再加粗到 3px 就只剩 1px，描边几乎贴住视口边缘 —— 不能走到那一步
+    expect(PANEL_RAIL_LABEL_INSET - 3).toBeLessThan(2);
+  });
+
+  it("竖排标签左右内缩后仍留得出标签盒（不能把轨道挤空）", () => {
+    const labelBoxWidth = PANEL_COLLAPSED_WIDTH - PANEL_RAIL_LABEL_INSET * 2;
+
+    expect(labelBoxWidth).toBe(40);
+    expect(labelBoxWidth).toBeGreaterThan(0);
   });
 
   it("分割线是 flex 子节点，厚度为正", () => {
