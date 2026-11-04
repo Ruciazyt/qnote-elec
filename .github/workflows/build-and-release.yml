@@ -123,9 +123,22 @@ jobs:
           key: ${{ runner.os }}-electron-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-electron-
-            
+
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
+
+      # 单元测试
+      #
+      # tag 触发的正式发布也要过测试。release.js 本地已经跑过一遍，
+      # 但 tag 可以手工推 —— 这一步保证无论走哪条发布路径，
+      # 测试不过就不出包（release 作业判 needs.build.result == 'success'，
+      # 这里失败会直接卡住发版）。
+      #
+      # pnpm test 指向 vitest run（非 watch），跑完自己退出。
+      # 显式写 shell: pwsh，理由同 auto-build.yml（AGENTS.md 第 6.2 节）。
+      - name: Run unit tests
+        run: pnpm test
+        shell: pwsh
 
       - name: Build renderer
         run: pnpm --dir src/renderer run build

@@ -24,6 +24,7 @@
 
 ```bash
 pnpm dev                # 主进程 + 渲染层热更新一起起
+pnpm test               # 跑单元测试（vitest run，非 watch，跑完自己退出）
 pnpm run build          # 完整构建（clean → 编译 → 打包 → 便携版后处理）
 pnpm run build:electron # 只编译主进程与 preload
 pnpm run build:react    # 只构建渲染层
@@ -199,6 +200,7 @@ pnpm run release:patch    # 或 release:minor / release:major
 
 该脚本会依次：校验工作区干净 → 校验当前版本号格式 → **核对发版类型与本批提交
 是否匹配**（有 `feat` 却发 patch 会被直接拦下）→ 拉取最新代码 → 安装依赖 →
+**运行单元测试**（测试不过直接中止，不会带着红测试发版）→
 按 semver 规则 bump `package.json` 的 version → 以 `chore(release): bump version to X.Y.Z`
 提交 → 打 `X.Y.Z` 注释 tag → 推送分支与 tag。推送 tag 后
 `build-and-release.yml` 触发，产出安装版、便携版与 `latest.yml` 并创建 Release。
@@ -251,6 +253,7 @@ git diff --cached | grep -nEi "sk-[A-Za-z0-9]{20,}|api[_-]?key\s*[:=]\s*['\"][^'
 - [ ] 没有密钥、用户数据、构建产物被提交（第 4 节）
 - [ ] `pnpm run build:electron` 通过（改过主进程或 preload）
 - [ ] `pnpm run build:react` 通过（改过渲染层）
+- [ ] `pnpm test` 通过（改过渲染层或公共逻辑）
 - [ ] 新增/修改的 UI 遵循 `.cursor/rules/react.mdc` 的 React 最佳实践
 - [ ] 改过 `.github/workflows/` 的，检查脚本里有无非 ASCII 字符（有就用 `shell: pwsh`，见 6.2）
 - [ ] 没有顺手改无关文件；格式化工具的噪音改动单独成一个 `style:` 提交

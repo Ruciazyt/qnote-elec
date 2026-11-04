@@ -65,6 +65,21 @@ jobs:
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
 
+      # 单元测试
+      #
+      # 放在构建之前 —— 测试失败是最便宜的信号，让它先失败，
+      # 不用等 electron-builder 跑完十几分钟才发现问题。
+      #
+      # pnpm test 指向 vitest run（非 watch），跑完自己退出，
+      # 不需要交互输入 —— CI 是非交互 shell，watch 模式会一直挂着。
+      #
+      # 显式写 shell: pwsh：runner 把 run: 写成无 BOM 的 UTF-8，
+      # Windows PowerShell 5.1 会按 ANSI 码页解码，中文和破折号会让字符串
+      # 提前闭合（AGENTS.md 第 6.2 节）。
+      - name: Run unit tests
+        run: pnpm test
+        shell: pwsh
+
       - name: Verify version format
         run: node scripts/release/verify-version.js
 
