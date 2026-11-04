@@ -37,5 +37,13 @@
     "*.css",
     "**/*.css"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "test",
+    "vitest.config.ts",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx"
+  ]
 }
