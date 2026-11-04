@@ -232,8 +232,13 @@
 - [ ] **展开/收起动画期间内容不溢出到相邻区域**。
       宽度过渡时头部行的内容宽度是瞬间切换的，轨道还没长开时头部行就已是展开态的宽度，
       标题与操作按钮会画到右侧主内容区上。
-      实测：题单页溢出 99px（头部行有按钮+标题+两个操作按钮），已加 `overflow-hidden` 修掉；
-      笔记页展开态头部行只有按钮+标题，仍有 **14px** 溢出、持续约 40ms，待修。
+      实测（真实构建产物 + 真实 DOM）：
+      - 题单页溢出 99px（头部行有按钮 + 标题 + 两个操作按钮），已加 `overflow-hidden` 修掉；
+      - 笔记页展开态头部行只有按钮 + 标题，标题元素盒右缘仍超出轨道 **14px**、
+        持续 **约 40ms**（轨道宽度从 48px 涨过 62px 那段）——
+        盒宽被压到 14px（单个汉字的 min-content），两个字换行竖排，
+        墨迹随之画到轨道右缘之外（轨道右缘 x=48、标题盒右缘 x=62，越出 14px），
+        压在右栏工具条上。
       处理办法：给头部行加 `overflow-hidden`，或用共享组件 `ResizableSidebar`
       （它的 `aside` 带 `overflow-hidden`，标题与操作区在收起态被
       `w-0 overflow-hidden opacity-0` 包住）。
@@ -241,10 +246,18 @@
       裁剪区是元素自己的 padding box，`mt-2`/`mb-2` 在盒外 —— 用外边距时行盒正好从按钮
       上边缘开始，focus 描边向外扩的那 1px 会被裁掉（实测只剩左右两条竖边）。
       正确写法是 `pt-2`/`pb-2`（与题单页、应用页一致）。
+      像素判定（轨道右缘外侧 40×36 取样条里的深色像素数）：
+      当前实现 **434 个**（墨迹确实画出去了）→ 加 `overflow-hidden` 后 **0 个**；
+      描边像素：只加 `overflow-hidden` → 描边被裁掉；
+      换用 `pt-2`/`pb-2` → 描边完整可见（按钮上缘比行上缘低 8px）。
 
 ## 九、测量方法
 
-几何类问题不要靠读 class 推算，用真实 CSS 量真实 DOM：
+几何类问题不要靠读 class 推算，用真实 CSS 量真实 DOM。
+
+**优先跑真实渲染层**（办法见第 8~11 条）：真实组件 + 真实构建产物，
+量出来的就是用户会看到的行为，不会因为复刻时漏了某个条件而算错。
+下面 1~7 是只隔离某一条规则时的复刻办法：
 
 1. 先 `pnpm run build:react`，用产物 `dist/renderer/assets/index-*.css`（含真实 token
    与自定义类）
@@ -260,9 +273,27 @@
 7. 要判断 `box-shadow` 的某一段画在元素的哪一侧，别靠推算：
    建一个 48×40 的测试块（纯色底 + 指定 inset 阴影），`capturePage` 后
    逐列采样像素，看哪一列被染色。`inset 1px 0 0 0` 画在**盒内左侧**。
+8. **窗口要可见而且要有焦点**，否则过渡动画根本不会跑。
+   隐藏或未获焦的窗口里 Chromium 把 `requestAnimationFrame` 压到 1~2fps，
+   采样会只拿到 1 帧、轨道宽度一直停在起点 —— 看起来像「没有动画」，
+   其实是窗口状态问题。`win.showInactive()` 之后还要 `win.focus()`。
+9. 采样用 `setTimeout` 而不是 `requestAnimationFrame`：过渡是按时间插值的，
+   定时器采样照样拿到每一刻的真实值，而且不受上面那条节流影响。
+10. **判断「有没有真的画出去」要看像素，不能只看 `getBoundingClientRect`** ——
+    `overflow:hidden` 只裁绘制，不改布局，几何值照样是溢出的。
+    取样条放在侧栏右缘外侧，`capturePage` 后数条带里的深色像素；
+    要在溢出状态里抓图，就把 `transition-duration` 临时调大（慢放）再点展开。
+11. 跑真实渲染层不需要接主进程：给 `window.electron` 挂个桩就行。
+    桩要用 **普通对象**，`contextBridge` 克隆不了 Proxy（preload 会直接加载失败）；
+    测量台可以用 `contextIsolation: false` 直接把 Proxy 挂到页面 `window` 上。
 
 （仓库里已有一份现成的：`.data/uicheck/measure.html` + `measure.js`，
-`.data/` 已在 .gitignore 里。）
+`.data/` 已在 .gitignore 里。
+
+真实渲染层测量台：`.data/uicheck/measure-real.js`（主脚本）+
+`probe.js`（页面内探针）+ `stub-preload.js`（`window.electron` 桩）。
+起一个本地 http 服务加载真实构建产物 `vite build --outDir .data/uicheck/rb`，
+不接主进程、不碰用户数据，量的是真实组件 + 真实 CSS。）
 
 ---
 
@@ -411,3 +442,4 @@ canvas 不透明会把投影整条盖掉 —— 笔记页靠 `relative z-10` 把
 | 2026-11-04 | 复核实测：`index.css` 的 `--success` 与 `.neu-divider-r` | `.neu-divider-r` 已删，笔记页改 1px `border-border/60` + 折叠态 inset 阴影、标题 `text-sm font-medium`、路径行 `px-2`，与第十一节定稿一致；`--success` 去重只做了一半 —— 浅色现存 `152 64% 42%` 而非口径的 32%，实心文字在白底卡片上只有 2.79:1 | 浏览器工具开发 |
 | 2026-11-04 | `components/Leetcode/SideBar.tsx` 侧栏折叠/展开几何（40px 轨 → 48px 共享常量） | 通过：折叠轨 48、按钮 8..40、两态零位移（实测 0）、focus 描边四边余量 7px、内容列 `px-2` 与头部左沿同在 8px、标题 14px medium、操作按钮间距 8px；深浅两态分隔线同为 `rgba(43,50,59,0.6)`/`rgba(227,231,237,0.6)`。另有 1 处必改（删除确认框正文缺对象类别与「」） | 浏览器工具开发 |
 | 2026-11-04 | `panel/ResizableSidebar.tsx` + `shortcut/ShortcutPanel.tsx` 折叠退场与焦点描边 | `invisible` 把隐藏区移出焦点序的方向正确（Tab 不再跳进看不见的「导入」）；竖排标签加 `mb-1` 后描边四边余量 3px 通过。另有 1 处必改（内容区折叠态的 visibility 不在过渡列表 → 瞬间消失，与标题/操作区的淡出不一致，且淡出前有 150ms 停顿） | 应用平台开发 |
+| 2026-11-04 | `pages/NotesPage.tsx` 笔记页侧栏（真实构建产物 + 真实 DOM 实测） | 通过：折叠轨 48、展开态 `border-r` 1px、折叠态同色 inset 阴影（浅 `rgba(227,231,237,0.6)` / 深 `rgba(43,50,59,0.6)`）、两态按钮 x 恒为 176（零位移）、标题 14px/500/`text-foreground`/行高 20px、`ml-2`、头部行左内边距与路径行、文件树列同为 8px；`transition-[width]` 下边框全程 1px 不闪。另有 1 处必改（头部行缺 `overflow-hidden` → 展开首帧标题墨迹画到右栏工具条上，14px/约 40ms；改法必须连 `mt-2`/`mb-2` 一起换成 `pt-2`/`pb-2`） | 笔记开发 |
