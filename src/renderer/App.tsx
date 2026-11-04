@@ -14,6 +14,7 @@ import SettingsPage from "./pages/SettingsPage";
 import TodoPage from "./pages/TodoPage";
 import BrowserPage from "./pages/BrowserPage";
 import SkillsPage from "./pages/SkillsPage";
+import AppsPage from "./pages/AppsPage";
 
 const LeetcodeCollection = lazy(() => import("./components/Leetcode/Collection"));
 
@@ -30,6 +31,7 @@ const PAGES = [
   { path: "/todos", node: <TodoPage /> },
   { path: "/leetcode", node: <LeetcodeCollection /> },
   { path: "/browser", node: <BrowserPage /> },
+  { path: "/apps", node: <AppsPage /> },
   { path: "/skills", node: <SkillsPage /> },
 ];
 

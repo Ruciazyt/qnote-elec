@@ -348,6 +348,60 @@ interface ElectronAPI {
   browserBookmarkDelete: (id: number) => Promise<boolean>;
   browserBookmarkClear: () => Promise<boolean>;
 
+  // ==================== 应用管理 ====================
+  appListProjects: () => Promise<import("@shared/appTypes").AppProject[]>;
+  appImportProject: (dirPath: string) => Promise<import("@shared/appTypes").AppImportResult>;
+  appRemoveProject: (id: number) => Promise<{ ok: boolean; error?: string }>;
+  appRefreshProjects: () => Promise<import("@shared/appTypes").AppProject[]>;
+  appWriteManifest: (
+    projectPath: string,
+    payload: {
+      name?: string;
+      description?: string;
+      command?: string;
+      args?: string[];
+      cwd?: string;
+      env?: Record<string, string>;
+      preview?: string;
+    }
+  ) => Promise<{ ok: boolean; error?: string }>;
+  appOpenFolder: (target: string) => Promise<{ ok: boolean; error?: string }>;
+  appPickProjectDir: () => Promise<string | null>;
+  appStart: (projectId: number) => Promise<{ ok: boolean; error?: string }>;
+  appStop: (projectId: number) => Promise<{ ok: boolean; error?: string }>;
+  appRuntimeStates: () => Promise<import("@shared/appTypes").AppRuntimeState[]>;
+  appLogs: (projectId: number) => Promise<import("@shared/appTypes").AppLogLine[]>;
+  appClearLogs: (projectId: number) => Promise<boolean>;
+  appPreviewLoad: (projectId: number) => Promise<{
+    ok: boolean;
+    error?: string;
+    /** 真正加载的 URL */
+    url?: string;
+    /** 给人看的地址（本地文件时是绝对路径） */
+    display?: string;
+  }>;
+  appPreviewVisible: (visible: boolean) => Promise<void>;
+  appPreviewBounds: (bounds: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }) => Promise<void>;
+  onAppProjectsChanged: (
+    callback: (projects: import("@shared/appTypes").AppProject[]) => void
+  ) => () => void;
+  onAppRuntimeChanged: (
+    callback: (state: import("@shared/appTypes").AppRuntimeState) => void
+  ) => () => void;
+  onAppLog: (callback: (line: import("@shared/appTypes").AppLogLine) => void) => () => void;
+  /** 预览页加载失败（被取消的导航不算失败，不会推这个事件） */
+  onAppPreviewError: (
+    callback: (payload: {
+      projectId?: number;
+      url: string;
+      message: string;
+    }) => void
+  ) => () => void;
   // ==================== 主页快捷方式 ====================
   shortcutList: () => Promise<import("./components/shortcut/types").ShortcutRow[]>;
   shortcutResolveIcon: (kind: string, target: string) => Promise<string | null>;

@@ -507,6 +507,64 @@ contextBridge.exposeInMainWorld("electron", {
   browserBookmarkDelete: (id: number) => ipcRenderer.invoke("bookmark:delete", id),
   browserBookmarkClear: () => ipcRenderer.invoke("bookmark:clear"),
 
+  // ==================== 应用管理 API ====================
+  // 项目 = 用户导入的一个文件夹 + 一份 qnote.json 清单
+  appListProjects: () => ipcRenderer.invoke("app:list-projects"),
+  /** 导入一个项目文件夹；不合规时返回失败原因分类 */
+  appImportProject: (dirPath: string) => ipcRenderer.invoke("app:import-project", dirPath),
+  appRemoveProject: (id: number) => ipcRenderer.invoke("app:remove-project", id),
+  /** 重新读一遍所有已导入项目的清单 */
+  appRefreshProjects: () => ipcRenderer.invoke("app:refresh-projects"),
+  /** 写入项目清单 qnote.json（创建与编辑同一条路径） */
+  appWriteManifest: (
+    projectPath: string,
+    payload: {
+      name?: string;
+      description?: string;
+      command?: string;
+      args?: string[];
+      cwd?: string;
+      env?: Record<string, string>;
+      preview?: string;
+    }
+  ) => ipcRenderer.invoke("app:write-manifest", projectPath, payload),
+  appOpenFolder: (target: string) => ipcRenderer.invoke("app:open-folder", target),
+  /** 系统目录选择器 —— 返回选中的绝对路径，取消则返回 null */
+  appPickProjectDir: () => ipcRenderer.invoke("app:pick-project-dir"),
+  /** 启动项目的常驻进程 */
+  appStart: (projectId: number) => ipcRenderer.invoke("app:start", projectId),
+  appStop: (projectId: number) => ipcRenderer.invoke("app:stop", projectId),
+  appRuntimeStates: () => ipcRenderer.invoke("app:runtime-states"),
+  appLogs: (projectId: number) => ipcRenderer.invoke("app:logs", projectId),
+  appClearLogs: (projectId: number) => ipcRenderer.invoke("app:clear-logs", projectId),
+  /** 载入预览页 —— 预览内容由主进程的原生视图承载；display 是给人看的地址 */
+  appPreviewLoad: (projectId: number) =>
+    ipcRenderer.invoke("app:preview-load", projectId),
+  appPreviewVisible: (visible: boolean) => ipcRenderer.invoke("app:preview-visible", visible),
+  appPreviewBounds: (bounds: { x: number; y: number; width: number; height: number }) =>
+    ipcRenderer.invoke("app:preview-bounds", bounds),
+  onAppProjectsChanged: (callback: (projects: any[]) => void) => {
+    const listener = (_event: unknown, projects: any[]) => callback(projects);
+    ipcRenderer.on("app:projects-changed", listener);
+    return () => ipcRenderer.removeListener("app:projects-changed", listener);
+  },
+  onAppRuntimeChanged: (callback: (state: any) => void) => {
+    const listener = (_event: unknown, state: any) => callback(state);
+    ipcRenderer.on("app:runtime-changed", listener);
+    return () => ipcRenderer.removeListener("app:runtime-changed", listener);
+  },
+  onAppLog: (callback: (line: any) => void) => {
+    const listener = (_event: unknown, line: any) => callback(line);
+    ipcRenderer.on("app:log", listener);
+    return () => ipcRenderer.removeListener("app:log", listener);
+  },
+  /** 预览页真的加载失败时主进程推过来的事件（导航被取消不算失败，不推） */
+  onAppPreviewError: (callback: (payload: any) => void) => {
+    const listener = (_event: unknown, payload: any) => callback(payload);
+    ipcRenderer.on("app:preview-error", listener);
+    return () => ipcRenderer.removeListener("app:preview-error", listener);
+  },
+
   // ==================== 主页快捷方式 API ====================
   shortcutList: () => ipcRenderer.invoke("shortcut:list"),
   /** 解析单个图标，返回 data URL；取不到返回 null。逐个调用，慢的那个不拖累快的 */

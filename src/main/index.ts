@@ -47,6 +47,13 @@ import { registerUpdateHandlers } from "./handlers/updateHandlers";
 import { initUpdater } from "./core/updater";
 import { parseAddShortcutArg, repairContextMenu } from "./utils/shellContextMenu";
 import { registerAsrHandlers } from "./handlers/asrHandlers";
+import { registerAppHandlers, teardownAppHandlers, resolveAppProjectDir } from "./handlers/appHandlers";
+import {
+  registerAppPreviewScheme,
+  initAppPreviewProtocol,
+  attachAppPreview,
+  disposeAppPreview,
+} from "./core/window/appPreview";
 import { createMainWindow, getMainWindow, showMainWindow, createTray } from "./core/window";
 import { ClipboardPopupWindow } from "./core/window/clipboardPopup";
 import {
@@ -192,6 +199,15 @@ if (!app.isPackaged || process.env.QNOTE_REMOTE_DEBUG_PORT) {
 app.commandLine.appendSwitch("disable-features", "Autofill");
 
 /**
+ * 注册应用预览协议 qnote-app://
+ *
+ * **必须在 app ready 之前调用** —— protocol.registerSchemesAsPrivileged
+ * 只在 ready 前有效，ready 之后再调会抛 "Scheme qnote-app is already registered"
+ * 或直接静默失效，导致预览页打不开。
+ */
+registerAppPreviewScheme();
+
+/**
  * 启用网页内容的 overlay 滚动条
  *
  * 应用自身的滚动条由 index.css 控制（细、滚动时才显示），但内嵌浏览器
@@ -302,6 +318,7 @@ function registerIpcHandlers() {
   registerShortcutHandlers(DB);
   registerAsrHandlers();
   registerUpdateHandlers();
+  registerAppHandlers(DB);
 }
 
 /** 必须在 createMainWindow() 之后调用 —— 下面这些 handler 要用 win 挂载原生视图 */
@@ -310,6 +327,11 @@ function registerWindowScopedHandlers() {
   registerDatabaseTransferHandlers(DB, win);
   // 内嵌浏览器 — 需要 win 挂载 WebContentsView
   registerBrowserHandlers(win);
+
+  // 应用预览 — 同样是原生视图，需要挂到主窗口上；
+  // 协议处理器要等 app ready 之后才能装（protocol.handle 的硬性要求）
+  attachAppPreview(win);
+  initAppPreviewProtocol(resolveAppProjectDir);
 
   // 跨窗口共享：AI 浮框位置 / 展开状态
   // 任一窗口修改 → 主进程存储 → 广播给其他窗口同步
@@ -549,6 +571,12 @@ app.on("will-quit", () => {
 
   // 释放内嵌浏览器的 WebContentsView
   teardownBrowserHandlers();
+
+  // 收掉应用管理的常驻进程与预览视图
+  //
+  // 顺序有讲究：先停进程（可能还在写日志），再拆视图。
+  teardownAppHandlers();
+  disposeAppPreview();
 
   tray?.destroy();
   tray = null;

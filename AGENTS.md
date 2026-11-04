@@ -265,6 +265,8 @@ git diff --cached | grep -nEi "sk-[A-Za-z0-9]{20,}|api[_-]?key\s*[:=]\s*['\"][^'
 | 渲染层界面 | `src/renderer/components/` |
 | 跨端共享类型 | `src/shared/` |
 | 数据表与迁移 | `src/database/` |
+| 应用管理（项目清单、进程启停、HTML 预览） | `src/main/core/appManager.ts`、`src/main/core/window/appPreview.ts`、`src/main/utils/appManifest.ts`、`src/renderer/components/apps/` |
+| 通用面板件（可折叠侧栏、拖拽分割线、宽度偏好） | `src/renderer/components/panel/`、`src/renderer/hooks/usePanelWidth.ts` |
 | 打包 / 发布配置 | `build/`、`scripts/`、`.github/workflows/` |
 
 主进程新增 IPC 时三处要同步改，漏一处会静默失效：
@@ -330,6 +332,42 @@ macOS 产物由 CI 的 `build-mac` 作业产出（`macos-15` runner），
 
 macOS 产物的签名 / 公证与是否进正式 Release，都是**条件式**的，
 细节见 `docs/MACOS-BUILD.md`。
+
+### 6.4 应用管理：项目清单规范
+
+「应用」标签页按文件夹管理本机项目。**规范本体在 `docs/APP-MANAGEMENT.md`**，
+改这块行为前先读它。几条容易踩的约束：
+
+- **导入的就是项目本身**：没有「根目录 + 扫描子目录」这层 ——
+  用户导入哪个文件夹，哪个文件夹就是项目，因此项目可以散落在任意路径下。
+  改动这块时不要把工作区概念加回来。
+- **清单是唯一入口**：项目根目录下必须有一份 `qnote.json`，
+  没有清单的项目不可启动、不可预览（界面标为「未配置」）。
+  清单里 `command` 与 `preview` 至少填一个。
+- **不合规不落库**：导入时清单解析不过就不写进数据库，
+  改成弹清单编辑器、补完再导入 —— 留个跑不起来的空壳在列表里，
+  只会让人以为应用坏了。
+- **清单写在项目里，不写数据库**：应用库（`app_project`）只存索引，
+  每次刷新都重新读一遍文件。
+- **私有协议 `qnote-app://` 不能改**：`protocol.registerSchemesAsPrivileged`
+  **必须在 app ready 之前调用**（`src/main/index.ts` 的模块级代码），
+  挪到 ready 之后就不生效了，预览页会打不开。
+  用它而不是 `file://` 的原因：Chromium 在 `file://` 下会拦掉
+  `<script type="module">`，vite 产物全是白屏。
+- **原生视图盖在 DOM 之上**：预览区是 `WebContentsView`，
+  永远压住渲染层，z-index 无效。要开弹窗必须先把预览收起来
+  （`AppPreviewPane` 的 `suspended`），否则对话框点不动。
+- **`useNativeViewCover` 是持有者集合**：多个页面各自持有原生视图时，
+  不能再用单一布尔值 —— 谁后跑谁说了算，切页时会把状态覆盖掉。
+- **侧栏的折叠与伸缩用 `ResizableSidebar`**：折叠、拖拽调宽、宽度上限、
+  状态持久化都在这个组件里（`src/renderer/components/panel/`）。
+  新的可折叠侧栏一律套它，别再各写一套 —— 宽度持久化统一走
+  `usePanelWidth`，折叠状态统一走 `useCollapsedState`（都存 localStorage，
+  别用组件内 state，应用一关就没了）。
+- **拖拽分割线是 flex 子节点**：`PanelResizer` 真实占位，不叠在侧栏边缘。
+  预览区的原生视图盖在 DOM 之上，压在它上面的 DOM 收不到鼠标事件 ——
+  分割线有 1px 伸进网页区，那 1px 就点不动。
+
 
 ---
 
