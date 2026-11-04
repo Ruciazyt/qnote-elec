@@ -1,14 +1,27 @@
 /**
  * 面板布局的通用常量与工具
  *
- * ## 为什么单独一个目录
+ * ## 为什么从 browser/layout.ts 拆出来
  *
- * 笔记页、题单页、快捷方式面板、应用管理页的侧栏折叠态是同一种东西：
- * 一条窄轨道，轨道里放一个切换按钮。折叠后的它们必须长得一样 ——
- * 轨道宽窄不一、按钮左右留白不等，视觉上就散了。
- *
- * 这里给这套几何一个中立的家。
+ * 拖拽分割线与宽度钳制一开始只在浏览器页用，后来笔记页、应用管理页
+ * 都接上了同一套 —— 它们是**通用件**，放在 browser/ 目录里只是历史原因。
+ * 这里给它们一个中立的家，browser/layout.ts 仍然转出这两个符号，
+ * 既有调用点（BrowserPage / NotesPage / useBrowserSidePanel / useNoteSidebarWidth）
+ * 不用跟着改。
  */
+
+/**
+ * 分割线（拖拽热区）的厚度
+ *
+ * 它作为 flex 兄弟节点真实占位，所以旁边的内容区会被压缩这么多 —— 这是有意的：
+ * 分割线做成 flex 子节点（而不是 absolute 叠在侧栏左边缘），
+ * 才能保证它**完全**落在 DOM 区域内。
+ *
+ * 这一点很关键：网页由主进程 WebContentsView 承载，是盖在 DOM 之上的原生层，
+ * 压在它上面的 DOM 是收不到鼠标事件的。分割线只要有哪怕 1px 伸进网页区，
+ * 那部分就点不动了。放成 flex 子节点则彻底避开这个问题。
+ */
+export const PANEL_RESIZER_WIDTH = 7;
 
 /**
  * 折叠态侧栏的几何规则
@@ -62,3 +75,12 @@ export const PANEL_COLLAPSED_BUTTON_INSET = 8;
  * 按钮与标题同处一行、同一条基线。
  */
 export const PANEL_HEADER_PADDING_X = 8;
+
+/** 把宽度钳制到可用区间 */
+export function clampPanelWidth(
+  width: number,
+  min: number,
+  max: number
+): number {
+  return Math.min(Math.max(Math.round(width), min), Math.max(min, max));
+}

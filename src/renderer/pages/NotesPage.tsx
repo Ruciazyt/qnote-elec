@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouteActive } from "@/hooks/useRouteActive";
 import { useCollapsedState } from "@/hooks/useCollapsedState";
 import { useNoteSidebarWidth } from "@/hooks/useNoteSidebarWidth";
-import { PanelResizer } from "@/components/browser/PanelResizer";
+import { PanelResizer } from "@/components/panel/PanelResizer";
 import { PANEL_RESIZER_WIDTH } from "@/components/browser/layout";
 import {
   PANEL_COLLAPSED_BUTTON_INSET,

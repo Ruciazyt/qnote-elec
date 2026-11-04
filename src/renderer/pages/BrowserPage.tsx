@@ -22,7 +22,7 @@ import type { BrowserState, BrowserTabState } from "@/components/browser/types";
 import { BookmarkList, useBookmarkState, isBookmarkable } from "@/components/browser/BookmarkList";
 import { BookmarkBar } from "@/components/browser/BookmarkBar";
 import { BrowserSidePanel } from "@/components/browser/BrowserSidePanel";
-import { PanelResizer } from "@/components/browser/PanelResizer";
+import { PanelResizer } from "@/components/panel/PanelResizer";
 import {
   BROWSER_MIN_WIDTH,
   PANEL_RESIZER_WIDTH,

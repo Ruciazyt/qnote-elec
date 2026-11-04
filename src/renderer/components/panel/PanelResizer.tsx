@@ -10,8 +10,9 @@
  *   拖拽期间侧栏宽度会一路带动网页区收缩，网页区的 DOM 尺寸每帧都在变。
  *   用「起始指针 + 起始宽度 + 位移」计算，不会因为中间态抖动而漂移。
  *
- * 谁在用：浏览器页的收藏夹/AI 侧栏（**在右**）、笔记页的文件树（**在左**）。
- * 两者分割线所处的侧缘不同，拖拽方向也就相反 —— 靠下面的 side 区分。
+ * 谁在用：浏览器页的收藏夹/AI 侧栏（**在右**）、笔记页的文件树（**在左**）、
+ * 应用管理页的项目列表（**在左**）。侧栏所处的侧缘不同，拖拽方向也就相反 ——
+ * 靠下面的 side 区分。
  */
 
 import { useCallback, useRef, useState } from "react";
@@ -54,8 +55,8 @@ interface PanelResizerProps {
    *
    * 但笔记页两栏同在 --card 上，视觉分割由 .neu-divider-r 的拟态投影承担
    * （当初特意没画 1px 实线 —— 同色底上的实线看着像外框残留的接缝）。
-   * 这时再叠一条 7px 实底就是自己打自己的脸，置 true 让它只做热区，
-   * hover / 拖拽时的高亮照常。
+   * 应用管理页同理：侧栏自己有 1px 边框，再叠一条 7px 实底就是自己打自己的脸。
+   * 这时置 true 让它只做热区，hover / 拖拽时的高亮照常。
    */
   transparentAtRest?: boolean;
 }
@@ -85,8 +86,16 @@ export function PanelResizer({
       // 只响应主键；右键/中键不应触发拖拽
       if (e.button !== 0) return;
       e.preventDefault();
-      (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
       originRef.current = { pointerX: e.clientX, width };
+      // 指针捕获失败（指针已释放、元素已卸载）不能中断整个拖拽：
+      // setPointerCapture 在这些情况下会抛 NotFoundError，
+      // 一旦抛出去，下面注册 window 监听的几行就都执行不到了 ——
+      // 表现是「按下去没反应」，而且没有任何报错。
+      try {
+        (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+      } catch {
+        // 忽略：没有捕获也能拖，只是光标可能跑出分割线
+      }
       setDragging(true);
       onDraggingChangeRef.current?.(true);
 
