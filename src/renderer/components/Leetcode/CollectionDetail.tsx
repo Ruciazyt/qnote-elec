@@ -28,6 +28,7 @@ interface CollectionDetailProps {
 
 
 // Window.electron type is declared in src/electron.d.ts
+
 // 从 LeetCode URL 中提取 slug
 function extractProblemSlug(url: string): string | null {
   try {
@@ -375,10 +376,21 @@ export default function CollectionDetail({ collectionId, onRefresh }: Collection
                   autoFocus
                   className="flex-1"
                 />
-                <Button size="icon" variant="ghost" onClick={handleSaveName} disabled={saving}>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  aria-label="保存题单名称"
+                  title="保存"
+                  onClick={handleSaveName}
+                  disabled={saving}>
                   <Save className="h-4 w-4" />
                 </Button>
-                <Button size="icon" variant="ghost" onClick={handleCancelEditName}>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  aria-label="取消重命名"
+                  title="取消"
+                  onClick={handleCancelEditName}>
                   <X className="h-4 w-4" />
                 </Button>
               </div>
@@ -495,6 +507,10 @@ export default function CollectionDetail({ collectionId, onRefresh }: Collection
                   return difficulty;
                 };
 
+                // 题目行里的三个图标按钮只有图标，屏幕阅读器读不出它们做什么，
+                // 也分不清是哪一道题 —— 名称里带上题目标题（与链接文字同源）。
+                const problemTitle = extractProblemTitle(problem.link, problem.title);
+
                 return (
                   <div
                     key={index}
@@ -502,6 +518,8 @@ export default function CollectionDetail({ collectionId, onRefresh }: Collection
                     <Button
                       size="icon"
                       variant="ghost"
+                      aria-label={`${problem.is_completed ? "标记为未完成" : "标记为已完成"}：${problemTitle}`}
+                      title={problem.is_completed ? "标记为未完成" : "标记为已完成"}
                       className={`h-6 w-6 ${
                         problem.is_completed ? "text-green-600" : "text-gray-400"
                       }`}
@@ -530,10 +548,17 @@ export default function CollectionDetail({ collectionId, onRefresh }: Collection
                     <Button
                       size="icon"
                       variant="ghost"
+                      aria-label={`用系统浏览器打开：${problemTitle}`}
+                      title="用系统浏览器打开"
                       onClick={() => openProblemLink(problem.link)}>
                       <ExternalLink className="h-4 w-4" />
                     </Button>
-                    <Button size="icon" variant="ghost" onClick={() => handleDeleteProblem(index)}>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      aria-label={`删除题目：${problemTitle}`}
+                      title="删除题目"
+                      onClick={() => handleDeleteProblem(index)}>
                       <Trash2 className="h-4 w-4 text-red-500" />
                     </Button>
                   </div>
