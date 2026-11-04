@@ -4,8 +4,20 @@ import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * 基础按钮。
+ *
+ * 焦点环用 ring-2（2px）而不是 ring-1：
+ * WCAG 2.2 SC 2.4.11 要求焦点指示器的等效周长厚度 ≥ 2px。
+ * Tailwind 的 ring 是 box-shadow，画在盒子外沿、不占布局 —— 改成 2px 不会动盒模型，
+ * 面板折叠轨那套几何基准（轨宽、按钮锚点、描边余量）不受影响。
+ * 仓库里本来就有 2px 的先例：index.css 的 .button 是 ring-2 + ring-offset-2，
+ * .note-row 是 outline: 2px solid —— 改完全应用的焦点环厚度是一致的。
+ *
+ * 定值见 docs/UI-GUIDELINES.md 第二节与第十一节。
+ */
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
