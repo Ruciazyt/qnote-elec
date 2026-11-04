@@ -265,9 +265,12 @@
 3. 用 Electron 无头加载，`webContents.executeJavaScript` 量 `getBoundingClientRect`
 4. 焦点态要用**真实键盘事件**（`sendInputEvent` 发 Tab）才能触发 `:focus-visible`；
    脚本里 `element.focus()` 不触发，量到的会是 `box-shadow: none`
-5. **无头窗口必须先 `win.focus()`**。没有窗口焦点时 Chromium 不把 Tab 当作键盘交互，
-   `:focus-visible` 一样不成立 —— 表现同样是 `box-shadow: none`，
-   很容易被误读成「样式没生效」。
+5. **`:focus-visible` 只在「窗口已显示且已获焦」时成立**。实测四种情况：
+   隐藏窗口（`show:false`）+ 程序化 `element.focus()` → 不成立；
+   隐藏窗口 + `sendInputEvent` 发 Tab → 不成立；
+   隐藏窗口 + `win.focus()` + Tab → **仍然不成立**；
+   显示的窗口（哪怕放在 `x:-3200, y:-3200` 的屏幕外）+ `win.focus()` + Tab → 成立。
+   不成立时量到的是 `box-shadow: none`，很容易被误读成「样式没生效」。
 6. Tab 的落点是**有记忆的**（顺序焦点导航的起点会留在上次的位置），
    别写死按 N 次 Tab 就以为停在该元素上 —— 循环 Tab 到 `activeElement.id` 命中为止。
 7. 要判断 `box-shadow` 的某一段画在元素的哪一侧，别靠推算：
@@ -286,6 +289,14 @@
 11. 跑真实渲染层不需要接主进程：给 `window.electron` 挂个桩就行。
     桩要用 **普通对象**，`contextBridge` 克隆不了 Proxy（preload 会直接加载失败）；
     测量台可以用 `contextIsolation: false` 直接把 Proxy 挂到页面 `window` 上。
+12. **只测盒模型不必跑整包构建**：在 `src/renderer` 下用仓库自己的 Tailwind 配置
+    编一小份 CSS 即可（`node_modules/.bin/tailwindcss -c tailwind.config.js
+    -i in.css -o out.css --content "<要测的 html>"`），真实盒模型由这份产物决定，
+    几秒出结果。**`--content` 必须指到复刻页**，否则那些任意值类名不会被生成，
+    量到的全是浏览器默认值 —— 表现是「类名写了但没生效」，很容易误判成代码有问题。
+13. **想知道「那个位置屏幕上到底是谁」，用 `elementFromPoint`**：
+    比像素采样便宜，也能区分「几何溢出」与「真的画出来了」——
+    命中溢出元素 = 墨迹真的盖在相邻区域上；命中相邻区域 = 已被裁掉。
 
 （仓库里已有一份现成的：`.data/uicheck/measure.html` + `measure.js`，
 `.data/` 已在 .gitignore 里。
@@ -443,3 +454,5 @@ canvas 不透明会把投影整条盖掉 —— 笔记页靠 `relative z-10` 把
 | 2026-11-04 | `components/Leetcode/SideBar.tsx` 侧栏折叠/展开几何（40px 轨 → 48px 共享常量） | 通过：折叠轨 48、按钮 8..40、两态零位移（实测 0）、focus 描边四边余量 7px、内容列 `px-2` 与头部左沿同在 8px、标题 14px medium、操作按钮间距 8px；深浅两态分隔线同为 `rgba(43,50,59,0.6)`/`rgba(227,231,237,0.6)`。另有 1 处必改（删除确认框正文缺对象类别与「」） | 浏览器工具开发 |
 | 2026-11-04 | `panel/ResizableSidebar.tsx` + `shortcut/ShortcutPanel.tsx` 折叠退场与焦点描边 | `invisible` 把隐藏区移出焦点序的方向正确（Tab 不再跳进看不见的「导入」）；竖排标签加 `mb-1` 后描边四边余量 3px 通过。另有 1 处必改（内容区折叠态的 visibility 不在过渡列表 → 瞬间消失，与标题/操作区的淡出不一致，且淡出前有 150ms 停顿） | 应用平台开发 |
 | 2026-11-04 | `pages/NotesPage.tsx` 笔记页侧栏（真实构建产物 + 真实 DOM 实测） | 通过：折叠轨 48、展开态 `border-r` 1px、折叠态同色 inset 阴影（浅 `rgba(227,231,237,0.6)` / 深 `rgba(43,50,59,0.6)`）、两态按钮 x 恒为 176（零位移）、标题 14px/500/`text-foreground`/行高 20px、`ml-2`、头部行左内边距与路径行、文件树列同为 8px；`transition-[width]` 下边框全程 1px 不闪。另有 1 处必改（头部行缺 `overflow-hidden` → 展开首帧标题墨迹画到右栏工具条上，14px/约 40ms；改法必须连 `mt-2`/`mb-2` 一起换成 `pt-2`/`pb-2`） | 笔记开发 |
+| 2026-11-04 | 四个可折叠侧栏的折叠几何一致性（笔记 / 题单 / 应用管理 / 快捷方式） | 通过：四页共用 `panel/layout.ts` 的一套数（轨 48、按钮 32、内缩 8），实测折叠态按钮一律落在 8..40、左右留白各 8px、描边外扩 1px 后仍余 7px；`layout.test.ts` 用等式锁死（轨宽 = 内缩×2 + 按钮边长、内缩 = 展开态头部左内边距），全仓再无写死的 40/44 折叠轨。遗留 1 处（笔记页头部行缺 `overflow-hidden`，与上一行同一件） | UI设计校验 |
+| 2026-11-04 | 规范校准（第九节测量方法复核） | 第 5 条原写「无头窗口先 `win.focus()` 即可」不成立：实测隐藏窗口（`show:false`）无论加不加 `win.focus()`，`:focus-visible` 都不成立，只有**已显示**的窗口（可放在屏幕外）才成立，已按实测四种情况改写；补第 12 条（用仓库 Tailwind 配置单独编复刻页 CSS，不必整包构建，并提醒 `--content` 必须指向复刻页）与第 13 条（`elementFromPoint` 区分「几何溢出」与「真的画出来」） | UI设计校验 |
