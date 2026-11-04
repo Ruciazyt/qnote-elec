@@ -363,11 +363,52 @@ describe("题单页侧栏折叠按钮", () => {
       // Radix 才会把它的 id 接上去；正文放在普通 <p> 里就等于没被朗读，
       // 「删的是哪一个」用户还是听不出来。
       const dialog = screen.getByRole("dialog");
+
+      // 标题只写动作 + 对象类别，不带名字（规范第十节）——
+      // 标题是弹窗的可访问名称，名字太长会把它撑成一整句话
+      expect(dialog).toHaveAccessibleName("删除题单");
+      expect(dialog).not.toHaveAccessibleName(/动态规划专题/);
+
       const describedBy = dialog.getAttribute("aria-describedby");
       expect(describedBy).toBeTruthy();
 
       const description = document.getElementById(describedBy!);
       expect(description?.textContent).toContain("动态规划专题");
+    });
+
+    it("新建题单弹窗也有描述节点", async () => {
+      const user = userEvent.setup();
+      window.localStorage.setItem(STORAGE_KEY, "false");
+      await renderSidebar();
+
+      await user.click(screen.getByRole("button", { name: "新建题单" }));
+
+      // 新建不是破坏性操作，没有具体目标名可点 —— 断描述存在且不是标题复读就够
+      const dialog = screen.getByRole("dialog");
+      const describedBy = dialog.getAttribute("aria-describedby");
+      expect(describedBy).toBeTruthy();
+
+      const description = document.getElementById(describedBy!);
+      const text = (description?.textContent ?? "").trim();
+      expect(text.length).toBeGreaterThan(0);
+      expect(text).not.toBe("新建题单");
+    });
+
+    it("导入题单弹窗也有描述节点", async () => {
+      const user = userEvent.setup();
+      window.localStorage.setItem(STORAGE_KEY, "false");
+      await renderSidebar();
+
+      await user.click(screen.getByRole("button", { name: "导入题单" }));
+
+      const dialog = screen.getByRole("dialog");
+      const describedBy = dialog.getAttribute("aria-describedby");
+      expect(describedBy).toBeTruthy();
+
+      const description = document.getElementById(describedBy!);
+      const text = (description?.textContent ?? "").trim();
+      expect(text.length).toBeGreaterThan(0);
+      expect(text).not.toBe("导入题单");
     });
   });
 

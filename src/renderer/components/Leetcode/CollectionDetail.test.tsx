@@ -68,6 +68,46 @@ describe("题单详情页", () => {
     window.localStorage.clear();
   });
 
+  describe("难度徽章", () => {
+    it("语义色做底色、文字用 text-foreground（不把语义色当文字色）", async () => {
+      await renderDetail({
+        getLeetcodeCollection: vi.fn().mockResolvedValue({
+          ...COLLECTION,
+          problems: [
+            ...COLLECTION.problems,
+            {
+              id: 103,
+              link: "https://leetcode.cn/problems/median-of-two-sorted-arrays/",
+              is_completed: false,
+              title: "寻找两个正序数组的中位数",
+              difficulty: "Hard",
+            },
+          ],
+        }),
+      });
+
+      // 断的是「底色走哪个语义 token」+「文字是 text-foreground」，
+      // 不绑死透明度档（档位以后可能调），也不绑精确 class 串。
+      const cases: Array<[string, RegExp]> = [
+        ["Easy", /^bg-success(\/\d+)?$/],
+        ["Medium", /^bg-muted(\/\d+)?$/],
+        ["Hard", /^bg-destructive(\/\d+)?$/],
+      ];
+
+      for (const [label, bgPattern] of cases) {
+        const badge = screen.getByText(label);
+        const tokens = (badge.getAttribute("class") ?? "").split(/\s+/).filter(Boolean);
+
+        // 底色是该难度的语义色
+        expect(tokens.some((t) => bgPattern.test(t))).toBe(true);
+        // 文字是 text-foreground —— 语义色当文字色落在同色 15% 浅底上只有 3.9:1 左右，
+        // 过不了 AA 4.5:1（无头 Electron 像素实测：改后 10.02 / 10.58 / 9.63）
+        expect(tokens).toContain("text-foreground");
+        expect(tokens.some((t) => /^text-(success|warning|destructive)$/.test(t))).toBe(false);
+      }
+    });
+  });
+
   describe("题目行的可读名称", () => {
     it("勾选按钮名称带题目标题，并随完成状态变化", async () => {
       await renderDetail();
