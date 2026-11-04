@@ -57,6 +57,18 @@
   暗色 55% 在深色卡片底（`--card: 220 15% 12%`）上是 9.0:1，已远超标准，
   不必再往上提亮：提到 62% 只多 0.7:1，却让 15 处自定义绿色动画
   （复制成功、保存成功 flash）整体亮一档，且与暗色 `--destructive`（同为 55%）不齐。）
+- **`--warning` 的定值**：浅色 `38 70% 35%`、暗色 `48 85% 60%`。
+  浅色这一档取 35%：三个语义色在浅色主题下的对比度要落在**同一档** ——
+  `--success` 4.73:1、`--warning` 4.76:1、`--destructive` 4.80:1，
+  视觉权重一致，警告色不会比成功色更轻、也不会比危险色更重。
+  再深到 32%（5.50:1）没必要，那会读成深棕、比成功色还重。
+  hue（38°）与 saturation（70%）不动：加深只压亮度、不压色相，与 `destructive` 的色差
+  几乎不变（ΔE 55.4 → 55.2）；而把 saturation 提到 75% 反而与 `destructive` 更近（54.2）、
+  对比度还更低（4.64），两头都不划算。
+  **这条 token 现在就在用**，不是「为将来定值」——
+  `components/core/titleBar.css` 的最大化/还原按钮 hover 态直接取 `hsl(var(--warning))`
+  （不走 Tailwind 类，所以 grep `text-warning` 看不到它）。浅色主题下标题栏底是
+  `--app-frame`（`0 0% 94%`），改前 2.63:1 连图形元素的 3:1 线都不到，改后 4.18:1 过线。
 - **文字不要用透明度档**：语义色做文字必须用实心值（或 `text-foreground`），
   `/80` 叠在白底上对比度会掉到 2~3:1，连小字都过不了 4.5:1。
 - **没有对应语义 token 的信息色**：难度徽章这类要现定映射 ——
@@ -77,6 +89,19 @@
 - [ ] 字号走 Tailwind 阶梯（`text-xs` / `text-sm` / `text-lg`），不写死 px
 - [ ] 阴影用 `shadow-sm` / `shadow-md` 这一档，不用内联 `box-shadow`
 - [ ] 尺寸用语义类（`h-8 w-8`），不用 `style={{ width: 32 }}`
+
+### 全局配置文件的修改归属
+
+`index.css` 与 `tailwind.config.js` 是渲染层全局配置，多 Bot 同时改容易撞车。
+2026-11-04 起按下面三条执行：
+
+1. **同一轮同一文件只允许一个 owner 改**。被指派改这个文件的 Bot 就是该文件本轮 owner，
+   其它 Bot 不碰。
+2. **token 层由 @UI设计校验 汇总执行** —— 它维护本节口径。其它 Bot 发现 token 缺失
+   或不合规，走「提需求给 @UI设计校验」或提给 Chief 当轮指定 owner，不自己动手。
+   `tailwind.config.js` 里与构建/插件相关的部分归 @质量发版。
+3. **一次只改一件事**：token 取值修正与注册补齐分成两次改动。
+   （`--warning` 的取值修正与 1.8.0 那次注册补齐已经是两次。）
 
 ## 三、间距与尺寸
 
@@ -114,9 +139,13 @@
 - [ ] 可点击的非 `button` 元素有 `role`、`tabIndex` 与键盘事件
 - [ ] 正文对比度 ≥ 4.5:1，大字与图形 ≥ 3:1；焦点指示器与相邻颜色 ≥ 3:1
 - [ ] **焦点指示器厚度 ≥ 2px**（WCAG 2.2 SC 2.4.11）。
-      现状：`components/ui/button.tsx` 基类是 `focus-visible:ring-1`，
-      实测 1px 环面积 = 1px × 128px 周长 = 128px² < 2px 周长所需的 256px²，不达标。
-      这是全应用共用默认值，改动影响所有按钮，**单独提一次**，不夹在别的改动里。
+      基类 `components/ui/button.tsx` 已于 2026-11-04 由 `focus-visible:ring-1`
+      改为 `focus-visible:ring-2`（单独一次提交，不夹在别的改动里）。
+      依据：1px 环面积 = 1px × 128px 周长 = 128px² < 2px 周长所需的 256px²，不达标。
+      仓库里本来就有 2px 的先例 —— `index.css` 的 `.button` 是 `ring-2 + ring-offset-2`、
+      `.note-row` 是 `outline: 2px solid`，基类改 ring-2 是向既有做法对齐，不是引入新做法。
+      注意两套环的**位置**不同：一个带 2px offset、环与按钮之间有空隙；一个贴着按钮边画。
+      厚度一致之后观感仍要各看一眼，别只核数字。
 - [ ] **看不见的控件必须移出焦点序**。只写 `opacity-0` + `pointer-events-none`
       挡不住键盘 —— `pointer-events-none` 只管鼠标，里面的按钮仍在 Tab 序里：
       键盘用户会 Tab 到看不见的控件上，焦点框消失、读屏却念出按钮名。
@@ -463,3 +492,6 @@ canvas 不透明会把投影整条盖掉 —— 笔记页靠 `relative z-10` 把
 | 2026-11-04 | 规范校准（第九节测量方法复核） | 第 5 条原写「无头窗口先 `win.focus()` 即可」不成立：实测隐藏窗口（`show:false`）无论加不加 `win.focus()`，`:focus-visible` 都不成立，只有**已显示**的窗口（可放在屏幕外）才成立，已按实测四种情况改写；补第 12 条（用仓库 Tailwind 配置单独编复刻页 CSS，不必整包构建，并提醒 `--content` 必须指向复刻页）与第 13 条（`elementFromPoint` 区分「几何溢出」与「真的画出来」） | UI设计校验 |
 | 2026-11-04 | `pages/NotesPage.tsx` 头部行裁剪复验（真实渲染层） | 上一行的必改项已改并提交（`4205d80`）：头部行加 `overflow-hidden`、`mt-2`/`mb-2` 换 `pt-2`/`pb-2`。复验通过：轨道右缘外取样条深色像素由 **434 个降到 0 个**（墨迹不再画到右栏）、focus 描边四边完整（按钮上缘比行上缘低 8px）、两态几何未回归（按钮 x 恒 176、轨 48/288、浅深线色不变、标题仍 14px/500/foreground） | UI设计校验 |
 | 2026-11-04 | `components/Leetcode/SideBar.tsx` + `CollectionDetail.tsx` 题单页第五节验收（交付后复核） | 三项全部结项：轨宽改走共享常量 `PANEL_COLLAPSED_WIDTH`（`SideBar.test.tsx` 已用等式锁死）、展开态 `border-r border-border/60` 与折叠态同色 inset 阴影、标题 `text-sm font-medium` + `text-foreground`；删除确认框已是 `DialogTitle` + `DialogDescription` + 句式「确定要删除题单「{name}」吗？」+ 名字 `font-medium text-foreground` + 不可逆单独一行；难度徽章按语义色做底色 + `text-foreground` 做字（实测浅色 10.02/10.58/9.63）。另修正规范一处与实现相反的表述：第二节原写徽章「浅底 + `destructive` 字」，已改为「语义色做底色 + `text-foreground` 做字」并附实测对比度 | UI设计校验 |
+| 2026-11-04 | `index.css` 浅色 `--warning` 取值定案（38 70% 45% → 38 70% 35%） | 白底卡片 4.76:1，与 `--success` 4.73:1、`--destructive` 4.80:1 同档；暗色 `48 85% 60%` 不动。**事实更正**：这条 token 不是「没人用」—— `components/core/titleBar.css` 第 46~62 行最大化/还原按钮 hover 态直接取 `hsl(var(--warning))`（不走 Tailwind 类），浅色主题下标题栏底 `--app-frame`（`0 0% 94%`）上现值只有 2.63:1（图形元素的 3:1 线都不到），改后 4.18:1 过线。hover 图标会变深（#C38822 → #986A1B），属可见变化 | 架构师定案 / UI设计校验落地 |
+| 2026-11-04 | `components/ui/button.tsx` 基类焦点指示器厚度（ring-1 → ring-2） | 基类改成 `focus-visible:ring-2`，满足 WCAG 2.2 SC 2.4.11（1px 环面积 128px² < 2px 周长所需的 256px²）。ring 是 `box-shadow` 不占布局，第七节几何基准未回归。仓库原有 2px 先例：`index.css` 的 `.button` 是 `ring-2 + ring-offset-2`、`.note-row` 是 `outline: 2px solid`。注意两套环位置不同（一个带 2px offset、一个贴边画），厚度一致后观感仍需各看一眼 | 架构师定案 / UI设计校验落地 |
+| 2026-11-04 | `shortcut/ShortcutPanel.tsx` 快捷面板方案 E（展开态头部 + 折叠轨锚定） | 展开态头部 `h-12 + pt-2 + pb-2`、头部下缘线改等色 inset 阴影（不占内容盒：带 `border-b` 时内容盒只剩 31px，按钮落 7.5..39.5，与折叠态箭头的 8 差 0.5px）；折叠轨顶箭头由 `justify-center` 改固定右锚定（`paddingRight = PANEL_COLLAPSED_BUTTON_INSET` + `justify-end`）；竖排标签外边距升为共享常量 `PANEL_RAIL_LABEL_INSET = 4`（走行内样式，Tailwind 动态拼接类名会让外边距丢在产物里）；竖排标题与角标统一 `text-xs`（角标保留 `bg-primary/15` + `text-primary` 强调色）。九变体实测只有方案 E 上下对称（8/8）。**展开态面板左缘 `border-l border-border/60` 保留不动** —— 第十一节定稿管的是竖向面板边界线，头部下缘那条横线是另一回事 | 应用平台开发 |
