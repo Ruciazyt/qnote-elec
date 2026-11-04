@@ -4,6 +4,7 @@ import {
   AI_IMAGE_ALLOWED_MIMES,
   AI_IMAGE_MAX_COUNT,
   AI_IMAGE_MAX_DATA_CHARS,
+  AiContentBlock,
   aiContentToText,
   aiImageContentBlocks,
   aiImageDataUrl,
@@ -160,7 +161,12 @@ describe("发给模型的内容块", () => {
     const blocks = buildUserContent("   ", [PNG]);
 
     expect(blocks).toHaveLength(1);
-    expect(blocks[0].type).toBe("image_url");
+    // buildUserContent 的返回类型是 string | AiContentBlock[]：
+    // 没图时退回纯文本字符串，有图时才是块数组。
+    // 这里断言的是「有图 → 块数组」那条分支，所以先把类型收窄，
+    // 否则 blocks[0].type 在 string 上不存在（TS2339）。
+    expect(Array.isArray(blocks)).toBe(true);
+    expect((blocks as AiContentBlock[])[0].type).toBe("image_url");
   });
 
   it("内容块就是 data URL 形式的图片", () => {

@@ -18,6 +18,20 @@
   ],
   "exclude": [
     "../dist",
-    "../node_modules"
+    "../node_modules",
+    // 测试文件不进主进程的编译产物。
+    //
+    // src/main 与 src/shared 里有一批 .test.ts（2026-11-05 起由测试范围扩展引入），
+    // 它们由渲染层的 vitest 跑（src/renderer/vitest.config.ts 的 include 扩到了
+    // ../shared 与 ../main），只 import 被测模块本身。
+    //
+    // 但它们 import "vitest"，而 vitest 只装在 src/renderer 这个 workspace 包里，
+    // 根包没有 —— 主进程这套 tsc 解析不到 vitest 的类型，编译会报
+    // TS2307: Cannot find module 'vitest'，直接卡住发版。
+    // 渲染层的 tsconfig.app.json 早就 exclude 了 **/*.test.ts，主进程这边对齐。
+    "../src/main/**/*.test.ts",
+    "../src/shared/**/*.test.ts",
+    "../src/main/**/*.spec.ts",
+    "../src/shared/**/*.spec.ts"
   ]
 }
