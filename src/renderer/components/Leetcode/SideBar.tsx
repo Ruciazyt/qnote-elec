@@ -7,6 +7,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Progress } from "../ui/progress";
 import { ChevronLeft, ChevronRight, Plus, Trash2, Edit, FileText, ListChecks } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+import {
+  PANEL_COLLAPSED_BUTTON_INSET,
+  PANEL_COLLAPSED_WIDTH,
+  PANEL_HEADER_PADDING_X,
+} from "@/components/panel/layout";
 
 interface Collection {
   id: number;
@@ -252,35 +258,82 @@ export default function Sidebar({ onSelectCollection, selectedCollectionId }: Si
   };
 
   return (
+    /* 折叠轨宽度走行内样式：轨道宽是共享常量（PANEL_COLLAPSED_WIDTH），
+       写成 Tailwind 的 w-10 就把数字写死在类名里了 —— 改了共享常量，
+       这一页不会跟着变（笔记页与应用页的通用面板件都走行内样式）。
+       展开态用 w-64（256px），这一页不支持拖拽调宽，维持原状。 */
     <div
-      className={
-        sidebarCollapsed
-          ? "w-10 border-r border-sidebar-border bg-sidebar h-full flex flex-col items-center p-0 transition-all duration-200"
-          : "w-64 border-r border-sidebar-border bg-sidebar h-full flex flex-col transition-all duration-200"
-      }>
-      <div className="flex items-center mb-2 mt-2 px-4 flex-shrink-0">
+      className={cn(
+        "border-r border-sidebar-border bg-sidebar h-full flex flex-col transition-all duration-200",
+        !sidebarCollapsed && "w-64"
+      )}
+      style={sidebarCollapsed ? { width: PANEL_COLLAPSED_WIDTH } : undefined}>
+      {/* 头部行 —— 与通用面板件（panel/layout.ts）同一套几何。
+
+          内边距走行内样式（PANEL_COLLAPSED_BUTTON_INSET / PANEL_HEADER_PADDING_X），
+          不用 Tailwind 的 px-/pl- 类：类名里的数字是写死的，跟共享常量各走各的。
+
+          两态共用同一个左缘 8px（两个常量取值相同）：
+
+          - 折叠态：8 + 32(按钮) + 8 = 48 = 折叠轨宽
+            → 按钮落在轨道正中，左右各留 8px；focus 描边向外扩 1px 之后
+            还剩 7px 余量，四边完整可见，不会被轨道边界裁掉。
+          - 展开态：头部左内边距同样是 8px
+            → 切换时按钮的 x 一动不动，只有面板宽度在变，零横向位移。
+
+          overflow-hidden 是必须的：宽度过渡的那一帧轨道还是窄的，
+          头部行内容却是展开态的宽度（按钮 + 标题 + 两个操作按钮），
+          不裁的话它们会画到右侧主内容区上（实测溢出 99px，持续 200ms，
+          见 docs/UI-GUIDELINES.md 第八节）。 */}
+      <div
+        className="flex items-center mb-2 mt-2 flex-shrink-0 overflow-hidden"
+        style={{
+          paddingLeft: PANEL_COLLAPSED_BUTTON_INSET,
+          paddingRight: sidebarCollapsed ? 0 : PANEL_HEADER_PADDING_X,
+        }}>
         <Button
           size="icon"
           variant="ghost"
           onClick={() => setSidebarCollapsed((v) => !v)}
           aria-label={sidebarCollapsed ? "展开侧栏" : "收起侧栏"}
-          className="leetcode-sidebar-btn">
-          {sidebarCollapsed ? <ChevronRight /> : <ChevronLeft />}
+          aria-expanded={!sidebarCollapsed}
+          className="leetcode-sidebar-btn h-8 w-8 shrink-0">
+          {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </Button>
         {!sidebarCollapsed && <h3 className="font-bold text-lg ml-2 text-left flex-1">题单</h3>}
         {!sidebarCollapsed && (
-          <>
-            <Button size="icon" variant="ghost" onClick={() => setShowImportDialog(true)} className="leetcode-sidebar-btn">
-              <FileText />
+          /* 两个操作按钮之间留 8px（gap-2）—— 同规格相邻图标按钮不能贴死，
+             规范见 docs/UI-GUIDELINES.md 第三节。 */
+          <div className="flex items-center gap-2 shrink-0">
+            {/* 这两个按钮只有图标，必须带可读名称 —— 屏幕阅读器读不出
+                「FileText 是导入还是打开文件」，测试也只能按图标类名定位。
+                title 一并加上，鼠标悬停能直接看到按钮做的是哪件事。 */}
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => setShowImportDialog(true)}
+              aria-label="导入题单"
+              title="导入题单"
+              className="leetcode-sidebar-btn h-8 w-8 shrink-0">
+              <FileText className="h-4 w-4" />
             </Button>
-            <Button size="icon" variant="ghost" onClick={() => setShowCreateDialog(true)} className="leetcode-sidebar-btn">
-              <Plus />
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => setShowCreateDialog(true)}
+              aria-label="新建题单"
+              title="新建题单"
+              className="leetcode-sidebar-btn h-8 w-8 shrink-0">
+              <Plus className="h-4 w-4" />
             </Button>
-          </>
+          </div>
         )}
       </div>
       {!sidebarCollapsed && (
-        <div className="flex-1 overflow-y-auto px-4 pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        /* 内容列左内边距跟头部按钮同一条左缘（8px = PANEL_HEADER_PADDING_X）：
+           头部按钮在 8px，卡片列也得在 8px，否则头部与内容列的左沿差 8px，
+           面板看着是歪的（docs/UI-GUIDELINES.md 第六节）。 */
+        <div className="flex-1 overflow-y-auto px-2 pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <div className="space-y-2">
             {collections.map((collection) => (
               <div
@@ -319,6 +372,8 @@ export default function Sidebar({ onSelectCollection, selectedCollectionId }: Si
                   <Button
                     size="icon"
                     variant="ghost"
+                    aria-label={`编辑题单：${collection.name}`}
+                    title="编辑题单"
                     className="h-7 w-7 hover:bg-muted"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -329,6 +384,8 @@ export default function Sidebar({ onSelectCollection, selectedCollectionId }: Si
                   <Button
                     size="icon"
                     variant="ghost"
+                    aria-label={`删除题单：${collection.name}`}
+                    title="删除题单"
                     className="h-7 w-7 hover:bg-destructive/10 text-destructive hover:text-destructive"
                     onClick={(e) => handleDelete(collection.id, e)}>
                     <Trash2 className="h-3.5 w-3.5" />

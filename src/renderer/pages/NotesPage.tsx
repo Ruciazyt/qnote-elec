@@ -17,6 +17,10 @@ import { useNoteSidebarWidth } from "@/hooks/useNoteSidebarWidth";
 import { PanelResizer } from "@/components/browser/PanelResizer";
 import { PANEL_RESIZER_WIDTH } from "@/components/browser/layout";
 import {
+  PANEL_COLLAPSED_BUTTON_INSET,
+  PANEL_HEADER_PADDING_X,
+} from "@/components/panel/layout";
+import {
   NOTE_SIDEBAR_COLLAPSED_WIDTH,
   NOTE_SIDEBAR_DEFAULT_WIDTH,
   NOTE_SIDEBAR_MAX_WIDTH,
@@ -884,13 +888,17 @@ export default function NotesPage() {
             落在右栏范围内 —— Excalidraw 的 canvas 不透明，于是把投影整条盖掉，
             表现为「只有绘图 tab 下分割线消失」，文本/图片因为背景透明反而正常。
             加上 z-10 让侧栏自成一个正 z-index 层叠上下文、排到第 7 步最后画，
-            投影就始终压在画布之上。 */}
+            投影就始终压在画布之上。
+
+            这里刻意不加 items-center：收起时靠父容器居中，宽度过渡的那一帧
+            轨道还是 288px 宽，按钮会先跳到 128px 处再滑回轨道正中，
+            看起来就是横向跳一下。折叠轨的按钮改用固定左内边距锚定，
+            见下面头部行那段注释。 */}
         <div
-          className={`relative z-10 h-full shrink-0 flex flex-col p-0 transition-all duration-300 neu-divider-r ${
-            sidebarCollapsed ? "items-center" : ""
-          }`}
+          className="relative z-10 h-full shrink-0 flex flex-col p-0 transition-all duration-300 neu-divider-r"
           style={{
-            // 收起时固定 40px（原来的 w-10），展开时用拖出来的宽度
+            // 收起时固定为折叠轨宽（NOTE_SIDEBAR_COLLAPSED_WIDTH = 48），
+            // 展开时用拖出来的宽度
             width: sidebarCollapsed ? NOTE_SIDEBAR_COLLAPSED_WIDTH : effectiveSidebarWidth,
             // 拖拽期间把 transition 关掉 —— 300ms 的宽度过渡会让侧栏慢半拍地
             // 追着指针跑。用行内样式而不是再加一个 transition-none 类：
@@ -899,7 +907,31 @@ export default function NotesPage() {
             ...(sidebarResizing ? { transitionProperty: "none" } : null),
           }}
         >
-          <div className="flex items-center mb-2 mt-2 px-3 flex-shrink-0">
+          {/* 折叠态这一行的横向几何 —— 与通用面板件（panel/layout.ts）同一套数。
+
+              内边距走行内样式，不用 Tailwind 的 px-/pl- 类：
+              类名里的数字是写死的，跟共享常量各走各的，改了常量类名不会跟着变。
+
+              两态共用同一个左缘 8px（PANEL_COLLAPSED_BUTTON_INSET 与
+              PANEL_HEADER_PADDING_X 取值相同，都是 8）：
+
+              - 折叠态：8 + 32(按钮) + 8 = 48 = 折叠轨宽
+                → 按钮正好落在轨道正中，左右各留 8px；
+                focus 描边向外扩 1px 之后还剩 7px 余量，四边完整可见。
+              - 展开态：头部左内边距同样是 8px
+                → 切换时按钮的 x 一动不动，只有侧栏宽度在变，零横向位移。
+
+              之前这里是「收起时 px-0 + 父容器 items-center 居中」：
+              收起那一帧宽度还在从 288 往 48 过渡，轨道还是宽的，
+              按钮先被摆到 128px 处，再一路滑回 4px —— 看着就是横跳一下；
+              而且轨道只有 40px 时，8 + 32 + 8 已经放不下，左右留白只有 4px。 */}
+          <div
+            className="flex items-center mb-2 mt-2 flex-shrink-0"
+            style={{
+              paddingLeft: PANEL_COLLAPSED_BUTTON_INSET,
+              paddingRight: sidebarCollapsed ? 0 : PANEL_HEADER_PADDING_X,
+            }}
+          >
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -907,7 +939,8 @@ export default function NotesPage() {
                   variant="ghost"
                   onClick={() => setSidebarCollapsed((v) => !v)}
                   aria-label={sidebarCollapsed ? "展开侧栏" : "收起侧栏"}
-                  className="h-8 w-8 rounded-lg transition-all duration-150 hover:bg-accent active:scale-90"
+                  aria-expanded={!sidebarCollapsed}
+                  className="h-8 w-8 flex-shrink-0 rounded-lg transition-all duration-150 hover:bg-accent active:scale-90"
                 >
                   {sidebarCollapsed ? (
                     <ChevronRight className="h-4 w-4" />

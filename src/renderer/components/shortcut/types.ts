@@ -4,6 +4,8 @@
  * 与主进程 shortcutHandlers / shortcutIcons 中的定义严格对应。
  */
 
+import { PANEL_COLLAPSED_WIDTH } from "@/components/panel/layout";
+
 export type ShortcutKind = "url" | "app" | "folder";
 
 /** 一条快捷方式 — 与 shortcut 表一一对应 */
@@ -43,4 +45,11 @@ export interface ShellMenuStatus {
 
 /** 收起态面板的宽度 —— 收起到只剩一条竖排标签 */
 export const SHORTCUT_PANEL_WIDTH = 236;
-export const SHORTCUT_PANEL_COLLAPSED_WIDTH = 44;
+
+/**
+ * 收起态面板的宽度 —— 收起到只剩一条竖排标签
+ *
+ * 取共享的折叠轨道宽度（panel/layout.ts），不再自己写 44：
+ * 折叠后的侧栏在四个页面里是同一种东西，几何要一样。
+ */
+export const SHORTCUT_PANEL_COLLAPSED_WIDTH = PANEL_COLLAPSED_WIDTH;

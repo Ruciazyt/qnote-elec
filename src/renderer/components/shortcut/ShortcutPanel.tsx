@@ -24,6 +24,7 @@ import {
 import { SortableContext, arrayMove, rectSortingStrategy } from "@dnd-kit/sortable";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { PANEL_HEADER_PADDING_X } from "@/components/panel/layout";
 import { useToast } from "@/hooks/use-toast";
 import { useCollapsedState } from "@/hooks/useCollapsedState";
 import { cn } from "@/lib/utils";
@@ -426,15 +427,43 @@ export function ShortcutPanel() {
   if (collapsed) {
     return (
       <aside
-        className="shrink-0 border-l border-border/40 flex flex-col transition-[width] duration-200 ease-out"
-        style={{ width: SHORTCUT_PANEL_COLLAPSED_WIDTH }}>
+        className="shrink-0 flex flex-col transition-[width] duration-200 ease-out"
+        style={{
+          width: SHORTCUT_PANEL_COLLAPSED_WIDTH,
+          // 收起态用内阴影画分隔线，不画边框：
+          // 边框会占掉内容盒（48 - 1 = 47px），按钮居中就落在 7.5px 的小数位置，
+          // 左右留白变成 7.5 / 8.5，不相等。inset 阴影画在盒内、不占布局，
+          // 颜色与展开态的 border-border/40 一致，切换时那条线也不挪位置。
+          boxShadow: "inset 1px 0 0 0 hsl(var(--border) / 0.4)",
+        }}>
+        {/* 切换按钮：32×32（PANEL_COLLAPSED_BUTTON_SIZE），落在轨道正中，
+            左右各留 8px（PANEL_COLLAPSED_BUTTON_INSET），focus 描边四边都露得出来。
+
+            它和展开态头部里那个收起按钮在同一个 x 上（都离面板右缘 8px），
+            折叠↔展开时按钮原地不动，只是旁边的面板在变宽变窄。 */}
+        <div className="flex justify-center pt-2 shrink-0">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={() => setCollapsed(false)}
+            title="展开快捷方式"
+            aria-label="展开快捷方式"
+            className="h-8 w-8">
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* 竖排标签 + 角标：保持可点，点了也能展开。
+            原来是整条轨一个按钮（箭头 + 文字 + 角标全塞在一个 button 里），
+            那样 focus 描边会绕满整条轨、贴着窗口右缘被裁掉，
+            所以把箭头拆成独立的 32×32 按钮，标签自己留一个点击区。 */}
         <button
           type="button"
           onClick={() => setCollapsed(false)}
           title="展开快捷方式"
           aria-label="展开快捷方式"
           className="flex-1 flex flex-col items-center gap-3 py-3 text-muted-foreground/60 hover:text-foreground hover:bg-accent/40 transition-colors">
-          <ChevronRight className="h-4 w-4 shrink-0" />
           <span className="text-[11px] tracking-widest select-none" style={{ writingMode: "vertical-rl" }}>
             快捷方式
           </span>
@@ -453,8 +482,18 @@ export function ShortcutPanel() {
     <aside
       className="shrink-0 border-l border-border/40 flex flex-col min-h-0 transition-[width] duration-200 ease-out"
       style={{ width: SHORTCUT_PANEL_WIDTH }}>
-      <div className="flex items-center gap-1 px-3 h-11 border-b border-border/40 shrink-0">
-        <LayoutGrid className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
+      {/* 头部：标题 + 操作区。
+          左右内边距走行内样式（PANEL_HEADER_PADDING_X = 8px），和折叠轨里
+          按钮的锚点一致 —— 收起按钮离面板右缘 8px，折叠态那个箭头也离右缘 8px，
+          折叠↔展开时按钮原地不动。三个操作按钮统一 32×32，
+          和其它页面的折叠按钮同尺寸。 */}
+      <div
+        style={{
+          paddingLeft: PANEL_HEADER_PADDING_X,
+          paddingRight: PANEL_HEADER_PADDING_X,
+        }}
+        className="flex items-center gap-1 h-11 border-b border-border/40 shrink-0">
+        <LayoutGrid className="h-4 w-4 text-muted-foreground/60 shrink-0" />
         <span className="text-[12px] font-medium text-foreground/80 flex-1 truncate">快捷方式</span>
         {items.length > 0 && (
           <span className="text-[10px] text-muted-foreground/50 tabular-nums shrink-0">{items.length}</span>
@@ -465,8 +504,8 @@ export function ShortcutPanel() {
           onClick={openAddDialog}
           title="添加快捷方式"
           aria-label="添加快捷方式"
-          className="h-7 w-7 p-0 shrink-0">
-          <Plus className="h-3.5 w-3.5" />
+          className="h-8 w-8 p-0 shrink-0">
+          <Plus className="h-4 w-4" />
         </Button>
         <Button
           variant="ghost"
@@ -476,10 +515,10 @@ export function ShortcutPanel() {
           aria-label="快捷方式设置"
           aria-expanded={showShellRow}
           className={cn(
-            "h-7 w-7 p-0 shrink-0",
+            "h-8 w-8 p-0 shrink-0",
             showShellRow && "bg-primary/10 text-primary"
           )}>
-          <Settings2 className="h-3.5 w-3.5" />
+          <Settings2 className="h-4 w-4" />
         </Button>
         <Button
           variant="ghost"
@@ -487,8 +526,8 @@ export function ShortcutPanel() {
           onClick={() => setCollapsed(true)}
           title="收起快捷方式"
           aria-label="收起快捷方式"
-          className="h-7 w-7 p-0 shrink-0">
-          <ChevronLeft className="h-3.5 w-3.5" />
+          className="h-8 w-8 p-0 shrink-0">
+          <ChevronLeft className="h-4 w-4" />
         </Button>
       </div>
 
