@@ -265,14 +265,48 @@ describe("可折叠侧栏（ResizableSidebar）", () => {
       expect(classTokens(content)).not.toContain("invisible");
     });
 
-    it("退场用延迟切换 visibility —— 先淡出、再隐藏，淡出效果不丢", () => {
+    it("退场动效是一条 transition shorthand —— opacity 立即淡、visibility 延迟到淡完再切", () => {
+      renderSidebar({ defaultCollapsed: true });
+      const header = getHeaderRow();
+
+      // 必须用 shorthand：两个属性的时长与延迟不同（opacity 150ms/0ms，
+      // visibility 0s/150ms），只有 shorthand 能一次说清。
+      // 写成 transition-property 列表做不到 —— Tailwind 的任意值填的
+      // 正是 transition-property，编译出来是
+      //   transition-property: opacity 150ms,visibility 0s 150ms;  ← 非法
+      // 浏览器会丢弃整条声明，visibility 立即跳变、没有淡出。
+      const titleWrapper = header.children[1] as HTMLElement;
+      expect(titleWrapper.style.transition).toBe("opacity 150ms, visibility 0s 150ms");
+
+      const actionsWrapper = header.children[2] as HTMLElement;
+      expect(actionsWrapper.style.transition).toBe("opacity 150ms, visibility 0s 150ms");
+
+      // 内容区也要一致 —— 此前它只过渡 opacity，visibility 立即跳变，
+      // 表现为「标题和操作淡出 300ms、内容瞬间消失」，三块表现不一致。
+      const content = getAside().lastElementChild as HTMLElement;
+      expect(content.style.transition).toBe("opacity 150ms, visibility 0s 150ms");
+    });
+
+    it("展开动效：visibility 立即可见、opacity 淡入（不延迟）", () => {
+      renderSidebar();
+      const header = getHeaderRow();
+
+      const titleWrapper = header.children[1] as HTMLElement;
+      expect(titleWrapper.style.transition).toBe("opacity 150ms, visibility 0s 0ms");
+
+      const actionsWrapper = header.children[2] as HTMLElement;
+      expect(actionsWrapper.style.transition).toBe("opacity 150ms, visibility 0s 0ms");
+
+      const content = getAside().lastElementChild as HTMLElement;
+      expect(content.style.transition).toBe("opacity 150ms, visibility 0s 0ms");
+    });
+
+    it("退场态不再由类名带 transition-opacity（会和行内 shorthand 打架）", () => {
       renderSidebar({ defaultCollapsed: true });
       const titleWrapper = getHeaderRow().children[1] as HTMLElement;
-      const tokens = classTokens(titleWrapper);
-
-      // visibility 是「一步到位」切过去的，直接加 invisible 会让元素瞬间消失、
-      // 淡出过渡失效。所以退场时给 visibility 加延迟：opacity 先淡完再隐藏。
-      expect(tokens).toContain("delay-150");
+      // 行内 style 优先级最高，但类名里的 transition-opacity 仍会留下误导：
+      // 它只过渡 opacity，和 shorthand 的语义重叠。类名里不该再有它。
+      expect(classTokens(titleWrapper)).not.toContain("transition-opacity");
     });
   });
 

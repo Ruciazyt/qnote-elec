@@ -200,16 +200,29 @@ export function ResizableSidebar({
    * 键盘用户会 Tab 到一个看不见的按钮上，焦点框消失、
    * 读屏却念出按钮名。visibility:hidden 才会把它移出焦点序。
    *
-   * 但 visibility 是「一步到位」切过去的：直接加 invisible，
-   * 元素会立刻消失，淡出过渡（opacity）就没了动静。
-   * 所以要给它一个 transition-delay：先把 opacity 淡到 0，
-   * 等淡完了再切 visibility。反过来（展开时）用 delay-0，
-   * 立刻可见、再淡入。
+   * ## 退场动效为什么走行内 style
+   *
+   * 要的是「opacity 立刻开始淡、visibility 等淡完再切」：
+   *   transition: opacity 150ms, visibility 0s 150ms
+   * 这**必须**是 transition shorthand —— 两个属性各自的时长和延迟不同，
+   * shorthand 一次说清；写成 transition-property 列表做不到。
+   *
+   * Tailwind 的任意值填的是 transition-property（不是 shorthand）：
+   *   transition-[opacity_150ms,visibility_0s_150ms]
+   *   → transition-property: opacity 150ms,visibility 0s 150ms;  ← 非法
+   * 「opacity 150ms」不是合法属性名，整条声明被浏览器丢弃，
+   * visibility 就没有过渡、立即跳变 —— 实测 getAnimations() 里
+   * 只有一个 opacity 动画，没有 visibility 动画。
+   *
+   * 所以这里用行内 style 写真 shorthand（和几何一样：能用行内就不靠类名）。
    */
+  const collapseTransition = "opacity 150ms, visibility 0s 150ms";
+  /** 展开：visibility 立即可见，opacity 淡入（不需要延迟） */
+  const expandTransition = "opacity 150ms, visibility 0s 0ms";
+
   const hiddenWhenCollapsed =
-    "w-0 overflow-hidden opacity-0 pointer-events-none invisible transition-[opacity,visibility] duration-150 delay-150";
-  const shownWhenExpanded =
-    "opacity-100 visible transition-[opacity,visibility] duration-150 delay-0";
+    "w-0 overflow-hidden opacity-0 pointer-events-none invisible";
+  const shownWhenExpanded = "opacity-100 visible";
 
   return (
     <>
@@ -294,8 +307,9 @@ export function ResizableSidebar({
           </Button>
 
           <div
+            style={{ transition: collapsed ? collapseTransition : expandTransition }}
             className={cn(
-              "flex items-center gap-2 min-w-0 transition-opacity duration-150",
+              "flex items-center gap-2 min-w-0",
               collapsed ? hiddenWhenCollapsed : cn("flex-1", shownWhenExpanded)
             )}>
             {title}
@@ -303,8 +317,9 @@ export function ResizableSidebar({
 
           {actions && (
             <div
+              style={{ transition: collapsed ? collapseTransition : expandTransition }}
               className={cn(
-                "flex items-center gap-1 flex-shrink-0 transition-opacity duration-150",
+                "flex items-center gap-1 flex-shrink-0",
                 collapsed ? hiddenWhenCollapsed : shownWhenExpanded
               )}>
               {actions}
@@ -314,8 +329,9 @@ export function ResizableSidebar({
 
         {/* 内容 */}
         <div
+          style={{ transition: collapsed ? collapseTransition : expandTransition }}
           className={cn(
-            "flex-1 min-h-0 transition-opacity duration-150",
+            "flex-1 min-h-0",
             // 折叠态同样要移出焦点序 —— children 里可能有按钮和链接，
             // opacity-0 + pointer-events-none 只挡鼠标，键盘仍能 Tab 进去。
             collapsed
