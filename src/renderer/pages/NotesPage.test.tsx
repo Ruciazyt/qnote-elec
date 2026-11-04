@@ -34,6 +34,26 @@ vi.mock("@/components/Note/editors/ExcalidrawEditor", async () => {
 });
 
 /**
+ * ## 悬停才渲染的行尾按钮：user.hover + fireEvent.click
+ *
+ * 文件树的行尾操作按钮（重命名 / 删除）默认不渲染，悬停或选中才露出来。
+ * 打开删除确认框要两步：
+ *
+ *   await user.hover(getTreeRow("随手记"));                      // 先让按钮出现
+ *   fireEvent.click(screen.getByRole("button", { name: "删除 随手记.md" }));
+ *
+ * 第二步用 fireEvent.click 而不是 user.click：jsdom 里元素没有尺寸，
+ * userEvent 的指针移动会先给行派发 mouseleave —— 行尾按钮靠 hovered 才渲染，
+ * 于是按钮在 click 落地前就被卸载了（实测：按钮 isConnected 变 false、
+ * onDelete 调用 0 次，而且不报任何错，看起来像「点了没反应」）。
+ * fireEvent 只派发 click、不动 hover 状态，React 的 onClick 正常触发。
+ *
+ * fireEvent 自带 act 包裹，所以同步 getByRole("dialog") 就能拿到弹窗，不用等。
+ *
+ * 题单页删题单那批用例踩过同一个坑，写法一致。
+ */
+
+/**
  * 笔记页左栏折叠轨的回归
  *
  * 这批锁的是折叠轨几何修复：折叠轨宽 48、头部行行内 paddingLeft 8 / paddingRight 0、
