@@ -24,7 +24,11 @@ import {
 import { SortableContext, arrayMove, rectSortingStrategy } from "@dnd-kit/sortable";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { PANEL_HEADER_PADDING_X } from "@/components/panel/layout";
+import {
+  PANEL_COLLAPSED_BUTTON_INSET,
+  PANEL_HEADER_PADDING_X,
+  PANEL_RAIL_LABEL_INSET,
+} from "@/components/panel/layout";
 import { useToast } from "@/hooks/use-toast";
 import { useCollapsedState } from "@/hooks/useCollapsedState";
 import { cn } from "@/lib/utils";
@@ -440,11 +444,15 @@ export function ShortcutPanel() {
             （PANEL_COLLAPSED_BUTTON_INSET）—— 和展开态头部里那个收起按钮同一个 x，
             折叠↔展开时按钮原地不动，只是旁边的面板在变宽变窄。
 
-            这里用居中实现：收起轨 48px、内容盒也是 48px（分隔线是 inset 阴影，
-            画在盒内不占布局），(48 - 32) / 2 = 8，正好等于 PANEL_COLLAPSED_BUTTON_INSET，
-            与左锚的三页同值。前提是分隔线不占内容盒 —— 若哪天改回真边框
-            （内容盒 47px），这里要改成显式锚定，否则会漂 0.5px（见 panel/layout.ts）。 */}
-        <div className="flex justify-center pt-2 shrink-0">
+            这里用**固定锚定**（右内边距 + justify-end），不用 justify-center 居中：
+            居中在「分隔线不占内容盒」时恰好也是 8px、看着等价，但它把按钮位置
+            绑在这个前提上 —— 分隔线一旦改回真边框（内容盒 47px），居中会算出
+            7.5px 的小数偏移、左右留白变成 7.5 / 8.5；而且宽度过渡期间轨道还是宽的，
+            居中会把按钮摆到轨道中线而不是钉在锚点上。
+            固定锚定两种情况都稳，理由见 panel/layout.ts。 */}
+        <div
+          className="flex justify-end pt-2 shrink-0"
+          style={{ paddingRight: PANEL_COLLAPSED_BUTTON_INSET }}>
           <Button
             type="button"
             variant="ghost"
@@ -468,24 +476,34 @@ export function ShortcutPanel() {
             它显示的是面板名「快捷方式」和条目数角标，名称里带上条目数，
             两者的信息量就分开了。title 用短名，保持原生悬停提示的惯例。
 
-            mx-1 是为了让 focus 描边完整落在轨内：这个面板贴在窗口右缘，
-            描边向外扩 1px 会超出视口，用户看到的焦点框就缺一条右边。
-            左右各内缩 4px，描边（按钮盒外 1px）离轨道边缘还剩 3px。
+            内缩用 PANEL_RAIL_LABEL_INSET（4px）而不是写死的 mx-1 / mb-1：
+            这个面板贴在窗口右缘，描边向外扩 1px 会超出视口，用户看到的焦点框
+            就缺一条右边；左右各内缩 4px，描边（按钮盒外 1px）离轨道边缘还剩 3px。
+            下边同理 —— 这个按钮是 flex-1，会一直撑到轨道底部，不留底边距的话
+            描边往下的那 1px 会落到轨道外面被裁掉，焦点框缺一条底边。
 
-            mb-1 同理管下边：这个按钮是 flex-1，会一直撑到轨道底部，
-            不留底边距的话描边往下的那 1px 会落到轨道外面被裁掉，
-            焦点框缺一条底边。留 4px 底边距，描边离底边也还剩 3px。 */}
+            余量与描边粗细挂钩：描边加粗到 2px 后余量降到 2px，仍完整可见；
+            详见 panel/layout.ts 里 PANEL_RAIL_LABEL_INSET 的注释。
+
+            竖排标题与角标都用 text-xs（12px）：标题是这趟轨上唯一的文字，
+            11px 在高 DPI 下偏细；角标是计数，与展开态头部右侧那个纯数字
+            同属一类信息，字号定档到同一档。 */}
         <button
           type="button"
           onClick={() => setCollapsed(false)}
           title="展开快捷方式"
           aria-label={`展开快捷方式面板（${items.length} 项）`}
-          className="flex-1 mx-1 mb-1 flex flex-col items-center gap-3 py-3 text-muted-foreground/60 hover:text-foreground hover:bg-accent/40 transition-colors">
-          <span className="text-[11px] tracking-widest select-none" style={{ writingMode: "vertical-rl" }}>
+          style={{
+            marginLeft: PANEL_RAIL_LABEL_INSET,
+            marginRight: PANEL_RAIL_LABEL_INSET,
+            marginBottom: PANEL_RAIL_LABEL_INSET,
+          }}
+          className="flex-1 flex flex-col items-center gap-3 py-3 text-muted-foreground/60 hover:text-foreground hover:bg-accent/40 transition-colors">
+          <span className="text-xs tracking-widest select-none" style={{ writingMode: "vertical-rl" }}>
             快捷方式
           </span>
           {items.length > 0 && (
-            <span className="shrink-0 rounded-full bg-primary/15 text-primary text-[10px] font-medium px-1.5 py-0.5 tabular-nums">
+            <span className="shrink-0 rounded-full bg-primary/15 text-primary text-xs font-medium px-1.5 py-0.5 tabular-nums">
               {items.length}
             </span>
           )}
@@ -503,13 +521,28 @@ export function ShortcutPanel() {
           左右内边距走行内样式（PANEL_HEADER_PADDING_X = 8px），和折叠轨里
           按钮的锚点一致 —— 收起按钮离面板右缘 8px，折叠态那个箭头也离右缘 8px，
           折叠↔展开时按钮原地不动。三个操作按钮统一 32×32，
-          和其它页面的折叠按钮同尺寸。 */}
+          和其它页面的折叠按钮同尺寸。
+
+          行高用 h-12 + pt-2 + pb-2（和其它面板的头部一致）：内容盒正好 32px，
+          32px 的按钮填满它，于是按钮落在距顶 8px 处、占 8..40 ——
+          与折叠态那个箭头（pt-2 + 32px 按钮）同一个纵向区间，切换时纵向零位移。
+
+          下缘线用等色 inset 阴影画在盒内，不占内容盒：原来那条 border-b 会把
+          内容盒切掉 1px（48 - 1 - 8 - 8 = 31px），32px 的按钮装不下，
+          items-center 会算出 7.5..39.5 的小数区间，与折叠态箭头差 0.5px。
+          inset 阴影画在盒内不占布局，内容盒仍是 32px、按钮仍是 8..40，
+          两态零位移；颜色与展开态那条 border-border/60 完全等价。
+
+          注意：面板左缘那条 border-l border-border/60 保留不动 ——
+          第十一节定稿「展开态一律 1px 语义边框、折叠态才用 inset 阴影」
+          管的是面板边界线（竖向），头部下缘线是横的，两者不冲突。 */}
       <div
         style={{
           paddingLeft: PANEL_HEADER_PADDING_X,
           paddingRight: PANEL_HEADER_PADDING_X,
+          boxShadow: "inset 0 -1px 0 0 hsl(var(--border) / 0.6)",
         }}
-        className="flex items-center gap-1 h-11 border-b border-border/60 shrink-0">
+        className="flex items-center gap-1 h-12 pt-2 pb-2 shrink-0">
         <LayoutGrid className="h-4 w-4 text-muted-foreground/60 shrink-0" />
         <span className="text-sm font-medium text-foreground flex-1 truncate">快捷方式</span>
         {items.length > 0 && (

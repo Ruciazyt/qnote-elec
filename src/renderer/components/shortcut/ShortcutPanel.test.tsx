@@ -7,6 +7,7 @@ import {
   PANEL_COLLAPSED_BUTTON_INSET,
   PANEL_COLLAPSED_BUTTON_SIZE,
   PANEL_HEADER_PADDING_X,
+  PANEL_RAIL_LABEL_INSET,
 } from "@/components/panel/layout";
 import { createElectronStub } from "../../test/electron-stub";
 
@@ -14,8 +15,13 @@ import { createElectronStub } from "../../test/electron-stub";
  * 快捷方式面板的折叠轨道回归
  *
  * 这个面板在**右边**，所以折叠态的锚点是「离面板右缘 8px」而不是左缘：
- * 折叠轨用居中（轨道没画边框，内容盒就是完整的 48px），
+ * 折叠态用固定右内边距（PANEL_COLLAPSED_BUTTON_INSET）+ justify-end，
  * 展开态用 padding-right 8px，两态按钮落在同一个 x 上。
+ *
+ * 固定锚定而不是居中：居中在「轨道不画边框、内容盒是完整 48px」时恰好也是
+ * 8px、看着等价，但它把按钮位置绑在这个前提上 —— 轨道一旦改回真边框
+ * （内容盒 47px）就变成 7.5px 的小数偏移；而且宽度过渡期间轨道还是宽的，
+ * 居中会把按钮摆到轨道中线而不是钉在锚点上。
  */
 
 const COLLAPSED_KEY = "qnote-shortcut-collapsed";
@@ -104,16 +110,23 @@ describe("快捷方式面板（ShortcutPanel）", () => {
       expect(vertical?.textContent).toBe("快捷方式");
     });
 
-    it("箭头落在轨道正中，左右留白相等", async () => {
+    it("箭头固定锚在轨道右缘 8px，左右留白都是 8px", async () => {
       await renderPanel();
 
-      const inset = (SHORTCUT_PANEL_COLLAPSED_WIDTH - PANEL_COLLAPSED_BUTTON_SIZE) / 2;
-      expect(inset).toBe(PANEL_COLLAPSED_BUTTON_INSET);
-
-      // 轨道没画边框（用内阴影画分隔线），内容盒就是完整的 48px，
-      // 所以这里用居中是安全的 —— 居中不会算出 7.5px 的小数偏移
+      // 锚点：离面板右缘 8px，和展开态那个收起按钮同一个 x
       const arrowWrapper = getAside().firstElementChild as HTMLElement;
-      expect(classTokens(arrowWrapper)).toContain("justify-center");
+      expect(arrowWrapper.style.paddingRight).toBe(`${PANEL_COLLAPSED_BUTTON_INSET}px`);
+      expect(classTokens(arrowWrapper)).toContain("justify-end");
+      // 不用居中：居中把按钮位置绑在「轨道不画边框」这个前提上，
+      // 而且宽度过渡期间轨道还是宽的，居中会摆到轨道中线而不是锚点
+      expect(classTokens(arrowWrapper)).not.toContain("justify-center");
+
+      // 轨道 48 = 左留白 + 按钮 32 + 右内边距 8 → 左留白也是 8
+      const leftInset =
+        SHORTCUT_PANEL_COLLAPSED_WIDTH -
+        PANEL_COLLAPSED_BUTTON_SIZE -
+        PANEL_COLLAPSED_BUTTON_INSET;
+      expect(leftInset).toBe(PANEL_COLLAPSED_BUTTON_INSET);
     });
 
     it("竖排标签留出底边距，focus 描边下边不被轨道裁掉", async () => {
@@ -122,10 +135,16 @@ describe("快捷方式面板（ShortcutPanel）", () => {
       // 竖排标签是 flex-1，会一直撑到轨道底部。不留底边距的话，
       // focus 描边往下的那 1px 会落到轨道外面被裁掉，焦点框缺一条底边
       // （实测底边余量是 -1px）。
+      // 内缩走共享常量 PANEL_RAIL_LABEL_INSET，不是写死的类名。
       const label = screen.getByRole("button", { name: /展开快捷方式面板/ });
-      const tokens = classTokens(label);
-      expect(tokens).toContain("mb-1");
-      expect(tokens).toContain("mx-1");
+      expect(label.style.marginBottom).toBe(`${PANEL_RAIL_LABEL_INSET}px`);
+      expect(label.style.marginLeft).toBe(`${PANEL_RAIL_LABEL_INSET}px`);
+      expect(label.style.marginRight).toBe(`${PANEL_RAIL_LABEL_INSET}px`);
+
+      // 描边外扩 1px 后离底边仍余 3px，四边完整。
+      // 这个标签是原生 <button>，没有 focus-visible:ring 类，走的是浏览器
+      // 默认 outline（Chromium 约 1px）—— 基类改 ring-2 对它没有影响。
+      expect(PANEL_RAIL_LABEL_INSET - 1).toBeGreaterThanOrEqual(2);
     });
 
     it("点箭头按钮能展开面板", async () => {
