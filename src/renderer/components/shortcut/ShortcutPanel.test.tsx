@@ -195,6 +195,41 @@ describe("快捷方式面板（ShortcutPanel）", () => {
       }
     });
 
+    it("头部行高 48、内容盒 32，按钮距顶 8 距底 8（上下完全对称）", async () => {
+      await renderPanel();
+
+      const header = getAside().firstElementChild as HTMLElement;
+      const tokens = classTokens(header);
+
+      // 行高 48 = 上下内边距 8 + 内容盒 32（按钮高）
+      // 上下对称是这条几何的意义所在：按钮落在 8..40，
+      // 与折叠态那个箭头（pt-2 + 32px 按钮）占同一个纵向区间，
+      // 折叠↔展开切换时纵向零位移。
+      expect(tokens).toContain("h-12");
+      expect(tokens).toContain("pt-2");
+      expect(tokens).toContain("pb-2");
+
+      // 内容盒 = 行高 − 上下内边距 = 48 − 8 − 8 = 32，正好装下 32px 的按钮。
+      // 内容盒一旦小于 32（早先那条 border-b 1px 就会把它切到 31），
+      // align-items:center 算出 7.5..39.5 的小数区间，与折叠态箭头差 0.5px。
+      expect(48 - 8 - 8).toBe(PANEL_COLLAPSED_BUTTON_SIZE);
+
+      // 下缘线用等色 inset 阴影画在盒内，不占内容盒（border-b 会占 1px）
+      expect(header.style.boxShadow).toContain("inset");
+      expect(tokens).not.toContain("border-b");
+    });
+
+    it("面板左缘保留 1px 语义边框（竖向边界线不动）", async () => {
+      await renderPanel();
+
+      // 第十一节定稿：展开态一律 1px 语义边框、折叠态才用 inset 阴影。
+      // 那条线是竖向的（面板左缘），头部下缘线是横的，两者不冲突 ——
+      // 所以折叠态把分隔线换成 inset 阴影时，展开态这条 border-l 保持原样。
+      const tokens = classTokens(getAside());
+      expect(tokens).toContain("border-l");
+      expect(tokens).toContain("border-border/60");
+    });
+
     it("三个头部按钮分别管添加、设置、收起", async () => {
       await renderPanel();
 
