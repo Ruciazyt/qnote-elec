@@ -25,65 +25,62 @@ export const DESTRUCTIVE_DIALOGS: DestructiveDialogSpec[] = [
   { file: "components/apps/RemoveProjectDialog.tsx", targetProp: "name", label: "移除项目" },
 ];
 
-/** ui 基类里的 1px 焦点环 */
-export const THIN_FOCUS_RING_BASELINE: Record<string, number> = {
-  "components/ui/calendar.tsx|focus-visible:ring-1": 1,
-  "components/ui/input.tsx|focus-visible:ring-1": 1,
-  "components/ui/select.tsx|focus:ring-1": 1,
-  "components/ui/textarea.tsx|focus-visible:ring-1": 1,
-  "components/ui/toast.tsx|focus:ring-1": 2,
-};
+/**
+ * ui 基类里的 1px 焦点环 —— 已清空
+ *
+ * 2026-11-05：components/ui 的 5 个文件（calendar / input / select / textarea / toast，
+ * 共 6 处）统一改成 2px，与按钮基类同一档厚度。
+ * 折叠轨余量复核过：轨宽 48、箭头按钮右内缩 8，2px 环还剩 6px 余量。
+ */
+export const THIN_FOCUS_RING_BASELINE: Record<string, number> = {};
 
 /**
- * 被藏起来的可聚焦元素 —— 7 处
+ * 被藏起来的可聚焦元素 —— 剩 3 处
  *
- * 与 docs/UI-AUDIT-2026-11-05.md 的 P0-3 硬伤清单一一对应：
- *   AppProjectHeader 复制地址 / BookmarkList 打开+删除收藏 /
- *   SideBar 题单卡片编辑+删除 / StickyNoteApp 删除 / TodoEditDialog 移除附件 /
- *   BrowserPage 标签页关闭 / SkillsPage 技能操作区
+ * 与 docs/UI-AUDIT-2026-11-05.md 的 P0-3 硬伤清单一一对应。
  *
- * 2026-11-05 已修：题单页 SideBar（同时补了 focus-within:pointer-events-auto ——
- * 容器挡住了指针，键盘聚焦后也要能点）、StickyNoteApp 便签删除按钮。
- * 其余各条由各域 Bot 正在修，**全部改完后再统一从基线删** ——
- * 提前删会让守卫把「正在改、还没改完」的中间态报成新增违规，测试变红。
+ * 2026-11-05 已修：题单页 SideBar、StickyNoteApp 便签删除按钮、
+ * AppProjectHeader 复制地址、TodoEditDialog 移除附件、SkillsPage 技能操作区。
+ *
+ * 剩下这 3 处的共同点：**只补了「聚焦时半显形」，没有补到全显形** ——
+ * BrowserPage 标签页关闭是 `focus-within:opacity-70`，
+ * BookmarkList 的两个收藏按钮是 `focus-visible:text-muted-foreground/70`。
+ * 守卫只认「聚焦后 100% 显形」（focus-reveal 的口径），所以这两处仍算硬伤。
  */
 export const HIDDEN_FOCUSABLE_BASELINE: Record<string, number> = {
-  "components/apps/AppProjectHeader.tsx|视觉藏起": 1,
   "components/browser/BookmarkList.tsx|视觉藏起": 2,
-  "components/todo/TodoEditDialog.tsx|视觉藏起": 1,
   "pages/BrowserPage.tsx|视觉藏起": 1,
-  "pages/SkillsPage.tsx|视觉藏起": 1,
-};
-
-/** 破坏性确认框的描述问题 */
-export const DESTRUCTIVE_DIALOG_BASELINE: Record<string, number> = {
-  "components/apps/RemoveProjectDialog.tsx|描述没点名": 1,
 };
 
 /**
- * 品牌色底上用 text-primary 当字色 —— 32 处
+ * 破坏性确认框的描述问题 —— 已清空
+ *
+ * 2026-11-05：三个破坏性确认框的正文都进了 DialogDescription，
+ * RemoveProjectDialog 还把项目名点进了描述里（读屏念得出删的是哪一个）。
+ */
+export const DESTRUCTIVE_DIALOG_BASELINE: Record<string, number> = {};
+
+/**
+ * 品牌色底上用 text-primary 当字色 —— 剩 9 处
  *
  * 分两批：
- *   基础态（22 处）—— 同一个元素上 bg-primary/N 与 text-primary 同现
- *   变体态（10 处）—— 悬停 / 聚焦时才出现的品牌底纹配品牌字
+ *   基础态（5 处）—— 同一个元素上 bg-primary/N 与 text-primary 同现
+ *   变体态（4 处）—— 悬停 / 聚焦时才出现的品牌底纹配品牌字
  *
  * 变体态那批原先看不见：「同一个元素、同一段 class」这种口径
  * 只认基础态，而 hover:bg-primary/10 hover:text-primary 才是最常见的写法。
  *
- * 2026-11-05 已修 8 处（剪贴板域全部改完）：
- * AiChatPanel 1、ClipboardList 4、ClipboardPopup 1、ImageOcrDialog 1。
- * 加上此前 ClipboardToolbar 的搜索结果徽章（基础态 + 变体态各 1），
- * 以及笔记域的 RichTextEditor 3 处、NoteTypeTabs 1 处，
- * 合计 38 → 30 处。
+ * 2026-11-05 已修 29 处：剪贴板域全部、笔记域（RichTextEditor / NoteTypeTabs）、
+ * 应用域（settings-card / settings / UpdateCard）、
+ * 浏览器题单域（BookmarkList / BrowserPage / SideBar）。
  *
- * ⚠️ 剩下的由各域 Bot 正在修，**全部改完后再统一从基线删** ——
- * 提前删会让守卫把「正在改、还没改完」的中间态报成新增违规，测试变红。
+ * 剩下这 9 处的共同点：**它们都在别处改了别的东西，这几行漏了** ——
+ * 快捷面板（ShortcutPanel 2 处 / AddShortcutDialog 2 处）、
+ * 待办徽章（TodoList 3 处）、首页空状态按钮（HomePage 2 处）。
+ * 改法统一：文字换 `text-primary-strong`，底纹档不动（上限 /15）。
  */
 export const BRAND_TEXT_BASELINE: Record<string, number> = {
   // 基础态
-  "components/core/settings-card.tsx|bg-primary/10 text-primary": 1,
-  "components/core/settings.tsx|bg-primary/10 text-primary": 5,
-  "components/core/UpdateCard.tsx|bg-primary/10 text-primary": 2,
   "components/shortcut/AddShortcutDialog.tsx|bg-primary/[0.08] text-primary": 1,
   "components/shortcut/ShortcutPanel.tsx|bg-primary/10 text-primary": 1,
   "components/shortcut/ShortcutPanel.tsx|bg-primary/15 text-primary": 1,
