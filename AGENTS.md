@@ -272,11 +272,14 @@ git diff --cached | grep -nEi "sk-[A-Za-z0-9]{20,}|api[_-]?key\s*[:=]\s*['\"][^'
 | 通用面板件（可折叠侧栏、拖拽分割线、宽度偏好） | `src/renderer/components/panel/`、`src/renderer/hooks/usePanelWidth.ts` |
 | 打包 / 发布配置 | `build/`、`scripts/`、`.github/workflows/` |
 
-主进程新增 IPC 时三处要同步改，漏一处会静默失效：
+主进程新增 IPC 时六个地方要同步改，漏一处会静默失效：
 
-1. `src/main/handlers/<模块>.ts` 注册 channel
-2. `src/main/preload.ts` 暴露给渲染层
-3. `src/renderer/electron.d.ts` 补类型声明
+1. `src/main/handlers/<模块>.ts` 注册 channel（业务 IPC）
+2. `src/main/index.ts` 注册 channel（应用级 IPC：悬浮窗、语音热键、剪贴板面板热键、外链打开）
+3. `src/main/core/window/mainWindow.ts` 注册 channel（窗口最小化/最大化/关闭/开发者工具）
+4. `src/main/core/window/clipboardPopup.ts` 注册 channel（剪贴板弹窗关闭/显示主窗口）
+5. `src/main/preload.ts` 暴露给渲染层
+6. `src/renderer/electron.d.ts` 补类型声明
 
 ### 6.2 CI 脚本里出现中文时，shell 必须用 pwsh
 
