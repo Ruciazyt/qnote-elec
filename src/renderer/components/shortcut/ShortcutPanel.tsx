@@ -428,10 +428,14 @@ export function ShortcutPanel() {
   }
 
   // ---------------------------------------------------------------- 收起态
+  //
+  // motion-reduce:transition-none 是系统级「减少动态效果」的退路：
+  // 开着的时候面板宽度直接到位，不做空间位移。对齐笔记页、题单页与
+  // 通用面板件 ResizableSidebar（2026-11-05 走查补齐）。
   if (collapsed) {
     return (
       <aside
-        className="shrink-0 flex flex-col transition-[width] duration-200 ease-out"
+        className="shrink-0 flex flex-col transition-[width] duration-200 ease-out motion-reduce:transition-none"
         style={{
           width: SHORTCUT_PANEL_COLLAPSED_WIDTH,
           // 收起态用内阴影画分隔线，不画边框：
@@ -515,7 +519,7 @@ export function ShortcutPanel() {
   // ---------------------------------------------------------------- 展开态
   return (
     <aside
-      className="shrink-0 border-l border-border/60 flex flex-col min-h-0 transition-[width] duration-200 ease-out"
+      className="shrink-0 border-l border-border/60 flex flex-col min-h-0 transition-[width] duration-200 ease-out motion-reduce:transition-none"
       style={{ width: SHORTCUT_PANEL_WIDTH }}>
       {/* 头部：标题 + 操作区。
           左右内边距走行内样式（PANEL_HEADER_PADDING_X = 8px），和折叠轨里
