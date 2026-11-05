@@ -611,6 +611,10 @@ canvas 不透明会把投影整条盖掉 —— 笔记页靠 `relative z-10` 把
 
 | 2026-11-05 夜（补 2） | 第十一节次级文字改实心值（Chief 裁决） | 第十一节定稿的 `text-xs text-muted-foreground/60`（2.32:1 白底 / 2.27:1 98% 底）改为实心 `text-xs text-muted-foreground`（46%，4.61:1 取更差列）；第三节同条、第十一节面板核对表同步；第二节「文字一律用实心值」不动 | UI设计校验 |
 
+| 2026-11-05 夜（剪贴板域复验） | `components/clipboard/` 5 文件（`42c3771` 品牌色文字与确认框描述） | **品牌色两档改法在本域是一致的**：品牌文字已全部换成 `text-primary-strong`、底纹档位都 ≤ /15，符合 DESIGN.md 与任务单 P0-5；**破坏性确认框 `DeleteAllConfirmDialog` 符合第十节七条口径**（正文进了 `DialogDescription`、标题只写动作与对象类别、数字点名、不可逆提示单独一行且 `text-destructive font-medium`、次级说明用实心 `text-muted-foreground`）；**隐藏控件不构成焦点序问题**（「已复制」角标是 `span`，不可聚焦，与 P0-3 附记一致）。另报 4 项：P0-6 焦点环对比度（23 处半透明品牌色环，`primary/50` = 2.04）、P0-7 用户气泡复制按钮图标 2.65、P1-10 图标块图标色偏离 Icon Block 配方、P1-11 语义色当文字色与工具栏搜索图标色 | UI设计校验 |
+
+| 2026-11-05 夜（补 3） | 对比度矩阵补组合 + 行尾事故 | `scripts/check-contrast.mjs` 补 10 行：焦点环档位（`/30` `/40` 危险色 `/50`）、用户气泡（底不是卡片，显式指定基底）、选中/悬停底纹差（1.21）；`--json` 单用会输出空矩阵，已修。**行尾事故**：带 shebang 的 `.mjs` 被 CRLF 检出时 vitest 整个套件加载失败（报在 import 行，看不出是脚本自己的问题）—— 根因已由 `.gitattributes` 统一 LF 检出解决（`17518ef`），脚本侧另去掉 shebang 兜底 | UI设计校验 |
+
 ---
 
 ## 十三、动效
