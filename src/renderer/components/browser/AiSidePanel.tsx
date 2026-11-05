@@ -18,7 +18,7 @@ export function AiSidePanel() {
   return (
     <div className="flex flex-col h-full min-h-0 bg-card">
       {/* 侧栏版 header —— 不需要浮动窗那套拖拽 / 缩放手柄 */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-border/50 flex-shrink-0">
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-border/60 flex-shrink-0">
         <Bot className="h-3.5 w-3.5 shrink-0 text-primary" />
         <span className="text-xs font-medium flex-1 truncate">
           {ai.assistantView === "sessions"

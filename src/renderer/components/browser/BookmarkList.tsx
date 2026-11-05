@@ -85,7 +85,7 @@ export function BookmarkList({
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="px-3 py-2 border-b border-border/50 flex-shrink-0">
+      <div className="px-3 py-2 border-b border-border/60 flex-shrink-0">
         <Input
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
@@ -146,7 +146,7 @@ export function BookmarkList({
                   onClick={(e) => handleOpenExternal(item.url, e)}
                   aria-label="用系统浏览器打开"
                   title="用系统浏览器打开"
-                  className="shrink-0 rounded-sm p-1 text-muted-foreground/0 group-hover:text-muted-foreground/70 hover:!text-foreground hover:bg-foreground/10 transition-all">
+                  className="shrink-0 rounded-sm p-1 text-muted-foreground/0 group-hover:text-muted-foreground/70 focus-visible:text-muted-foreground/70 hover:!text-foreground hover:bg-foreground/10 transition-all">
                   <ExternalLink className="h-3 w-3" />
                 </button>
                 <button
@@ -154,7 +154,7 @@ export function BookmarkList({
                   onClick={(e) => handleDelete(item.id, e)}
                   aria-label="删除收藏"
                   title="删除收藏"
-                  className="shrink-0 rounded-sm p-1 text-muted-foreground/0 group-hover:text-muted-foreground/70 hover:!text-destructive hover:bg-foreground/10 transition-all">
+                  className="shrink-0 rounded-sm p-1 text-muted-foreground/0 group-hover:text-muted-foreground/70 focus-visible:text-muted-foreground/70 hover:!text-destructive hover:bg-foreground/10 transition-all">
                   <Trash2 className="h-3 w-3" />
                 </button>
               </div>
