@@ -27,7 +27,7 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         week: 'flex w-full mt-2',
         day: 'h-9 w-9 text-center text-sm p-0 relative focus-within:relative focus-within:z-20',
         day_button:
-          'h-9 w-9 p-0 font-normal rounded-md hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+          'h-9 w-9 p-0 font-normal rounded-md hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         selected:
           'bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground',
         today: 'bg-accent text-accent-foreground',
