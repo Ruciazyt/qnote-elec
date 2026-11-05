@@ -235,6 +235,31 @@ const COMBOS = [
   ["侧栏激活文字", "sidebar-primary", "background"],
   ["侧栏激活文字", "sidebar-primary", "card"],
   ["反白字压侧栏品牌色", "sidebar-primary-foreground", "sidebar-primary"],
+  // 焦点环用的半透明品牌色：环画在按钮外面的卡片上，
+  // 能不能看清看的是「环色 vs 相邻底色」，不是「环色 vs 按钮底色」。
+  ["焦点环 /30", "primary/30", "background"],
+  ["焦点环 /30", "primary/30", "card"],
+  ["焦点环 /40", "primary/40", "background"],
+  ["焦点环 /40", "primary/40", "card"],
+];
+
+/**
+ * 底不是卡片 / 页面底的情形 —— 第四项显式指定基底
+ *
+ * 例：AI 聊天的用户气泡是实心 --primary，复制按钮在自己的浅色底上，
+ * 图标既不压卡片也不压页面底，压的是「按钮底」—— 按钮底又是叠在气泡上的。
+ * 这种组合没法用 card / background 代，所以基底单列。
+ */
+const COMBOS_CUSTOM_BASE = [
+  ["用户气泡复制按钮图标", "primary-foreground/70", "primary-foreground/15", "primary"],
+  ["用户气泡复制按钮图标(实心)", "primary-foreground", "primary-foreground/15", "primary"],
+  ["用户气泡复制按钮底 vs 气泡", "primary-foreground/15", "primary", "primary"],
+  ["用户气泡白字", "primary-foreground", "primary", "primary"],
+  // 选中底纹（/15）与悬停底纹（/10）之间的差距 ——
+  // 两者都压在卡片上，要比的是「底纹与底纹」，不是「底纹与卡片」
+  ["选中底纹 /15 vs 悬停底纹 /10", "primary/15", "primary/10", "card"],
+  ["选中底纹 /15 vs 卡片", "primary/15", "card", "card"],
+  ["悬停底纹 /10 vs 卡片", "primary/10", "card", "card"],
 ];
 
 const AA = 4.5;
@@ -244,13 +269,15 @@ const AA_LARGE = 3;
 function computeTheme(colors, label) {
   const rows = [];
 
-  for (const [name, fgSpec, bgSpec] of COMBOS) {
+  for (const [name, fgSpec, bgSpec, baseSpec] of [...COMBOS, ...COMBOS_CUSTOM_BASE]) {
     const fg = tokenColor(colors, fgSpec);
     const bg = tokenColor(colors, bgSpec);
     if (!fg || !bg) continue;
 
     const perBase = {};
-    for (const base of BASE_BACKGROUNDS) {
+    // 显式指定基底时只看那一个底，否则 card 与 background 都算、取更差者
+    const bases = baseSpec ? [baseSpec] : BASE_BACKGROUNDS;
+    for (const base of bases) {
       const baseColor = colors.get(base);
       if (!baseColor) continue;
 
@@ -263,6 +290,7 @@ function computeTheme(colors, label) {
     }
 
     const values = Object.values(perBase);
+    if (!values.length) continue;
     const worst = Math.min(...values);
 
     rows.push({
@@ -296,10 +324,11 @@ function printTheme(theme) {
   for (const r of theme.rows) {
     const card = r.perBase.card;
     const bg = r.perBase.background;
+    const custom = card === undefined && bg === undefined ? Object.entries(r.perBase)[0] : null;
     const verdict = r.aaa ? "AAA" : r.aa ? "AA" : r.large ? "仅大字" : "不过线";
     console.log(
-      `${pad(r.name, 22)}${pad(r.fg, 26)}${pad(r.bg, 22)}` +
-        `${pad(card !== undefined ? card.toFixed(2) : "-", 9)}` +
+      `${pad(r.name, 22)}${pad(r.fg, 26)}${pad(r.bg + (custom ? ` @${custom[0]}` : ""), 22)}` +
+        `${pad(custom ? custom[1].toFixed(2) : card !== undefined ? card.toFixed(2) : "-", 9)}` +
         `${pad(bg !== undefined ? bg.toFixed(2) : "-", 9)}` +
         `${pad(r.worst.toFixed(2), 8)}${verdict}`
     );
