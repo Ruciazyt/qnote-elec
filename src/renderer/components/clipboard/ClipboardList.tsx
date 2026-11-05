@@ -152,7 +152,7 @@ function RecordMoreMenu({
           variant="ghost"
           aria-label="更多操作"
           title="更多操作"
-          className={`h-8 w-8 p-0 transition-all duration-150 active:scale-95 focus-visible:ring-2 focus-visible:ring-primary/50 ${triggerClassName}`}>
+          className={`h-8 w-8 p-0 transition-all duration-150 active:scale-95 ${triggerClassName}`}>
           <MoreHorizontal className="h-3.5 w-3.5" />
         </Button>
       </PopoverTrigger>
@@ -685,7 +685,7 @@ export function ClipboardList({
                         onClick={() => handleCopyRecord(record, recordId)}
                         variant={copiedId === recordId ? "secondary" : "ghost"}
                         aria-label="复制内容"
-                        className={`h-8 w-8 p-0 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary/50 ${
+                        className={`h-8 w-8 p-0 transition-all duration-200 ${
                           copiedId === recordId
                             ? "copy-success-btn"
                             : "hover:bg-muted hover:text-foreground active:scale-95"
@@ -712,7 +712,7 @@ export function ClipboardList({
                           onClick={() => onOpenUrl(record, recordUrl)}
                           variant="ghost"
                           aria-label="打开链接"
-                          className="h-8 w-8 p-0 transition-all duration-150 hover:bg-primary/10 hover:text-primary-strong active:scale-95 focus-visible:ring-2 focus-visible:ring-primary/50">
+                          className="h-8 w-8 p-0 transition-all duration-150 hover:bg-primary/10 hover:text-primary-strong active:scale-95">
                           <ExternalLink className="h-3.5 w-3.5" />
                         </Button>
                       </TooltipTrigger>
@@ -729,8 +729,10 @@ export function ClipboardList({
                           onClick={() => onTogglePin(record)}
                           variant="ghost"
                           aria-label="取消置顶"
-                          className="h-8 w-8 p-0 transition-all duration-150 text-primary-strong bg-primary/15 hover:bg-primary/15 active:scale-95 focus-visible:ring-2 focus-visible:ring-primary/50">
-                          <Pin className="h-3.5 w-3.5" />
+                          className="h-8 w-8 p-0 transition-all duration-150 text-primary-strong bg-primary/15 hover:bg-primary/15 active:scale-95">
+                          {/* 实心图钉 = 不靠底纹深浅的「已置顶」信号：
+                              选中底纹是 /15、悬停也是 /15，只靠底色分不出选中态 */}
+                          <Pin className="h-3.5 w-3.5 fill-current" />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent side="top" sideOffset={6}>
@@ -747,7 +749,7 @@ export function ClipboardList({
                           onClick={() => startEdit(record, recordId)}
                           variant="ghost"
                           aria-label="编辑内容"
-                          className="h-8 w-8 p-0 transition-all duration-150 hover:bg-primary/10 hover:text-primary-strong active:scale-95 focus-visible:ring-2 focus-visible:ring-primary/50">
+                          className="h-8 w-8 p-0 transition-all duration-150 hover:bg-primary/10 hover:text-primary-strong active:scale-95">
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
                       </TooltipTrigger>
@@ -769,7 +771,7 @@ export function ClipboardList({
                         onClick={() => record.id !== undefined ? onDeleteRecord(record.id) : null}
                         variant="ghost"
                         aria-label="删除记录"
-                        className="h-8 w-8 p-0 transition-all duration-150 active:scale-95 focus-visible:ring-2 focus-visible:ring-destructive/50 btn-delete-hover hover:bg-destructive/10 hover:text-destructive">
+                        className="h-8 w-8 p-0 transition-all duration-150 active:scale-95 focus-visible:ring-destructive btn-delete-hover hover:bg-destructive/10 hover:text-destructive">
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </TooltipTrigger>
@@ -835,7 +837,7 @@ export function ClipboardList({
                           onClick={() => togglePinnedExpanded(recordId)}
                           variant="ghost"
                           aria-label="收起置顶项"
-                          className="h-8 w-8 p-0 transition-all duration-150 active:scale-95 focus-visible:ring-2 focus-visible:ring-primary/50 hover:bg-muted hover:text-foreground">
+                          className="h-8 w-8 p-0 transition-all duration-150 active:scale-95 hover:bg-muted hover:text-foreground">
                           <ChevronDown className="h-3.5 w-3.5 rotate-180" />
                         </Button>
                       </TooltipTrigger>
@@ -851,7 +853,7 @@ export function ClipboardList({
                         onClick={() => handleCopyRecord(record, recordId)}
                         variant={copiedId === recordId ? "secondary" : "ghost"}
                         aria-label="复制内容"
-                        className={`h-8 w-8 p-0 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary/50 ${
+                        className={`h-8 w-8 p-0 transition-all duration-200 ${
                           copiedId === recordId
                             ? "copy-success-btn"
                             : "hover:bg-muted hover:text-foreground active:scale-95"
@@ -878,7 +880,7 @@ export function ClipboardList({
                           onClick={() => onOpenUrl(record, recordUrl)}
                           variant="ghost"
                           aria-label="打开链接"
-                          className="h-8 w-8 p-0 transition-all duration-150 hover:bg-primary/10 hover:text-primary-strong active:scale-95 focus-visible:ring-2 focus-visible:ring-primary/50">
+                          className="h-8 w-8 p-0 transition-all duration-150 hover:bg-primary/10 hover:text-primary-strong active:scale-95">
                           <ExternalLink className="h-3.5 w-3.5" />
                         </Button>
                       </TooltipTrigger>
@@ -895,12 +897,13 @@ export function ClipboardList({
                           onClick={() => onTogglePin(record)}
                           variant="ghost"
                           aria-label={isPinned ? "取消置顶" : "置顶"}
-                          className={`h-8 w-8 p-0 transition-all duration-150 active:scale-95 focus-visible:ring-2 focus-visible:ring-primary/50 ${
+                          className={`h-8 w-8 p-0 transition-all duration-150 active:scale-95 ${
                             isPinned
                               ? "text-primary-strong bg-primary/15 hover:bg-primary/15"
                               : "hover:bg-primary/10 hover:text-primary-strong"
                           }`}>
-                          <Pin className="h-3.5 w-3.5" />
+                          {/* 实心图钉 = 不靠底纹深浅的「已置顶」信号（选中底纹 /15 与悬停同档） */}
+                          <Pin className={`h-3.5 w-3.5 ${isPinned ? "fill-current" : ""}`} />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent side="top" sideOffset={6}>
@@ -917,7 +920,7 @@ export function ClipboardList({
                           onClick={() => (isEditing ? cancelEdit() : startEdit(record, recordId))}
                           variant="ghost"
                           aria-label={isEditing ? "退出编辑" : "编辑内容"}
-                          className={`h-8 w-8 p-0 transition-all duration-150 active:scale-95 focus-visible:ring-2 focus-visible:ring-primary/50 ${
+                          className={`h-8 w-8 p-0 transition-all duration-150 active:scale-95 ${
                             isEditing
                               ? "text-primary-strong bg-primary/15 hover:bg-primary/15"
                               : "hover:bg-primary/10 hover:text-primary-strong"
@@ -942,7 +945,7 @@ export function ClipboardList({
                         onClick={() => record.id !== undefined ? onDeleteRecord(record.id) : null}
                         variant="ghost"
                         aria-label="删除记录"
-                        className="h-8 w-8 p-0 transition-all duration-150 active:scale-95 focus-visible:ring-2 focus-visible:ring-destructive/50 btn-delete-hover hover:bg-destructive/10 hover:text-destructive">
+                        className="h-8 w-8 p-0 transition-all duration-150 active:scale-95 focus-visible:ring-destructive btn-delete-hover hover:bg-destructive/10 hover:text-destructive">
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </TooltipTrigger>
@@ -980,7 +983,7 @@ export function ClipboardList({
                       }}
                       className="w-full min-h-[120px] max-h-[420px] resize-y rounded-md bg-muted/30 pl-3 pr-2 py-2 border border-primary/40
                         font-mono text-sm leading-relaxed text-foreground outline-none
-                        focus:border-primary/70 focus:ring-2 focus:ring-primary/25 transition-all duration-150"
+                        focus:border-primary/70 focus:ring-2 focus:ring-ring transition-all duration-150"
                     />
                     <div className="flex items-center justify-between gap-2 pt-2">
                       <span className="text-[11px] text-muted-foreground/70 tracking-wide">
@@ -1090,10 +1093,16 @@ export function ClipboardList({
                   </TooltipContent>
                 </Tooltip>
                 {/* Inline copy success badge — brief "已复制 ✓" indicator that appears
-                    right after the timestamp when user copies a record */}
+                    right after the timestamp when user copies a record
+
+                    浅色主题的底色从 success/10 改成 background：语义色压同色底纹只有
+                    4.01:1（取差列，10px 小字要 4.5:1）—— 底纹不再带绿，文字仍是实心
+                    success（无底纹处 4.55:1，过线），绿色信号交给边框与光晕。
+                    暗色主题维持 success/15 底 + success 字：那里 success 是亮绿、
+                    底是深色，对比度本来就够。 */}
                 <span
                   className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold
-                    bg-success/10 text-success border border-success/25
+                    bg-background text-success border border-success/25
                     dark:bg-success/15 dark:text-success dark:border-success/30
                     shadow-[0_0_8px_hsl(var(--success)/0.2)]
                     transition-all duration-200
