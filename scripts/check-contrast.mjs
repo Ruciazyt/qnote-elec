@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * token 对比度矩阵 —— 文档里每个对比度数字的唯一出处
  *
@@ -6,7 +5,20 @@
  *   node scripts/check-contrast.mjs            # 浅色 + 暗色都打
  *   node scripts/check-contrast.mjs --light    # 只打浅色
  *   node scripts/check-contrast.mjs --dark     # 只打暗色
- *   node scripts/check-contrast.mjs --json     # 机器可读
+ *   node scripts/check-contrast.mjs --json --light --dark   # 机器可读
+ *
+ * ⚠ 这里**不要加 shebang**（`#!/usr/bin/env node`）。
+ * 「shebang + CRLF」这个组合 vitest 解析不了，
+ * `test/contrast-guard.test.ts` 会整个套件加载失败：
+ *   SyntaxError: Invalid or unexpected token
+ * （报在 import 那一行，看不出是脚本自己的问题。）
+ * 根目录的 `.gitattributes` 已经把文本文件统一成 LF 检出（2026-11-05），
+ * 但防线放在「不加 shebang」这一条上更稳 —— 万一哪个工具用 CRLF 落盘，
+ * 失败的是整个对比度守卫，而不是一个脚本。
+ * 这个文件一律用 `node scripts/check-contrast.mjs` 调用，shebang 没有用处。
+ *
+ * ⚠ `--json` 必须同时带 `--light --dark`：单独给 `--json` 时
+ * `wantLight` / `wantDark` 都是 false，打出来的是空矩阵 `[]`。
  *
  * 无第三方依赖，只用 Node 内置模块。
  *
@@ -241,6 +253,11 @@ const COMBOS = [
   ["焦点环 /30", "primary/30", "card"],
   ["焦点环 /40", "primary/40", "background"],
   ["焦点环 /40", "primary/40", "card"],
+  // 删除按钮的焦点环用的是半透明危险色
+  ["焦点环 危险色 /50", "destructive/50", "background"],
+  ["焦点环 危险色 /50", "destructive/50", "card"],
+  // 反白字压在语义色底上（「已复制」角标那一类）
+  ["反白字压成功色", "primary-foreground", "success", "success"],
 ];
 
 /**
@@ -371,9 +388,11 @@ const isCli = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath
 
 if (isCli) {
   const args = process.argv.slice(2);
-  const wantLight = args.length === 0 || args.includes("--light");
-  const wantDark = args.length === 0 || args.includes("--dark");
   const wantJson = args.includes("--json");
+  // --json 是输出格式开关，不是主题开关：单独给 --json 时不能把两套主题都关掉，
+  // 否则打出来的是空矩阵 []，看着像「没有过线的组合」。
+  const wantLight = args.length === 0 || args.includes("--light") || wantJson;
+  const wantDark = args.length === 0 || args.includes("--dark") || wantJson;
 
   const themes = buildMatrix({ light: wantLight, dark: wantDark });
 
