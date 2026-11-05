@@ -1,0 +1,9 @@
+# 文本文件统一以 LF 检出
+#
+# 起因：Windows 上 core.autocrlf=true 会把 .mjs 检出成 CRLF，
+# 而带 shebang 的 .mjs 被 vitest 以模块方式导入时会直接报语法错
+# （对比度守卫那个文件就是第一个撞上的）。
+#
+# text=auto 让 git 自己判断二进制文件并跳过转换，
+# 仓库里的 png / ico / svg 不受影响。
+* text=auto eol=lf
