@@ -81,7 +81,7 @@ function ToolButton({
             "h-7 w-7 rounded flex items-center justify-center transition-all duration-150",
             "disabled:opacity-35 disabled:cursor-not-allowed",
             active
-              ? "bg-primary/15 text-primary"
+              ? "bg-primary/15 text-primary-strong"
               : "text-muted-foreground hover:text-foreground hover:bg-accent active:scale-90"
           )}
         >
@@ -497,7 +497,7 @@ const RichTextEditor = forwardRef<NoteEditorHandle, RichTextEditorProps>(functio
                 className={cn(
                   "h-7 w-7 rounded flex items-center justify-center transition-all duration-150",
                   toolbar.inTable
-                    ? "bg-primary/15 text-primary"
+                    ? "bg-primary/15 text-primary-strong"
                     : "text-muted-foreground hover:text-foreground hover:bg-accent active:scale-90"
                 )}
               >
@@ -588,7 +588,7 @@ const RichTextEditor = forwardRef<NoteEditorHandle, RichTextEditorProps>(functio
                 className={cn(
                   "h-7 w-7 rounded flex items-center justify-center transition-all duration-150",
                   toolbar.link || linkOpen
-                    ? "bg-primary/15 text-primary"
+                    ? "bg-primary/15 text-primary-strong"
                     : "text-muted-foreground hover:text-foreground hover:bg-accent active:scale-90"
                 )}
               >

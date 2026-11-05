@@ -424,7 +424,7 @@ export function StickyNoteApp() {
           onPointerDown={(e) => e.stopPropagation()}
           title="关闭便签"
           aria-label="关闭便签"
-          className="absolute top-1 right-1 w-5 h-5 rounded-md flex items-center justify-center text-muted-foreground bg-background/85 opacity-0 group-hover:opacity-100 hover:text-destructive transition-opacity duration-150"
+          className="absolute top-1 right-1 w-5 h-5 rounded-md flex items-center justify-center text-muted-foreground bg-background/85 opacity-0 group-hover:opacity-100 focus-within:opacity-100 hover:text-destructive transition-opacity duration-150"
           style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}>
           <X className="w-3.5 h-3.5" />
         </button>

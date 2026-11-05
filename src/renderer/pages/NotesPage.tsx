@@ -57,6 +57,24 @@ import {
 type FileNode = Extract<NoteTreeNode, { kind: "file" }>;
 
 /**
+ * 侧栏内容区（路径行 + 文件树）的退场动效
+ *
+ * 与通用面板件 ResizableSidebar 同一套：150ms 淡出，
+ * visibility 等淡完再切 —— 不带这层延迟的话元素立刻变 hidden，
+ * 淡出走不到，肉眼看到的就是瞬切。
+ *
+ * transition 必须是 shorthand：两个属性的时长与延迟不同，
+ * shorthand 一次说清。写成 Tailwind 任意值
+ * （transition-[opacity_150ms,visibility_0s_150ms]）填的是
+ * transition-property，而「opacity 150ms」不是合法属性名，
+ * 整条声明会被浏览器丢弃 —— visibility 就没有过渡、立即跳变。
+ * 所以这里走行内 style（和几何一样：能用行内就不靠类名）。
+ */
+const SIDEBAR_CONTENT_FADE_MS = 150;
+const SIDEBAR_CONTENT_COLLAPSE_TRANSITION = `opacity ${SIDEBAR_CONTENT_FADE_MS}ms, visibility 0s ${SIDEBAR_CONTENT_FADE_MS}ms`;
+const SIDEBAR_CONTENT_EXPAND_TRANSITION = `opacity ${SIDEBAR_CONTENT_FADE_MS}ms, visibility 0s 0ms`;
+
+/**
  * 白板编辑器按需加载
  *
  * Excalidraw 会把自身核心、mermaid / katex / ELK、几十个语言包和图表定义
@@ -204,6 +222,61 @@ export default function NotesPage() {
     "notes-sidebar-collapsed",
     true
   );
+
+  /**
+   * 正在收起（而不是展开）—— 决定过渡时长：退场比入场快
+   *
+   * 与通用面板件 ResizableSidebar 同一套：展开 220ms / 收起 150ms。
+   * 收起是用户明确不要这块内容了，慢吞吞地缩回去是让人干等；
+   * 展开是用户要看到东西，值得铺开。
+   */
+  const [sidebarCollapsing, setSidebarCollapsing] = useState(false);
+
+  /** 收起/展开侧栏 —— 折叠按钮走这里，时长与状态一起切 */
+  const toggleSidebarCollapsed = useCallback(() => {
+    const next = !sidebarCollapsed;
+    // next === true 表示正在收起 —— 退场用更短的时长
+    setSidebarCollapsing(next);
+    setSidebarCollapsed(next);
+  }, [sidebarCollapsed, setSidebarCollapsed]);
+
+  /**
+   * 侧栏内容区（路径行 + 文件树）是否还挂在 DOM 里
+   *
+   * 收起时不能直接卸载：卸载即消失，退场就成了「瞬切」，
+   * 与通用面板件的 150ms 淡出对不上（P1-7）。
+   * 改成收起那一刻先淡出（opacity 150ms、visibility 延迟 150ms 再切），
+   * 淡完再卸载；展开时立即挂上，容器自己淡入。
+   *
+   * 淡出期间内容仍在 DOM 里，容器必须带 invisible ——
+   * 只靠 opacity-0 + pointer-events-none 挡不住键盘，
+   * 里面的按钮还会留在 Tab 序里（与 ResizableSidebar 的处理一致）。
+   */
+  const [sidebarContentMounted, setSidebarContentMounted] = useState(
+    !sidebarCollapsed
+  );
+
+  useEffect(() => {
+    if (!sidebarCollapsed) {
+      setSidebarContentMounted(true);
+      return;
+    }
+    // 已经卸载过就不必再等那 150ms
+    if (!sidebarContentMounted) return;
+    const timer = window.setTimeout(
+      () => setSidebarContentMounted(false),
+      SIDEBAR_CONTENT_FADE_MS
+    );
+    return () => window.clearTimeout(timer);
+  }, [sidebarCollapsed, sidebarContentMounted]);
+
+  /** 内容区这一帧用哪套过渡与可见性 */
+  const sidebarContentTransition = sidebarCollapsed
+    ? SIDEBAR_CONTENT_COLLAPSE_TRANSITION
+    : SIDEBAR_CONTENT_EXPAND_TRANSITION;
+  const sidebarContentStateClass = sidebarCollapsed
+    ? "opacity-0 pointer-events-none invisible"
+    : "opacity-100 visible";
 
   // ── 侧栏宽度（可拖拽） ──
   const { width: sidebarWidth, setWidth: setSidebarWidth } = useNoteSidebarWidth();
@@ -901,19 +974,37 @@ export default function NotesPage() {
             过渡 all 会把 box-shadow 一起带上，收起那一帧阴影从「无」淡入、
             边框瞬间消失，这条线就会闪一下、强度也变了。
 
+            motion-reduce:transition-none 是系统级「减少动态效果」的退路：
+            开着的时候宽度直接跳到位，不做空间位移 —— 侧栏是折进去的，
+            位置变化本身就是动效。对齐通用面板件 ResizableSidebar 与
+            AppLogConsole 的做法（2026-11-05 走查补齐）。
+
             relative + z-10 保留：侧栏是 position:static，边框在绘制顺序第 3 步
             就画完了；右栏的编辑区是 absolute inset-0，属于第 6 步（定位后代），
             后画。现在的边框不再溢出到右栏，本来不会被盖，但保留 z-10 可以让
             「侧栏右缘永远压在画布之上」这件事不依赖任何隐含假设。
+
+            展开/收起时长：展开 220ms / 收起 150ms（原来是一律 300ms）。
+            与通用面板件 ResizableSidebar 同一套 —— 退场比入场快一档：
+            收起是用户明确不要这块内容了，慢吞吞地缩回去是让人干等；
+            展开是用户要看到东西，值得铺开。
+            时长跟着「正在收起」这个状态走，所以切换按钮要过
+            toggleSidebarCollapsed，不能直接 setSidebarCollapsed。
+
+            overflow-hidden：收起那一帧内容区还在淡出（150ms），
+            而路径行里的「切换」「在文件管理器中打开」两颗按钮
+            最小宽度加起来就超过 48px 的轨道 —— 不裁的话它们会
+            溢出到右栏的编辑器上（与头部行标题墨迹越界是同一类问题）。
+            与通用面板件一致：aside 侧也是 overflow-hidden。
 
             这里刻意不加 items-center：收起时靠父容器居中，宽度过渡的那一帧
             轨道还是 288px 宽，按钮会先跳到 128px 处再滑回轨道正中，
             看起来就是横向跳一下。折叠轨的按钮改用固定左内边距锚定，
             见下面头部行那段注释。 */}
         <div
-          className={`relative z-10 h-full shrink-0 flex flex-col p-0 transition-[width] duration-300 ${
-            sidebarCollapsed ? "" : "border-r border-border/60"
-          }`}
+          className={`relative z-10 h-full shrink-0 flex flex-col p-0 overflow-hidden transition-[width] motion-reduce:transition-none ${
+            sidebarCollapsing ? "duration-150" : "duration-[220ms]"
+          } ${sidebarCollapsed ? "" : "border-r border-border/60"}`}
           style={{
             // 收起时固定为折叠轨宽（NOTE_SIDEBAR_COLLAPSED_WIDTH = 48），
             // 展开时用拖出来的宽度
@@ -973,7 +1064,7 @@ export default function NotesPage() {
                 <Button
                   size="icon"
                   variant="ghost"
-                  onClick={() => setSidebarCollapsed((v) => !v)}
+                  onClick={toggleSidebarCollapsed}
                   aria-label={sidebarCollapsed ? "展开侧栏" : "收起侧栏"}
                   aria-expanded={!sidebarCollapsed}
                   className="h-8 w-8 flex-shrink-0 rounded-lg transition-all duration-150 hover:bg-accent active:scale-90"
@@ -1001,12 +1092,20 @@ export default function NotesPage() {
             )}
           </div>
 
-          {!sidebarCollapsed && (
+          {/* 内容区（路径行 + 文件树）：收起时先淡出 150ms 再卸载 ——
+              直接条件渲染是「瞬切」，与通用面板件的 150ms 淡出对不上。
+              淡出期间内容还在 DOM 里，所以带上 invisible ——
+              只靠 opacity-0 + pointer-events-none 挡不住键盘，
+              里面的按钮还会留在 Tab 序里。 */}
+          {sidebarContentMounted && (
             <>
               {/* 整个路径行都可点开目录选择器，未设置时用虚线提示可交互。
                   px-2(8px)：与头部切换按钮、文件树外框同一条左边线，
                   之前这里用 px-3(12px)，整列左边线是 8/12/8 三种 */}
-              <div className="flex items-center gap-2 px-2 mb-2 flex-shrink-0">
+              <div
+                style={{ transition: sidebarContentTransition }}
+                className={`flex items-center gap-2 px-2 mb-2 flex-shrink-0 ${sidebarContentStateClass}`}
+              >
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
@@ -1067,7 +1166,10 @@ export default function NotesPage() {
                 </Tooltip>
               </div>
 
-              <div className="flex-1 min-h-0 px-2 overflow-hidden flex flex-col">
+              <div
+                style={{ transition: sidebarContentTransition }}
+                className={`flex-1 min-h-0 px-2 overflow-hidden flex flex-col ${sidebarContentStateClass}`}
+              >
                 <NoteFileList
                   nodes={tree}
                   activeRelPath={activeRelPath}

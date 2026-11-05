@@ -60,7 +60,7 @@ export default function NoteTypeTabs({ active, onChange, counts, className }: No
               <span
                 className={cn(
                   "text-[11px] tabular-nums px-1.5 h-[18px] leading-[18px] rounded-full",
-                  isActive ? "bg-primary/15 text-primary" : "bg-muted-foreground/15 text-muted-foreground"
+                  isActive ? "bg-primary/15 text-primary-strong" : "bg-muted-foreground/15 text-muted-foreground"
                 )}
               >
                 {count}

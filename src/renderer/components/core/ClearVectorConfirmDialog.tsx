@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Database, Trash2 } from "lucide-react";
 
@@ -23,11 +23,18 @@ export function ClearVectorConfirmDialog({ open, onConfirm, onCancel }: ClearVec
           </DialogTitle>
         </DialogHeader>
         <div className="py-4">
-          <p className="text-sm text-muted-foreground">
-            确定要清空本地记忆索引吗？
-            <br />
-            <span className="text-destructive font-medium">此操作不可逆，所有已索引的内容将被删除！</span>
-          </p>
+          {/* 正文必须由 DialogDescription 承载 ——
+              ui/dialog 不会自动生成描述节点，只有真的渲染了它，
+              Radix 才把它的 id 接上 aria-describedby；放在普通 <p> 里，
+              读屏在弹窗打开那一瞬间只念得到标题，
+              听不出「删的是哪一批记忆」。 */}
+          <DialogDescription asChild>
+            <p className="text-sm text-muted-foreground">
+              确定要清空本地记忆索引吗？
+              <br />
+              <span className="text-destructive font-medium">此操作不可逆，所有已索引的内容将被删除！</span>
+            </p>
+          </DialogDescription>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onCancel} className="dialog-cancel-btn">
