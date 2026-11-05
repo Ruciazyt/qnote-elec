@@ -462,16 +462,6 @@ export function registerLeetcodeHandlers(DB: any) {
     }
   );
 
-  // 通过题目名称或编号搜索并获取题目URL
-  ipcMain.handle("search-leetcode-problem-by-title", async (event: IpcMainInvokeEvent, title: string, number?: string) => {
-    try {
-      return await searchLeetcodeProblem(title, number);
-    } catch (err) {
-      log.error("搜索 LeetCode 题目失败", err);
-      return { success: false, error: err.message || "搜索题目失败" };
-    }
-  });
-
   // 通过 GraphQL 获取 LeetCode 题目标题
   ipcMain.handle("get-leetcode-problem-title", async (event: IpcMainInvokeEvent, url: string) => {
     try {

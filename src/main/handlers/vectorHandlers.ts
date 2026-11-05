@@ -103,6 +103,10 @@ export function registerVectorHandlers(DB: any) {
     }
   };
 
+  /**
+   * 记忆检索 —— 主进程内部能力，当前没有 IPC 通道。
+   * 实现留着，接 UI 时注册通道即可。
+   */
   const handleMemorySearch = async (_event: IpcMainInvokeEvent, query: string, topK: number = 5) => {
     try {
       const result = await vectorStore.searchSimilar(query, topK);
@@ -128,6 +132,10 @@ export function registerVectorHandlers(DB: any) {
     }
   };
 
+  /**
+   * 批量记忆索引 —— 主进程内部能力，当前没有 IPC 通道。
+   * 实现留着，接 UI 时注册通道即可。
+   */
   const handleBatchIndexMemory = async () => {
     try {
       // 只获取未索引的笔记
@@ -214,6 +222,10 @@ export function registerVectorHandlers(DB: any) {
     }
   };
 
+  /**
+   * 记忆存储配置 —— 主进程内部能力，当前没有 IPC 通道。
+   * 实现留着，接 UI 时注册通道即可。
+   */
   const handleGetMemoryStoreConfig = async () => {
     return {
       chromaServerUrl: "local-memory",
@@ -221,6 +233,10 @@ export function registerVectorHandlers(DB: any) {
     };
   };
 
+  /**
+   * 写记忆存储配置 —— 主进程内部能力，当前没有 IPC 通道。
+   * 实现留着，接 UI 时注册通道即可。
+   */
   const handleSetMemoryStoreConfig = async (_event: IpcMainInvokeEvent, chromaServerUrl: string, embeddingServiceUrl: string) => {
     try {
       log.info("记忆模式下忽略远程向量配置", { chromaServerUrl, embeddingServiceUrl });
@@ -233,21 +249,12 @@ export function registerVectorHandlers(DB: any) {
     }
   };
 
+  // 只注册渲染层真在用的四个通道：主页加/删记忆、设置页记忆计数与清空记忆库。
+  // 检索 / 批量索引 / 存储配置读写是主进程内部能力，不再走 IPC ——
+  // AI 侧检索走 vectorStore.searchSimilar 直调，不经过这里。
   ipcMain.handle("add-to-memory", handleAddToMemory);
-  ipcMain.handle("add-to-vector", handleAddToMemory);
   ipcMain.handle("remove-from-memory", handleRemoveFromMemory);
-  ipcMain.handle("remove-from-vector", handleRemoveFromMemory);
-  ipcMain.handle("memory-search", handleMemorySearch);
-  ipcMain.handle("vector-search", handleMemorySearch);
-  ipcMain.handle("batch-index-memory", handleBatchIndexMemory);
-  ipcMain.handle("batch-index-notes", handleBatchIndexMemory);
   ipcMain.handle("get-memory-count", handleGetMemoryCount);
-  ipcMain.handle("get-vector-count", handleGetMemoryCount);
   ipcMain.handle("clear-memory-store", handleClearMemoryStore);
-  ipcMain.handle("clear-vector-store", handleClearMemoryStore);
-  ipcMain.handle("get-memory-store-config", handleGetMemoryStoreConfig);
-  ipcMain.handle("get-vector-store-config", handleGetMemoryStoreConfig);
-  ipcMain.handle("set-memory-store-config", handleSetMemoryStoreConfig);
-  ipcMain.handle("set-vector-store-config", handleSetMemoryStoreConfig);
 }
 

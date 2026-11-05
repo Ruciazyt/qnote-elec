@@ -34,16 +34,6 @@ export function registerNoteHandlers(DB: any) {
     }
   });
 
-  ipcMain.handle("delete-note", async (_event: any, content: string) => {
-    try {
-      await DB.from("note").where("content", content).delete();
-      return true;
-    } catch (err) {
-      log.error("删除笔记失败", err);
-      return false;
-    }
-  });
-
   ipcMain.handle("delete-note-by-id", async (_event: any, id: number) => {
     try {
       await DB.from("note").where("id", id).delete();

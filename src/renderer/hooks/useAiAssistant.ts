@@ -74,7 +74,7 @@ const MAX_PET_AUTO_CONTINUE = 3;
  * 使用场景：仅在 App 根节点调用一次（多个实例会互相覆盖状态）
  *
  * 流式对话：
- *   - 走 sendAiMessageStream 流式 IPC，逐字渲染 AI 回复
+ *   - 走 sendAiAgentStream 流式 IPC，逐字渲染 AI 回复
  *   - streamingMessage 占位消息，AiChatPanel 渲染时与 chatMessages 等价处理
  *   - handleCancelAiMessage 中断时 abort in-flight 请求
  *

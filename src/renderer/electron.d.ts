@@ -13,7 +13,6 @@ interface ElectronAPI {
   getClipboardHistory: () => Promise<import("./components/clipboard/types").ClipboardRecord[]>;
 
   // File operations
-  writeToFileSync: (data: string) => Promise<string>;
   getFilePath: () => Promise<string>;
   selectDirs: () => Promise<string | undefined>;
   // 笔记文件（纯文件制，类型由扩展名决定；主进程是唯一写入口）
@@ -25,7 +24,6 @@ interface ElectronAPI {
     srcPaths: string[],
     targetFolderRel?: string
   ) => Promise<{ imported: string[]; skipped: string[] }>;
-  getNoteCounts: (dirPath: string) => Promise<import("../shared/noteTypes").Record<import("../shared/noteTypes").NoteType, number>>;
   readNote: (dirPath: string, relPath: string) => Promise<import("../shared/noteTypes").NoteContent | null>;
   writeNote: (dirPath: string, relPath: string, text: string) => Promise<boolean>;
   // 富文本 .md：本地图片相对路径 ⇄ dataUrl 的转换在主进程完成
@@ -45,7 +43,6 @@ interface ElectronAPI {
   pickAndSaveImage: (dirPath: string) => Promise<{ dataUrl: string; assetRel: string } | null>;
   deleteNoteFile: (dirPath: string, relPath: string) => Promise<boolean>;
   deleteNoteFolder: (dirPath: string, relPath: string) => Promise<boolean>;
-  countFolderChildren: (dirPath: string, relPath: string) => Promise<number>;
   renameNoteEntry: (dirPath: string, oldRel: string, newName: string) => Promise<boolean>;
   createNoteFolder: (dirPath: string, parentRel: string, name: string) => Promise<boolean>;
   /**
@@ -81,7 +78,6 @@ interface ElectronAPI {
 
   // Notes
   searchNotes: (keyword: string) => Promise<import("./components/clipboard/types").ClipboardRecord[]>;
-  deleteNote: (content: string) => Promise<boolean>;
   deleteNoteById: (id: number) => Promise<boolean>;
   deleteAllNotes: () => Promise<{ success: boolean; deleted?: number; error?: string }>;
   /** 清空前统计：会保留多少条（置顶/重要） */
@@ -135,9 +131,6 @@ interface ElectronAPI {
   }>;
 
   // AI
-  sendAiMessage: (message: string, chatSessionId?: string) => Promise<{ success: boolean; content?: string; error?: string }>;
-  // 流式 AI 调用。invoke 立即返回 sessionId，结果通过 ai-stream:* 事件推送
-  sendAiMessageStream: (message: string, sessionId?: string, chatSessionId?: string) => Promise<{ sessionId: string }>;
   cancelAiMessage: (sessionId: string) => void;
   onAiStreamChunk: (
     callback: (event: unknown, payload: { sessionId: string; delta: string }) => void
@@ -205,13 +198,6 @@ interface ElectronAPI {
     sessionId: string,
     decision: "continue" | "stop"
   ) => Promise<{ ok: boolean; error?: string }>;
-  // 工具配置
-  getAiToolsConfig: () => Promise<{
-    readEnabled: boolean;
-    writeEnabled: boolean;
-    tools: Array<{ name: string; description: string; category: 'read' | 'write' }>;
-  }>;
-  setAiToolsConfig: (readEnabled: boolean, writeEnabled: boolean) => Promise<{ success: boolean }>;
 
   // AI 用量统计（设置页可视化）
   getAiUsageStats: () => Promise<{
@@ -227,7 +213,6 @@ interface ElectronAPI {
   createAiChatSession: () => Promise<import("./components/clipboard/types").AiChatSession>;
   getAiChatSessionHistory: (chatSessionId: string) => Promise<Array<Omit<import("./components/clipboard/types").ChatMessage, "toolCalls"> & { tool_calls: import("./components/clipboard/types").ToolCallRecord[] }>>;
   deleteAiChatSession: (chatSessionId: string) => Promise<boolean>;
-  getAiChatHistory: () => Promise<import("./components/clipboard/types").ChatMessage[]>;
   clearAiChat: () => Promise<boolean>;
   getAiConfig: () => Promise<{ provider: string; apiKey: string; model: string; baseUrl: string }>;
   setAiConfig: (provider: string, apiKey: string, model: string, baseUrl: string) => Promise<boolean>;
@@ -246,24 +231,11 @@ interface ElectronAPI {
   onTodosChanged: (callback: () => void) => () => void;
 
   // Memory index
+  // 只声明渲染层真在用的四个；检索 / 批量索引 / 配置读写走主进程内部能力。
   addToMemory: (noteId: number) => Promise<{ success: boolean; error?: string }>;
   removeFromMemory: (noteId: number) => Promise<{ success: boolean; error?: string }>;
-  memorySearch: (query: string, topK?: number) => Promise<unknown[]>;
-  batchIndexMemory: () => Promise<void>;
   getMemoryCount: () => Promise<{ success: boolean; count?: number; error?: string }>;
   clearMemoryStore: () => Promise<{ success: boolean; error?: string }>;
-  getMemoryStoreConfig: () => Promise<{ chromaServerUrl: string; embeddingServiceUrl: string }>;
-  setMemoryStoreConfig: (chromaServerUrl: string, embeddingServiceUrl: string) => Promise<{ success: boolean; error?: string }>;
-
-  // Vector database compatibility aliases
-  addToVector: (noteId: number) => Promise<{ success: boolean; error?: string }>;
-  removeFromVector: (noteId: number) => Promise<{ success: boolean; error?: string }>;
-  vectorSearch: (query: string, topK?: number) => Promise<unknown[]>;
-  batchIndexNotes: () => Promise<void>;
-  getVectorCount: () => Promise<{ success: boolean; count?: number; error?: string }>;
-  clearVectorStore: () => Promise<{ success: boolean; error?: string }>;
-  getVectorStoreConfig: () => Promise<{ chromaServerUrl: string; embeddingServiceUrl: string }>;
-  setVectorStoreConfig: (chromaServerUrl: string, embeddingServiceUrl: string) => Promise<{ success: boolean; error?: string }>;
 
   // Data migration
   exportDatabase: () => Promise<{ success: boolean; filePath?: string; error?: string; canceled?: boolean }>;
@@ -294,9 +266,6 @@ interface ElectronAPI {
   getLeetcodeProblemTitle: (url: string) => Promise<{ success: boolean; title?: string; difficulty?: string; error?: string }>;
   importLeetcodeCollection: (text: string) => Promise<unknown>;
 
-  // Notifications
-  onSaveNotification: (callback: (event: unknown) => void) => void;
-
   // Shell
   openExternal: (url: string) => Promise<boolean>;
 
@@ -326,7 +295,6 @@ interface ElectronAPI {
   browserReleaseSurface: (token: number) => Promise<boolean>;
   /** 兜底：一次性归还全部借出（组件异常卸载时用） */
   browserReleaseAllSurfaces: () => Promise<number>;
-  browserOpenExternal: (url: string) => Promise<boolean>;
   onBrowserTabsChanged: (
     callback: (state: import("./components/browser/types").BrowserState) => void
   ) => () => void;
@@ -531,10 +499,6 @@ interface ElectronAPI {
 
   // Window state
   onWindowMaximized: (callback: (isMaximized: boolean) => void) => () => void;
-  removeWindowMaximized: (callback: (isMaximized: boolean) => void) => void;
-
-  // IPC send (generic)
-  send: (channel: string, ...args: unknown[]) => void;
 
   // ==================== Popup 专用 API ====================
   // ClipboardPopup

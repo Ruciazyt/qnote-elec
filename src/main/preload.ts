@@ -20,22 +20,16 @@ contextBridge.exposeInMainWorld("electron", {
   maximizeWindow: () => ipcRenderer.send("maximize-window"),
   closeWindow: () => ipcRenderer.send("close-window"),
   openDevTools: () => ipcRenderer.send("open-dev-tools"),
-  onSaveNotification: (callback: any) => {
-    ipcRenderer.on("save-notification", callback);
-  },
   onClipboardChanged: (callback: any) => {
     ipcRenderer.on("clipboard-changed", callback);
   },
   removeClipboardChanged: (callback: any) => {
     ipcRenderer.removeListener("clipboard-changed", callback);
   },
-  writeToFileSync: (data: string) =>
-    ipcRenderer.invoke("writeToFile", data),
   getFilePath: () => ipcRenderer.invoke("getFilePath"),
   selectDirs: () => ipcRenderer.invoke("select-dirs"),
   getClipboardHistory: () => ipcRenderer.invoke("get-clipboard-history"),
   searchNotes: (keyword: string) => ipcRenderer.invoke("search-notes", keyword),
-  deleteNote: (content: string) => ipcRenderer.invoke("delete-note", content),
   deleteNoteById: (id: number) => ipcRenderer.invoke("delete-note-by-id", id),
   deleteAllNotes: () => ipcRenderer.invoke("delete-all-notes"),
   countProtectedNotes: () => ipcRenderer.invoke("count-protected-notes"),
@@ -52,9 +46,6 @@ contextBridge.exposeInMainWorld("electron", {
   previewAiSkillUrl: (url: string) => ipcRenderer.invoke("preview-ai-skill-url", url),
   importAiSkills: (skills: Array<{ name: string; content: string }>) =>
     ipcRenderer.invoke("import-ai-skills", skills),
-  send: (channel: string, ...args: any[]) => {
-    ipcRenderer.send(channel, ...args);
-  },
 
   // 笔记：所有类型共用一套通道，类型由扩展名决定；定位用 relPath
   /**
@@ -64,7 +55,6 @@ contextBridge.exposeInMainWorld("electron", {
   getPathForFile: (file: File) => webUtils.getPathForFile(file),
 
   getNoteTree: (dirPath: string) => ipcRenderer.invoke("notes:tree", dirPath),
-  getNoteCounts: (dirPath: string) => ipcRenderer.invoke("notes:counts", dirPath),
   /** 从系统拖入文件：复制进笔记目录（只收笔记系统认识的类型，同名不覆盖） */
   importNoteFiles: (dirPath: string, srcPaths: string[], targetFolderRel = "") =>
     ipcRenderer.invoke("notes:import-files", dirPath, srcPaths, targetFolderRel),
@@ -100,8 +90,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("notes:delete", dirPath, relPath),
   deleteNoteFolder: (dirPath: string, relPath: string) =>
     ipcRenderer.invoke("notes:delete-folder", dirPath, relPath),
-  countFolderChildren: (dirPath: string, relPath: string) =>
-    ipcRenderer.invoke("notes:count-children", dirPath, relPath),
   renameNoteEntry: (dirPath: string, oldRel: string, newName: string) =>
     ipcRenderer.invoke("notes:rename", dirPath, oldRel, newName),
   createNoteFolder: (dirPath: string, parentRel: string, name: string) =>
@@ -189,11 +177,6 @@ contextBridge.exposeInMainWorld("electron", {
   },
 
   // AI相关API
-  sendAiMessage: (message: string, chatSessionId?: string) =>
-    ipcRenderer.invoke("send-ai-message", message, chatSessionId),
-  // 流式 AI 调用。返回 { sessionId }，结果通过 ai-stream:* 事件推送
-  sendAiMessageStream: (message: string, sessionId?: string, chatSessionId?: string) =>
-    ipcRenderer.invoke("send-ai-message-stream", message, sessionId, chatSessionId),
   cancelAiMessage: (sessionId: string) =>
     ipcRenderer.send("cancel-ai-message", sessionId),
   onAiStreamChunk: (
@@ -385,7 +368,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("get-ai-chat-session-history", chatSessionId),
   deleteAiChatSession: (chatSessionId: string) =>
     ipcRenderer.invoke("delete-ai-chat-session", chatSessionId),
-  getAiChatHistory: () => ipcRenderer.invoke("get-ai-chat-history"),
   clearAiChat: () => ipcRenderer.invoke("clear-ai-chat"),
   getAiConfig: () => ipcRenderer.invoke("get-ai-config"),
   setAiConfig: (provider: string, apiKey: string, model: string, baseUrl: string) => ipcRenderer.invoke("set-ai-config", provider, apiKey, model, baseUrl),
@@ -426,24 +408,12 @@ contextBridge.exposeInMainWorld("electron", {
   },
 
   // 本地记忆索引 API
+  // 只保留渲染层真在用的四个（主页加/删记忆、设置页记忆计数与清空）。
+  // 检索 / 批量索引 / 配置读写走主进程内部能力，没有 IPC 通道。
   addToMemory: (noteId: number) => ipcRenderer.invoke("add-to-memory", noteId),
   removeFromMemory: (noteId: number) => ipcRenderer.invoke("remove-from-memory", noteId),
-  memorySearch: (query: string, topK?: number) => ipcRenderer.invoke("memory-search", query, topK || 5),
-  batchIndexMemory: () => ipcRenderer.invoke("batch-index-memory"),
   getMemoryCount: () => ipcRenderer.invoke("get-memory-count"),
   clearMemoryStore: () => ipcRenderer.invoke("clear-memory-store"),
-  getMemoryStoreConfig: () => ipcRenderer.invoke("get-memory-store-config"),
-  setMemoryStoreConfig: (chromaServerUrl: string, embeddingServiceUrl: string) => ipcRenderer.invoke("set-memory-store-config", chromaServerUrl, embeddingServiceUrl),
-
-  // 兼容旧的向量命名 API
-  addToVector: (noteId: number) => ipcRenderer.invoke("add-to-memory", noteId),
-  removeFromVector: (noteId: number) => ipcRenderer.invoke("remove-from-memory", noteId),
-  vectorSearch: (query: string, topK?: number) => ipcRenderer.invoke("memory-search", query, topK || 5),
-  batchIndexNotes: () => ipcRenderer.invoke("batch-index-memory"),
-  getVectorCount: () => ipcRenderer.invoke("get-memory-count"),
-  clearVectorStore: () => ipcRenderer.invoke("clear-memory-store"),
-  getVectorStoreConfig: () => ipcRenderer.invoke("get-memory-store-config"),
-  setVectorStoreConfig: (chromaServerUrl: string, embeddingServiceUrl: string) => ipcRenderer.invoke("set-memory-store-config", chromaServerUrl, embeddingServiceUrl),
 
   // 数据迁移
   exportDatabase: () => ipcRenderer.invoke("export-database"),
@@ -479,7 +449,6 @@ contextBridge.exposeInMainWorld("electron", {
   browserBorrowSurface: () => ipcRenderer.invoke("browser:borrow-surface"),
   browserReleaseSurface: (token: number) => ipcRenderer.invoke("browser:release-surface", token),
   browserReleaseAllSurfaces: () => ipcRenderer.invoke("browser:release-all-surfaces"),
-  browserOpenExternal: (url: string) => ipcRenderer.invoke("browser:open-external", url),
   onBrowserTabsChanged: (callback: (state: BrowserBridgeState) => void) => {
     const listener = (_event: unknown, state: BrowserBridgeState) => callback(state);
     ipcRenderer.on("browser:tabs-changed", listener);
@@ -617,7 +586,8 @@ contextBridge.exposeInMainWorld("electron", {
   },
 
   // 跨窗口 AI 浮框位置 / 展开同步
-  getFloatingAiState: () => ipcRenderer.invoke("floating-ai:get-state"),  setFloatingAiPosition: (position: { right: number; bottom: number }) =>
+  getFloatingAiState: () => ipcRenderer.invoke("floating-ai:get-state"),
+  setFloatingAiPosition: (position: { right: number; bottom: number }) =>
     ipcRenderer.send("floating-ai:set-position", position),
   setFloatingAiExpanded: (expanded: boolean) =>
     ipcRenderer.send("floating-ai:set-expanded", expanded),
@@ -645,10 +615,6 @@ contextBridge.exposeInMainWorld("electron", {
       ipcRenderer.removeListener("window-maximized", listener);
     };
   },
-  removeWindowMaximized: (callback: any) => {
-    ipcRenderer.removeListener("window-maximized", callback);
-  },
-
   // ==================== Popup 专用 API ====================
   // ClipboardPopup
   popupGetClipboardHistory: (limit?: number) =>

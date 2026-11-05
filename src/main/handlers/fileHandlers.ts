@@ -58,10 +58,6 @@ const MIME_BY_EXT: Readonly<Record<string, string>> = {
 export function registerFileHandlers(fileWriter: FileWriter) {
   const noteStore = new NoteStore();
 
-  ipcMain.handle("writeToFile", (event: IpcMainInvokeEvent, data: string) =>
-    fileWriter.writeToFileSync(event, data)
-  );
-
   // 笔记根目录只由用户通过系统目录选择框确定（见 select-dirs），主进程自己存着。
   // 这里刻意不提供「渲染层设置根目录」的通道 —— 渲染层属于可能被攻陷的一端，
   // 给了它写根目录的能力，就等于让它把后续所有文件操作指到任意位置。
@@ -88,11 +84,6 @@ export function registerFileHandlers(fileWriter: FileWriter) {
   /** 递归列出整个目录树（文件夹 + 笔记文件），只含元数据不读正文 */
   ipcMain.handle("notes:tree", (_event, dirPath: string): NoteTreeNode[] => {
     return noteStore.tree(dirPath);
-  });
-
-  /** 各类型文件数，供类型切换栏显示 */
-  ipcMain.handle("notes:counts", (_event, dirPath: string) => {
-    return noteStore.countByType(dirPath);
   });
 
   /** 读取单个笔记正文：文本类给 text，图片给 dataUrl */
@@ -246,11 +237,6 @@ export function registerFileHandlers(fileWriter: FileWriter) {
   /** 删除文件夹及全部内容 */
   ipcMain.handle("notes:delete-folder", (_event, dirPath: string, relPath: string) => {
     return noteStore.deleteFolder(dirPath, relPath);
-  });
-
-  /** 文件夹直属子项数量，用于删除前的确认文案 */
-  ipcMain.handle("notes:count-children", (_event, dirPath: string, relPath: string) => {
-    return noteStore.countChildren(dirPath, relPath);
   });
 
   /** 重命名文件或文件夹 */

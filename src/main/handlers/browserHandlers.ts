@@ -13,7 +13,6 @@ import {
   setBrowserVisible,
   borrowBrowserSurface,
   getOverlayBorrowCount,
-  openExternal,
   getState,
   type BrowserState,
 } from "../core/window/browserViewManager";
@@ -139,16 +138,6 @@ export function registerBrowserHandlers(win: Electron.BrowserWindow | null) {
       log.info("已归还全部借出表层", { count });
     }
     return count;
-  });
-
-  ipcMain.handle("browser:open-external", async (_event, url: string) => {
-    try {
-      await openExternal(url);
-      return true;
-    } catch (err) {
-      log.error("browser:open-external error:", err);
-      return false;
-    }
   });
 
   log.info("内嵌浏览器 IPC 处理器已注册");
