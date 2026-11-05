@@ -330,7 +330,7 @@ export function ClipboardPopup() {
             <button
               type="button"
               onClick={handleOpenApp}
-              className="h-6 w-6 rounded flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors duration-150"
+              className="h-6 w-6 rounded flex items-center justify-center text-muted-foreground hover:text-primary-strong hover:bg-primary/10 transition-colors duration-150"
               aria-label="在应用中打开"
               title="在应用中打开">
               <AppWindow className="h-3.5 w-3.5" />

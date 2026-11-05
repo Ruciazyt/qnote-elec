@@ -185,7 +185,7 @@ export const AiChatPanel = memo(function AiChatPanel({
               {/* 装饰背景 — 去掉持续浮动 + 模糊光晕，简化静态 */}
               <div className="relative mb-5">
                 <div className="h-16 w-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                  <Bot className="h-8 w-8 text-primary/70" />
+                  <Bot className="h-8 w-8 text-primary-strong" />
                 </div>
               </div>
 
@@ -357,11 +357,11 @@ export const AiChatPanel = memo(function AiChatPanel({
             compacting ? (
               <div className="flex items-start gap-2 ai-thinking-row">
                 <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1 animate-pulse ai-thinking-avatar">
-                  <Bot className="h-3 w-3 text-primary" />
+                  <Bot className="h-3 w-3 text-primary-strong" />
                 </div>
                 <div className="max-w-[85%] rounded-2xl rounded-tl-sm px-4 py-3 bg-background border border-border/80 shadow-sm ai-message-bubble ai-thinking-bubble thinking-glow flex flex-col items-start gap-1.5">
                   <div className="flex items-center gap-1.5">
-                    <RefreshCw className="h-3 w-3 text-primary animate-spin" />
+                    <RefreshCw className="h-3 w-3 text-primary-strong animate-spin" />
                     <span className="text-xs font-medium text-foreground">正在压缩对话历史…</span>
                   </div>
                   <span className="text-[10px] text-muted-foreground/60 leading-relaxed">
@@ -378,7 +378,7 @@ export const AiChatPanel = memo(function AiChatPanel({
               // 兼容老路径：未升级 useAiAssistant 时仍显示思考中动画
               <div className="flex items-start gap-2 ai-thinking-row">
                 <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1 animate-pulse ai-thinking-avatar">
-                  <Bot className="h-3 w-3 text-primary" />
+                  <Bot className="h-3 w-3 text-primary-strong" />
                 </div>
                 <div className="max-w-[85%] rounded-2xl rounded-tl-sm px-4 py-3 bg-background border border-border/80 shadow-sm ai-message-bubble ai-thinking-bubble thinking-glow flex flex-col items-start">
                   <span className="typing-dots">
@@ -423,7 +423,7 @@ export const AiChatPanel = memo(function AiChatPanel({
                     className={cn(
                       "shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium border transition-colors",
                       active
-                        ? "bg-primary/10 text-primary border-primary/25"
+                        ? "bg-primary/10 text-primary-strong border-primary/25"
                         : "bg-muted/60 text-muted-foreground/80 border-border hover:bg-muted"
                     )}>
                     <Sparkles className="h-2.5 w-2.5" />
@@ -698,18 +698,18 @@ function ToolCallBlock({ call }: { call: ToolCallRecord }) {
         {isError ? (
           <AlertCircle className="h-3 w-3 flex-shrink-0 text-destructive" />
         ) : isCalling ? (
-          <Loader2 className="h-3 w-3 flex-shrink-0 animate-spin text-primary" />
+          <Loader2 className="h-3 w-3 flex-shrink-0 animate-spin text-primary-strong" />
         ) : (
           <Wrench className="h-3 w-3 flex-shrink-0 text-muted-foreground/70" />
         )}
-        <span className="font-mono text-[11px] font-semibold text-primary flex-shrink-0">
+        <span className="font-mono text-[11px] font-semibold text-primary-strong flex-shrink-0">
           {call.name}
         </span>
         {summary && (
           <span className="text-[11px] text-muted-foreground truncate min-w-0">{summary}</span>
         )}
         {isCalling && (
-          <span className="text-[10px] text-primary/70 flex-shrink-0">调用中…</span>
+          <span className="text-[10px] text-primary-strong flex-shrink-0">调用中…</span>
         )}
       </button>
 

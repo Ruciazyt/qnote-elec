@@ -189,13 +189,13 @@ function RecordMoreMenu({
                 }}
                 className={`w-full flex items-center gap-2.5 text-left text-xs px-2 py-1.5 rounded-md font-medium transition-all duration-150 active:scale-[0.98] ${
                   item.active
-                    ? "text-primary bg-primary/10"
-                    : "text-foreground/85 hover:bg-primary/10 hover:text-primary"
+                    ? "text-primary-strong bg-primary/10"
+                    : "text-foreground/85 hover:bg-primary/10 hover:text-primary-strong"
                 }`}>
                 <span className="flex-shrink-0">{item.icon}</span>
                 <span className="flex-1 truncate">{item.label}</span>
                 {item.active && (
-                  <Check className="h-3 w-3 text-primary/80 flex-shrink-0" style={{ strokeWidth: 2.5 }} />
+                  <Check className="h-3 w-3 text-primary-strong flex-shrink-0" style={{ strokeWidth: 2.5 }} />
                 )}
               </button>
             ))
@@ -434,7 +434,7 @@ export function ClipboardList({
         if (item.kind === "pinned") {
           return (
             <div key="pinned-header" className="flex items-center justify-center my-4 py-1">
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-primary/70 uppercase tracking-widest">
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-primary-strong uppercase tracking-widest">
                 <Pin className="h-2.5 w-2.5" />
                 置顶
               </span>
@@ -577,10 +577,10 @@ export function ClipboardList({
                       close();
                       onFormatCode(record, lang.value as SupportedLanguage);
                     }}
-                    className="flex items-center justify-between text-left text-xs px-2 py-1.5 rounded-md font-medium text-foreground/85 hover:bg-primary/10 hover:text-primary active:scale-[0.98] transition-all duration-150">
+                    className="flex items-center justify-between text-left text-xs px-2 py-1.5 rounded-md font-medium text-foreground/85 hover:bg-primary/10 hover:text-primary-strong active:scale-[0.98] transition-all duration-150">
                     <span className="truncate">{lang.label}</span>
                     {highlightLanguage === lang.value && (
-                      <Check className="h-3 w-3 text-primary/80 flex-shrink-0" style={{ strokeWidth: 2.5 }} />
+                      <Check className="h-3 w-3 text-primary-strong flex-shrink-0" style={{ strokeWidth: 2.5 }} />
                     )}
                   </button>
                 ))}
@@ -712,7 +712,7 @@ export function ClipboardList({
                           onClick={() => onOpenUrl(record, recordUrl)}
                           variant="ghost"
                           aria-label="打开链接"
-                          className="h-8 w-8 p-0 transition-all duration-150 hover:bg-primary/10 hover:text-primary active:scale-95 focus-visible:ring-2 focus-visible:ring-primary/50">
+                          className="h-8 w-8 p-0 transition-all duration-150 hover:bg-primary/10 hover:text-primary-strong active:scale-95 focus-visible:ring-2 focus-visible:ring-primary/50">
                           <ExternalLink className="h-3.5 w-3.5" />
                         </Button>
                       </TooltipTrigger>
@@ -729,7 +729,7 @@ export function ClipboardList({
                           onClick={() => onTogglePin(record)}
                           variant="ghost"
                           aria-label="取消置顶"
-                          className="h-8 w-8 p-0 transition-all duration-150 text-primary bg-primary/15 hover:bg-primary/20 active:scale-95 focus-visible:ring-2 focus-visible:ring-primary/50">
+                          className="h-8 w-8 p-0 transition-all duration-150 text-primary-strong bg-primary/15 hover:bg-primary/15 active:scale-95 focus-visible:ring-2 focus-visible:ring-primary/50">
                           <Pin className="h-3.5 w-3.5" />
                         </Button>
                       </TooltipTrigger>
@@ -747,7 +747,7 @@ export function ClipboardList({
                           onClick={() => startEdit(record, recordId)}
                           variant="ghost"
                           aria-label="编辑内容"
-                          className="h-8 w-8 p-0 transition-all duration-150 hover:bg-primary/10 hover:text-primary active:scale-95 focus-visible:ring-2 focus-visible:ring-primary/50">
+                          className="h-8 w-8 p-0 transition-all duration-150 hover:bg-primary/10 hover:text-primary-strong active:scale-95 focus-visible:ring-2 focus-visible:ring-primary/50">
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
                       </TooltipTrigger>
@@ -878,7 +878,7 @@ export function ClipboardList({
                           onClick={() => onOpenUrl(record, recordUrl)}
                           variant="ghost"
                           aria-label="打开链接"
-                          className="h-8 w-8 p-0 transition-all duration-150 hover:bg-primary/10 hover:text-primary active:scale-95 focus-visible:ring-2 focus-visible:ring-primary/50">
+                          className="h-8 w-8 p-0 transition-all duration-150 hover:bg-primary/10 hover:text-primary-strong active:scale-95 focus-visible:ring-2 focus-visible:ring-primary/50">
                           <ExternalLink className="h-3.5 w-3.5" />
                         </Button>
                       </TooltipTrigger>
@@ -897,8 +897,8 @@ export function ClipboardList({
                           aria-label={isPinned ? "取消置顶" : "置顶"}
                           className={`h-8 w-8 p-0 transition-all duration-150 active:scale-95 focus-visible:ring-2 focus-visible:ring-primary/50 ${
                             isPinned
-                              ? "text-primary bg-primary/15 hover:bg-primary/20"
-                              : "hover:bg-primary/10 hover:text-primary"
+                              ? "text-primary-strong bg-primary/15 hover:bg-primary/15"
+                              : "hover:bg-primary/10 hover:text-primary-strong"
                           }`}>
                           <Pin className="h-3.5 w-3.5" />
                         </Button>
@@ -919,8 +919,8 @@ export function ClipboardList({
                           aria-label={isEditing ? "退出编辑" : "编辑内容"}
                           className={`h-8 w-8 p-0 transition-all duration-150 active:scale-95 focus-visible:ring-2 focus-visible:ring-primary/50 ${
                             isEditing
-                              ? "text-primary bg-primary/15 hover:bg-primary/20"
-                              : "hover:bg-primary/10 hover:text-primary"
+                              ? "text-primary-strong bg-primary/15 hover:bg-primary/15"
+                              : "hover:bg-primary/10 hover:text-primary-strong"
                           }`}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>

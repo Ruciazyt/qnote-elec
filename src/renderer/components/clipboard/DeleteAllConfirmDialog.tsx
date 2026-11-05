@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Trash2 } from "lucide-react";
 
@@ -28,28 +28,35 @@ export function DeleteAllConfirmDialog({ open, onConfirm, onCancel, stats }: Del
             清空所有记录
           </DialogTitle>
         </DialogHeader>
-        <div className="py-4 space-y-2">
-          <p className="text-sm text-muted-foreground">
+        {/*
+          正文由 DialogDescription 承载 —— ui/dialog 不会自动生成描述节点，
+          只有真的渲染了 DialogDescription，Radix 才把它的 id 接进
+          aria-describedby，读屏打开那一下才念得出「会删多少、保留多少」。
+          不可逆提示单独一行（第十节第五条）。
+        */}
+        <div className="py-4">
+          <DialogDescription>
             {stats && stats.kept > 0 ? (
               <>
-                将删除 <span className="text-foreground font-medium">{stats.removable}</span> 条记录。
+                确定要清空所有剪贴板记录吗？将删除{" "}
+                <span className="font-medium text-foreground">{stats.removable}</span> 条记录，
+                其中{" "}
+                <span className="font-medium text-foreground">{stats.kept}</span> 条已置顶或标记为重要，会被保留。
                 <br />
-                <span className="text-amber-600 dark:text-amber-500 font-medium">
-                  其中 {stats.kept} 条已置顶或标记为重要，会被保留。
-                </span>
+                <span className="font-medium text-destructive">此操作不可逆！</span>
               </>
             ) : (
               <>
                 确定要清空所有剪贴板记录吗？
                 <br />
-                <span className="text-muted-foreground/70 text-xs">
+                <span className="text-xs text-muted-foreground">
                   当前没有置顶或标记为重要的记录。
                 </span>
+                <br />
+                <span className="font-medium text-destructive">此操作不可逆！</span>
               </>
             )}
-            <br />
-            <span className="text-destructive font-medium">此操作不可逆！</span>
-          </p>
+          </DialogDescription>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onCancel} className="dialog-cancel-btn">

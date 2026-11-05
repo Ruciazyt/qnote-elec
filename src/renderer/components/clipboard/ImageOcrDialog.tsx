@@ -65,7 +65,7 @@ export function ImageOcrDialog({
               + ring，而不是圆形底座。原来的 rounded-full 32×32 是全项目独一份的画法。 */}
           <DialogTitle className="flex items-center gap-2.5">
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 ring-1 ring-primary/20">
-              <ImageIcon className="h-4 w-4 text-primary" />
+              <ImageIcon className="h-4 w-4 text-primary-strong" />
             </span>
             {/* 图标块后面跟的是裸文本，间距由 flex gap 决定；
                 包进 span 让「图标块 / 文字」两段的间距不再有歧义。 */}
@@ -160,7 +160,7 @@ export function ImageOcrDialog({
               <div className="flex items-center justify-between gap-2">
                 <h4 className="flex items-center gap-2 text-sm font-semibold text-foreground">
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 ring-1 ring-primary/20">
-                    <FileText className="h-3 w-3 text-primary" />
+                    <FileText className="h-3 w-3 text-primary-strong" />
                   </span>
                   <span>识别结果</span>
                 </h4>
@@ -187,7 +187,7 @@ export function ImageOcrDialog({
                    这个本来就该安静的弹框一直动。 */
                 <div className="flex h-full flex-col items-center justify-center text-center">
                   <span className="mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-primary/10 ring-1 ring-primary/20">
-                    <FileText className="h-6 w-6 text-primary/70" />
+                    <FileText className="h-6 w-6 text-primary-strong" />
                   </span>
                   <p className="mb-1.5 text-sm font-medium text-foreground/80">
                     点击「开始识别」
@@ -227,7 +227,7 @@ export function ImageOcrDialog({
                     variant={indexedOcr ? undefined : "outline"}
                     className={cn(
                       "flex-1",
-                      indexedOcr ? "copy-success-btn" : "border-primary/25 text-primary hover:bg-primary/5 hover:text-primary"
+                      indexedOcr ? "copy-success-btn" : "border-primary/25 text-primary-strong hover:bg-primary/5 hover:text-primary-strong"
                     )}
                     aria-label={indexedOcr ? "已添加到索引" : "添加索引"}>
                     {indexedOcr ? (
