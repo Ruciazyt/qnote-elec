@@ -21,6 +21,9 @@ resources/icon-tray.png
 
 # Node
 node_modules/
+# pnpm 内容寻址存储：pnpm 10.32 的默认 store 解析到项目内 <repo>/.pnpm-store，
+# 是本机工具链产物，不进仓库
+.pnpm-store/
 renderer/node_modules/
 electron/node_modules/
 dist_electron/
