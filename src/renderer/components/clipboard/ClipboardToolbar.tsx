@@ -55,7 +55,7 @@ export function ClipboardToolbar({
               }}
               className={`pl-9 pr-8 search-input-hover search-input-focus transition-all duration-150 ${
                 isSearchActive ? "search-input-active" : ""
-              }`}
+              } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
               aria-label="搜索剪贴板记录"
             />
             {/*
@@ -104,7 +104,7 @@ export function ClipboardToolbar({
           {showResultCount && (
             <div key={`result-badge-${searchKeyword}-${resultCount}`} className="flex-shrink-0 result-badge-pop">
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold
-                bg-primary/10 text-primary/80 border border-primary/20 dark:bg-primary/15 dark:text-primary/85 dark:border-primary/30
+                bg-primary/10 text-primary-strong border border-primary/20 dark:bg-primary/15 dark:text-primary-strong dark:border-primary/30
                 tracking-wide transition-all duration-200">
                 {resultCount} 条结果
               </span>

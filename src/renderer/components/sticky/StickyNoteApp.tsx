@@ -521,7 +521,43 @@ export function StickyNoteApp() {
           onPointerDown={handleResizeStart}
           title="拖动调整大小"
           aria-label="调整便签大小"
-          className="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+          // 键盘可达：拖动区只有指针事件，键盘用户原先根本够不着这个手柄。
+          // role="separator" + tabIndex 让它进焦点序。
+          //
+          // 显形规则必须与 tabIndex 同一个提交里加 ——
+          // 只加 tabIndex 而不加 focus-visible:opacity-100，
+          // 就会变成「Tab 能进、控件看不见」，正是 P0-3 禁的那一类。
+          role="separator"
+          aria-orientation="horizontal"
+          tabIndex={0}
+          onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
+            // 键盘调整大小：方向键按 16px 步进，Shift 加速到 64px
+            // 基准与指针缩放一致，取 sizeRef.current（当前窗口尺寸）而非 note.width
+            const step = e.shiftKey ? 64 : 16;
+            const map: Record<string, [number, number]> = {
+              ArrowUp: [0, -step],
+              ArrowDown: [0, step],
+              ArrowLeft: [-step, 0],
+              ArrowRight: [step, 0],
+            };
+            const delta = map[e.key];
+            if (!delta || !note) return;
+            e.preventDefault();
+            const current = sizeRef.current;
+            const baseWidth = current.width || note.width || 300;
+            const baseHeight = current.height || note.height || 200;
+            const nextWidth = Math.max(MIN_WIDTH, Math.round(baseWidth + delta[0]));
+            const nextHeight = Math.max(MIN_HEIGHT, Math.round(baseHeight + delta[1]));
+            // 与指针缩放一致：手动调过就把尺寸模式切到「手动」
+            setNote((prev) => (prev ? { ...prev, autoSize: false } : prev));
+            void window.electron.stickySetBounds({
+              id: note.id,
+              width: nextWidth,
+              height: nextHeight,
+              autoSize: false,
+            });
+          }}
+          className="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity duration-150"
           style={{
             WebkitAppRegion: "no-drag",
             background:
