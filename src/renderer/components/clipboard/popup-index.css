@@ -14,19 +14,34 @@
   --card-foreground: 220 10% 22%;
   --popover: 0 0% 100%;
   --popover-foreground: 220 10% 22%;
-  --primary: 221 65% 55%;
+  /* Brand — 与主窗口 index.css 同值（Productivity Teal 195°）。
+     这个弹窗是独立窗口，样式作用域也独立，token 曾经各写一份：
+     原来写的是 221 65% 55% 的蓝 —— 那正是 DESIGN.md 里点名否掉的色相
+     （「221° 是 Linear / Notion / Slack 的同款色 —— 零辨识度」）。
+     同一个 App 的两个窗口用两套品牌色，等于没有品牌色。 */
+  --primary: 195 80% 34%;
   --primary-foreground: 0 0% 100%;
+  /* 品牌色作文字用的深档 —— 与主窗口同值，见 index.css 的说明 */
+  --primary-strong: 195 80% 30%;
   --secondary: 210 25% 94%;
   --secondary-foreground: 220 10% 22%;
   --muted: 210 25% 94%;
-  --muted-foreground: 215 12% 52%;
+  --muted-foreground: 215 12% 46%;
   --accent: 210 25% 92%;
   --accent-foreground: 220 10% 22%;
   --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 100%;
+  /* 语义色 —— 与主窗口 index.css 同值。
+     少了这两个，Tailwind 注册的 bg-success / bg-warning 在弹窗里会静默失效
+     （变量未定义 → class 不生效），将来弹窗加一个 success 徽标就会踩到。
+     取值与对比度依据见 index.css 对应行的注释。 */
+  --success: 152 60% 32%;
+  --success-foreground: 0 0% 100%;
+  --warning: 38 70% 35%;
+  --warning-foreground: 0 0% 100%;
   --border: 214 22% 91%;
   --input: 214 22% 91%;
-  --ring: 221 65% 55%;
+  --ring: 195 80% 34%;
   /* 链接色 —— 与主窗口 index.css 同值。少了它 text-link 类不生效，
      整条网址会跟普通正文一个颜色，扫一眼分不出是不是链接 */
   --link: 212 90% 42%;
@@ -40,8 +55,13 @@
   --card-foreground: 210 20% 85%;
   --popover: 220 15% 10%;
   --popover-foreground: 210 20% 85%;
-  --primary: 221 65% 60%;
-  --primary-foreground: 0 0% 100%;
+  /* 深色：与主窗口同值。原来这里写的是 221 65% 60% 的蓝配白字 ——
+     白字压上去只有 3.78:1，比 AA 正文线差一截。
+     换成主窗口那套「亮青底 + 深字」：195 75% 55% 配 220 25% 8% 是 8.04:1。
+     对比度算法与出数口径见 docs/UI-GUIDELINES.md 第九节「测量方法」。 */
+  --primary: 195 75% 55%;
+  --primary-foreground: 220 25% 8%;
+  --primary-strong: 195 80% 60%;
   --secondary: 215 15% 18%;
   --secondary-foreground: 210 20% 85%;
   --muted: 215 15% 18%;
@@ -50,9 +70,14 @@
   --accent-foreground: 210 20% 85%;
   --destructive: 0 62% 55%;
   --destructive-foreground: 0 0% 100%;
+  /* 语义色 —— 与主窗口 index.css 暗色段同值 */
+  --success: 152 58% 55%;
+  --success-foreground: 220 15% 8%;
+  --warning: 48 85% 60%;
+  --warning-foreground: 38 50% 18%;
   --border: 215 15% 20%;
   --input: 215 15% 20%;
-  --ring: 221 65% 60%;
+  --ring: 195 75% 55%;
   --link: 205 92% 70%;
 }
 
