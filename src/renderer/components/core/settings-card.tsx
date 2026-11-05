@@ -39,7 +39,7 @@ export const ACCENTS: Record<AccentKey, AccentSpec> = {
     iconText: "text-primary",
     iconBg: "bg-primary/10",
     iconBorder: "ring-1 ring-primary/20",
-    badge: "bg-primary/10 text-primary border-primary/25",
+    badge: "bg-primary/10 text-primary-strong border-primary/25",
     badgeDot: "bg-primary",
     badgeIdle: "bg-muted text-muted-foreground/70 border-border/70",
     badgeIdleDot: "bg-muted-foreground/40",

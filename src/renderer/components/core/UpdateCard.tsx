@@ -52,7 +52,7 @@ function describeStatus(status: UpdateStatus): {
     case "available":
       return {
         label: `新版本 v${status.latestVersion ?? "?"}`,
-        className: "bg-primary/10 text-primary border-primary/25",
+        className: "bg-primary/10 text-primary-strong border-primary/25",
       };
     case "not-available":
       return {
@@ -62,7 +62,7 @@ function describeStatus(status: UpdateStatus): {
     case "downloading":
       return {
         label: `下载中 ${status.percent ?? 0}%`,
-        className: "bg-primary/10 text-primary border-primary/25",
+        className: "bg-primary/10 text-primary-strong border-primary/25",
       };
     case "downloaded":
       return {

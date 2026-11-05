@@ -1245,7 +1245,7 @@ export default function Settings() {
                       className={cn(
                         "rounded-md border px-2.5 py-1 text-[11px] transition-colors",
                         "border-border/60 text-muted-foreground hover:bg-muted/50 hover:text-foreground",
-                        voiceHotkey === preset.value && "border-primary/50 bg-primary/10 text-primary"
+                        voiceHotkey === preset.value && "border-primary/50 bg-primary/10 text-primary-strong"
                       )}>
                       {preset.label}
                     </button>
@@ -1703,7 +1703,7 @@ export default function Settings() {
                 title="外观"
                 subtitle="应用配色主题"
                 status={
-                  <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-1 rounded-md bg-primary/10 text-primary border border-primary/25 shrink-0">
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-1 rounded-md bg-primary/10 text-primary-strong border border-primary/25 shrink-0">
                     {theme === "light" ? <Sun className="h-3 w-3" /> : theme === "dark" ? <Moon className="h-3 w-3" /> : <Monitor className="h-3 w-3" />}
                     {THEME_LABELS[theme]}
                   </span>
@@ -1781,7 +1781,7 @@ export default function Settings() {
                         {formatAccelerator(panelHotkey)}
                       </span>
                     )}
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-1 rounded-md bg-primary/10 text-primary border border-primary/25">
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-1 rounded-md bg-primary/10 text-primary-strong border border-primary/25">
                       {panelPosition === "bottom" ? (
                         <PanelBottom className="h-3 w-3" />
                       ) : (
@@ -1839,7 +1839,7 @@ export default function Settings() {
                       className={cn(
                         "rounded-md border px-2.5 py-1 text-[11px] transition-colors",
                         "border-border/60 text-muted-foreground hover:bg-muted/50 hover:text-foreground",
-                        panelHotkey === preset.value && "border-primary/50 bg-primary/10 text-primary"
+                        panelHotkey === preset.value && "border-primary/50 bg-primary/10 text-primary-strong"
                       )}>
                       {preset.label}
                     </button>
@@ -1930,7 +1930,7 @@ export default function Settings() {
                 title="侧边栏标签"
                 subtitle="选择需要在侧栏显示的功能入口"
                 status={
-                  <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-1 rounded-md bg-primary/10 text-primary border border-primary/25 shrink-0">
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-1 rounded-md bg-primary/10 text-primary-strong border border-primary/25 shrink-0">
                     <ListChecks className="h-3 w-3" />
                     {Object.values(sidebarTabs).filter(Boolean).length + 1} / 6
                   </span>

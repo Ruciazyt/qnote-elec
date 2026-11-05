@@ -210,7 +210,7 @@ export function AppProjectHeader({
               type="button"
               aria-label="复制地址"
               title="复制地址"
-              className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground/70 hover:text-foreground"
+              className="flex-shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity text-muted-foreground/70 hover:text-foreground"
               onClick={() => onCopyAddress(previewUrl)}>
               <Copy className="h-3 w-3" />
             </button>

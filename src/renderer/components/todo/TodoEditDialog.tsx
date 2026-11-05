@@ -294,7 +294,7 @@ export function TodoEditDialog({
                       variant="ghost"
                       size="icon"
                       onClick={() => handleRemoveAttachment(att.id)}
-                      className="absolute right-0 top-0 h-5 w-5 rounded-none bg-black/60 p-0 text-white opacity-0 transition-opacity hover:bg-destructive hover:text-white group-hover/att:opacity-100"
+                      className="absolute right-0 top-0 h-5 w-5 rounded-none bg-black/60 p-0 text-white opacity-0 transition-opacity hover:bg-destructive hover:text-white group-hover/att:opacity-100 focus-within:opacity-100"
                       aria-label="移除附件"
                     >
                       <X className="h-3 w-3" />
