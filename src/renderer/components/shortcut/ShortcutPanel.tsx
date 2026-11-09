@@ -502,12 +502,12 @@ export function ShortcutPanel() {
             marginRight: PANEL_RAIL_LABEL_INSET,
             marginBottom: PANEL_RAIL_LABEL_INSET,
           }}
-          className="flex-1 flex flex-col items-center gap-3 py-3 text-muted-foreground/60 hover:text-foreground hover:bg-accent/40 transition-colors">
+          className="flex-1 flex flex-col items-center gap-3 py-3 text-muted-foreground hover:text-foreground hover:bg-accent/40 transition-colors">
           <span className="text-xs tracking-widest select-none" style={{ writingMode: "vertical-rl" }}>
             快捷方式
           </span>
           {items.length > 0 && (
-            <span className="shrink-0 rounded-full bg-primary/15 text-primary text-xs font-medium px-1.5 py-0.5 tabular-nums">
+            <span className="shrink-0 rounded-full bg-primary/15 text-primary-strong text-xs font-medium px-1.5 py-0.5 tabular-nums">
               {items.length}
             </span>
           )}
@@ -547,10 +547,10 @@ export function ShortcutPanel() {
           boxShadow: "inset 0 -1px 0 0 hsl(var(--border) / 0.6)",
         }}
         className="flex items-center gap-1 h-12 pt-2 pb-2 shrink-0">
-        <LayoutGrid className="h-4 w-4 text-muted-foreground/60 shrink-0" />
+        <LayoutGrid className="h-4 w-4 text-muted-foreground shrink-0" />
         <span className="text-sm font-medium text-foreground flex-1 truncate">快捷方式</span>
         {items.length > 0 && (
-          <span className="text-xs text-muted-foreground/60 tabular-nums shrink-0">{items.length}</span>
+          <span className="text-xs text-muted-foreground tabular-nums shrink-0">{items.length}</span>
         )}
         <Button
           variant="ghost"
@@ -570,7 +570,7 @@ export function ShortcutPanel() {
           aria-expanded={showShellRow}
           className={cn(
             "h-8 w-8 p-0 shrink-0",
-            showShellRow && "bg-primary/10 text-primary"
+            showShellRow && "bg-primary/10 text-primary-strong"
           )}>
           <Settings2 className="h-4 w-4" />
         </Button>
@@ -593,7 +593,7 @@ export function ShortcutPanel() {
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
                   <div className="text-xs font-medium text-foreground">系统右键菜单</div>
-                  <div className="text-[10px] text-muted-foreground/60 leading-snug mt-0.5">
+                  <div className="text-[10px] text-muted-foreground leading-snug mt-0.5">
                     {shellBroken
                       ? "菜单项在，但点了没反应"
                       : "右键文件或文件夹即可添加到快捷方式"}
@@ -622,7 +622,7 @@ export function ShortcutPanel() {
               )}
             </div>
           ) : (
-            <p className="text-[10px] text-muted-foreground/60 leading-relaxed">
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
               系统右键菜单：{shellStatus?.reason ?? "不可用"}
             </p>
           )}

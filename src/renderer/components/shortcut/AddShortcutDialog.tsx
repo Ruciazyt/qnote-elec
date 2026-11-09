@@ -177,7 +177,7 @@ export function AddShortcutDialog({
                     "disabled:opacity-50 disabled:cursor-not-allowed",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
                     selected
-                      ? "bg-primary/[0.08] border-primary/45 text-primary"
+                      ? "bg-primary/[0.08] border-primary/45 text-primary-strong"
                       : "bg-card border-border text-muted-foreground hover:border-primary/25 hover:bg-primary/[0.04]"
                   )}>
                   <Icon className="h-4 w-4" />
@@ -268,7 +268,7 @@ export function AddShortcutDialog({
                   </div>
                 </div>
               ) : (
-                <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
                   系统右键菜单：{shellMenuStatus.reason}
                 </p>
               )}
