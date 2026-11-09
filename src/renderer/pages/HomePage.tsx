@@ -599,19 +599,19 @@ export default function HomePage() {
                 <div className="relative mb-6">
                   <div className="absolute inset-0 bg-primary/10 rounded-full blur-2xl scale-75" />
                   <div className="relative w-16 h-16 rounded-2xl bg-primary/10 border border-primary/25 flex items-center justify-center animate-float icon-glow-ring">
-                    <SearchX className="h-8 w-8 text-primary/70" />
+                    <SearchX className="h-8 w-8 text-primary-strong" />
                   </div>
                 </div>
                 <p className="text-base font-medium text-foreground/80 mb-1 animate-fade-in-stagger">
                   未找到匹配的记录
                 </p>
-                <p className="text-sm text-muted-foreground/60 leading-relaxed max-w-xs text-center animate-fade-in-stagger mb-4">
+                <p className="text-sm text-muted-foreground leading-relaxed max-w-xs text-center animate-fade-in-stagger mb-4">
                   尝试换一个搜索关键词，或检查是否有内容被清空
                 </p>
                 <Button
                   onClick={() => setSearchKeyword("")}
                   variant="outline"
-                  className="text-sm px-4 py-1.5 h-auto animate-fade-in-stagger border-primary/25 text-primary dark:text-primary/80 bg-primary/10 hover:bg-primary/15 hover:border-primary/40 hover:scale-105 active:scale-95 transition-all duration-150"
+                  className="text-sm px-4 py-1.5 h-auto animate-fade-in-stagger border-primary/25 text-primary-strong dark:text-primary-strong bg-primary/10 hover:bg-primary/15 hover:border-primary/40 hover:scale-105 active:scale-95 transition-all duration-150"
                   style={{ animationDelay: '360ms' }}>
                   清除搜索
                 </Button>
@@ -622,7 +622,7 @@ export default function HomePage() {
                 <div className="relative mb-6">
                   <div className="absolute inset-0 bg-primary/12 rounded-full blur-2xl scale-75" />
                   <div className="relative w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center group">
-                    <ClipboardListIcon className="h-8 w-8 text-primary/60 animate-float transition-transform duration-300 group-hover:scale-110" />
+                    <ClipboardListIcon className="h-8 w-8 text-primary-strong animate-float transition-transform duration-300 group-hover:scale-110" />
                     <span className="absolute inset-0 rounded-2xl border-2 border-primary/20 animate-pulse-ring" />
                   </div>
                 </div>
