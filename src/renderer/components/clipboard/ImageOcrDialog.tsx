@@ -65,7 +65,7 @@ export function ImageOcrDialog({
               + ring，而不是圆形底座。原来的 rounded-full 32×32 是全项目独一份的画法。 */}
           <DialogTitle className="flex items-center gap-2.5">
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 ring-1 ring-primary/20">
-              <ImageIcon className="h-4 w-4 text-primary-strong" />
+              <ImageIcon className="h-4 w-4 text-primary" />
             </span>
             {/* 图标块后面跟的是裸文本，间距由 flex gap 决定；
                 包进 span 让「图标块 / 文字」两段的间距不再有歧义。 */}
@@ -124,7 +124,7 @@ export function ImageOcrDialog({
                       —— 偏移会在彩色 focus 环外留一圈白缝。 */}
                   <select
                     id="ocr-type-select"
-                    className="h-9 w-full rounded-md border border-border/70 bg-background px-3 text-sm text-foreground transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="h-9 w-full rounded-md border border-border/70 bg-background px-3 text-sm text-foreground transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                     value={ocrType}
                     onChange={(e) =>
                       onOcrTypeChange(e.target.value as "standard" | "accurate" | "webimage")
@@ -160,7 +160,7 @@ export function ImageOcrDialog({
               <div className="flex items-center justify-between gap-2">
                 <h4 className="flex items-center gap-2 text-sm font-semibold text-foreground">
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 ring-1 ring-primary/20">
-                    <FileText className="h-3 w-3 text-primary-strong" />
+                    <FileText className="h-3 w-3 text-primary" />
                   </span>
                   <span>识别结果</span>
                 </h4>
@@ -187,7 +187,7 @@ export function ImageOcrDialog({
                    这个本来就该安静的弹框一直动。 */
                 <div className="flex h-full flex-col items-center justify-center text-center">
                   <span className="mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-primary/10 ring-1 ring-primary/20">
-                    <FileText className="h-6 w-6 text-primary-strong" />
+                    <FileText className="h-6 w-6 text-primary" />
                   </span>
                   <p className="mb-1.5 text-sm font-medium text-foreground/80">
                     点击「开始识别」

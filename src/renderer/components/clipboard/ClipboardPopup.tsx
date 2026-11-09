@@ -262,7 +262,7 @@ export function ClipboardPopup() {
             —— 只标角不遮内容，用户还要读这条记录 */}
         {copiedId === item.id && (
           <div
-            className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white shadow-md"
+            className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-success text-success-foreground shadow-md"
             title="已复制">
             <Check className="h-3 w-3" />
           </div>
@@ -312,8 +312,8 @@ export function ClipboardPopup() {
                   "animate-copy-badge inline-flex items-center gap-1 rounded-full px-1.5 py-0.5",
                   "text-[10px] font-medium leading-none",
                   copyToast.tone === "success"
-                    ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                    : "bg-destructive/15 text-destructive"
+                    ? "bg-success text-success-foreground"
+                    : "bg-destructive text-destructive-foreground dark:bg-destructive/15 dark:text-destructive-foreground"
                 )}
                 role="status"
                 aria-live="polite">

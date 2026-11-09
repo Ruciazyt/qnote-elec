@@ -764,14 +764,19 @@ export function ClipboardList({
                     triggerClassName="hover:bg-muted hover:text-foreground"
                   />
 
-                  {/* 同展开态：删除压在最后 */}
+                  {/* 同展开态：删除压在最后
+                      焦点环走实心 destructive（destructive/50 只有 2.24:1，过不了 3:1）：
+                      基类 Button 自带 focus-visible:ring-ring，而同名工具类里 ring-ring
+                      排在 ring-destructive 之后（源码顺序即层叠顺序），普通写法压不过基类
+                      —— 这里用 important 标记（实测：Tailwind 3.4 只认变体后的 !ring-*，
+                      末尾的 ring-*! 与开头的 !ring-* 都不生成规则）。 */}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
                         onClick={() => record.id !== undefined ? onDeleteRecord(record.id) : null}
                         variant="ghost"
                         aria-label="删除记录"
-                        className="h-8 w-8 p-0 transition-all duration-150 active:scale-95 focus-visible:ring-destructive btn-delete-hover hover:bg-destructive/10 hover:text-destructive">
+                        className="h-8 w-8 p-0 transition-all duration-150 active:scale-95 focus-visible:!ring-destructive btn-delete-hover hover:bg-destructive/10 hover:text-destructive">
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </TooltipTrigger>
@@ -945,7 +950,7 @@ export function ClipboardList({
                         onClick={() => record.id !== undefined ? onDeleteRecord(record.id) : null}
                         variant="ghost"
                         aria-label="删除记录"
-                        className="h-8 w-8 p-0 transition-all duration-150 active:scale-95 focus-visible:ring-destructive btn-delete-hover hover:bg-destructive/10 hover:text-destructive">
+                        className="h-8 w-8 p-0 transition-all duration-150 active:scale-95 focus-visible:!ring-destructive btn-delete-hover hover:bg-destructive/10 hover:text-destructive">
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </TooltipTrigger>

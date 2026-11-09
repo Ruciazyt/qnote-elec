@@ -185,7 +185,7 @@ export const AiChatPanel = memo(function AiChatPanel({
               {/* 装饰背景 — 去掉持续浮动 + 模糊光晕，简化静态 */}
               <div className="relative mb-5">
                 <div className="h-16 w-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                  <Bot className="h-8 w-8 text-primary-strong" />
+                  <Bot className="h-8 w-8 text-primary" />
                 </div>
               </div>
 
@@ -245,7 +245,7 @@ export const AiChatPanel = memo(function AiChatPanel({
                                     onClick={() => setPreviewImage(image)}
                                     title={image.name || "查看图片"}
                                     aria-label="查看图片"
-                                    className="overflow-hidden rounded-md border border-border/60 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
+                                    className="overflow-hidden rounded-md border border-border/60 transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                                     <img
                                       src={aiImageDataUrl(image)}
                                       alt={image.name || "附件图片"}
@@ -269,11 +269,11 @@ export const AiChatPanel = memo(function AiChatPanel({
                           aria-label={isCopied ? "已复制" : "复制消息内容"}
                           className={`
                             ai-msg-copy-btn w-5 h-5 rounded flex items-center justify-center flex-shrink-0
-                            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1
+                            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1
                             ${isCopied
                               ? "ai-msg-copy-btn copied"
                               : msg.role === "user"
-                                ? "bg-primary-foreground/15 dark:bg-primary-foreground/20 border border-primary-foreground/25 text-primary-foreground/70"
+                                ? "bg-primary-foreground/15 dark:bg-primary-foreground/20 border border-primary-foreground/25 text-primary-foreground"
                                 : "bg-background/70 dark:bg-muted/60 border border-border/60 text-muted-foreground/60"
                             }
                           `}>
@@ -357,11 +357,11 @@ export const AiChatPanel = memo(function AiChatPanel({
             compacting ? (
               <div className="flex items-start gap-2 ai-thinking-row">
                 <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1 animate-pulse ai-thinking-avatar">
-                  <Bot className="h-3 w-3 text-primary-strong" />
+                  <Bot className="h-3 w-3 text-primary" />
                 </div>
                 <div className="max-w-[85%] rounded-2xl rounded-tl-sm px-4 py-3 bg-background border border-border/80 shadow-sm ai-message-bubble ai-thinking-bubble thinking-glow flex flex-col items-start gap-1.5">
                   <div className="flex items-center gap-1.5">
-                    <RefreshCw className="h-3 w-3 text-primary-strong animate-spin" />
+                    <RefreshCw className="h-3 w-3 text-primary animate-spin" />
                     <span className="text-xs font-medium text-foreground">正在压缩对话历史…</span>
                   </div>
                   <span className="text-[10px] text-muted-foreground/60 leading-relaxed">
@@ -378,7 +378,7 @@ export const AiChatPanel = memo(function AiChatPanel({
               // 兼容老路径：未升级 useAiAssistant 时仍显示思考中动画
               <div className="flex items-start gap-2 ai-thinking-row">
                 <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-1 animate-pulse ai-thinking-avatar">
-                  <Bot className="h-3 w-3 text-primary-strong" />
+                  <Bot className="h-3 w-3 text-primary" />
                 </div>
                 <div className="max-w-[85%] rounded-2xl rounded-tl-sm px-4 py-3 bg-background border border-border/80 shadow-sm ai-message-bubble ai-thinking-bubble thinking-glow flex flex-col items-start">
                   <span className="typing-dots">
