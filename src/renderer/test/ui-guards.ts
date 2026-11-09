@@ -181,6 +181,27 @@ function isVisualHidden(tokens: string[]): boolean {
   );
 }
 
+/**
+ * 藏法分两种 —— 「聚焦能不能救回来」取决于藏的是哪一层
+ *
+ * - 整体透明（opacity-0）：元素连背景一起没了，聚焦时只改字色救不回来
+ * - 字色全透明（text-transparent、text-xxx/0）：元素还在，只是字看不见，
+ *   聚焦时把字色换成实心色就看得见了
+ *
+ * 书签那两颗按钮属于后者：默认 text-muted-foreground/0，
+ * 悬停显形、聚焦时把字色换成实心色。
+ */
+function isOpacityHidden(tokens: string[]): boolean {
+  return tokens.includes("opacity-0");
+}
+
+function isTransparentTextHidden(tokens: string[]): boolean {
+  return (
+    tokens.includes("text-transparent") ||
+    tokens.some((t) => VISUAL_HIDDEN_PATTERN.test(t))
+  );
+}
+
 /** 鼠标点不到 */
 const MOUSE_BLOCKED_TOKENS = ["pointer-events-none"];
 /**
@@ -209,12 +230,48 @@ const FOCUS_REVEAL_TOKENS = [
  */
 const HOVER_REVEAL_PATTERN = /^(group-hover|hover)(\/[\w-]+)?:opacity-\d+$/;
 
+/**
+ * focus 变体的实心文字色 —— 聚焦时把字色换成不透明的颜色
+ *
+ * 变体前缀只认 focus / focus-visible / focus-within 三个：
+ * hover、group-hover 只解决鼠标，键盘聚焦时还是看不见，不能算显形。
+ *
+ * 颜色必须是实心 —— 带透明度档的（focus-visible:text-muted-foreground/70）
+ * 聚焦后依然看不清，不算显形；text-.../0 本身更是全透明，也不算。
+ */
+const FOCUS_SOLID_TEXT_PATTERN = /^focus(-visible|-within)?:!?text-[a-z0-9-]+$/;
+/** 但换成 text-transparent 还是全透明，等于没换 */
+const FOCUS_TRANSPARENT_TEXT_PATTERN = /^focus(-visible|-within)?:!?text-transparent$/;
+
 function hasFocusReveal(tokens: string[]): boolean {
   return tokens.some((t) => FOCUS_REVEAL_TOKENS.includes(t));
 }
 
+/** focus 变体的实心文字色 */
+function hasFocusSolidText(tokens: string[]): boolean {
+  return tokens.some(
+    (t) =>
+      FOCUS_SOLID_TEXT_PATTERN.test(t) &&
+      !FOCUS_TRANSPARENT_TEXT_PATTERN.test(t)
+  );
+}
+
 function hasHoverReveal(tokens: string[]): boolean {
   return tokens.some((t) => HOVER_REVEAL_PATTERN.test(t));
+}
+
+/**
+ * 聚焦能不能把这个藏起来的东西救回来
+ *
+ * 原来的 focus:opacity-100 / focus:pointer-events-auto 一律算显形。
+ * 新增一档「focus 变体的实心文字色」，但只对字色全透明这一种藏法有效：
+ * 整体透明（opacity-0）时元素本身还是透明的，只改字色救不回来。
+ */
+function hasRevealForHidden(tokens: string[]): boolean {
+  if (hasFocusReveal(tokens)) return true;
+  if (isOpacityHidden(tokens)) return false;
+  if (!isTransparentTextHidden(tokens)) return false;
+  return hasFocusSolidText(tokens);
 }
 
 const FOCUSABLE_TAGS = new Set(["button", "input", "select", "textarea", "summary"]);
@@ -450,7 +507,7 @@ export function findHiddenFocusables(sources: { rel: string; sf: ts.SourceFile }
           for (const el of chain) {
             const tokens = elementClassTokens(el);
             if (!isVisualHidden(tokens)) continue;
-            if (hasFocusReveal(tokens)) continue;
+            if (hasRevealForHidden(tokens)) continue;
             pushOnce("视觉藏起", el);
           }
 
@@ -471,7 +528,11 @@ export function findHiddenFocusables(sources: { rel: string; sf: ts.SourceFile }
         const visitChildren = (n: ts.Node) => {
           if (ts.isJsxElement(n)) {
             const tokens = elementClassTokens(n);
-            if (isVisualHidden(tokens) && !hasFocusReveal(tokens) && !hasHoverReveal(tokens)) {
+            if (
+              isVisualHidden(tokens) &&
+              !hasRevealForHidden(tokens) &&
+              !hasHoverReveal(tokens)
+            ) {
               hiddenDescendants.push(n);
             }
           }

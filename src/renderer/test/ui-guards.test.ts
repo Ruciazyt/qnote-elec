@@ -121,6 +121,95 @@ describe("隐藏控件", () => {
     ]);
   });
 
+  /**
+   * 焦点显形判定：focus 变体的实心字色
+   *
+   * 场景取自书签那两颗按钮（components/browser/BookmarkList.tsx）：
+   * 默认字色全透明，悬停显形，聚焦时把字色换成实心色。
+   *
+   * 每条都走 diffViolations(current, {})（空基线），断言进了 added —— 说明这条写法
+   * 确实会被守卫当成违规。
+   */
+  const REL = "components/browser/BookmarkList.tsx";
+
+  function addedSignatures(source: string): string[] {
+    const bad = makeSource(REL, source);
+    const { added } = diffViolations(findHiddenFocusables([bad]), {});
+    return added.map((v) => v.signature);
+  }
+
+  it("变异输入：字色全透明又没有 focus 显形会被抓出来", () => {
+    expect(
+      addedSignatures(
+        `export function X() { return (<button className="text-muted-foreground/0 group-hover:text-muted-foreground/70">删</button>); }`
+      )
+    ).toEqual(["components/browser/BookmarkList.tsx|视觉藏起"]);
+  });
+
+  it("变异输入：focus 带透明度档（/70）不算显形", () => {
+    expect(
+      addedSignatures(
+        `export function X() { return (<button className="text-muted-foreground/0 focus-visible:text-muted-foreground/70">删</button>); }`
+      )
+    ).toEqual(["components/browser/BookmarkList.tsx|视觉藏起"]);
+  });
+
+  it("变异输入：focus 实心字色算显形，放行", () => {
+    expect(
+      addedSignatures(
+        `export function X() { return (<button className="text-muted-foreground/0 focus-visible:text-muted-foreground">删</button>); }`
+      )
+    ).toEqual([]);
+  });
+
+  it("变异输入：原有的 focus 显形写法（opacity-100）放行", () => {
+    expect(
+      addedSignatures(
+        `export function X() { return (<button className="text-muted-foreground/0 focus-visible:opacity-100">删</button>); }`
+      )
+    ).toEqual([]);
+  });
+
+  it("变异输入：hover 实心字色不能替代 focus", () => {
+    expect(
+      addedSignatures(
+        `export function X() { return (<button className="text-muted-foreground/0 hover:text-muted-foreground">删</button>); }`
+      )
+    ).toEqual(["components/browser/BookmarkList.tsx|视觉藏起"]);
+  });
+
+  it("变异输入：整体透明（opacity-0）时 focus 实心字色也救不回来", () => {
+    expect(
+      addedSignatures(
+        `export function X() { return (<button className="opacity-0 text-muted-foreground/0 focus-visible:text-muted-foreground">删</button>); }`
+      )
+    ).toEqual(["components/browser/BookmarkList.tsx|视觉藏起"]);
+  });
+
+  it("变异输入：只写 opacity-0 时，focus 实心字色也不算显形", () => {
+    expect(
+      addedSignatures(
+        `export function X() { return (<button className="opacity-0 focus-visible:text-muted-foreground">删</button>); }`
+      )
+    ).toEqual(["components/browser/BookmarkList.tsx|视觉藏起"]);
+  });
+
+  it("变异输入：focus 换成 text-transparent 还是全透明", () => {
+    expect(
+      addedSignatures(
+        `export function X() { return (<button className="text-muted-foreground/0 focus:text-transparent">删</button>); }`
+      )
+    ).toEqual(["components/browser/BookmarkList.tsx|视觉藏起"]);
+  });
+
+  it("变异输入：focus 实心字色带 important 标记也算显形", () => {
+    expect(
+      addedSignatures(
+        `export function X() { return (<button className="text-muted-foreground/0 focus-visible:!text-foreground">删</button>); }`
+      )
+    ).toEqual([]);
+  });
+
   it("变异输入：一个包装器藏住两个按钮，只算一处", () => {
     const bad = makeSource(
       "components/x.tsx",
