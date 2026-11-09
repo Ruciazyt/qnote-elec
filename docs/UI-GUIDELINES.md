@@ -117,6 +117,14 @@
   `/60` 2.27:1、`/70` 2.67:1、`/80` 3.18:1（取更差列；白底对应 2.32 / 2.74 / 3.27）
   —— 透明度档一律掉到 4.5 以下。
   这跟上面「文字不要用透明度档」是同一条规矩的两次应用。
+- **透明度档只能取档位值或方括号任意值**（2026-11-09 实测补）——
+  Tailwind v3 的 opacity 档默认是 `0/5/10/…/100`；写 `bg-primary/8`、`bg-primary/12`
+  这类**非 5 倍数**的裸数字档**不会报错，也不会生成任何规则** —— 类名静默失效，
+  那一层的底色等于压根没画出来（实测：产物 CSS 里搜 `bg-primary/12` 连 `0.12` 都搜不到）。
+  要非档位值必须写方括号任意值：`bg-primary/[0.08]` → `hsl(var(--primary) / 0.08)`，
+  实测有效（仓库里已有 16 处这种写法）。
+  **这条只管 Tailwind 类名** —— CSS 里写 `hsl(var(--destructive) / 0.08)` 照样生效，
+  CSS 的 alpha 接受任意百分比。两种写法别混着记。
 - **剪贴板弹窗有独立的 token 作用域**（`components/clipboard/popup-index.css`）。
   它曾经是一套独立的品牌色（221° 蓝），而 221° 正是 DESIGN.md 点名否掉的色相
   （「零辨识度」），同一个 App 两个窗口两套品牌色等于没有品牌色；
@@ -614,6 +622,8 @@ canvas 不透明会把投影整条盖掉 —— 笔记页靠 `relative z-10` 把
 | 2026-11-05 夜（剪贴板域复验） | `components/clipboard/` 5 文件（`42c3771` 品牌色文字与确认框描述） | **品牌色两档改法在本域是一致的**：品牌文字已全部换成 `text-primary-strong`、底纹档位都 ≤ /15，符合 DESIGN.md 与任务单 P0-5；**破坏性确认框 `DeleteAllConfirmDialog` 符合第十节七条口径**（正文进了 `DialogDescription`、标题只写动作与对象类别、数字点名、不可逆提示单独一行且 `text-destructive font-medium`、次级说明用实心 `text-muted-foreground`）；**隐藏控件不构成焦点序问题**（「已复制」角标是 `span`，不可聚焦，与 P0-3 附记一致）。另报 4 项：P0-6 焦点环对比度（23 处半透明品牌色环，`primary/50` = 2.04）、P0-7 用户气泡复制按钮图标 2.65、P1-10 图标块图标色偏离 Icon Block 配方、P1-11 语义色当文字色与工具栏搜索图标色 | UI设计校验 |
 
 | 2026-11-05 夜（补 3） | 对比度矩阵补组合 + 行尾事故 | `scripts/check-contrast.mjs` 补 10 行：焦点环档位（`/30` `/40` 危险色 `/50`）、用户气泡（底不是卡片，显式指定基底）、选中/悬停底纹差（1.21）；`--json` 单用会输出空矩阵，已修。**行尾事故**：带 shebang 的 `.mjs` 被 CRLF 检出时 vitest 整个套件加载失败（报在 import 行，看不出是脚本自己的问题）—— 根因已由 `.gitattributes` 统一 LF 检出解决（`17518ef`），脚本侧另去掉 shebang 兜底 | UI设计校验 |
+
+| 2026-11-09 上午 | 首页空状态复走查 + 非档位透明度写法 | 走查 `pages/HomePage.tsx` 的空状态 5 处改动：品牌色文字两档用法正确（按钮 `text-primary-strong` 压 `primary/10` = 5.05、hover 压 `/15` = 4.72，过线；焦点环由基类 `focus-visible:ring-2 focus-visible:ring-ring` 负责）；**图标块改回 `text-primary`**（DESIGN.md Icon Block 配方：图标用 `--primary`、文字才用 `--primary-strong`；primary 压 `primary/10` = 4.14，图形走 3:1 过线），与 SkillsPage / FloatingAiAssistant / 剪贴板 ImageOcrDialog 三处对齐；`dark:text-primary-strong` 判为冗余已删（变量在 `.dark` 自动换档）；悬停文字补 `hover:text-primary-strong`（变体的 `hover:text-accent-foreground` 特异性更高会盖掉业务侧基础态字色）。**新查出并补进第二节**：非 5 倍数的裸数字透明度档（`bg-primary/8` `/12`）在 Tailwind v3 里不生成任何规则、静默失效 —— 真实失效 2 处（`App.tsx`、`NotesPage.tsx`，均已进 master），注释误导 2 处，任务单 P1-12 | UI设计校验 |
 
 ---
 
