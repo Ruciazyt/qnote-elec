@@ -383,7 +383,7 @@ export default function BrowserPage() {
                     e.stopPropagation();
                     handleCloseTab(tab.id);
                   }}
-                  className="shrink-0 rounded-sm p-0.5 opacity-0 group-hover:opacity-70 focus-within:opacity-70 hover:opacity-100 hover:bg-foreground/10 transition-opacity">
+                  className="shrink-0 rounded-sm p-0.5 opacity-0 group-hover:opacity-70 focus-within:opacity-100 hover:opacity-100 hover:bg-foreground/10 transition-opacity">
                   <X className="h-3 w-3" />
                 </button>
               </div>

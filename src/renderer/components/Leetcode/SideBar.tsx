@@ -493,7 +493,7 @@ export default function Sidebar({ onSelectCollection, selectedCollectionId }: Si
                     <ListChecks className="h-5 w-5 text-primary/50" />
                   </div>
                   <p className="text-sm text-muted-foreground/70 mb-1">暂无题单</p>
-                  <p className="text-xs text-muted-foreground/60">点击 <Plus className="inline h-3 w-3 -mt-0.5" /> 按钮创建</p>
+                  <p className="text-xs text-muted-foreground">点击 <Plus className="inline h-3 w-3 -mt-0.5" /> 按钮创建</p>
                 </div>
               )}
             </div>
