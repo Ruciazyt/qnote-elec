@@ -153,7 +153,7 @@ const ImageViewer = forwardRef<NoteEditorHandle, ImageViewerProps>(function Imag
             draggable={false}
           />
         ) : (
-          <p className="text-sm text-muted-foreground/60">图片加载失败</p>
+          <p className="text-sm text-muted-foreground">图片加载失败</p>
         )}
       </div>
     </div>

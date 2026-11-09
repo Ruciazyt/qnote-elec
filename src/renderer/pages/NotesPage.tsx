@@ -1120,12 +1120,12 @@ export default function NotesPage() {
                     >
                       <FolderOpen
                         className={`h-3.5 w-3.5 flex-shrink-0 transition-colors duration-150 ${
-                          !filePath ? "text-primary/60" : "text-muted-foreground/60"
+                          !filePath ? "text-primary/60" : "text-muted-foreground"
                         } group-hover:text-primary`}
                       />
                       <span
                         className={`text-xs truncate ${
-                          !filePath ? "text-primary/70 font-medium" : "text-muted-foreground/60"
+                          !filePath ? "text-primary/70 font-medium" : "text-muted-foreground font-medium"
                         }`}
                         title={filePath || undefined}
                       >
@@ -1234,7 +1234,7 @@ export default function NotesPage() {
                 不写它 truncate 不生效 —— 笔记放在深层文件夹时，长路径会顶破这一行。
                 标签栏则相反，固定不许被压缩。 */}
             <span
-              className="text-xs text-muted-foreground/60 truncate min-w-0 ml-auto"
+              className="text-xs text-muted-foreground truncate min-w-0 ml-auto"
               title={activeRelPath ?? undefined}
             >
               {activeFile ? activeFile.relPath : `${typeLabel} · 未打开文件`}

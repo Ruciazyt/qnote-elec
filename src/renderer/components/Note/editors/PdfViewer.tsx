@@ -120,7 +120,7 @@ const PdfViewer = forwardRef<NoteEditorHandle, PdfViewerProps>(function PdfViewe
             <div className="w-6 h-6 border-2 border-primary/40 border-t-primary rounded-full animate-spin" />
           </div>
         ) : failed ? (
-          <div className="h-full w-full flex flex-col items-center justify-center text-muted-foreground/60">
+          <div className="h-full w-full flex flex-col items-center justify-center text-muted-foreground">
             <FileText className="h-10 w-10 mb-3 opacity-40" />
             <p className="text-sm">PDF 加载失败，文件可能已被移动或删除</p>
           </div>
@@ -133,7 +133,7 @@ const PdfViewer = forwardRef<NoteEditorHandle, PdfViewerProps>(function PdfViewe
             type="application/pdf"
             className="h-full w-full"
           >
-            <div className="h-full w-full flex flex-col items-center justify-center text-muted-foreground/60 p-6">
+            <div className="h-full w-full flex flex-col items-center justify-center text-muted-foreground p-6">
               <FileText className="h-10 w-10 mb-3 opacity-40" />
               <p className="text-sm mb-1">当前环境无法内嵌显示 PDF</p>
               <p className="text-xs text-muted-foreground/50">

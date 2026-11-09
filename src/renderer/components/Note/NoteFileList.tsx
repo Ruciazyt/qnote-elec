@@ -554,7 +554,7 @@ export default function NoteFileList({
         </div>
         <div className="flex items-center justify-between gap-1 px-1 mb-1 flex-shrink-0">
           {/* flex-1 + min-w-0：位置文字长了就截断，不能把右边的按钮挤出可视区 */}
-          <span className="flex-1 min-w-0 text-[10px] text-muted-foreground/60 truncate">
+          <span className="flex-1 min-w-0 text-[10px] text-muted-foreground truncate">
             {dragRel
               ? "拖到文件夹上移动，拖到空白处移回根目录"
               : currentFolder
@@ -597,13 +597,13 @@ export default function NoteFileList({
                     >
                       <Icon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                       <span className="flex-1">{meta.label}</span>
-                      <span className="text-[10px] text-muted-foreground/60 font-mono">
+                      <span className="text-[10px] text-muted-foreground font-mono">
                         {meta.defaultExt}
                       </span>
                     </button>
                   );
                 })}
-                <p className="px-2 py-1.5 mt-1 border-t border-border/60 text-[10px] text-muted-foreground/60">
+                <p className="px-2 py-1.5 mt-1 border-t border-border/60 text-[10px] text-muted-foreground">
                   图片和 PDF 请直接拖入或粘贴
                 </p>
               </PopoverContent>
@@ -663,7 +663,7 @@ export default function NoteFileList({
                 </div>
               </div>
               <p className="text-sm font-medium text-foreground/70 mb-1">还没有笔记</p>
-              <p className="text-xs text-muted-foreground/60 text-center max-w-[190px] leading-relaxed">
+              <p className="text-xs text-muted-foreground text-center max-w-[190px] leading-relaxed">
                 点上方「新建文件」创建空白笔记，
                 <br />
                 复制图片后按 Ctrl+V 存为图片笔记
