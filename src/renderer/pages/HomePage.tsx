@@ -599,7 +599,7 @@ export default function HomePage() {
                 <div className="relative mb-6">
                   <div className="absolute inset-0 bg-primary/10 rounded-full blur-2xl scale-75" />
                   <div className="relative w-16 h-16 rounded-2xl bg-primary/10 border border-primary/25 flex items-center justify-center animate-float icon-glow-ring">
-                    <SearchX className="h-8 w-8 text-primary-strong" />
+                    <SearchX className="h-8 w-8 text-primary" />
                   </div>
                 </div>
                 <p className="text-base font-medium text-foreground/80 mb-1 animate-fade-in-stagger">
@@ -611,7 +611,7 @@ export default function HomePage() {
                 <Button
                   onClick={() => setSearchKeyword("")}
                   variant="outline"
-                  className="text-sm px-4 py-1.5 h-auto animate-fade-in-stagger border-primary/25 text-primary-strong dark:text-primary-strong bg-primary/10 hover:bg-primary/15 hover:border-primary/40 hover:scale-105 active:scale-95 transition-all duration-150"
+                  className="text-sm px-4 py-1.5 h-auto animate-fade-in-stagger border-primary/25 text-primary-strong bg-primary/10 hover:bg-primary/15 hover:text-primary-strong hover:border-primary/40 hover:scale-105 active:scale-95 transition-all duration-150"
                   style={{ animationDelay: '360ms' }}>
                   清除搜索
                 </Button>
@@ -620,9 +620,9 @@ export default function HomePage() {
               /* ── 无记录状态：告知用户"正常现象，等着就行" ── */
               <>
                 <div className="relative mb-6">
-                  <div className="absolute inset-0 bg-primary/12 rounded-full blur-2xl scale-75" />
+                  <div className="absolute inset-0 bg-primary/10 rounded-full blur-2xl scale-75" />
                   <div className="relative w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center group">
-                    <ClipboardListIcon className="h-8 w-8 text-primary-strong animate-float transition-transform duration-300 group-hover:scale-110" />
+                    <ClipboardListIcon className="h-8 w-8 text-primary animate-float transition-transform duration-300 group-hover:scale-110" />
                     <span className="absolute inset-0 rounded-2xl border-2 border-primary/20 animate-pulse-ring" />
                   </div>
                 </div>
