@@ -35,22 +35,17 @@ export const DESTRUCTIVE_DIALOGS: DestructiveDialogSpec[] = [
 export const THIN_FOCUS_RING_BASELINE: Record<string, number> = {};
 
 /**
- * 被藏起来的可聚焦元素 —— 剩 3 处
- *
- * 与 docs/UI-AUDIT-2026-11-05.md 的 P0-3 硬伤清单一一对应。
+ * 被藏起来的可聚焦元素 —— 已清空
  *
  * 2026-11-05 已修：题单页 SideBar、StickyNoteApp 便签删除按钮、
  * AppProjectHeader 复制地址、TodoEditDialog 移除附件、SkillsPage 技能操作区。
  *
- * 剩下这 3 处的共同点：**只补了「聚焦时半显形」，没有补到全显形** ——
- * BrowserPage 标签页关闭是 `focus-within:opacity-70`，
- * BookmarkList 的两个收藏按钮是 `focus-visible:text-muted-foreground/70`。
- * 守卫只认「聚焦后 100% 显形」（focus-reveal 的口径），所以这两处仍算硬伤。
+ * 2026-11-09 已修：BrowserPage 标签页关闭（focus-within:opacity-70 → /100）、
+ * BookmarkList 的两个收藏按钮（focus-visible:text-muted-foreground/70 → 实心值）。
+ * 守卫同步放宽了 focus 显形口径 —— 认 focus 变体的实心字色，
+ * 见 ui-guards.ts 的 hasRevealForHidden。
  */
-export const HIDDEN_FOCUSABLE_BASELINE: Record<string, number> = {
-  "components/browser/BookmarkList.tsx|视觉藏起": 2,
-  "pages/BrowserPage.tsx|视觉藏起": 1,
-};
+export const HIDDEN_FOCUSABLE_BASELINE: Record<string, number> = {};
 
 /**
  * 破坏性确认框的描述问题 —— 已清空
@@ -61,7 +56,7 @@ export const HIDDEN_FOCUSABLE_BASELINE: Record<string, number> = {
 export const DESTRUCTIVE_DIALOG_BASELINE: Record<string, number> = {};
 
 /**
- * 品牌色底上用 text-primary 当字色 —— 剩 9 处
+ * 品牌色底上用 text-primary 当字色 —— 已清空
  *
  * 分两批：
  *   基础态（5 处）—— 同一个元素上 bg-primary/N 与 text-primary 同现
@@ -74,20 +69,7 @@ export const DESTRUCTIVE_DIALOG_BASELINE: Record<string, number> = {};
  * 应用域（settings-card / settings / UpdateCard）、
  * 浏览器题单域（BookmarkList / BrowserPage / SideBar）。
  *
- * 剩下这 9 处的共同点：**它们都在别处改了别的东西，这几行漏了** ——
- * 快捷面板（ShortcutPanel 2 处 / AddShortcutDialog 2 处）、
- * 待办徽章（TodoList 3 处）、首页空状态按钮（HomePage 2 处）。
- * 改法统一：文字换 `text-primary-strong`，底纹档不动（上限 /15）。
+ * 2026-11-09 已修剩下 9 处（快捷面板 4、待办徽章 3、首页 2）：
+ * 文字换 `text-primary-strong`，底纹档没动（上限 /15）。
  */
-export const BRAND_TEXT_BASELINE: Record<string, number> = {
-  // 基础态
-  "components/shortcut/AddShortcutDialog.tsx|bg-primary/[0.08] text-primary": 1,
-  "components/shortcut/ShortcutPanel.tsx|bg-primary/10 text-primary": 1,
-  "components/shortcut/ShortcutPanel.tsx|bg-primary/15 text-primary": 1,
-  "components/todo/TodoList.tsx|bg-primary/5 text-primary": 1,
-  "pages/HomePage.tsx|bg-primary/10 text-primary": 1,
-  // 变体态
-  "components/shortcut/AddShortcutDialog.tsx|hover:bg-primary/[0.08] text-primary": 1,
-  "components/todo/TodoList.tsx|hover:bg-primary/10 text-primary": 2,
-  "pages/HomePage.tsx|hover:bg-primary/15 text-primary": 1,
-};
+export const BRAND_TEXT_BASELINE: Record<string, number> = {};
