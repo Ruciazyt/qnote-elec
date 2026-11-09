@@ -53,7 +53,7 @@ export const ACCENTS: Record<AccentKey, AccentSpec> = {
     iconBorder: "ring-1 ring-border",
     badge: "bg-muted text-muted-foreground border-border",
     badgeDot: "bg-muted-foreground",
-    badgeIdle: "bg-muted/60 text-muted-foreground/60 border-border/60",
+    badgeIdle: "bg-muted/60 text-muted-foreground border-border/60",
     badgeIdleDot: "bg-muted-foreground/30",
     sectionIcon: "text-muted-foreground",
     hoverBorder: "hover:border-muted-foreground/30 focus-within:border-muted-foreground/30",

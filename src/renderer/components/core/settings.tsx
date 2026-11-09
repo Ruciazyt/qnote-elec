@@ -347,7 +347,7 @@ function UsageStatCell({
         {value}
       </div>
       {hint && (
-        <div className="text-[10px] text-muted-foreground/60 leading-tight mt-0.5">
+        <div className="text-[10px] text-muted-foreground leading-tight mt-0.5">
           {hint}
         </div>
       )}
@@ -359,7 +359,7 @@ function UsageStatCell({
 function UsageTrendChart({ data }: { data: UsageByDay[] }) {
   if (data.length === 0) {
     return (
-      <p className="text-[11px] text-muted-foreground/60 py-4 text-center">
+      <p className="text-[11px] text-muted-foreground py-4 text-center">
         暂无数据
       </p>
     );
@@ -1342,7 +1342,7 @@ export default function Settings() {
               />
               <CardContent className="px-5 pb-5 pt-0 space-y-4">
                 {usageLoading && !usageStats ? (
-                  <p className="text-[11px] text-muted-foreground/60 py-4 text-center">
+                  <p className="text-[11px] text-muted-foreground py-4 text-center">
                     加载中…
                   </p>
                 ) : !usageStats || usageStats.all.calls === 0 ? (
@@ -1374,7 +1374,7 @@ export default function Settings() {
                           <div className="text-[15px] font-semibold tabular-nums leading-tight mt-0.5 text-foreground/90">
                             {formatTokens(t.totalTokens)}
                           </div>
-                          <div className="text-[10px] text-muted-foreground/60 leading-tight mt-0.5">
+                          <div className="text-[10px] text-muted-foreground leading-tight mt-0.5">
                             tokens · {t.calls} 次
                           </div>
                         </div>
@@ -2178,7 +2178,7 @@ function SidebarTabToggle({
         <Icon
           className={cn(
             "h-3.5 w-3.5",
-            enabled ? accent.iconText : "text-muted-foreground/60"
+            enabled ? accent.iconText : "text-muted-foreground"
           )}
         />
       </div>
@@ -2186,7 +2186,7 @@ function SidebarTabToggle({
         <div className="flex items-center gap-1.5">
           <span className="text-xs font-medium text-foreground/90">{title}</span>
           {locked && (
-            <span className="text-[10px] text-muted-foreground/60 font-normal">
+            <span className="text-[10px] text-muted-foreground font-normal">
               固定
             </span>
           )}
