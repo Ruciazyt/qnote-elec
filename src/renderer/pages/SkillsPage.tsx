@@ -280,7 +280,7 @@ export default function SkillsPage() {
 
         {/* 技能列表 */}
         {loading ? (
-          <div className="flex items-center justify-center py-16 text-muted-foreground/60">
+          <div className="flex items-center justify-center py-16 text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" />
           </div>
         ) : filtered.length === 0 ? (
@@ -396,7 +396,7 @@ export default function SkillsPage() {
                   maxLength={4000}
                   className="w-full rounded-md border border-border bg-muted/30 px-3 py-2 text-sm focus-visible:bg-background focus-visible:ring-2 focus-visible:ring-primary/30 outline-none resize-y font-mono text-[12px]"
                 />
-                <p className="text-[10px] text-muted-foreground/60">
+                <p className="text-[10px] text-muted-foreground">
                   {draftContent.length} / 4000
                 </p>
               </div>
@@ -493,7 +493,7 @@ export default function SkillsPage() {
                     拉取
                   </Button>
                 </div>
-                <p className="text-[10px] text-muted-foreground/60 leading-relaxed">
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
                   支持 JSON（单个对象 / 数组 / {"{ skills: [...] }"} 包装）或纯文本。
                   GitHub 的 blob 链接会自动转成 raw。
                 </p>
@@ -521,7 +521,7 @@ export default function SkillsPage() {
                             <div className="text-[11px] font-medium text-foreground/85">
                               {s.name}
                             </div>
-                            <div className="text-[10px] text-muted-foreground/60 line-clamp-2 mt-0.5">
+                            <div className="text-[10px] text-muted-foreground line-clamp-2 mt-0.5">
                               {s.content}
                             </div>
                           </div>

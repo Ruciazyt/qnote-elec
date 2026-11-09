@@ -92,7 +92,7 @@ export function AppProjectList({
             </p>
             {!keyword.trim() && (
               <>
-                <p className="text-xs text-muted-foreground/60 leading-relaxed mb-3">
+                <p className="text-xs text-muted-foreground leading-relaxed mb-3">
                   导入一个带 qnote.json 的文件夹
                 </p>
                 <Button
@@ -148,7 +148,7 @@ export function AppProjectList({
                     </span>
                   )}
                 </div>
-                <div className="mt-0.5 pl-3.5 text-[10.5px] font-mono text-muted-foreground/60 truncate">
+                <div className="mt-0.5 pl-3.5 text-[10.5px] font-mono text-muted-foreground truncate">
                   {tailPath(project.path)}
                 </div>
               </button>

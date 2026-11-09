@@ -469,7 +469,7 @@ export default function AppsPage() {
           title={
             <span className="flex items-baseline gap-1.5 min-w-0">
               <span className="text-sm font-medium text-foreground truncate">项目</span>
-              <span className="text-xs text-muted-foreground/60 flex-shrink-0">
+              <span className="text-xs text-muted-foreground flex-shrink-0">
                 {projectCountLabel}
               </span>
             </span>

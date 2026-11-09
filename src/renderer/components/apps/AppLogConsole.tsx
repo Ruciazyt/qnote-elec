@@ -82,7 +82,7 @@ export function AppLogConsole({
           <span>运行输出</span>
         </button>
         {lines.length > 0 && (
-          <span className="text-[11px] text-muted-foreground/60">{lines.length} 行</span>
+          <span className="text-[11px] text-muted-foreground">{lines.length} 行</span>
         )}
         <div className="flex-1" />
         {onClear && (
@@ -106,7 +106,7 @@ export function AppLogConsole({
         aria-hidden={collapsed}
         className="flex-1 min-h-0 overflow-y-auto bg-muted/10 px-3 py-2 font-mono text-[11.5px] leading-relaxed">
         {lines.length === 0 ? (
-          <p className="text-muted-foreground/60">
+          <p className="text-muted-foreground">
             还没有输出。启动项目后，标准输出与错误输出会出现在这里。
           </p>
         ) : (
