@@ -108,12 +108,12 @@ export function TodoList({
                 </span>
               )}
               {attachmentCount > 0 && (
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border bg-primary/5 text-primary border-primary/20">
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border bg-primary/5 text-primary-strong border-primary/20">
                   <Paperclip className="h-3 w-3" />
                   {attachmentCount}
                 </span>
               )}
-              <span className="text-muted-foreground/60">{formatCreated(todo.created_at)}</span>
+              <span className="text-muted-foreground">{formatCreated(todo.created_at)}</span>
               <div className="ml-auto flex items-center gap-0.5">
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -121,7 +121,7 @@ export function TodoList({
                       onClick={() => onEdit(todo)}
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 hover:bg-primary/10 hover:text-primary"
+                      className="h-7 w-7 hover:bg-primary/10 hover:text-primary-strong"
                       aria-label="编辑">
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
@@ -136,7 +136,7 @@ export function TodoList({
                       onClick={() => (archived ? onUnarchive?.(todo) : onArchive?.(todo))}
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 hover:bg-primary/10 hover:text-primary"
+                      className="h-7 w-7 hover:bg-primary/10 hover:text-primary-strong"
                       aria-label={archived ? "取消归档" : "归档"}>
                       {archived ? (
                         <ArchiveRestore className="h-3.5 w-3.5" />

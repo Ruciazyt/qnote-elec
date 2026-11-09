@@ -146,7 +146,7 @@ export function AiChatSessionsPanel({
           </div>
         ) : sessions.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
-            <MessageSquareText className="h-8 w-8 text-muted-foreground/60" />
+            <MessageSquareText className="h-8 w-8 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">还没有对话</p>
             <Button onClick={onNewChat} disabled={isCreatingSession} size="sm">
               <Plus className="mr-1.5 h-4 w-4" />

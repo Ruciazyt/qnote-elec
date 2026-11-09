@@ -274,7 +274,7 @@ export const AiChatPanel = memo(function AiChatPanel({
                               ? "ai-msg-copy-btn copied"
                               : msg.role === "user"
                                 ? "bg-primary-foreground/15 dark:bg-primary-foreground/20 border border-primary-foreground/25 text-primary-foreground"
-                                : "bg-background/70 dark:bg-muted/60 border border-border/60 text-muted-foreground/60"
+                                : "bg-background/70 dark:bg-muted/60 border border-border/60 text-muted-foreground"
                             }
                           `}>
                           {isCopied ? (
@@ -342,7 +342,7 @@ export const AiChatPanel = memo(function AiChatPanel({
                   </div>
                 )}
                 {onCancelAiMessage && !pendingContinuation && (
-                  <div className="mt-2 flex items-center gap-1 text-[10px] text-muted-foreground/60">
+                  <div className="mt-2 flex items-center gap-1 text-[10px] text-muted-foreground">
                     <Loader2 className="h-2.5 w-2.5 animate-spin" />
                     正在生成…
                   </div>
@@ -364,7 +364,7 @@ export const AiChatPanel = memo(function AiChatPanel({
                     <RefreshCw className="h-3 w-3 text-primary animate-spin" />
                     <span className="text-xs font-medium text-foreground">正在压缩对话历史…</span>
                   </div>
-                  <span className="text-[10px] text-muted-foreground/60 leading-relaxed">
+                  <span className="text-[10px] text-muted-foreground leading-relaxed">
                     对话较长，正在把早期内容总结成摘要以腾出空间。
                     {compacting.maxRounds > 1 && (
                       <span className="tabular-nums">
@@ -407,7 +407,7 @@ export const AiChatPanel = memo(function AiChatPanel({
                   "shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium border transition-colors",
                   activeSkillId === null
                     ? "bg-muted text-muted-foreground/70 border-border"
-                    : "bg-transparent text-muted-foreground/60 border-transparent hover:bg-muted/50"
+                    : "bg-transparent text-muted-foreground border-transparent hover:bg-muted/50"
                 )}
                 title="不使用任何技能">
                 无技能
@@ -717,7 +717,7 @@ function ToolCallBlock({ call }: { call: ToolCallRecord }) {
         <>
           {Object.keys(call.args ?? {}).length > 0 && (
             <div className="px-2.5 py-2 border-t border-border/50">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 mb-1">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
                 入参
               </div>
               <PrettyJson value={call.args} />
@@ -725,7 +725,7 @@ function ToolCallBlock({ call }: { call: ToolCallRecord }) {
           )}
           {call.result !== undefined && (
             <div className="px-2.5 py-2 border-t border-border/50 bg-background/40">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60 mb-1">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
                 {isError ? "错误" : "结果"}
               </div>
               <pre className="text-[11px] font-mono leading-relaxed whitespace-pre-wrap break-words text-foreground/80 max-h-56 overflow-y-auto">

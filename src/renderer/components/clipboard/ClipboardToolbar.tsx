@@ -86,7 +86,7 @@ export function ClipboardToolbar({
               tabIndex={isSearchActive ? 0 : -1}
               aria-label="清除搜索"
               title="清除搜索（Esc / 回车 / 点击）"
-              className={`absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-md flex items-center justify-center text-muted-foreground/60 bg-muted/50 border border-transparent
+              className={`absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-md flex items-center justify-center text-muted-foreground bg-muted/50 border border-transparent
                 hover:border-muted-foreground/20 hover:scale-110 hover:text-foreground
                 active:scale-90
                 focus:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-1 focus-visible:border-primary/40

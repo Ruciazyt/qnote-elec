@@ -199,7 +199,7 @@ export default function TodoPage() {
                 active ? "text-foreground" : "text-muted-foreground hover:text-foreground/80"
               }`}>
               {f.label}
-              <span className={`ml-1.5 text-xs ${active ? "text-primary" : "text-muted-foreground/60"}`}>
+              <span className={`ml-1.5 text-xs ${active ? "text-primary" : "text-muted-foreground"}`}>
                 {count}
               </span>
               {active && (

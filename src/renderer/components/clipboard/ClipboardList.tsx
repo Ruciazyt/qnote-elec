@@ -373,7 +373,7 @@ export function ClipboardList({
       <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground px-6 animate-fade-in" ref={codeContainerRef}>
         <div className="animate-fade-in-stagger text-center" style={{ animationDelay: "120ms" }}>
           <p className="text-sm font-semibold text-foreground/70 mb-1.5">暂无记录</p>
-          <p className="text-xs text-muted-foreground/60 leading-relaxed max-w-[200px]">
+          <p className="text-xs text-muted-foreground leading-relaxed max-w-[200px]">
             复制内容后将自动显示在这里
           </p>
         </div>
