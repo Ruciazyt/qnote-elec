@@ -1,4 +1,4 @@
-﻿import React, {
+import React, {
   Suspense,
   lazy,
   useCallback,
@@ -22,7 +22,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouteActive } from "@/hooks/useRouteActive";
 import { useCollapsedState } from "@/hooks/useCollapsedState";
 import { useNoteSidebarWidth } from "@/hooks/useNoteSidebarWidth";
+import { useSplitRatio } from "@/hooks/useSplitRatio";
 import { PanelResizer } from "@/components/panel/PanelResizer";
+import { PanelHeightResizer } from "@/components/panel/PanelHeightResizer";
 import { PANEL_RESIZER_WIDTH } from "@/components/browser/layout";
 import {
   PANEL_COLLAPSED_BUTTON_INSET,
@@ -34,9 +36,17 @@ import {
   NOTE_SIDEBAR_MAX_WIDTH,
   NOTE_SIDEBAR_MIN_WIDTH,
   NOTES_EDITOR_MIN_WIDTH,
+  NOTES_EXTERNAL_COLLAPSED_HEIGHT,
+  NOTES_EXTERNAL_COLLAPSE_MS,
+  NOTES_EXTERNAL_EXPAND_MS,
+  NOTES_SPLIT_DEFAULT_RATIO,
+  NOTES_SPLIT_MAX_RATIO,
+  NOTES_SPLIT_MIN_RATIO,
 } from "@/components/Note/layout";
 import NoteTypeTabs from "@/components/Note/NoteTypeTabs";
 import NoteFileList from "@/components/Note/NoteFileList";
+import { useIslandOpenNote } from "@/components/island/islandBridge";
+import NoteExternalFolders from "@/components/Note/NoteExternalFolders";
 import SaveNoteModal from "@/components/Note/SaveNoteModal";
 import RenameConfirmModal from "@/components/Note/RenameConfirmModal";
 import NamePromptModal from "@/components/Note/NamePromptModal";
@@ -47,6 +57,7 @@ import PdfViewer from "@/components/Note/editors/PdfViewer";
 import type { NoteEditorHandle } from "@/components/Note/editorHandle";
 import {
   NOTE_TYPES,
+  ExternalFolder,
   NoteFileEntry,
   NoteTreeNode,
   NoteType,
@@ -63,16 +74,11 @@ type FileNode = Extract<NoteTreeNode, { kind: "file" }>;
  * visibility 等淡完再切 —— 不带这层延迟的话元素立刻变 hidden，
  * 淡出走不到，肉眼看到的就是瞬切。
  *
- * transition 必须是 shorthand：两个属性的时长与延迟不同，
- * shorthand 一次说清。写成 Tailwind 任意值
- * （transition-[opacity_150ms,visibility_0s_150ms]）填的是
- * transition-property，而「opacity 150ms」不是合法属性名，
- * 整条声明会被浏览器丢弃 —— visibility 就没有过渡、立即跳变。
- * 所以这里走行内 style（和几何一样：能用行内就不靠类名）。
+ * 时长与延迟走 CSS 变量，规则写在 index.css 的 .notes-split-transition：
+ * 那条规则同时管淡出、可见性切换与上下分栏的高度过渡，
+ * 三个属性的时长各不相同，class 表达不了这种一对一的关系。
  */
 const SIDEBAR_CONTENT_FADE_MS = 150;
-const SIDEBAR_CONTENT_COLLAPSE_TRANSITION = `opacity ${SIDEBAR_CONTENT_FADE_MS}ms, visibility 0s ${SIDEBAR_CONTENT_FADE_MS}ms`;
-const SIDEBAR_CONTENT_EXPAND_TRANSITION = `opacity ${SIDEBAR_CONTENT_FADE_MS}ms, visibility 0s 0ms`;
 
 /**
  * 白板编辑器按需加载
@@ -101,7 +107,7 @@ function WhiteboardLoading() {
     <div className="h-full w-full flex flex-col items-center justify-center animate-fade-in">
       <div className="relative mb-4">
         <div className="absolute inset-0 bg-primary/10 rounded-full blur-2xl scale-125" />
-        <div className="relative w-12 h-12 rounded-2xl bg-primary/8 border border-primary/15 flex items-center justify-center">
+        <div className="relative w-12 h-12 rounded-2xl bg-primary/10 border border-primary/15 flex items-center justify-center">
           <div className="w-5 h-5 border-2 border-primary/40 border-t-primary rounded-full animate-spin" />
         </div>
       </div>
@@ -164,12 +170,35 @@ export default function NotesPage() {
   const [activeType, setActiveType] = useState<NoteType>("excalidraw");
   /** 当前打开的文件；null 表示该类型的空白编辑态 */
   const [activeRelPath, setActiveRelPath] = useState<string | null>(null);
-  /** 各类型各自记住上次打开的文件，切标签回来能恢复 */
-  // 按 NOTE_TYPES 派生而非手写字面量：手写的话每加一种类型都会漏初始化，
-  // 表现为「切到新类型的标签，打开态是 undefined 而不是空白态」。
-  const [lastRelByType, setLastRelByType] = useState<Record<NoteType, string | null>>(() =>
-    NOTE_TYPES.reduce((acc, { type }) => ({ ...acc, [type]: null }), {} as Record<NoteType, string | null>)
+  /**
+   * 各类型各自记住上次打开的文件，切标签回来能恢复
+   *
+   * 记的不只是路径，还要记它属于哪个根 —— 同一个 relPath 在笔记根目录
+   * 和某个外部文件夹下可能指向两个不同的文件，只记路径会开错。
+   *
+   * 按 NOTE_TYPES 派生而非手写字面量：手写的话每加一种类型都会漏初始化，
+   * 表现为「切到新类型的标签，打开态是 undefined 而不是空白态」。
+   */
+  const [lastRelByType, setLastRelByType] = useState<
+    Record<NoteType, { relPath: string; externalId: string | null } | null>
+  >(() =>
+    NOTE_TYPES.reduce(
+      (acc, { type }) => ({ ...acc, [type]: null }),
+      {} as Record<NoteType, { relPath: string; externalId: string | null } | null>
+    )
   );
+  /** 已登记的外部文件夹（侧栏下半部分那一片） */
+  const [externalFolders, setExternalFolders] = useState<ExternalFolder[]>([]);
+  /** 外部文件夹的目录树（id → 树），展开时才读 */
+  const [externalTrees, setExternalTrees] = useState<Record<string, NoteTreeNode[]>>({});
+  /** 正在读树的外部文件夹 */
+  const [loadingExternal, setLoadingExternal] = useState<Set<string>>(() => new Set());
+  /**
+   * 当前打开的文件属于哪个外部文件夹；null = 在笔记根目录里
+   *
+   * 这决定了编辑器按哪个根去定位文件 —— 根错了就会读到别的文件上。
+   */
+  const [activeExternalId, setActiveExternalId] = useState<string | null>(null);
   /** 新建笔记 / 粘贴图片的落盘目录；"" 表示根目录 */
   const [currentFolder, setCurrentFolder] = useState("");
   /** 已访问过的类型 —— 编辑器挂载后不卸载，避免 Excalidraw 画布被重置 */
@@ -179,7 +208,24 @@ export default function NotesPage() {
   const [customFileName, setCustomFileName] = useState("");
   const [saving, setSaving] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [pendingDelete, setPendingDelete] = useState<NoteTreeNode | null>(null);
+  /**
+   * 待删除的条目 —— 连同它属于哪个根
+   *
+   * 「条目」和「属于哪个根」必须绑在一起：
+   * 外部文件夹里的条目是磁盘上的真文件，确认框的措辞得跟着变
+   * （主树的条目删了还能从回收站里捞回来，外部的删了就是删了），
+   * 走的删除通道也不一样（外部走 id，主树走 filePath）。
+   *
+   * 早先拆成两个 state（条目 + 外部文件夹 id），关掉弹窗时只清了其中一个 ——
+   * 残留的 id 会漏进下一次主树删除，「删主树的文件」就变成
+   * 「删外部根里的同名文件」。合成一个对象，断不了。
+   */
+  const [pendingDelete, setPendingDelete] = useState<{
+    /** 待删除的条目 */
+    node: NoteTreeNode;
+    /** null = 笔记根目录；否则是外部文件夹的 id */
+    externalId: string | null;
+  } | null>(null);
   const [renamingRel, setRenamingRel] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [renaming, setRenaming] = useState(false);
@@ -189,6 +235,20 @@ export default function NotesPage() {
   const [creatingFolder, setCreatingFolder] = useState(false);
   /** 正在新建的笔记类型；null 表示不在新建流程里 */
   const [creatingType, setCreatingType] = useState<NoteType | null>(null);
+  /**
+   * 本次新建的落点目录（相对路径，"" = 根目录）
+   *
+   * 与 currentFolder（「新建位置」）分开：工具栏的新建落在 currentFolder，
+   * 右键某个文件夹新建则落在那个文件夹里 —— 两者不是一个位置，不能混用。
+   */
+  const [createTarget, setCreateTarget] = useState("");
+  /**
+   * 本次新建落在哪个外部文件夹；null = 落在笔记根目录
+   *
+   * 与 createTarget 分开记：createTarget 是相对路径，
+   * 同一个相对路径在两个根下指的是两个地方，得说清落哪个根。
+   */
+  const [createExternalId, setCreateExternalId] = useState<string | null>(null);
   /** 新建笔记的文件名，用户可以在弹窗里改 */
   const [newFileName, setNewFileName] = useState("");
   /** 新建落盘进行中 */
@@ -217,6 +277,14 @@ export default function NotesPage() {
    * 用 ref 而非 state：它只在事件回调里读，写入不该触发渲染。
    */
   const seenMtimeRef = useRef<number | null>(null);
+  /**
+   * 外部目录树的缓存
+   *
+   * loadExternalTree 要判断「这个文件夹读过了吗」，不能依赖闭包里那份旧 state
+   * （那会让函数每次都重建，回调传给子组件也跟着换身份）。
+   */
+  const externalTreesRef = useRef<Record<string, NoteTreeNode[]>>({});
+  externalTreesRef.current = externalTrees;
 
   const [sidebarCollapsed, setSidebarCollapsed] = useCollapsedState(
     "notes-sidebar-collapsed",
@@ -271,12 +339,83 @@ export default function NotesPage() {
   }, [sidebarCollapsed, sidebarContentMounted]);
 
   /** 内容区这一帧用哪套过渡与可见性 */
-  const sidebarContentTransition = sidebarCollapsed
-    ? SIDEBAR_CONTENT_COLLAPSE_TRANSITION
-    : SIDEBAR_CONTENT_EXPAND_TRANSITION;
   const sidebarContentStateClass = sidebarCollapsed
     ? "opacity-0 pointer-events-none invisible"
     : "opacity-100 visible";
+
+  /* ── 外部文件夹区（侧栏下半部分） ──
+     收起状态放在这一层：父容器要靠它给这块定高度 ——
+     收起时只留标题行，空出来的高度全给主树。
+     （以前这个状态在 NoteExternalFolders 内部，父容器不知道它，
+       收起后 40% 的高度全是空白。） */
+  const [externalCollapsed, setExternalCollapsed] = useCollapsedState(
+    "notes-external-folders-collapsed",
+    true
+  );
+  const toggleExternalCollapsed = useCallback(
+    () => setExternalCollapsed((v) => !v),
+    [setExternalCollapsed]
+  );
+
+  /* ── 主树与外部区的上下分栏（默认 6:4，可拖动） ── */
+  const {
+    ratio: externalRatio,
+    setRatio: setExternalRatio,
+    resetRatio: resetExternalRatio,
+  } = useSplitRatio({
+    storageKey: "notes-sidebar-split-ratio",
+    defaultRatio: NOTES_SPLIT_DEFAULT_RATIO,
+    minRatio: NOTES_SPLIT_MIN_RATIO,
+    maxRatio: NOTES_SPLIT_MAX_RATIO,
+  });
+
+  /**
+   * 拖拽上下分割线中：临时关掉高度过渡
+   *
+   * 两块的高度是 flex-basis，而它们身上挂着 150~220ms 的过渡
+   * （.notes-split-transition）。过渡开着的话，拖拽的每一帧改高度都会把过渡
+   * 重新计时 —— 面板永远慢半拍地追着指针跑，看起来就是「分割线卡顿、不跟手」。
+   *
+   * 宽度那条分割线早就有同样的处理（sidebarResizing → transitionProperty: none），
+   * 上下这条漏了 —— 两边几何一样，处置却不一样。
+   */
+  const [splitResizing, setSplitResizing] = useState(false);
+
+  /**
+   * 两块各占多少高度
+   *
+   * 展开：按比例分（默认 6:4），各让出分割线的一半（3.5px）。
+   * 收起：外部区只剩标题行，主树把剩下的全拿走。
+   *
+   * 用百分比而不是像素 —— 两块共享同一个容器，窗口一变高像素值就过时。
+   * 百分比与像素都是长度，浏览器能在两种写法之间插值，收起/展开才是平滑的。
+   */
+  const mainTreeBasis = externalCollapsed
+    ? `calc(100% - ${NOTES_EXTERNAL_COLLAPSED_HEIGHT + PANEL_RESIZER_WIDTH}px)`
+    : `calc(${(1 - externalRatio) * 100}% - ${PANEL_RESIZER_WIDTH / 2}px)`;
+  const externalBasis = externalCollapsed
+    ? `${NOTES_EXTERNAL_COLLAPSED_HEIGHT}px`
+    : `calc(${externalRatio * 100}% - ${PANEL_RESIZER_WIDTH / 2}px)`;
+
+  /** 这一帧的高度过渡走哪档时长：退场比入场快（150 / 220） */
+  const splitMoveMs = externalCollapsed
+    ? NOTES_EXTERNAL_COLLAPSE_MS
+    : NOTES_EXTERNAL_EXPAND_MS;
+
+  /**
+   * 过渡参数（走 CSS 变量，规则见 index.css 的 .notes-split-transition）
+   *
+   * 一条 transition 里同时管三件事：侧栏收起的淡出、可见性的切换时机、
+   * 以及主树与外部区之间的高度过渡。属性不同、时长也不同，
+   * 写在同一条里各走各的。
+   */
+  const splitTransitionVars = {
+    "--notes-fade-ms": `${SIDEBAR_CONTENT_FADE_MS}ms`,
+    "--notes-visibility-delay": sidebarCollapsed
+      ? `${SIDEBAR_CONTENT_FADE_MS}ms`
+      : "0s",
+    "--notes-split-move-ms": `${splitMoveMs}ms`,
+  } as React.CSSProperties;
 
   // ── 侧栏宽度（可拖拽） ──
   const { width: sidebarWidth, setWidth: setSidebarWidth } = useNoteSidebarWidth();
@@ -333,10 +472,50 @@ export default function NotesPage() {
   );
 
   // ── 派生数据 ──
-  const activeFile = useMemo<FileNode | null>(
-    () => (activeRelPath ? findFile(tree, activeRelPath) : null),
-    [tree, activeRelPath]
-  );
+
+  /**
+   * 当前打开的文件节点
+   *
+   * 外部文件夹里的文件不在主树里，得去它自己的树里找 ——
+   * 两棵树可能有同名同路径的条目，找错树就会高亮到别的文件上。
+   */
+  const activeFile = useMemo<FileNode | null>(() => {
+    if (!activeRelPath) return null;
+    if (activeExternalId) {
+      const extTree = externalTrees[activeExternalId];
+      return extTree ? findFile(extTree, activeRelPath) : null;
+    }
+    return findFile(tree, activeRelPath);
+  }, [tree, externalTrees, activeRelPath, activeExternalId]);
+
+  /**
+   * 当前打开的笔记所在的根目录
+   *
+   * 编辑器按 (根目录, relPath) 定位文件，根错了就会读到别的文件上。
+   */
+  const activeRootPath = useMemo(() => {
+    if (activeExternalId) {
+      return externalFolders.find((f) => f.id === activeExternalId)?.path ?? filePath;
+    }
+    return filePath;
+  }, [activeExternalId, externalFolders, filePath]);
+
+  /** 另存为的落点目录 —— 外部文件夹里没有"新建位置"，直接存它自己的根 */
+  const saveFolder = activeExternalId ? "" : currentFolder;
+
+  /** 待删除条目所属的外部文件夹名 —— 确认框里要点名它在哪个文件夹 */
+  const pendingDeleteExternalName = useMemo(() => {
+    const id = pendingDelete?.externalId;
+    if (!id) return "";
+    return externalFolders.find((f) => f.id === id)?.name ?? "";
+  }, [pendingDelete, externalFolders]);
+
+  /** 本次新建落在哪个外部文件夹 —— 命名弹窗里要点名落点 */
+  const createExternalName = useMemo(() => {
+    if (!createExternalId) return "";
+    return externalFolders.find((f) => f.id === createExternalId)?.name ?? "";
+  }, [createExternalId, externalFolders]);
+
   const counts = useMemo(() => {
     const acc = {} as Record<NoteType, number>;
     for (const { type } of NOTE_TYPES) acc[type] = 0;
@@ -390,9 +569,43 @@ export default function NotesPage() {
     setTree(p ? await window.electron.getNoteTree(p) : []);
   }, []);
 
+  /** 读外部文件夹清单 */
+  const loadExternalFolders = useCallback(async () => {
+    try {
+      const list = await window.electron.getExternalFolders();
+      setExternalFolders(list ?? []);
+    } catch (err) {
+      console.error("加载外部文件夹清单失败", err);
+    }
+  }, []);
+
+  /**
+   * 读某个外部文件夹的目录树
+   *
+   * 展开时才读 —— 用户添加十个文件夹不代表要一次全扫一遍磁盘。
+   */
+  const loadExternalTree = useCallback(async (id: string, force = false) => {
+    if (!force && externalTreesRef.current[id]) return;
+    setLoadingExternal((prev) => new Set(prev).add(id));
+    try {
+      const nodes = await window.electron.getExternalTree(id);
+      setExternalTrees((prev) => ({ ...prev, [id]: nodes }));
+    } catch (err) {
+      console.error("读取外部文件夹失败", err);
+      setExternalTrees((prev) => ({ ...prev, [id]: [] }));
+    } finally {
+      setLoadingExternal((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  }, []);
+
   useEffect(() => {
     void loadTree();
-  }, [loadTree]);
+    void loadExternalFolders();
+  }, [loadTree, loadExternalFolders]);
 
   /**
    * 笔记目录被外部改动时重新拉取目录树，并处理「正在打开的那一篇也被改了」。
@@ -475,7 +688,48 @@ export default function NotesPage() {
   const handleOpen = useCallback((node: FileNode) => {
     setActiveType(node.type);
     setActiveRelPath(node.relPath);
-    setLastRelByType((prev) => ({ ...prev, [node.type]: node.relPath }));
+    setActiveExternalId(null);
+    setLastRelByType((prev) => ({
+      ...prev,
+      [node.type]: { relPath: node.relPath, externalId: null },
+    }));
+    setVisitedTypes((prev) => (prev.includes(node.type) ? prev : [...prev, node.type]));
+  }, []);
+
+  /**
+   * 灵动岛里点了某篇笔记 → 这里把它打开
+   *
+   * 请求可能比目录树先到（岛上的列表是主进程自己扫盘得到的，
+   * 主窗口这边还没拉树），所以先把 relPath 存着，
+   * 等树里能找到了再打开。
+   */
+  const pendingIslandRelPath = useRef<string | null>(null);
+  useIslandOpenNote((relPath) => {
+    pendingIslandRelPath.current = relPath;
+  });
+  useEffect(() => {
+    const relPath = pendingIslandRelPath.current;
+    if (!relPath) return;
+    const node = findFile(tree, relPath);
+    if (!node) return; // 树还没拉回来，或这一篇已被删掉
+    pendingIslandRelPath.current = null;
+    handleOpen(node);
+  }, [tree, handleOpen]);
+
+  /**
+   * 打开外部文件夹里的文件
+   *
+   * 与主树里的文件一样处理，只是根目录换成了那个外部文件夹 ——
+   * 编辑器按 (根目录, relPath) 定位，relPath 仍是相对该文件夹的。
+   */
+  const handleOpenExternal = useCallback((folder: ExternalFolder, node: FileNode) => {
+    setActiveType(node.type);
+    setActiveRelPath(node.relPath);
+    setActiveExternalId(folder.id);
+    setLastRelByType((prev) => ({
+      ...prev,
+      [node.type]: { relPath: node.relPath, externalId: folder.id },
+    }));
     setVisitedTypes((prev) => (prev.includes(node.type) ? prev : [...prev, node.type]));
   }, []);
 
@@ -485,7 +739,9 @@ export default function NotesPage() {
       setVisitedTypes((prev) => (prev.includes(type) ? prev : [...prev, type]));
       setRenamingRel(null);
       // 恢复该类型上次打开的文件；没有就开空白编辑态
-      setActiveRelPath(lastRelByType[type]);
+      const last = lastRelByType[type];
+      setActiveRelPath(last?.relPath ?? null);
+      setActiveExternalId(last?.externalId ?? null);
     },
     [lastRelByType]
   );
@@ -494,10 +750,15 @@ export default function NotesPage() {
   const handleSaved = useCallback(
     (relPath: string) => {
       setActiveRelPath(relPath);
-      setLastRelByType((prev) => ({ ...prev, [activeType]: relPath }));
+      setLastRelByType((prev) => ({
+        ...prev,
+        [activeType]: { relPath, externalId: activeExternalId },
+      }));
       void loadTree();
+      // 存的是外部文件夹里的文件 → 那棵树也要跟着更新
+      if (activeExternalId) void loadExternalTree(activeExternalId, true);
     },
-    [activeType, loadTree]
+    [activeType, activeExternalId, loadTree, loadExternalTree]
   );
 
   const openSaveModal = useCallback(() => {
@@ -534,11 +795,15 @@ export default function NotesPage() {
     const raw = customFileName.trim();
     if (!raw) return null;
     const name = withDefaultExt(raw, activeType);
-    return currentFolder ? `${currentFolder}/${name}` : name;
-  }, [customFileName, activeType, currentFolder]);
+    return saveFolder ? `${saveFolder}/${name}` : name;
+  }, [customFileName, activeType, saveFolder]);
 
+  // 重名检查要在同一个根里做 —— 外部文件夹和笔记根目录是两套文件空间
   const willOverwrite =
-    !!targetRelPath && siblingRelPaths(tree, currentFolder).includes(targetRelPath);
+    !!targetRelPath &&
+    siblingRelPaths(activeExternalId ? externalTrees[activeExternalId] ?? [] : tree, saveFolder).includes(
+      targetRelPath
+    );
 
   const handleSaveConfirm = useCallback(async () => {
     if (!targetRelPath) return;
@@ -559,37 +824,61 @@ export default function NotesPage() {
 
   // ── 删除 ──
   const handleDeleteConfirm = useCallback(async () => {
-    if (pendingDelete && filePath) {
-      const ok =
-        pendingDelete.kind === "folder"
-          ? await window.electron.deleteNoteFolder(filePath, pendingDelete.relPath)
-          : await window.electron.deleteNoteFile(filePath, pendingDelete.relPath);
+    if (pendingDelete) {
+      const { node, externalId } = pendingDelete;
+      const isFolder = node.kind === "folder";
+      const isFile = node.kind === "file";
+
+      // 外部文件夹与笔记根目录是两套通道：前者直接动磁盘上的文件
+      const ok = externalId
+        ? isFolder
+          ? await window.electron.deleteExternalFolder(externalId, node.relPath)
+          : await window.electron.deleteExternalFile(externalId, node.relPath)
+        : filePath
+          ? isFolder
+            ? await window.electron.deleteNoteFolder(filePath, node.relPath)
+            : await window.electron.deleteNoteFile(filePath, node.relPath)
+          : false;
+
       if (ok) {
-        // 删掉的正是当前打开的文件时，清掉各类型的打开状态
-        if (pendingDelete.kind === "file") {
-          setActiveRelPath((cur) => (cur === pendingDelete.relPath ? null : cur));
+        if (externalId) {
+          // 外部文件夹：刷新那棵树；正在打开的条目若是它就清掉
+          if (isFile && activeExternalId === externalId && activeRelPath === node.relPath) {
+            setActiveRelPath(null);
+          }
+          await loadExternalTree(externalId, true);
+        } else if (isFolder) {
+          // 删掉文件夹后，若新建位置正指向它，回落到根目录
+          setCurrentFolder((cur) =>
+            cur === node.relPath || cur.startsWith(`${node.relPath}/`) ? "" : cur
+          );
+          setActiveRelPath((cur) =>
+            cur && cur.startsWith(`${node.relPath}/`) ? null : cur
+          );
+        } else {
+          // 删掉的正是当前打开的文件时，清掉各类型的打开状态
+          setActiveRelPath((cur) => (cur === node.relPath ? null : cur));
           setLastRelByType((prev) => {
             const next = { ...prev };
             for (const { type } of NOTE_TYPES) {
-              if (next[type] === pendingDelete.relPath) next[type] = null;
+              if (next[type]?.relPath === node.relPath) next[type] = null;
             }
             return next;
           });
-        } else {
-          // 删掉文件夹后，若新建位置正指向它，回落到根目录
-          setCurrentFolder((cur) =>
-            cur === pendingDelete.relPath || cur.startsWith(`${pendingDelete.relPath}/`) ? "" : cur
-          );
-          setActiveRelPath((cur) =>
-            cur && cur.startsWith(`${pendingDelete.relPath}/`) ? null : cur
-          );
         }
-        void loadTree();
+        if (!externalId) void loadTree();
       }
     }
     setShowDeleteModal(false);
     setPendingDelete(null);
-  }, [pendingDelete, filePath, loadTree]);
+  }, [
+    pendingDelete,
+    filePath,
+    loadTree,
+    loadExternalTree,
+    activeExternalId,
+    activeRelPath,
+  ]);
 
   // ── 重命名 ──
   const handleRenameStart = useCallback((node: NoteTreeNode) => {
@@ -634,7 +923,8 @@ export default function NotesPage() {
         const next = { ...prev };
         for (const { type } of NOTE_TYPES) {
           const cur = next[type];
-          if (cur) next[type] = remap(cur);
+          // 只重写主树里的条目；外部文件夹的路径不受这次重命名影响
+          if (cur && !cur.externalId) next[type] = { ...cur, relPath: remap(cur.relPath) };
         }
         return next;
       });
@@ -652,7 +942,7 @@ export default function NotesPage() {
       setLastRelByType(
         NOTE_TYPES.reduce(
           (acc, { type }) => ({ ...acc, [type]: null }),
-          {} as Record<NoteType, string | null>
+          {} as Record<NoteType, { relPath: string; externalId: string | null } | null>
         )
       );
       void loadTree();
@@ -680,6 +970,27 @@ export default function NotesPage() {
   }, [resolveExplorerTarget]);
 
   const handleOpenInExplorer = useCallback(async () => {
+    // 外部文件夹里的文件：路径由主进程从 id 解析，渲染层不碰目录
+    if (activeExternalId) {
+      const target = resolveExplorerTarget();
+      try {
+        const ok = await window.electron.revealExternalFile(
+          activeExternalId,
+          target.kind === "reveal" ? target.relPath : ""
+        );
+        if (!ok) {
+          toast({ title: "无法定位", description: "文件可能已被移动或删除", variant: "destructive" });
+        }
+      } catch (error) {
+        console.error("打开外部文件夹失败:", error);
+        toast({
+          title: "打开失败",
+          description: error instanceof Error ? error.message : "未知错误",
+          variant: "destructive",
+        });
+      }
+      return;
+    }
     if (!filePath) return;
     const target = resolveExplorerTarget();
     try {
@@ -704,7 +1015,155 @@ export default function NotesPage() {
         variant: "destructive",
       });
     }
-  }, [filePath, resolveExplorerTarget, toast]);
+  }, [filePath, activeExternalId, resolveExplorerTarget, toast]);
+
+  // ── 外部文件夹 ──
+
+  /** 弹目录选择框，把选中的文件夹登记进来 */
+  const handleAddExternalFolder = useCallback(async () => {
+    try {
+      const list = await window.electron.addExternalFolders();
+      // null = 用户取消了选择框
+      if (!list) return;
+      setExternalFolders(list ?? []);
+      toast({
+        title: list.length > 0 ? `已添加 ${list.length} 个文件夹` : "没有可添加的文件夹",
+        description: list.length > 0 ? list.map((f) => f.name).join("、") : undefined,
+      });
+    } catch (error) {
+      console.error("添加外部文件夹失败:", error);
+      toast({ title: "添加失败", variant: "destructive" });
+    }
+  }, [toast]);
+
+  /** 从清单里移除外部文件夹
+   *
+   * 只移出侧栏，不动磁盘上的文件 —— 所以不需要二次确认，
+   * 但提示要说清楚，免得用户以为文件夹被删了。
+   */
+  const handleRemoveExternalFolder = useCallback(
+    async (id: string) => {
+      const folder = externalFolders.find((f) => f.id === id);
+      try {
+        const list = await window.electron.removeExternalFolder(id);
+        setExternalFolders(list ?? []);
+        // 正在打开的就是这个文件夹里的文件 → 回到空白态
+        if (activeExternalId === id) {
+          setActiveExternalId(null);
+          setActiveRelPath(null);
+        }
+        toast({
+          title: `已移除「${folder?.name ?? ""}」`,
+          description: "磁盘上的文件没有改动",
+        });
+      } catch (error) {
+        console.error("移除外部文件夹失败:", error);
+        toast({ title: "移除失败", variant: "destructive" });
+      }
+    },
+    [externalFolders, activeExternalId, toast]
+  );
+
+  // ── 外部文件夹的文件管理（增删改） ──
+
+  /** 删除外部文件夹里的条目 —— 先弹确认框，磁盘上的真文件删了就没了 */
+  const handleExternalDelete = useCallback(
+    (folder: ExternalFolder, node: NoteTreeNode) => {
+      setPendingDelete({ node, externalId: folder.id });
+      setShowDeleteModal(true);
+    },
+    []
+  );
+
+  /** 重命名外部文件夹里的条目 */
+  const handleExternalRename = useCallback(
+    async (folder: ExternalFolder, node: NoteTreeNode, typed: string) => {
+      const name = typed.trim();
+      if (!name) return;
+
+      const ext = node.kind === "folder" ? "" : node.ext;
+      const newName = name + ext;
+      if (newName === node.name) return;
+
+      const ok = await window.electron.renameExternalEntry(folder.id, node.relPath, newName);
+      if (!ok) {
+        toast({
+          title: "重命名失败",
+          description: "同名条目已存在或名称不合法",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // 路径尾部变了，同步当前打开的条目
+      const remap = (rel: string): string =>
+        rel.startsWith(`${node.relPath}/`)
+          ? `${newName}/${rel.slice(node.relPath.length + 1)}`
+          : rel;
+      if (activeExternalId === folder.id && activeRelPath) {
+        setActiveRelPath(remap(activeRelPath));
+      }
+      await loadExternalTree(folder.id, true);
+    },
+    [loadExternalTree, activeExternalId, activeRelPath, toast]
+  );
+
+  /** 在外部文件夹里新建文件夹 */
+  const handleExternalCreateFolder = useCallback(
+    (folder: ExternalFolder, target: string) => {
+      setCreateTarget(target);
+      setCreateExternalId(folder.id);
+      setFolderName("");
+      setShowFolderModal(true);
+    },
+    []
+  );
+
+  /** 在外部文件夹里新建笔记文件 */
+  const handleExternalCreateFile = useCallback(
+    (folder: ExternalFolder, type: NoteType, target: string) => {
+      setCreateTarget(target);
+      setCreateExternalId(folder.id);
+      setCreatingType(type);
+      setNewFileName("未命名");
+    },
+    []
+  );
+
+  /** 拖拽移动外部文件夹里的条目 */
+  const handleExternalMove = useCallback(
+    async (folder: ExternalFolder, fromRel: string, toFolderRel: string) => {
+      const result = await window.electron.moveExternalEntry(folder.id, fromRel, toFolderRel);
+      if (!result.ok) {
+        toast({ title: "移动失败", description: result.reason, variant: "destructive" });
+        return;
+      }
+      await loadExternalTree(folder.id, true);
+      toast({ title: "已移动", description: toFolderRel || "根目录" });
+    },
+    [loadExternalTree, toast]
+  );
+
+  /** 从系统拖入文件到外部文件夹 */
+  const handleExternalImportFiles = useCallback(
+    async (folder: ExternalFolder, paths: string[]) => {
+      const result = await window.electron.importExternalFiles(folder.id, paths, "");
+      await loadExternalTree(folder.id, true);
+      if (result.imported.length > 0) {
+        toast({
+          title: `已导入 ${result.imported.length} 个文件`,
+          description: `到「${folder.name}」`,
+        });
+      } else {
+        toast({
+          title: "导入失败",
+          description: "只支持笔记类型的文件",
+          variant: "destructive",
+        });
+      }
+    },
+    [loadExternalTree, toast]
+  );
 
   // ── 拖拽移动 ──
   /**
@@ -744,7 +1203,10 @@ export default function NotesPage() {
           const next = { ...prev };
           for (const { type } of NOTE_TYPES) {
             const cur = next[type];
-            if (cur && cur.startsWith(`${fromRel}/`)) next[type] = nextRel + cur.slice(fromRel.length);
+            // 只重写主树里的条目；外部文件夹的路径不受这次移动影响
+            if (cur && !cur.externalId && cur.relPath.startsWith(`${fromRel}/`)) {
+              next[type] = { ...cur, relPath: nextRel + cur.relPath.slice(fromRel.length) };
+            }
           }
           return next;
         });
@@ -797,10 +1259,26 @@ export default function NotesPage() {
   );
 
   // ── 新建文件夹 ──
+  /**
+   * 打开新建文件夹的命名框
+   *
+   * target 是落点目录：工具栏传「新建位置」，右键菜单传被右键的那个文件夹。
+   */
+  const handleCreateFolderStart = useCallback((target: string) => {
+    setCreateTarget(target);
+    setFolderName("");
+    setShowFolderModal(true);
+  }, []);
+
   const handleCreateFolder = useCallback(async () => {
-    if (!filePath || !folderName.trim()) return;
+    const name = folderName.trim();
+    if (!name) return;
+    if (!createExternalId && !filePath) return;
+
     setCreatingFolder(true);
-    const ok = await window.electron.createNoteFolder(filePath, currentFolder, folderName.trim());
+    const ok = createExternalId
+      ? await window.electron.createExternalFolder(createExternalId, createTarget, name)
+      : await window.electron.createNoteFolder(filePath!, createTarget, name);
     setCreatingFolder(false);
     if (!ok) {
       toast({ title: "新建失败", description: "同名文件夹已存在或名称不合法", variant: "destructive" });
@@ -808,19 +1286,22 @@ export default function NotesPage() {
     }
     setShowFolderModal(false);
     setFolderName("");
-    void loadTree();
-  }, [filePath, currentFolder, folderName, loadTree, toast]);
+    setCreateExternalId(null);
+    if (createExternalId) void loadExternalTree(createExternalId, true);
+    else void loadTree();
+  }, [filePath, createTarget, folderName, loadTree, createExternalId, loadExternalTree, toast]);
 
   // ── 新建笔记文件 ──
   /**
-   * 侧栏「新建文件」菜单点进来：先记住类型，再弹命名框。
+   * 侧栏「新建文件」菜单点进来：先记住类型与落点目录，再弹命名框。
    *
    * 命名放在弹窗里而不是直接落盘：默认名一旦落盘就留在目录里，
    * 用户还得再手动重命名一次，不如当场写好。
    */
   const handleCreateFileStart = useCallback(
-    (type: NoteType) => {
+    (type: NoteType, target: string) => {
       if (!filePath) return;
+      setCreateTarget(target);
       setCreatingType(type);
       setNewFileName("未命名");
     },
@@ -830,11 +1311,14 @@ export default function NotesPage() {
   const handleCreateFileConfirm = useCallback(async () => {
     const type = creatingType;
     const name = newFileName.trim();
-    if (!type || !filePath || !name) return;
+    if (!type || !name) return;
+    if (!createExternalId && !filePath) return;
 
     setCreatingFile(true);
     try {
-      const result = await window.electron.createNoteFile(filePath, currentFolder, name, type);
+      const result = createExternalId
+        ? await window.electron.createExternalFile(createExternalId, createTarget, name, type)
+        : await window.electron.createNoteFile(filePath!, createTarget, name, type);
       if (!result.ok) {
         toast({ title: "新建失败", description: result.reason, variant: "destructive" });
         return;
@@ -842,12 +1326,22 @@ export default function NotesPage() {
 
       setCreatingType(null);
       setNewFileName("");
-      await loadTree();
+      setCreateExternalId(null);
+
+      if (createExternalId) {
+        await loadExternalTree(createExternalId, true);
+      } else {
+        await loadTree();
+      }
 
       // 打开新文件：切到对应类型、挂上编辑器、路径记进「该类型上次打开」
       setActiveType(type);
       setActiveRelPath(result.relPath);
-      setLastRelByType((prev) => ({ ...prev, [type]: result.relPath }));
+      setActiveExternalId(createExternalId);
+      setLastRelByType((prev) => ({
+        ...prev,
+        [type]: { relPath: result.relPath, externalId: createExternalId },
+      }));
       setVisitedTypes((prev) => (prev.includes(type) ? prev : [...prev, type]));
 
       toast({
@@ -857,7 +1351,86 @@ export default function NotesPage() {
     } finally {
       setCreatingFile(false);
     }
-  }, [creatingType, newFileName, filePath, currentFolder, loadTree, toast]);
+  }, [
+    creatingType,
+    newFileName,
+    filePath,
+    createTarget,
+    createExternalId,
+    loadTree,
+    loadExternalTree,
+    toast,
+  ]);
+
+  /* ── 传给子树的那批「引用必须稳定」的回调 ──
+     目录树（NoteFileList）与外部文件夹区（NoteExternalFolders）都套了 memo：
+     props 引用没变才跳过渲染。内联箭头函数每次渲染都是新引用，memo 直接失效 ——
+     于是拖一次分割线，父组件每帧重渲染，两棵几百行的树就跟着每帧重建一遍。
+
+     所以凡是传进这两棵树的回调，都必须在这里用 useCallback 固定住。
+     新增 prop 时记得也在这里登记，别在 JSX 里写内联箭头。 */
+
+  /** 主树：删除 —— 笔记根目录里的条目，externalId 显式给 null */
+  const handleTreeDelete = useCallback((node: NoteTreeNode) => {
+    // 不靠「上一个状态恰好是 null」来保证走主树通道
+    setPendingDelete({ node, externalId: null });
+    setShowDeleteModal(true);
+  }, []);
+
+  /** 主树：取消重命名 */
+  const handleRenameCancel = useCallback(() => setRenamingRel(null), []);
+
+  /** 主树：开始新建文件夹 */
+  const handleTreeCreateFolder = useCallback(
+    (target: string) => handleCreateFolderStart(target),
+    [handleCreateFolderStart]
+  );
+
+  /** 主树：刷新目录树 */
+  const handleTreeRefresh = useCallback(() => void loadTree(), [loadTree]);
+
+  /** 外部文件夹区：展开 / 收起一个外部文件夹（展开时才去读它的树） */
+  const handleToggleExternalFolder = useCallback(
+    (id: string) => void loadExternalTree(id),
+    [loadExternalTree]
+  );
+
+  /** 外部文件夹区：添加一个外部文件夹 */
+  const handleAddExternal = useCallback(() => void handleAddExternalFolder(), [
+    handleAddExternalFolder,
+  ]);
+
+  /** 外部文件夹区：从清单里移除一个外部文件夹 */
+  const handleRemoveExternal = useCallback(
+    (id: string) => void handleRemoveExternalFolder(id),
+    [handleRemoveExternalFolder]
+  );
+
+  /** 外部文件夹区：刷新所有已展开的外部文件夹 */
+  const handleRefreshExternal = useCallback(() => {
+    for (const id of Object.keys(externalTrees)) void loadExternalTree(id, true);
+  }, [externalTrees, loadExternalTree]);
+
+  /** 外部文件夹区：重命名确认 */
+  const handleExternalRenameConfirm = useCallback(
+    (folder: ExternalFolder, node: NoteTreeNode, name: string) =>
+      void handleExternalRename(folder, node, name),
+    [handleExternalRename]
+  );
+
+  /** 外部文件夹区：拖拽移动条目 */
+  const handleExternalMoveEntry = useCallback(
+    (folder: ExternalFolder, from: string, to: string) =>
+      void handleExternalMove(folder, from, to),
+    [handleExternalMove]
+  );
+
+  /** 外部文件夹区：从系统拖入文件 */
+  const handleExternalImport = useCallback(
+    (folder: ExternalFolder, paths: string[]) =>
+      void handleExternalImportFiles(folder, paths),
+    [handleExternalImportFiles]
+  );
 
   // ── 全局快捷键 ──
   useEffect(() => {
@@ -904,7 +1477,10 @@ export default function NotesPage() {
           setVisitedTypes((prev) => (prev.includes("image") ? prev : [...prev, "image"]));
           setActiveType("image");
           setActiveRelPath(entry.relPath);
-          setLastRelByType((prev) => ({ ...prev, image: entry.relPath }));
+          setLastRelByType((prev) => ({
+            ...prev,
+            image: { relPath: entry.relPath, externalId: null },
+          }));
           toast({ title: "已保存图片", description: entry.name });
         })();
       }
@@ -1002,6 +1578,7 @@ export default function NotesPage() {
             看起来就是横向跳一下。折叠轨的按钮改用固定左内边距锚定，
             见下面头部行那段注释。 */}
         <div
+          data-notes-sidebar
           className={`relative z-10 h-full shrink-0 flex flex-col p-0 overflow-hidden transition-[width] motion-reduce:transition-none ${
             sidebarCollapsing ? "duration-150" : "duration-[220ms]"
           } ${sidebarCollapsed ? "" : "border-r border-border/60"}`}
@@ -1103,8 +1680,8 @@ export default function NotesPage() {
                   px-2(8px)：与头部切换按钮、文件树外框同一条左边线，
                   之前这里用 px-3(12px)，整列左边线是 8/12/8 三种 */}
               <div
-                style={{ transition: sidebarContentTransition }}
-                className={`flex items-center gap-2 px-2 mb-2 flex-shrink-0 ${sidebarContentStateClass}`}
+                style={splitTransitionVars}
+                className={`notes-split-transition flex items-center gap-2 px-2 mb-2 flex-shrink-0 ${sidebarContentStateClass}`}
               >
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -1166,38 +1743,102 @@ export default function NotesPage() {
                 </Tooltip>
               </div>
 
-              <div
-                style={{ transition: sidebarContentTransition }}
-                className={`flex-1 min-h-0 px-2 overflow-hidden flex flex-col ${sidebarContentStateClass}`}
-              >
-                <NoteFileList
-                  nodes={tree}
-                  activeRelPath={activeRelPath}
-                  currentFolder={currentFolder}
-                  renamingRel={renamingRel}
-                  renameValue={renameValue}
-                  renaming={renaming}
-                  onOpen={handleOpen}
-                  onPickFolder={setCurrentFolder}
-                  onDelete={(node) => {
-                    setPendingDelete(node);
-                    setShowDeleteModal(true);
+              {/* ── 主树 + 外部文件夹：上下分栏 ──
+                  默认 6:4（笔记树 6、外部文件夹 4），中间那条分割线可拖，
+                  拖完的比例记在 localStorage。
+                  两块的高度用百分比：它们共享这个容器，窗口一变高像素值就过时。 */}
+              <div className="flex-1 min-h-0 flex flex-col">
+                {/* 笔记树 */}
+                <div
+                  data-notes-split="tree"
+                  data-split-ratio={externalRatio}
+                  style={{
+                    ...splitTransitionVars,
+                    flexGrow: 0,
+                    flexShrink: 0,
+                    flexBasis: mainTreeBasis,
+                    // 拖拽期间关掉过渡 —— 高度必须 1:1 跟手
+                    ...(splitResizing ? { transitionProperty: "none" } : null),
                   }}
-                  onRenameStart={handleRenameStart}
-                  onRenameChange={setRenameValue}
-                  onRenameConfirm={handleRenameConfirm}
-                  onRenameCancel={() => setRenamingRel(null)}
-                  onCreateFolder={() => {
-                    setFolderName("");
-                    setShowFolderModal(true);
-                  }}
-                  onCreateFile={handleCreateFileStart}
-                  canCreateFile={!!filePath}
-                  onMove={handleMove}
-                  onRefresh={() => void loadTree()}
-                  onImportFiles={handleImportFiles}
-                  fileListRef={fileListRef}
+                  className={`notes-split-transition min-h-0 px-2 overflow-hidden flex flex-col ${sidebarContentStateClass}`}
+                >
+                  <NoteFileList
+                    nodes={tree}
+                    activeRelPath={activeRelPath}
+                    currentFolder={currentFolder}
+                    renamingRel={renamingRel}
+                    renameValue={renameValue}
+                    renaming={renaming}
+                    onOpen={handleOpen}
+                    onPickFolder={setCurrentFolder}
+                    onDelete={handleTreeDelete}
+                    onRenameStart={handleRenameStart}
+                    onRenameChange={setRenameValue}
+                    onRenameConfirm={handleRenameConfirm}
+                    onRenameCancel={handleRenameCancel}
+                    onCreateFolder={handleTreeCreateFolder}
+                    onCreateFile={handleCreateFileStart}
+                    canCreateFile={!!filePath}
+                    createTargetFolder={createTarget}
+                    onMove={handleMove}
+                    onRefresh={handleTreeRefresh}
+                    onImportFiles={handleImportFiles}
+                    fileListRef={fileListRef}
+                  />
+                </div>
+
+                {/* 分割线（拖拽调高度）——
+                    收起时禁用：下块只剩标题行，没有可调的高度。
+                    它本身仍是 flex 兄弟节点真实占位，收起时那条分隔线也留着。 */}
+                <PanelHeightResizer
+                  ratio={externalRatio}
+                  minRatio={NOTES_SPLIT_MIN_RATIO}
+                  maxRatio={NOTES_SPLIT_MAX_RATIO}
+                  onResize={setExternalRatio}
+                  onReset={resetExternalRatio}
+                  disabled={externalCollapsed}
+                  // 拖拽期间关掉两块的高度过渡（见 splitResizing 的注释）
+                  onDraggingChange={setSplitResizing}
                 />
+
+                {/* 外部文件夹（可收起）——
+                    放在下半部分：主树在上面，外部文件夹是补充。
+                    整块自带滚动，展开得再高也不会把主树挤没。
+                    上边框由分割线那条 1px 线承担，两处都画就是两条线。 */}
+                <div
+                  data-notes-split="external"
+                  data-split-ratio={externalRatio}
+                  style={{
+                    ...splitTransitionVars,
+                    flexGrow: 0,
+                    flexShrink: 0,
+                    flexBasis: externalBasis,
+                    // 拖拽期间关掉过渡 —— 高度必须 1:1 跟手
+                    ...(splitResizing ? { transitionProperty: "none" } : null),
+                  }}
+                  className={`notes-split-transition min-h-0 px-2 py-1.5 overflow-hidden flex flex-col ${sidebarContentStateClass}`}
+                >
+                  <NoteExternalFolders
+                    folders={externalFolders}
+                    trees={externalTrees}
+                    loadingIds={loadingExternal}
+                    onToggleFolder={handleToggleExternalFolder}
+                    onAdd={handleAddExternal}
+                    onRemove={handleRemoveExternal}
+                    onRefresh={handleRefreshExternal}
+                    onOpenFile={handleOpenExternal}
+                    onDelete={handleExternalDelete}
+                    onRenameConfirm={handleExternalRenameConfirm}
+                    onCreateFolder={handleExternalCreateFolder}
+                    onCreateFile={handleExternalCreateFile}
+                    onMove={handleExternalMoveEntry}
+                    onImportFiles={handleExternalImport}
+                    activeFolderId={activeExternalId}
+                    activeRelPath={activeRelPath}
+                    collapsed={externalCollapsed}
+                    onToggleCollapsed={toggleExternalCollapsed}
+                  />
+                </div>
               </div>
             </>
           )}
@@ -1237,7 +1878,12 @@ export default function NotesPage() {
               className="text-xs text-muted-foreground truncate min-w-0 ml-auto"
               title={activeRelPath ?? undefined}
             >
-              {activeFile ? activeFile.relPath : `${typeLabel} · 未打开文件`}
+              {activeFile
+                ? activeExternalId
+                  ? // 外部文件夹里的文件：带上文件夹名，否则同一个 relPath 看不出在哪
+                    `${externalFolders.find((f) => f.id === activeExternalId)?.name ?? "外部文件夹"}/${activeFile.relPath}`
+                  : activeFile.relPath
+                : `${typeLabel} · 未打开文件`}
             </span>
           </div>
 
@@ -1256,7 +1902,7 @@ export default function NotesPage() {
                   <ExcalidrawEditor
                     ref={excalidrawRef}
                     file={activeType === "excalidraw" ? activeFile : null}
-                    dirPath={filePath}
+                    dirPath={activeRootPath}
                     onRequestSaveAs={handleSaveAs}
                     onRequestSave={handleSaveActive}
                     onSaved={handleSaved}
@@ -1273,7 +1919,7 @@ export default function NotesPage() {
                 <RichTextEditor
                   ref={richTextRef}
                   file={activeType === "markdown" ? activeFile : null}
-                  dirPath={filePath}
+                  dirPath={activeRootPath}
                   onSaved={handleSaved}
                   onRequestSaveAs={handleSaveAs}
                 />
@@ -1287,7 +1933,8 @@ export default function NotesPage() {
                 <HtmlViewer
                   ref={htmlRef}
                   file={activeType === "html" ? activeFile : null}
-                  dirPath={filePath}
+                  dirPath={activeRootPath}
+                  externalId={activeExternalId}
                 />
               </div>
             )}
@@ -1299,7 +1946,7 @@ export default function NotesPage() {
                 <ImageViewer
                   ref={imageRef}
                   file={activeType === "image" ? activeFile : null}
-                  dirPath={filePath}
+                  dirPath={activeRootPath}
                 />
               </div>
             )}
@@ -1311,7 +1958,8 @@ export default function NotesPage() {
                 <PdfViewer
                   ref={pdfRef}
                   file={activeType === "pdf" ? activeFile : null}
-                  dirPath={filePath}
+                  dirPath={activeRootPath}
+                  externalId={activeExternalId}
                 />
               </div>
             )}
@@ -1322,8 +1970,8 @@ export default function NotesPage() {
         <SaveNoteModal
           show={showSaveModal}
           saving={saving}
-          filePath={filePath}
-          folder={currentFolder}
+          filePath={activeRootPath}
+          folder={saveFolder}
           type={activeType}
           willOverwrite={willOverwrite}
           customFileName={customFileName}
@@ -1375,26 +2023,40 @@ export default function NotesPage() {
             open={showDeleteModal}
             onOpenChange={(isOpen) => {
               // Esc 与点遮罩都走这里
-              if (!isOpen) setShowDeleteModal(false);
+              // 待删目标一起清掉 —— 留着没用了，还容易让人以为下次删的还是它
+              if (!isOpen) {
+                setShowDeleteModal(false);
+                setPendingDelete(null);
+              }
             }}
           >
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <Trash2 className="h-5 w-5 text-destructive" />
-                  {pendingDelete.kind === "folder" ? "删除文件夹" : "删除笔记"}
+                  {pendingDelete.node.kind === "folder" ? "删除文件夹" : "删除笔记"}
                 </DialogTitle>
-                {pendingDelete.kind === "folder" ? (
+                {pendingDelete.node.kind === "folder" ? (
                   <DialogDescription asChild>
                     <p className="text-sm text-muted-foreground">
                       确定要删除文件夹「
                       <span className="font-medium text-foreground break-all">
-                        {pendingDelete.name}
+                        {pendingDelete.node.name}
                       </span>
                       」吗？
+                      {pendingDeleteExternalName && (
+                        <>
+                          <br />
+                          它位于外部文件夹「
+                          <span className="font-medium text-foreground break-all">
+                            {pendingDeleteExternalName}
+                          </span>
+                          」中。
+                        </>
+                      )}
                       <br />
                       <span className="text-destructive font-medium">
-                        其中的 {pendingDelete.childCount} 个条目会一并永久删除，无法恢复。
+                        其中的 {pendingDelete.node.childCount} 个条目会一并永久删除，无法恢复。
                       </span>
                     </p>
                   </DialogDescription>
@@ -1403,11 +2065,25 @@ export default function NotesPage() {
                     <p className="text-sm text-muted-foreground">
                       确定要删除笔记「
                       <span className="font-medium text-foreground break-all">
-                        {pendingDelete.name}
+                        {pendingDelete.node.name}
                       </span>
                       」吗？
+                      {pendingDeleteExternalName && (
+                        <>
+                          <br />
+                          它位于外部文件夹「
+                          <span className="font-medium text-foreground break-all">
+                            {pendingDeleteExternalName}
+                          </span>
+                          」中。
+                        </>
+                      )}
                       <br />
-                      <span className="text-destructive font-medium">此操作不可逆！</span>
+                      <span className="text-destructive font-medium">
+                        {pendingDeleteExternalName
+                          ? "磁盘上的文件会被永久删除，无法恢复。"
+                          : "此操作不可逆！"}
+                      </span>
                     </p>
                   </DialogDescription>
                 )}
@@ -1428,11 +2104,17 @@ export default function NotesPage() {
           show={showFolderModal}
           title="新建文件夹"
           placeholder="文件夹名称"
-          hint={`位置：${currentFolder || "根目录"}`}
+          hint={`位置：${createTarget || "根目录"}${
+            createExternalName ? `（外部文件夹「${createExternalName}」）` : ""
+          }`}
           value={folderName}
           busy={creatingFolder}
           onChange={setFolderName}
-          onCancel={() => setShowFolderModal(false)}
+          onCancel={() => {
+            setShowFolderModal(false);
+            setCreateTarget("");
+            setCreateExternalId(null);
+          }}
           onConfirm={handleCreateFolder}
         />
 
@@ -1440,7 +2122,11 @@ export default function NotesPage() {
           show={creatingType !== null}
           title={creatingType ? `新建${getNoteTypeMeta(creatingType).label}笔记` : "新建笔记"}
           placeholder="请输入文件名（无需后缀）"
-          hint={`保存到：${filePath || "未设置路径"}${currentFolder ? ` / ${currentFolder}` : ""}${
+          hint={`保存到：${
+            createExternalName
+              ? `外部文件夹「${createExternalName}」`
+              : filePath || "未设置路径"
+          }${createTarget ? ` / ${createTarget}` : ""}${
             creatingType ? ` · 后缀 ${getNoteTypeMeta(creatingType).defaultExt}` : ""
           }`}
           value={newFileName}
@@ -1449,6 +2135,8 @@ export default function NotesPage() {
           onCancel={() => {
             setCreatingType(null);
             setNewFileName("");
+            setCreateTarget("");
+            setCreateExternalId(null);
           }}
           onConfirm={handleCreateFileConfirm}
         />

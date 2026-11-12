@@ -5,6 +5,7 @@ import { app } from "electron";
 import { log } from "../../utils/log";
 import { markQuitting, shouldHideToTray } from "../../utils/appState";
 import { resolveAppIcon } from "../../utils/assets";
+import { IslandWindow } from "./island";
 
 let win: BrowserWindow | null = null;
 // 存储IPC监听器引用，用于清理
@@ -12,6 +13,18 @@ const ipcListenerRefs: Array<{ channel: string; handler: (...args: any[]) => voi
 
 function getPreloadPath() {
   return path.join(__dirname, "..", "..", "preload.js");
+}
+
+/**
+ * 主窗口不在前台时，把灵动岛顶上来
+ *
+ * 最小化、收进托盘都算「不在前台」。岛是应用在屏幕上的常驻存在，
+ * 主窗口一藏起来，就该由岛替它占着那个位置。
+ */
+function showIslandIfEnabled(): void {
+  const island = IslandWindow.getInstance();
+  if (!island.isEnabled()) return;
+  island.show();
 }
 
 function shouldAutoOpenDevTools() {
@@ -42,6 +55,8 @@ export function showMainWindow(): void {
   }
   win.setSkipTaskbar(false);
   win.show();
+  // 主窗口回到前台，岛就退下去 —— 两个都在屏幕上会互相打架
+  IslandWindow.getInstance().hide();
 }
 
 /**
@@ -235,6 +250,8 @@ export function createMainWindow(): BrowserWindow {
       win.hide();
       win.setSkipTaskbar(true);
       event.preventDefault();
+      // 窗口藏起来了，岛顶上来接着占位
+      showIslandIfEnabled();
     }
   });
 
@@ -258,10 +275,14 @@ export function createMainWindow(): BrowserWindow {
     // 就会触发最小化，这行直接把图标整个摘掉，用户看到的是"点了应用反而消失"，
     // 之后只能去托盘找。图标留着，点它由系统原生恢复。
     win?.setSkipTaskbar(false);
+    // 主窗口缩进任务栏，岛顶上来 —— 应用在屏幕上始终有个位置
+    showIslandIfEnabled();
   };
   const restoreStateHandler = () => {
     win?.setSkipTaskbar(false);
     win?.webContents.send("window-maximized", win?.isMaximized() ?? false);
+    // 窗口回来了，岛退下去
+    IslandWindow.getInstance().hide();
   };
   win.on("maximize", maximizeHandler);
   win.on("unmaximize", unmaximizeHandler);

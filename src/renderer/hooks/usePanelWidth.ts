@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { clampPanelWidth } from "@/components/panel/layout";
+import { useCoalescedStorage } from "./useCoalescedStorage";
 
 /**
  * 面板宽度的持久化偏好
@@ -18,6 +19,12 @@ import { clampPanelWidth } from "@/components/panel/layout";
  *    所以 setWidth 的第二个参数是「当前上限」，内部取它与静态上限的较小值。
  * 2. **写盘放在 useEffect**：包在 setter 里做副作用在 React 严格模式下
  *    会被调用两次，属于典型的反模式。
+ *
+ * ## 写盘为什么走 useCoalescedStorage
+ *
+ * 拖分割线时宽度每一帧都在变，每次都同步写一次 localStorage 就是在
+ * 拖拽的每一帧里插一段阻塞 IO。useCoalescedStorage 把连续变化合并成
+ * 一次写盘（拖完写一次），一次性改动（按方向键）仍然立刻落盘。
  */
 export interface PanelWidthOptions {
   /** localStorage key（建议按页面语义命名） */
@@ -60,13 +67,7 @@ export function usePanelWidth({
     }
   });
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(storageKey, String(width));
-    } catch {
-      // localStorage 不可用时静默降级为「仅本次会话有效」
-    }
-  }, [storageKey, width]);
+  useCoalescedStorage(storageKey, String(width));
 
   const setWidth = useCallback(
     (next: number, limitMax?: number) => {

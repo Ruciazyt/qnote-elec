@@ -26,7 +26,7 @@ export default function Collection() {
           <div className="text-center animate-fade-in-stagger">
             {/* Empty state icon with outer glow ring
                 Reuses the same icon-glow-ring pattern as AiChatPanel and ClipboardList
-                empty states. The outer blur glow (bg-primary/12, blur-2xl) is an explicit
+                empty states. The outer blur glow (bg-primary/10, blur-2xl) is an explicit
                 positioned div; the ring border is on the inner container. */}
             <div className="relative mb-5 leetcode-empty-icon">
               {/* Outer glow — positioned behind the icon container */}

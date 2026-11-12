@@ -2386,8 +2386,13 @@ kbd.kbd-key:active {
    The hover effect (from btn-delete-hover) intensifies the red, confirming
    the action. Disabled state keeps opacity-50 so the button reads as
    inactive without needing separate styling.
-   Design: bg-destructive/8, text-destructive/70, border-destructive/25 at rest;
-   hover: bg-destructive/15, border-destructive/45, text-destructive (full).
+   Design: rest state is hsl(var(--destructive) / 0.08) background,
+   hsl(var(--destructive) / 0.25) border, hsl(var(--destructive) / 0.75) text;
+   hover: /0.14 background, /0.45 border, /0.95 text.
+   Written as hsl() on purpose — Tailwind's opacity steps are multiples of 5
+   only (0/5/10/15/…/100), so the equivalent class name generates no rule
+   at all and the background silently disappears — no error, no warning.
+   CSS alpha takes any value, so hsl() here is the only way to keep the 8% tint.
    The tint is very subtle — barely noticeable against the toolbar bg — but
    enough to signal "danger action" at a glance.
    ---------------------------------------------------------------------------- */
@@ -3296,5 +3301,38 @@ kbd.kbd-key:active {
   display: none;
   width: 0;
   height: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   .notes-split-transition — 笔记侧栏「主树 / 外部文件夹」的过渡
+
+   一条 transition 里同时管三件事：
+
+   1. opacity      侧栏整体收起时的淡出（150ms）
+   2. visibility  淡完才切，否则元素立刻变 hidden，淡出走不到
+   3. flex-basis  主树与外部区之间的高度过渡（收起 150ms / 展开 220ms）
+
+   三个属性的时长与延迟各不相同，class 表达不了这种一对一的关系，
+   所以规则写在这里，具体数值由组件用 CSS 变量带进来
+   （--notes-fade-ms / --notes-visibility-delay / --notes-split-move-ms）。
+
+   曲线用 DESIGN.md 定的 cubic-bezier(0.22, 1, 0.36, 1)（线性 ease-out）。
+   --------------------------------------------------------------------------- */
+.notes-split-transition {
+  transition-property: opacity, visibility, flex-basis;
+  transition-duration:
+    var(--notes-fade-ms, 150ms),
+    var(--notes-fade-ms, 150ms),
+    var(--notes-split-move-ms, 220ms);
+  transition-timing-function: ease, ease, cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: 0s, var(--notes-visibility-delay, 0s), 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notes-split-transition {
+    /* 位移（flex-basis）不参与过渡：命中系统级「减少动态效果」时直接跳到位。
+       淡出保留 —— 它是状态反馈，不是空间位移。 */
+    transition-property: opacity, visibility;
+  }
 }
 

@@ -55,6 +55,43 @@ contextBridge.exposeInMainWorld("electron", {
   getPathForFile: (file: File) => webUtils.getPathForFile(file),
 
   getNoteTree: (dirPath: string) => ipcRenderer.invoke("notes:tree", dirPath),
+  /**
+   * 外部文件夹（笔记页侧栏下半部分）
+   *
+   * 渲染层只认 id —— 路径由主进程从注册表里查，
+   * 渲染层不能指定「要操作哪个目录」。
+   */
+  getExternalFolders: () => ipcRenderer.invoke("notes:external-folders"),
+  /** 弹系统目录选择框并登记选中的文件夹；用户取消时返回 null */
+  addExternalFolders: () => ipcRenderer.invoke("notes:add-external-folders"),
+  /** 从清单里移除（不动磁盘上的文件） */
+  removeExternalFolder: (id: string) =>
+    ipcRenderer.invoke("notes:remove-external-folder", id),
+  /** 列出某个外部文件夹里的目录树 */
+  getExternalTree: (id: string) => ipcRenderer.invoke("notes:external-tree", id),
+  /** 在文件管理器里定位外部文件夹里的条目 */
+  revealExternalFile: (id: string, relPath: string) =>
+    ipcRenderer.invoke("notes:external-reveal", id, relPath),
+  /** 外部文件夹的文件管理：删除 / 重命名 / 新建 / 移动 / 拖入文件 */
+  deleteExternalFile: (id: string, relPath: string) =>
+    ipcRenderer.invoke("notes:external-delete", id, relPath),
+  deleteExternalFolder: (id: string, relPath: string) =>
+    ipcRenderer.invoke("notes:external-delete-folder", id, relPath),
+  renameExternalEntry: (id: string, oldRel: string, newName: string) =>
+    ipcRenderer.invoke("notes:external-rename", id, oldRel, newName),
+  createExternalFolder: (id: string, parentRel: string, name: string) =>
+    ipcRenderer.invoke("notes:external-create-folder", id, parentRel, name),
+  createExternalFile: (
+    id: string,
+    parentRel: string,
+    name: string,
+    // 类型用字面量写死：preload 不能 import ../shared（tsc 的 rootDir 只含 src/main）
+    type: "excalidraw" | "markdown" | "html" | "image" | "pdf"
+  ) => ipcRenderer.invoke("notes:external-create-file", id, parentRel, name, type),
+  moveExternalEntry: (id: string, fromRel: string, toFolderRel: string) =>
+    ipcRenderer.invoke("notes:external-move", id, fromRel, toFolderRel),
+  importExternalFiles: (id: string, srcPaths: string[], targetFolderRel = "") =>
+    ipcRenderer.invoke("notes:external-import-files", id, srcPaths, targetFolderRel),
   /** 从系统拖入文件：复制进笔记目录（只收笔记系统认识的类型，同名不覆盖） */
   importNoteFiles: (dirPath: string, srcPaths: string[], targetFolderRel = "") =>
     ipcRenderer.invoke("notes:import-files", dirPath, srcPaths, targetFolderRel),
@@ -745,4 +782,84 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("sticky:create", payload),
   /** 弹出便签的原生右键菜单（图片便签没有常驻控件，操作走这里） */
   stickyShowMenu: () => ipcRenderer.invoke("sticky:show-menu"),
+
+  // ==================== 灵动岛 API ====================
+  //
+  // 岛是独立 BrowserWindow，跑在自己的渲染层里。它和主窗口共用 preload，
+  // 所以这些接口两边都能调 —— 主窗口用不上，但放在同一处省得维护两份。
+
+  /** 读灵动岛配置 */
+  islandGetSettings: () => ipcRenderer.invoke("island:get-settings"),
+  /** 改灵动岛配置（合并式更新），返回落库后的完整配置 */
+  islandSetSettings: (patch: Record<string, unknown>) =>
+    ipcRenderer.invoke("island:set-settings", patch),
+  /** 读岛的当前状态快照 */
+  islandGetState: () => ipcRenderer.invoke("island:get-state"),
+  /** 展开 / 收起 / 切换 */
+  islandExpand: () => ipcRenderer.send("island:expand"),
+  islandCollapse: () => ipcRenderer.send("island:collapse"),
+  islandToggle: () => ipcRenderer.send("island:toggle"),
+  /** 切页签 */
+  islandSetPage: (page: string) => ipcRenderer.send("island:set-page", page),
+  /** 报上收起态该有多宽（渲染层量好摘要文字后调用） */
+  islandSetCollapsedWidth: (width: number) =>
+    ipcRenderer.send("island:set-collapsed-width", width),
+  /** 把岛放回默认位置（贴顶居中） */
+  islandResetPosition: () => ipcRenderer.send("island:reset-position"),
+  /**
+   * 窗口要不要接收鼠标事件
+   *
+   * 窗口比卡片大一圈（给阴影留地方），鼠标不在卡片上时
+   * 主进程把窗口设成穿透，别让那圈透明区域吃掉底下应用的点击。
+   */
+  islandSetInteractive: (interactive: boolean) =>
+    ipcRenderer.send("island:set-interactive", interactive),
+  /**
+   * 拖动
+   *
+   * 屏幕坐标由渲染层给 —— DOM 的 MouseEvent 带 screenX/screenY，
+   * 主进程据此算窗口该跟到哪儿。
+   */
+  islandDragStart: (screenX: number, screenY: number) =>
+    ipcRenderer.send("island:drag-start", { screenX, screenY }),
+  islandDragMove: (screenX: number, screenY: number) =>
+    ipcRenderer.send("island:drag-move", { screenX, screenY }),
+  islandDragEnd: () => ipcRenderer.send("island:drag-end"),
+  /** 从岛跳回主窗口；relPath 非空表示还要打开某一篇具体笔记 */
+  islandOpenMain: (payload: { page?: string; relPath?: string | null }) =>
+    ipcRenderer.invoke("island:open-main", payload),
+  /** 最近编辑的笔记 */
+  islandGetRecentNotes: () => ipcRenderer.invoke("island:get-recent-notes"),
+  /** AI 任务状态快照 */
+  islandGetAiActivity: () => ipcRenderer.invoke("island:get-ai-activity"),
+  /** 订阅岛的状态变化（展开/收起/切页） */
+  onIslandState: (callback: (state: any) => void) => {
+    const listener = (_e: unknown, state: any) => callback(state);
+    ipcRenderer.on("island:state", listener);
+    return () => {
+      ipcRenderer.removeListener("island:state", listener);
+    };
+  },
+  /** 订阅 AI 任务状态变化 */
+  onIslandAiActivity: (callback: (activity: any) => void) => {
+    const listener = (_e: unknown, activity: any) => callback(activity);
+    ipcRenderer.on("island:ai-activity", listener);
+    return () => {
+      ipcRenderer.removeListener("island:ai-activity", listener);
+    };
+  },
+  /**
+   * 灵动岛让主窗口跳到某个页面
+   *
+   * relPath 非空表示还要打开某一篇具体笔记 —— 笔记页通过
+   * islandBridge 领取这个请求（keep-alive 页面可能还没挂载）。
+   */
+  onIslandNavigate: (callback: (payload: { route: string; relPath: string | null }) => void) => {
+    const listener = (_e: unknown, payload: { route: string; relPath: string | null }) =>
+      callback(payload);
+    ipcRenderer.on("island:navigate", listener);
+    return () => {
+      ipcRenderer.removeListener("island:navigate", listener);
+    };
+  },
 });

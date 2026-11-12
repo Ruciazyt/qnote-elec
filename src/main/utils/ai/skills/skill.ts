@@ -39,8 +39,8 @@ export const SKILL_CATEGORY = 'skill';
 export const PLACEHOLDER_CONTENT = '{content}';
 export const PLACEHOLDER_CLIPBOARD = '{clipboard}';
 
-/** skill 内容长度上限（防止用户写超长 prompt 撑爆 context） */
-export const MAX_SKILL_CONTENT_LENGTH = 4000;
+/** 技能名长度上限（UI 上限；导入时超长名会被截断而不是拒绝） */
+export const MAX_SKILL_NAME_LENGTH = 30;
 
 export type SkillApplyMode = 'template' | 'system';
 
@@ -164,17 +164,11 @@ export function validateSkill(input: { name: string; content: string }): {
   if (!name) {
     return { valid: false, error: '技能名不能为空' };
   }
-  if (name.length > 30) {
-    return { valid: false, error: '技能名过长（最多 30 字）' };
+  if (name.length > MAX_SKILL_NAME_LENGTH) {
+    return { valid: false, error: `技能名过长（最多 ${MAX_SKILL_NAME_LENGTH} 字）` };
   }
   if (!content) {
     return { valid: false, error: '技能内容不能为空' };
-  }
-  if (content.length > MAX_SKILL_CONTENT_LENGTH) {
-    return {
-      valid: false,
-      error: `技能内容过长（最多 ${MAX_SKILL_CONTENT_LENGTH} 字）`,
-    };
   }
 
   return { valid: true };

@@ -8,6 +8,13 @@ import {
   isClipboardPanelPosition,
   type ClipboardPanelPosition,
 } from "../../shared/clipboardPanel";
+import {
+  DEFAULT_ISLAND_SETTINGS,
+  ISLAND_HOVER_DELAY_MAX,
+  ISLAND_HOVER_DELAY_MIN,
+  type IslandExpandTrigger,
+  type IslandSettings,
+} from "../../shared/island";
 
 type Theme = "light" | "dark" | "system";
 type AiProvider = "openai" | "deepseek" | "claude";
@@ -79,7 +86,48 @@ const SETTINGS_KEYS = {
   THEME: "theme",
   CHROMA_URL: "chroma_server_url",
   EMBEDDING_URL: "embedding_service_url",
+  ISLAND: "island_settings",
 };
+
+/**
+ * 逐字段校验灵动岛配置
+ *
+ * 这份数据直接决定窗口坐标和尺寸 —— 非法值不能透给调用方。
+ *
+ * 位置两种模式都要留：贴顶时纵向会被拉回工作区上沿，
+ * 横向保留用户放的地方 —— 清掉的话每次吸顶都要弹回正中，
+ * 岛就成了「只能固定在中间」。
+ */
+function sanitizeIslandSettings(input: Partial<IslandSettings>): IslandSettings {
+  const trigger: IslandExpandTrigger =
+    input.expandTrigger === "hover" ? "hover" : DEFAULT_ISLAND_SETTINGS.expandTrigger;
+
+  const rawDelay = typeof input.hoverDelayMs === "number" ? input.hoverDelayMs : NaN;
+  const hoverDelayMs = Number.isFinite(rawDelay)
+    ? Math.round(Math.min(ISLAND_HOVER_DELAY_MAX, Math.max(ISLAND_HOVER_DELAY_MIN, rawDelay)))
+    : DEFAULT_ISLAND_SETTINGS.hoverDelayMs;
+
+  const attachMode = input.attachMode === "floating" ? "floating" : "attached";
+
+  const position =
+    input.position && Number.isFinite(input.position.x) && Number.isFinite(input.position.y)
+      ? { x: Math.round(input.position.x), y: Math.round(input.position.y) }
+      : null;
+
+  const displayId =
+    typeof input.displayId === "number" && Number.isFinite(input.displayId)
+      ? Math.round(input.displayId)
+      : null;
+
+  return {
+    enabled: typeof input.enabled === "boolean" ? input.enabled : DEFAULT_ISLAND_SETTINGS.enabled,
+    expandTrigger: trigger,
+    hoverDelayMs,
+    attachMode,
+    position,
+    displayId,
+  };
+}
 
 class ConfigManager {
   private DB: Knex | null = null;
@@ -303,6 +351,43 @@ class ConfigManager {
     }
     await this.upsertSetting(SETTINGS_KEYS.CLIPBOARD_PANEL_POSITION, position);
     log.info("剪贴板面板位置已保存", { position });
+  }
+
+  /**
+   * 灵动岛配置
+   *
+   * 存成一整份 JSON，而不是拆成好几个 setting key ——
+   * 岛的位置（x/y）和贴顶模式是配套的，分开存会出现
+   * 「模式是浮着、位置是 null」这种自相矛盾的组合。
+   *
+   * 读出来时逐字段校验：这份数据决定窗口坐标和尺寸，
+   * 脏数据透给调用方会直接把窗口摆到屏幕外面去。
+   */
+  async getIslandSettings(): Promise<IslandSettings> {
+    const raw = await this.getSetting(SETTINGS_KEYS.ISLAND, "");
+    if (!raw) {
+      return { ...DEFAULT_ISLAND_SETTINGS };
+    }
+    try {
+      const parsed = JSON.parse(raw) as Partial<IslandSettings>;
+      return sanitizeIslandSettings(parsed);
+    } catch (err) {
+      log.warn("[island] 灵动岛配置解析失败，回退默认值", err);
+      return { ...DEFAULT_ISLAND_SETTINGS };
+    }
+  }
+
+  /** 合并式更新灵动岛配置，返回落库后的完整配置 */
+  async setIslandSettings(patch: Partial<IslandSettings>): Promise<IslandSettings> {
+    const current = await this.getIslandSettings();
+    const next = sanitizeIslandSettings({ ...current, ...patch });
+    await this.upsertSetting(SETTINGS_KEYS.ISLAND, JSON.stringify(next));
+    log.info("[island] 灵动岛配置已保存", {
+      enabled: next.enabled,
+      expandTrigger: next.expandTrigger,
+      attachMode: next.attachMode,
+    });
+    return next;
   }
 
   getConfigPath(): string {

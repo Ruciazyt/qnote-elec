@@ -156,12 +156,22 @@ export class NoteStore {
    *
    * 排序规则：文件夹在前按名称排，文件在后按修改时间倒序（新的在前）。
    * 单个条目读取失败（权限、被占用、读取中被删）只跳过它，不影响其余内容。
+   *
+   * @param limit 最多返回多少个节点；0 表示不限。
+   *   外部文件夹是用户随手指的目录（可能整个盘符），全量扫描会卡住主进程，
+   *   那种场景传一个上限，超出部分直接截断。
    */
-  tree(root: string): NoteTreeNode[] {
-    return this.readDirInto(root, "", 0);
+  tree(root: string, limit = 0): NoteTreeNode[] {
+    return this.readDirInto(root, "", 0, limit, { count: 0 });
   }
 
-  private readDirInto(root: string, relDir: string, depth: number): NoteTreeNode[] {
+  private readDirInto(
+    root: string,
+    relDir: string,
+    depth: number,
+    limit: number,
+    counter: { count: number }
+  ): NoteTreeNode[] {
     if (depth > MAX_DEPTH) return [];
 
     let dirents: fs.Dirent[];
@@ -180,6 +190,8 @@ export class NoteStore {
     const files: Extract<NoteTreeNode, { kind: "file" }>[] = [];
 
     for (const dirent of dirents) {
+      // 超出节点上限就停 —— 剩下的不再展开
+      if (limit > 0 && counter.count >= limit) break;
       // 隐藏文件/目录（.DS_Store、.git 等）不进笔记树
       if (dirent.name.startsWith(".")) continue;
       // 资源目录是笔记的附属产物，不作为笔记条目展示
@@ -188,7 +200,7 @@ export class NoteStore {
 
       try {
         if (dirent.isDirectory()) {
-          const children = this.readDirInto(root, relPath, depth + 1);
+          const children = this.readDirInto(root, relPath, depth + 1, limit, counter);
           folders.push({
             kind: "folder",
             name: dirent.name,
@@ -196,13 +208,17 @@ export class NoteStore {
             childCount: children.length,
             children,
           });
+          counter.count += 1;
           continue;
         }
         if (!dirent.isFile()) continue;
 
         const stat = fs.statSync(path.join(root, relPath));
         const node = this.makeFileNode(root, relPath, stat);
-        if (node) files.push(node);
+        if (node) {
+          files.push(node);
+          counter.count += 1;
+        }
       } catch (err) {
         log.warn?.(`跳过无法读取的条目: ${relPath}`, err);
       }
@@ -228,12 +244,13 @@ export class NoteStore {
 
   /**
    * 读取单个笔记的正文。
-   * 文本类返回 utf-8 文本，图片和 PDF 返回可直接嵌进 <img src> / <embed src> 的 dataUrl。
+   * 文本类返回 utf-8 文本，图片返回可直接嵌进 <img src> 的 dataUrl。
    *
-   * PDF 为什么不用 file:// 路径：开发环境渲染层跑在 http://localhost，
-   * 而主窗口开着 webSecurity —— 那会把 file:// 子资源整个拦掉，表现为空白且不报错。
-   * data: URL 在开发和生产（file://）下行为一致，不用为环境写分支。
-   * 代价是 base64 膨胀约 1/3，对笔记体量来说可以接受。
+   * PDF 不走这个通道：预览走主进程注册的 qnote-note:// 协议
+   * （见 src/main/handlers/notesProtocol.ts）。
+   * 早先这里把 PDF 转成 base64 的 data: URL 交出去，
+   * 而 Chromium 的 URL 长度上限是 2MB、base64 还要膨胀约 1/3，
+   * 于是超过约 1.5MB 的 PDF 会被静默拦掉 —— 空白框且不报错。
    */
   read(root: string, relPath: string): NoteContent {
     const abs = this.resolveSafe(root, relPath);
@@ -248,8 +265,7 @@ export class NoteStore {
     }
 
     if (type === "pdf") {
-      const base64 = fs.readFileSync(abs).toString("base64");
-      return { type, name, dataUrl: `data:application/pdf;base64,${base64}` };
+      throw new Error(`PDF 不通过正文通道读取: ${relPath}`);
     }
 
     return { type, name, text: fs.readFileSync(abs, "utf-8") };

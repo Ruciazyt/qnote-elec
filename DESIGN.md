@@ -222,6 +222,12 @@ QNote 是一把**安静的工具**。它不试图成为仪表盘，不试图成�
 >
 > 品牌色当底色、描边、图标用 `--primary`；当文字用 `--primary-strong`。
 > 一句话版本：**品牌底纹上要写字，就换 `--primary-strong`，且底纹不超 `/15`。**
+>
+> **透明度档只能取 5 的倍数。** Tailwind v3 的 opacity 档是 `0/5/10/15/…/100`
+> （`/5` `/15` `/45` `/65` `/85` 都有效）；写 `bg-primary/8`、`bg-primary/12`
+> 这类非 5 倍数的裸数字**不报错、也不生成任何规则** —— 那一层的底色等于压根没画出来。
+> 真要非 5 倍数就用方括号任意值（`bg-primary/[0.08]`）。实测见
+> `docs/UI-AUDIT-2026-11-05.md` 的 P1-12。
 
 **为什么是 Teal（195°）不是 Azure（221°）或 Indigo（260°）？**
 - 221°（Azure）是 Linear / Notion / Slack 的同款色 —— 零辨识度
@@ -608,6 +614,8 @@ FloatingAiAssistant、BrowserSidePanel、AiChatPanel、NoteFileList，
       98% 底 4.72:1 过线，但 `/5` 就已经 4.42、`/10` 4.14、`/15` 3.87，全不过；
       品牌底纹上的文字一律用 `text-primary-strong`（`/15` 以内 4.72:1 起步），`/20` 禁用
 - **Don't** 给次级文字叠透明度档（`text-muted-foreground/60` `/70` `/80`）—— 浅底上从 4.61:1 掉到 2.27~3.18:1
+- **Don't** 写非 5 倍数的透明度档（`/8`、`/12`）—— Tailwind 不生成规则，底色静默消失；
+      要非 5 倍数就用方括号任意值（`bg-primary/[0.08]`）
 - **Don't** 为不同卡片挑不同强调色（之前的 6 色万花筒）—— 现在统一 accent + neutral 两套主题
 - **Don't** 让卡片标题用 1 个 18px 文字 + 巨大空白 —— 用 15px 紧凑标题 + 副标题分层
 - **Don't** 浮框 / 卡片用多层渐变背景（`shadow-2xl shadow-primary/40` 等）—— 单层 shadow 就够

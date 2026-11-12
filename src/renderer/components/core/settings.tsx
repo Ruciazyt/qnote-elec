@@ -48,6 +48,9 @@ import {
   PanelRight,
   Keyboard,
   Boxes,
+  PanelTop,
+  MousePointerClick,
+  Move,
 } from "lucide-react";
 import { ClearVectorConfirmDialog } from "./ClearVectorConfirmDialog";
 import { ImportDatabaseConfirmDialog } from "./ImportDatabaseConfirmDialog";
@@ -64,6 +67,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { ClipboardPanelPosition } from "@shared/clipboardPanel";
 import { formatAccelerator } from "@shared/clipboardPanel";
+import { DEFAULT_ISLAND_SETTINGS, type IslandSettings } from "@shared/island";
 
 export { ACCENTS, SettingsCard, SettingsCardHeader };
 export type { AccentKey, AccentSpec };
@@ -667,6 +671,7 @@ export default function Settings() {
     void loadMemoryCount();
     void loadUsageStats();
     void loadVoiceHotkey();
+    void loadIslandSettings();
   }, []);
 
   // Detect vectorCount changes and trigger spring pop animation on badge
@@ -807,6 +812,38 @@ export default function Settings() {
   const [panelHotkeyStatus, setPanelHotkeyStatus] = useState<
     { tone: "success" | "destructive"; message: string } | null
   >(null);
+
+  // ============================================================
+  // 灵动岛（主窗口最小化后顶在屏幕顶边的那块）
+  // ============================================================
+
+  const [islandSettings, setIslandSettings] = useState<IslandSettings>(DEFAULT_ISLAND_SETTINGS);
+  const [isSavingIsland, setIsSavingIsland] = useState(false);
+
+  const loadIslandSettings = async () => {
+    try {
+      setIslandSettings(await window.electron.islandGetSettings());
+    } catch (error) {
+      console.error("加载灵动岛配置失败:", error);
+    }
+  };
+
+  /**
+   * 保存灵动岛配置
+   *
+   * 改完立即生效，不用再点保存 —— 这几项都是「拨一下看看」的性质。
+   */
+  const saveIslandSettings = async (patch: Partial<IslandSettings>) => {
+    setIsSavingIsland(true);
+    try {
+      setIslandSettings(await window.electron.islandSetSettings(patch));
+    } catch (error) {
+      console.error("保存灵动岛配置失败:", error);
+      toast({ title: "保存失败", variant: "destructive" });
+    } finally {
+      setIsSavingIsland(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -1918,6 +1955,140 @@ export default function Settings() {
                       );
                     })}
                   </div>
+                </div>
+              </CardContent>
+            </SettingsCard>
+
+            {/* 灵动岛 — 主窗口最小化后顶在屏幕顶边的那块 */}
+            <SettingsCard accent={ACCENTS.accent}>
+              <SettingsCardHeader
+                accent={ACCENTS.accent}
+                icon={PanelTop}
+                title="灵动岛"
+                subtitle="主窗口最小化后顶在屏幕顶边，收起时是一行摘要，展开是一块面板"
+                status={
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-1 rounded-md border shrink-0",
+                      islandSettings.enabled
+                        ? "bg-primary/10 text-primary-strong border-primary/25"
+                        : "bg-muted/50 text-muted-foreground border-border/60"
+                    )}>
+                    <PanelTop className="h-3 w-3" />
+                    {islandSettings.enabled ? "已开启" : "已关闭"}
+                  </span>
+                }
+              />
+              <CardContent className="px-5 pb-5 pt-0 space-y-4">
+                <p className="text-[12px] text-muted-foreground/80 leading-relaxed">
+                  开启后，主窗口最小化或收进托盘时，屏幕顶边会留下一颗胶囊，
+                  显示进行中的待办、最近的剪贴板或正在跑的 AI 任务；
+                  展开后可以直接勾选待办、复制剪贴板。
+                </p>
+
+                {/* 总开关 */}
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-medium text-foreground/90">启用灵动岛</div>
+                    <div className="text-[11px] text-muted-foreground/70 leading-tight mt-0.5">
+                      关掉之后最小化回到系统原生行为
+                    </div>
+                  </div>
+                  <Switch
+                    checked={islandSettings.enabled}
+                    disabled={isSavingIsland}
+                    onCheckedChange={(checked) => void saveIslandSettings({ enabled: checked })}
+                    aria-label="启用灵动岛"
+                  />
+                </div>
+
+                {/* 展开方式 */}
+                <div>
+                  <p className="text-[12px] font-medium text-foreground/80 mb-2">展开方式</p>
+                  <div
+                    role="radiogroup"
+                    aria-label="灵动岛展开方式"
+                    className="grid grid-cols-2 gap-2">
+                    {(
+                      [
+                        {
+                          value: "click",
+                          label: "点击展开",
+                          hint: "点一下胶囊展开面板",
+                          icon: MousePointerClick,
+                        },
+                        {
+                          value: "hover",
+                          label: "悬停展开",
+                          hint: "光标停在岛上约 0.3 秒自动展开",
+                          icon: Move,
+                        },
+                      ] as const
+                    ).map((option) => {
+                      const selected = islandSettings.expandTrigger === option.value;
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          role="radio"
+                          aria-checked={selected}
+                          disabled={isSavingIsland || !islandSettings.enabled}
+                          onClick={() =>
+                            void saveIslandSettings({ expandTrigger: option.value })
+                          }
+                          className={cn(
+                            "flex flex-col items-center gap-1 rounded-lg px-3 py-3 border transition-all duration-200 cursor-pointer",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
+                            "disabled:opacity-60 disabled:cursor-not-allowed",
+                            selected
+                              ? "bg-primary/[0.08] border-primary/45 shadow-[0_2px_8px_hsl(var(--primary)/0.14)]"
+                              : "bg-card border-border hover:border-primary/25 hover:bg-primary/[0.04]"
+                          )}>
+                          <option.icon
+                            className={cn(
+                              "h-4 w-4 transition-colors",
+                              selected ? "text-primary" : "text-muted-foreground"
+                            )}
+                          />
+                          <span
+                            className={cn(
+                              "text-[12px] font-medium transition-colors",
+                              selected ? "text-primary" : "text-foreground/80"
+                            )}>
+                            {option.label}
+                          </span>
+                          <span className="text-[11px] text-muted-foreground/70 text-center leading-snug">
+                            {option.hint}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 位置 */}
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-medium text-foreground/90">位置</div>
+                    <div className="text-[11px] text-muted-foreground/70 leading-tight mt-0.5">
+                      岛可以拖到别处，拖回顶边 16 像素内会自动吸附回去；放到哪块屏就留在哪块屏
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 shrink-0"
+                    disabled={isSavingIsland}
+                    onClick={() => {
+                      window.electron.islandResetPosition();
+                      void saveIslandSettings({
+                        attachMode: "attached",
+                        position: null,
+                        displayId: null,
+                      });
+                    }}>
+                    回到默认位置
+                  </Button>
                 </div>
               </CardContent>
             </SettingsCard>

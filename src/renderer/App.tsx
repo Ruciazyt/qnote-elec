@@ -6,6 +6,7 @@ import { Toaster } from "./components/ui/toaster";
 import { FloatingAiAssistant } from "./components/core/FloatingAiAssistant";
 import { useScrollIndicator } from "./hooks/useScrollIndicator";
 import { pushExternalAdd } from "./components/shortcut/externalAdd";
+import { pushIslandOpenNote } from "./components/island/islandBridge";
 import { cn } from "./lib/utils";
 
 import HomePage from "./pages/HomePage";
@@ -62,6 +63,22 @@ function App() {
   }, [pathname, navigate]);
 
   /**
+   * 灵动岛让主窗口跳到某个页面
+   *
+   * 挂在 App 层而不是各页面里：页面是 keep-alive 的，没访问过的页面
+   * 根本没挂载，监听器不存在，这条跳转就被静默丢弃。
+   *
+   * relPath 指向具体某篇笔记时交给笔记页领取 —— 笔记页要先把树拉回来
+   * 才能在树里定位到那一条。
+   */
+  useEffect(() => {
+    return window.electron.onIslandNavigate(({ route, relPath }) => {
+      if (relPath) pushIslandOpenNote(relPath);
+      if (route && route !== pathname) void navigate(route);
+    });
+  }, [pathname, navigate]);
+
+  /**
    * 访问过的页面保持挂载，切走只是隐藏
    *
    * 之前用 <Routes> 时，切页会卸载旧页面 —— 组件内 state 全部清零、
@@ -84,7 +101,7 @@ function App() {
             <div className="relative mb-4">
               {/* Outer glow — matches empty state design language */}
               <div className="absolute inset-0 bg-primary/10 rounded-full blur-2xl scale-125" />
-              <div className="relative w-12 h-12 rounded-2xl bg-primary/8 border border-primary/15 flex items-center justify-center">
+              <div className="relative w-12 h-12 rounded-2xl bg-primary/10 border border-primary/15 flex items-center justify-center">
                 <div className="w-5 h-5 border-2 border-primary/40 border-t-primary rounded-full animate-spin" />
               </div>
             </div>

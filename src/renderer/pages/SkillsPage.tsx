@@ -393,11 +393,10 @@ export default function SkillsPage() {
                     "不含占位符 → 作为系统指令，多轮持续生效\n含 {content} → 替换成你的输入\n含 {clipboard} → 替换成剪贴板内容"
                   }
                   rows={8}
-                  maxLength={4000}
                   className="w-full rounded-md border border-border bg-muted/30 px-3 py-2 text-sm focus-visible:bg-background focus-visible:ring-2 focus-visible:ring-primary/30 outline-none resize-y font-mono text-[12px]"
                 />
                 <p className="text-[10px] text-muted-foreground">
-                  {draftContent.length} / 4000
+                  {draftContent.length} 字
                 </p>
               </div>
 
@@ -477,7 +476,7 @@ export default function SkillsPage() {
                         void handlePreview();
                       }
                     }}
-                    placeholder="https://raw.githubusercontent.com/..."
+                    placeholder="https://github.com/owner/repo 或 raw 地址"
                     className="h-9 bg-muted/30 focus-visible:bg-background"
                   />
                   <Button
@@ -494,8 +493,9 @@ export default function SkillsPage() {
                   </Button>
                 </div>
                 <p className="text-[10px] text-muted-foreground leading-relaxed">
-                  支持 JSON（单个对象 / 数组 / {"{ skills: [...] }"} 包装）或纯文本。
-                  GitHub 的 blob 链接会自动转成 raw。
+                  支持 JSON（单个对象 / 数组 / {"{ skills: [...] }"} 包装）、纯文本、
+                  SKILL.md（带 frontmatter）。GitHub 的 blob 链接自动转 raw，
+                  仓库链接会自动找仓库里的 SKILL.md。不限体积。
                 </p>
               </div>
 

@@ -15,6 +15,14 @@ import { useStickyHold } from "@/hooks/useStickyHold";
 import { detectUrl } from "@/utils/urlDetect";
 import {
   CLIPBOARD_PANEL_ITEM_COUNT,
+  CLIPBOARD_PANEL_BORDER,
+  CLIPBOARD_PANEL_PADDING,
+  CLIPBOARD_PANEL_HEADER_HEIGHT,
+  CLIPBOARD_PANEL_CARD_GAP,
+  CLIPBOARD_PANEL_BOTTOM_CARD_WIDTH,
+  CLIPBOARD_PANEL_BOTTOM_CARD_HEIGHT,
+  CLIPBOARD_PANEL_SIDE_CARD_HEIGHT,
+  CLIPBOARD_PANEL_SHADOW_PADDING,
   formatAccelerator,
   type ClipboardPanelPosition,
 } from "@shared/clipboardPanel";
@@ -85,6 +93,24 @@ export function ClipboardPopup() {
   const { getHoldProps, holding, holdNode } = useStickyHold();
 
   const isBottom = position === "bottom";
+
+  /**
+   * 面板的几何数字全部来自共享层
+   *
+   * 之前渲染层写的是 Tailwind 硬编码类（h-[180px] / p-3 / gap-2.5），
+   * 主进程写的是另一套 px 常量 —— 两边各算各的，面板边框那 2px 就漏了，
+   * 卡片区比内容矮 2px，再叠上「overflow-x-auto 会把 overflow-y 算成 auto」
+   * 这条 CSS 规则，面板里就多出一条竖向滚动条。
+   *
+   * 现在统一走共享层：数字只改一处，主进程窗口与渲染层排版永远对得上。
+   * CSS 变量只给 Tailwind 任意值类用（h-[var(--card-h)] 之类），
+   * 其余直接引共享常量。
+   */
+  const panelVars = {
+    "--card-w": `${CLIPBOARD_PANEL_BOTTOM_CARD_WIDTH}px`,
+    "--card-h": `${CLIPBOARD_PANEL_BOTTOM_CARD_HEIGHT}px`,
+    "--side-card-h": `${CLIPBOARD_PANEL_SIDE_CARD_HEIGHT}px`,
+  } as React.CSSProperties;
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -230,7 +256,9 @@ export function ClipboardPopup() {
         }}
         className={cn(
           "group relative flex flex-col rounded-xl border p-3 text-left transition-all duration-150 cursor-pointer overflow-hidden",
-          isBottom ? "h-[180px] w-[232px] shrink-0" : "h-[92px] w-full shrink-0",
+          isBottom
+            ? "h-[var(--card-h)] w-[var(--card-w)] shrink-0"
+            : "h-[var(--side-card-h)] w-full shrink-0",
           isSelected
             ? "bg-primary/[0.08] border-primary/40 shadow-[0_4px_16px_hsl(var(--primary)/0.12)]"
             : "bg-card border-border/70 hover:border-primary/25",
@@ -287,15 +315,20 @@ export function ClipboardPopup() {
   return (
     // 外层透明：窗口本身是 transparent 的，这层 padding 专门给面板的投影
     // 留出绘制空间（主进程那边按同样的 16px 算窗口尺寸，两边对得上）
-    <div className="h-screen w-screen p-4">
+    <div
+      className="h-screen w-screen"
+      style={{ padding: CLIPBOARD_PANEL_SHADOW_PADDING }}>
       <div
+        style={{ ...panelVars, borderWidth: CLIPBOARD_PANEL_BORDER }}
         className={cn(
           "h-full w-full flex flex-col overflow-hidden animate-popup-appear",
           "bg-background/95 backdrop-blur-xl border border-border shadow-2xl",
           isBottom ? "rounded-xl" : "rounded-2xl"
         )}>
         {/* 标题栏 */}
-        <div className="h-9 px-3 flex items-center justify-between border-b border-border/60 bg-card/70 shrink-0 select-none">
+        <div
+          className="px-3 flex items-center justify-between border-b border-border/60 bg-card/70 shrink-0 select-none"
+          style={{ height: CLIPBOARD_PANEL_HEADER_HEIGHT }}>
           <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
             <ClipboardList className="h-3.5 w-3.5" />
             剪贴板
@@ -349,11 +382,20 @@ export function ClipboardPopup() {
         {/* 卡片区 */}
         <div
           className={cn(
-            "flex-1 min-h-0 p-3 gap-2.5",
+            "flex-1 min-h-0",
+            // 滚动轴必须写死：CSS 规定一个轴不是 visible 时，
+            // 另一个轴的 visible 会被算成 auto —— 只写 overflow-x-auto
+            // 会顺带把纵向也变成可滚，卡片区就会多出一条竖向滚动条。
+            // 面板尺寸是按内容精确算出来的（共享层 clipboardPanelBodySize），
+            // 本来就不该出现滚动条，这里锁死只是兜底。
             isBottom
-              ? "flex flex-row overflow-x-auto"
-              : "flex flex-col overflow-y-auto"
-          )}>
+              ? "flex flex-row overflow-x-auto overflow-y-hidden"
+              : "flex flex-col overflow-y-auto overflow-x-hidden"
+          )}
+          style={{
+            padding: CLIPBOARD_PANEL_PADDING,
+            gap: CLIPBOARD_PANEL_CARD_GAP,
+          }}>
           {isLoading ? (
             <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground">
               加载中…

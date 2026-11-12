@@ -7,6 +7,14 @@ export default defineConfig({
   plugins: [react()],
   base: "./",
   resolve: {
+    // 扩展名优先级：源码在前，编译产物在后。
+    //
+    // Vite 默认是 ['.mjs', '.js', '.mts', '.ts', ...] —— .js 排在 .ts 前面。
+    // 一旦 src/shared 这类目录里混进了 tsc 越界编译留下的 .js（见 build/tsconfig.*.json
+    // 的 rootDir 说明），无扩展名的 import 就会解析到那份陈旧的 CommonJS 产物上：
+    // rollup 按 ESM 解析它，导出全部丢失，报 "xxx is not exported by ..."。
+    // 源码优先能直接绕开这个坑：同名 .ts 一定赢过旁边的 .js。
+    extensions: [".ts", ".tsx", ".mts", ".mjs", ".js", ".jsx", ".json"],
     alias: {
       "@": path.resolve(__dirname, "."),
       // 主进程和渲染进程共用的模块（src/shared）。
@@ -33,6 +41,7 @@ export default defineConfig({
         main: path.resolve(__dirname, "index.html"),
         "sticky-note": path.resolve(__dirname, "sticky-note.html"),
         "popup-clipboard": path.resolve(__dirname, "popup-clipboard.html"),
+        island: path.resolve(__dirname, "island.html"),
       },
     },
   },

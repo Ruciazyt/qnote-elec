@@ -1,4 +1,4 @@
-﻿import React, { forwardRef, useEffect, useImperativeHandle, useState } from "react";
+import React, { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 import { ImageIcon, Minus, Plus, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NoteFileEntry } from "../../../../shared/noteTypes";
@@ -160,4 +160,4 @@ const ImageViewer = forwardRef<NoteEditorHandle, ImageViewerProps>(function Imag
   );
 });
 
-export default ImageViewer;
+export default React.memo(ImageViewer);

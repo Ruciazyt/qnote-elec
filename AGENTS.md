@@ -70,6 +70,14 @@ pnpm run release:patch  # 发补丁版本（1.9.0 → 1.9.1）
 
 带 `BREAKING CHANGE:` 脚注，或 type 后加 `!`（如 `feat(api)!: ...`）→ **major**。
 
+- **删除内部 preload 暴露按 `refactor` 计，不视为破坏性变更。**
+  例如删掉 `window.electron.send` 这类通用通道，或删掉渲染层零调用的
+  某个 API 暴露 —— 它们是 preload 的内部 API，从未在公开契约里承诺过，
+  删除不触发 major。§3.2 的 major 针对的是**对外契约**的破坏
+  （对外接口签名、配置格式、持久化数据结构）。
+- 反过来，如果删的是渲染层**正在用**的暴露，那不是清理，是缺陷，
+  用 `fix`，不能拿 `refactor` 掩盖。
+
 > 最后一列的"触发版本位"是本项目版本号规范的直接依据：
 > 一批提交里只要出现 `feat` 就发 minor，出现破坏性变更就发 major，
 > 其余一律发 patch。详见第 3 节。
@@ -166,6 +174,16 @@ MAJOR.MINOR.PATCH        例：1.9.0
     功能还在零星补」的阶段，功能性的东西该有自己的次版本线。
   - 换线必须同步改 `scripts/release/verify-version.js` 的 `RELEASE_LINE` ——
     两处不一致会被版本号校验拦下。
+  - **切线与 version bump 不能拆成两个提交，更不能把切线提交单独推到 master。**
+    只改 `RELEASE_LINE`、不动 `package.json` 的 version 时，
+    `verify-version.js` 会判定「不在当前发布线上」并退出非零 ——
+    `auto-build.yml` 的 "Verify version format" 步骤随之失败，
+    那次推 master 的 CI 是红的（2026-11-05 的 `b462f6a` 就是这样：
+    切线与 bump 分成两个提交，中间那个推上去时 package.json 还是 1.8.0）。
+    - **手工换线**：切线与 `package.json` 的 version bump 合成**同一个提交**再推。
+    - **用 `pnpm run release:minor` 换线**（见 3.4 的正规路径）：切线提交是脚本
+      bump 之前的那个中间提交，**在 bump 完成前不要推 master** ——
+      手工再改一次 version 会被脚本的 bump 顶成下一个版本号。
 - **版本号的唯一来源是根目录 `package.json` 的 `version` 字段**，任何地方都不许另造版本号
 
 ### 3.2 语义化版本
@@ -269,7 +287,9 @@ git diff --cached | grep -nEi "sk-[A-Za-z0-9]{20,}|api[_-]?key\s*[:=]\s*['\"][^'
 | 跨端共享类型 | `src/shared/` |
 | 数据表与迁移 | `src/database/` |
 | 应用管理（项目清单、进程启停、HTML 预览） | `src/main/core/appManager.ts`、`src/main/core/window/appPreview.ts`、`src/main/utils/appManifest.ts`、`src/renderer/components/apps/` |
-| 通用面板件（可折叠侧栏、拖拽分割线、宽度偏好） | `src/renderer/components/panel/`、`src/renderer/hooks/usePanelWidth.ts` |
+| 通用面板件（可折叠侧栏、拖拽分割线、宽度偏好） | `src/renderer/components/panel/`、`src/renderer/hooks/usePanelWidth.ts`、`src/renderer/hooks/useCoalescedStorage.ts`（合并写盘：拖拽时别每帧同步写 localStorage） |
+| 上下分栏（笔记树 / 外部文件夹，默认 6:4，可拖动） | `src/renderer/components/panel/PanelHeightResizer.tsx`（纵向分割线）、`src/renderer/hooks/useSplitRatio.ts`（比例持久化）、`src/renderer/components/Note/layout.ts`（比例与收起态高度常量） |
+| 灵动岛（最小化后顶在屏幕顶边的浮层） | `src/shared/island.ts`（契约）、`src/main/core/window/island.ts`（窗口与几何）、`src/main/handlers/islandHandlers.ts`（IPC）、`src/renderer/components/island/`（界面） |
 | 打包 / 发布配置 | `build/`、`scripts/`、`.github/workflows/` |
 
 主进程新增 IPC 时六个地方要同步改，漏一处会静默失效：
@@ -373,6 +393,67 @@ macOS 产物的签名 / 公证与是否进正式 Release，都是**条件式**�
 - **拖拽分割线是 flex 子节点**：`PanelResizer` 真实占位，不叠在侧栏边缘。
   预览区的原生视图盖在 DOM 之上，压在它上面的 DOM 收不到鼠标事件 ——
   分割线有 1px 伸进网页区，那 1px 就点不动。
+
+### 6.5 灵动岛
+
+主窗口最小化后顶在屏幕顶边的那块浮层。形态参考 [fly-island](https://github.com/flyl1u/fly-island)，
+但实现是 QNote 自己的（Electron + React，不是 Tauri + Rust）。几条容易踩的约束：
+
+- **尺寸动画由主进程逐帧 `setBounds` 驱动**。Electron 的 `setBounds(bounds, animate)`
+  在 Windows 上不支持动画，所以主进程自己补间（`src/main/core/window/island.ts`）。
+  这样窗口的物理尺寸和内容的视觉尺寸天然同步，不会出现「内容展开了窗口还小着」。
+  渲染层只负责画内容和播自己的淡入淡出。
+- **胶囊宽度由渲染层量出来报给主进程**（`ResizeObserver` → `island:set-collapsed-width`），
+  主进程夹到 [220, 460]。胶囊用 `width: max-content`，**不要加 `max-width`** ——
+  那样量到的是「被窗口挤窄的宽度」而不是自然宽度，收起动画途中回写进主进程会把补间截断。
+- **贴顶时顶端两角是直角，浮着时四角一样圆**（`data-attach="attached" | "floating"`）。
+  贴顶态还要把上边描边去掉，不然屏幕边缘会横着多一条 1px 的线。
+- **展开态的面板不画阴影**：面板这么大，一层厚阴影压下去像块黑砖，
+  边界交给那圈 1px 描边就够了。收起态的胶囊保留阴影 —— 它贴在屏幕边上，
+  靠那点投影才浮得起来。
+- **窗口比卡片大一圈，专门留给阴影**（`ISLAND_SHADOW_PAD_X / ISLAND_SHADOW_PAD_Y`）。
+  阴影是 CSS 的 `box-shadow`，画在卡片**外面**；窗口跟卡片一样大的话，
+  阴影画出去的部分被窗口矩形裁掉，底角变成两条硬边（看着像直角阴影）。
+  因此**卡片坐标 ≠ 窗口坐标**：卡片的 x = 窗口的 x + `ISLAND_SHADOW_PAD_X`，y 相同。
+- **鼠标不在卡片上时，窗口要放成穿透**（`island:set-interactive` →
+  `setIgnoreMouseEvents(true, { forward: true })`）。窗口比卡片大一圈，
+  那圈是透明的，但窗口终归是矩形 —— 不放行的话，底下那三十来像素高的带子
+  会把应用的点击吃掉。渲染层自己做命中判定（靠转发过来的 `mousemove`），
+  别改回 `mouseenter` / `mouseleave`。
+- **拖动期间不能改穿透状态**：窗口一放行鼠标，渲染层的指针捕获就丢了，
+  拖动会当场断在原地 —— 卡片比指针慢一帧，指针越过卡片边缘就会被判成
+  「不在卡片上」，这时放行穿透，拖动必断。渲染层用「指针还按着」挡住，
+  主进程侧再兜一层（拖动中的请求先记着，拖完再生效）。
+- **拖动位置直接发 IPC，别攒到下一帧**：攒一帧就是白白多等 16ms（60Hz），
+  岛会慢半拍，看着就是「不太跟鼠标」。`pointermove` 本身已按帧派发，
+  一帧挪一次窗口正合适；真来了比帧更密的移动（高刷鼠标）才退回去攒帧。
+- **岛不跟着鼠标换屏**：放在哪块屏就留在哪块屏，显示器 id 记在配置里
+  （`IslandSettings.displayId`），拔掉那块屏才回主屏。
+- **横向位置要记住**：吸回顶边只改纵向，横向停在用户放的地方 ——
+  一律拉回正中就成了「岛只能固定在中间」。
+- **展开动画不回弹**（`easeOutQuint`，约等于 DESIGN.md 那条
+  `cubic-bezier(0.22, 1, 0.36, 1)`）。早期用 `easeOutBack`，尺寸冲过目标
+  再荡回来，那一下的边界抖动最刺眼。
+- **面板内容一直挂着**，不跟着展开收起卸载 —— 展开那一刻才 mount 一大棵列表，
+  动画头几帧会掉帧，看着就是「抖了一下」。收起时靠 `visibility: hidden`
+  做结构性隐藏（里面的按钮不会被 Tab 选中）。
+- **岛的配色要单独钉**。`--island-*` 是私有 token，CSS 文字对比度守卫不认
+  （和 `--sticky-ink` 一样），所以有 `scripts/build/check-island-contrast.mjs`
+  与 `src/renderer/test/island-contrast.test.ts` 两道。
+- **dev 实例连不上 CDP**（`/json/list` 永远不返回），看岛的界面只能靠
+  `pnpm run preview:island` —— 它另起一个最小 Electron 应用，加载岛的真实产物 +
+  喂假数据，用 `capturePage` 截出收起/展开两张图，落在 `dist/island-preview-*.png`。
+- **主窗口回前台时岛自动隐藏**：主窗口 `restore` / `showMainWindow` 时收起岛，
+  否则两块浮层叠在一起。岛显示时用 `showInactive`，不抢焦点。
+- **置顶层级用 `screen-saver`**（Windows 层级里最高的一档）。默认的
+  `alwaysOnTop` 只给 `floating`（topmost 档）—— 别的应用弹一个 topmost 窗口
+  （聊天气泡、输入法候选框、截图工具）就压到岛上面了，
+  独占全屏的应用更是连 topmost 都压得住。便签的「屏幕级置顶」用的也是这一档。
+- **每次显示都要重新设一次置顶层级**：Windows 上透明层窗口隐藏再显示之后，
+  always-on-top 状态有时会掉 —— 掉了岛就变回一个普通窗口，
+  随便哪个应用盖上来，岛就没了（表现为「有时候被别的窗口挡住」）。
+  设层级顺带把自己顶到 topmost 档的最前面。
+
 
 
 ---

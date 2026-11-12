@@ -17,6 +17,41 @@ interface ElectronAPI {
   selectDirs: () => Promise<string | undefined>;
   // 笔记文件（纯文件制，类型由扩展名决定；主进程是唯一写入口）
   getNoteTree: (dirPath: string) => Promise<import("../shared/noteTypes").NoteTreeNode[]>;
+  /**
+   * 外部文件夹（笔记页侧栏下半部分）
+   *
+   * 渲染层只认 id —— 路径由主进程从注册表里查。
+   */
+  getExternalFolders: () => Promise<import("../shared/noteTypes").ExternalFolder[]>;
+  /** 弹系统目录选择框并登记选中的文件夹；用户取消时返回 null */
+  addExternalFolders: () => Promise<import("../shared/noteTypes").ExternalFolder[] | null>;
+  /** 从清单里移除（不动磁盘上的文件） */
+  removeExternalFolder: (id: string) => Promise<import("../shared/noteTypes").ExternalFolder[]>;
+  /** 列出某个外部文件夹里的目录树 */
+  getExternalTree: (id: string) => Promise<import("../shared/noteTypes").NoteTreeNode[]>;
+  /** 在文件管理器里定位外部文件夹里的条目 */
+  revealExternalFile: (id: string, relPath: string) => Promise<boolean>;
+  /** 外部文件夹的文件管理：删除 / 重命名 / 新建 / 移动 / 拖入文件 */
+  deleteExternalFile: (id: string, relPath: string) => Promise<boolean>;
+  deleteExternalFolder: (id: string, relPath: string) => Promise<boolean>;
+  renameExternalEntry: (id: string, oldRel: string, newName: string) => Promise<boolean>;
+  createExternalFolder: (id: string, parentRel: string, name: string) => Promise<boolean>;
+  createExternalFile: (
+    id: string,
+    parentRel: string,
+    name: string,
+    type: import("../shared/noteTypes").NoteType
+  ) => Promise<{ ok: true; relPath: string } | { ok: false; reason: string }>;
+  moveExternalEntry: (
+    id: string,
+    fromRel: string,
+    toFolderRel: string
+  ) => Promise<{ ok: true } | { ok: false; reason: string }>;
+  importExternalFiles: (
+    id: string,
+    srcPaths: string[],
+    targetFolderRel?: string
+  ) => Promise<{ imported: string[]; skipped: string[] }>;
   /** Electron 32+ 移除了 File.path，取磁盘路径只能走这个 */
   getPathForFile: (file: File) => string;
   importNoteFiles: (
@@ -592,6 +627,62 @@ interface ElectronAPI {
   }) => Promise<{ ok: boolean; id?: string; error?: string }>;
   /** 弹出便签的原生右键菜单（图片便签没有常驻控件，操作走这里） */
   stickyShowMenu: () => Promise<boolean>;
+
+  // ==================== 灵动岛 API ====================
+  // 岛是独立 BrowserWindow，跑在自己的渲染层里
+
+  /** 读灵动岛配置 */
+  islandGetSettings: () => Promise<import("../shared/island").IslandSettings>;
+  /** 改灵动岛配置（合并式更新），返回落库后的完整配置 */
+  islandSetSettings: (
+    patch: Partial<import("../shared/island").IslandSettings>
+  ) => Promise<import("../shared/island").IslandSettings>;
+  /** 读岛的当前状态快照 */
+  islandGetState: () => Promise<import("../shared/island").IslandSnapshot>;
+  /** 展开 / 收起 / 切换 */
+  islandExpand: () => void;
+  islandCollapse: () => void;
+  islandToggle: () => void;
+  /** 切页签 */
+  islandSetPage: (page: import("../shared/island").IslandPage) => void;
+  /** 报上收起态该有多宽（渲染层量好摘要文字后调用） */
+  islandSetCollapsedWidth: (width: number) => void;
+  /** 把岛放回默认位置（贴顶居中） */
+  islandResetPosition: () => void;
+  /**
+   * 窗口要不要接收鼠标事件
+   *
+   * 窗口比卡片大一圈（给阴影留地方），鼠标不在卡片上时
+   * 主进程把窗口设成穿透，别让那圈透明区域吃掉底下应用的点击。
+   */
+  islandSetInteractive: (interactive: boolean) => void;
+  /** 开始拖动 —— 屏幕坐标由渲染层给（MouseEvent 带 screenX/screenY） */
+  islandDragStart: (screenX: number, screenY: number) => void;
+  /** 拖动中 */
+  islandDragMove: (screenX: number, screenY: number) => void;
+  /** 结束拖动 */
+  islandDragEnd: () => void;
+  /** 从岛跳回主窗口；relPath 非空表示还要打开某一篇具体笔记 */
+  islandOpenMain: (payload: {
+    page?: import("../shared/island").IslandPage;
+    relPath?: string | null;
+  }) => Promise<{ ok: boolean }>;
+  /** 最近编辑的笔记 */
+  islandGetRecentNotes: () => Promise<import("../shared/island").IslandRecentNote[]>;
+  /** AI 任务状态快照 */
+  islandGetAiActivity: () => Promise<import("../shared/island").IslandAiActivity>;
+  /** 订阅岛的状态变化（展开/收起/切页） */
+  onIslandState: (
+    callback: (state: import("../shared/island").IslandSnapshot) => void
+  ) => () => void;
+  /** 订阅 AI 任务状态变化 */
+  onIslandAiActivity: (
+    callback: (activity: import("../shared/island").IslandAiActivity) => void
+  ) => () => void;
+  /** 灵动岛让主窗口跳到某个页面；relPath 非空表示还要打开某一篇具体笔记 */
+  onIslandNavigate: (
+    callback: (payload: { route: string; relPath: string | null }) => void
+  ) => () => void;
 }
 
 declare global {

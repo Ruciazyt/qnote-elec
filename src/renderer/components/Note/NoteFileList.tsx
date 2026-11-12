@@ -1,38 +1,23 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  PenTool,
-  FileText,
-  ImageIcon,
   Folder as FolderIcon,
   FolderOpen as FolderOpenIcon,
   ChevronRight,
   Trash2,
   Pencil,
-  FolderPlus,
-  FilePlus,
-  RefreshCw,
   Upload,
-  Code2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import {
-  CREATABLE_NOTE_TYPES,
   getNoteTypeMeta,
   NoteTreeNode,
   NoteType,
   stripExt,
 } from "../../../shared/noteTypes";
+import { NOTE_TYPE_ICONS } from "./noteIcons";
+import NoteTreeMenu, { NoteTreeMenuTarget } from "./NoteTreeMenu";
 import { cn } from "@/lib/utils";
-
-const TYPE_ICONS: Record<NoteType, React.ElementType> = {
-  excalidraw: PenTool,
-  markdown: FileText,
-  html: Code2,
-  image: ImageIcon,
-  pdf: FileText,
-};
 
 /** 相对时间：比绝对时间戳更容易判断"刚保存的那个是哪个" */
 function relativeTime(mtime: number): string {
@@ -68,14 +53,42 @@ interface NoteFileListProps {
   onRefresh?: () => void;
   /** 从系统拖入文件 */
   onImportFiles?: (paths: string[]) => void;
-  onCreateFolder: () => void;
-  /** 新建空白笔记；参数是笔记类型（后缀由类型决定） */
-  onCreateFile?: (type: NoteType) => void;
+  /** 新建文件夹；参数是落点目录的相对路径（"" 表示根目录） */
+  onCreateFolder: (targetFolder: string) => void;
+  /** 新建空白笔记；参数是笔记类型（后缀由类型决定）与落点目录 */
+  onCreateFile?: (type: NoteType, targetFolder: string) => void;
   /** 没设置笔记目录时禁掉新建入口 */
   canCreateFile?: boolean;
+  /** 当前新建流程的落点目录 —— 变了就把那一层展开，让新建结果看得见 */
+  createTargetFolder?: string;
   /** 拖拽移动：把 fromRel 放进 toFolderRel（"" 表示根目录） */
   onMove: (fromRel: string, toFolderRel: string) => void;
-  fileListRef: React.RefObject<HTMLDivElement>;
+  /** 容器 ref —— 外部文件夹区里每个树各自一份，可以不给 */
+  fileListRef?: React.RefObject<HTMLDivElement>;
+  /**
+   * 树要不要撑满父容器
+   *
+   * 主树：撑满（父容器就是它的可视区）。
+   * 外部文件夹区：按内容高度 —— 它嵌在外部区自己的滚动区里，
+   * 两层都撑满会出现「套娃滚动」，中间那一层滚不动。
+   */
+  fill?: boolean;
+  /**
+   * 滚动区要不要自带左右内边距
+   *
+   * 主树自己就是滚动区，左右各留 4px（px-1）。
+   * 外部区的树是**嵌在**外部区自己的滚动区里的，那层已经带 px-1 ——
+   * 再套一层就比主树多缩进 4px，两棵树的行对不齐。
+   * 这种场合传 false。
+   */
+  scrollInset?: boolean;
+  /**
+   * 整棵树向下挪几级缩进
+   *
+   * 外部文件夹区里，这棵树挂在「外部文件夹」那一行下面，
+   * 不缩进的话父子两级的条目会齐平，看着像同一层。
+   */
+  depthOffset?: number;
 }
 
 /**
@@ -180,7 +193,17 @@ function RowActions({
   );
 }
 
-export default function NoteFileList({
+/**
+ * 目录树
+ *
+ * 出口用 memo 包一层：这棵树是笔记页里最重的一块（行数随目录规模线性增长），
+ * 而笔记页的任何一次状态变化（改比例、改宽度、点开一个文件）都会让父组件重渲染。
+ * 不包 memo 的话，拖一次分割线就是每帧重建整棵树 —— 分割线卡顿的主因之一。
+ *
+ * memo 只在 props 引用没变时跳过渲染，所以**父组件传进来的回调必须稳定**
+ * （useCallback / setState 直接传），内联箭头函数会让 memo 失效。
+ */
+function NoteFileList({
   nodes,
   activeRelPath,
   currentFolder,
@@ -199,8 +222,12 @@ export default function NoteFileList({
   onCreateFolder,
   onCreateFile,
   canCreateFile = true,
+  createTargetFolder = "",
   onMove,
   fileListRef,
+  fill = true,
+  scrollInset = true,
+  depthOffset = 0,
 }: NoteFileListProps) {
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const [hovered, setHovered] = useState<string | null>(null);
@@ -208,8 +235,12 @@ export default function NoteFileList({
   const [dragRel, setDragRel] = useState<string | null>(null);
   /** 当前高亮的放置目标；null = 无目标，"" = 根目录 */
   const [dropTarget, setDropTarget] = useState<string | null>(null);
-  /** 「新建文件」类型菜单的开关 */
-  const [createMenuOpen, setCreateMenuOpen] = useState(false);
+  /** 右键菜单：视口坐标 + 目标（文件夹 / 文件 / 空白处） */
+  const [ctxMenu, setCtxMenu] = useState<{
+    x: number;
+    y: number;
+    target: NoteTreeMenuTarget;
+  } | null>(null);
   /** 悬停自动展开的计时器 */
   const expandTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -230,26 +261,42 @@ export default function NoteFileList({
   useEffect(() => clearExpandTimer, []);
 
   /**
+   * 展开某个目录及其全部祖先。
+   *
+   * 祖先也得展开，深层目录里的条目否则仍然藏在折叠层下面。
+   */
+  const expandAncestors = (prev: Set<string>, path: string): Set<string> => {
+    if (!path) return prev;
+    const next = new Set(prev);
+    const segs = path.split("/");
+    let acc = "";
+    for (const seg of segs) {
+      acc = acc ? `${acc}/${seg}` : seg;
+      next.add(acc);
+    }
+    // 已经全展开就别产生新 Set，省一次渲染
+    if (next.size === prev.size) return prev;
+    return next;
+  };
+
+  /**
    * 「新建位置」指向的文件夹自动展开（连同它的祖先）。
    *
    * 不展开的话，新建的文件落进了目录却看不见 —— 用户会以为没建成功。
-   * 祖先也得展开，深层目录里的文件否则仍然藏在折叠层下面。
    */
   useEffect(() => {
-    if (!currentFolder) return;
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      const segs = currentFolder.split("/");
-      let acc = "";
-      for (const seg of segs) {
-        acc = acc ? `${acc}/${seg}` : seg;
-        next.add(acc);
-      }
-      // 已经全展开就别产生新 Set，省一次渲染
-      if (next.size === prev.size) return prev;
-      return next;
-    });
+    setExpanded((prev) => expandAncestors(prev, currentFolder));
   }, [currentFolder]);
+
+  /**
+   * 右键新建的落点目录也自动展开。
+   *
+   * 右键某个文件夹新建时，落点不是「新建位置」而是那个文件夹本身 ——
+   * 不把它展开的话，新建的条目落在折叠层里看不见。
+   */
+  useEffect(() => {
+    setExpanded((prev) => expandAncestors(prev, createTargetFolder));
+  }, [createTargetFolder]);
 
   const endDrag = () => {
     clearExpandTimer();
@@ -316,6 +363,20 @@ export default function NoteFileList({
     },
   };
 
+  /**
+   * 打开右键菜单
+   *
+   * 不 preventDefault 的话 Chromium 会弹出它自己的菜单；stopPropagation 是为了
+   * 让行上的右键不冒到列表容器上 —— 容器那边是「空白处」的菜单。
+   */
+  const openContextMenu = (e: React.MouseEvent, target: NoteTreeMenuTarget) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCtxMenu({ x: e.clientX, y: e.clientY, target });
+  };
+
+  const closeContextMenu = useCallback(() => setCtxMenu(null), []);
+
   /** 递归渲染。缩进用 paddingLeft，避免每层多包一个 div */
   const renderNodes = (list: NoteTreeNode[], depth: number): React.ReactNode =>
     list.map((node) => {
@@ -358,6 +419,10 @@ export default function NoteFileList({
               onMouseEnter={() => setHovered(node.relPath)}
               onMouseLeave={() => setHovered((h) => (h === node.relPath ? null : h))}
               onClick={pickFolder}
+              onContextMenu={(e) =>
+                // 右键文件夹 → 新建项落在这个文件夹里
+                openContextMenu(e, { kind: "folder", node, folderRel: node.relPath })
+              }
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
@@ -378,7 +443,7 @@ export default function NoteFileList({
                 dragRel === node.relPath && "opacity-40"
               )}
               style={{ paddingLeft: 6 + depth * 12 }}
-              title={`${node.relPath}（点击设为新建位置，再点一次取消；可拖入文件）`}
+              title={`${node.relPath}（点击设为新建与导入的落点，再点一次取消；可拖入文件）`}
               {...dragSourceProps(node.relPath)}
               {...folderDropHandlers(node.relPath, isOpen)}
             >
@@ -429,8 +494,12 @@ export default function NoteFileList({
         );
       }
 
-      const Icon = TYPE_ICONS[node.type];
+      const Icon = NOTE_TYPE_ICONS[node.type];
       const label = getNoteTypeMeta(node.type).label;
+      // 文件所在的目录 —— 右键文件时菜单要显示它
+      const parentRel = node.relPath.includes("/")
+        ? node.relPath.slice(0, node.relPath.lastIndexOf("/"))
+        : "";
       return (
         <div
           key={node.relPath}
@@ -439,6 +508,7 @@ export default function NoteFileList({
           onMouseEnter={() => setHovered(node.relPath)}
           onMouseLeave={() => setHovered((h) => (h === node.relPath ? null : h))}
           onClick={() => onOpen(node)}
+          onContextMenu={(e) => openContextMenu(e, { kind: "file", node, folderRel: parentRel })}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
@@ -517,13 +587,16 @@ export default function NoteFileList({
   return (
     <TooltipProvider delayDuration={300}>
       <div
-        className={`flex flex-col h-full min-h-0 relative rounded-xl transition-all duration-200 ease-out ${
+        className={cn(
+          "flex flex-col min-h-0 relative rounded-xl transition-all duration-200 ease-out",
+          // 主树撑满父容器；外部区的树按内容高度，滚动交给外层
+          fill ? "h-full" : "h-auto",
           // ring 跟着 border-radius 走，所以圆角加在容器上而不是环上；
           // 1px + 虚线比 2px 实心轻，拖过的时候不糊住整个列表
           fileDropActive
             ? "bg-primary/[0.04] ring-1 ring-dashed ring-primary/50"
             : "ring-1 ring-transparent"
-        }`}
+        )}
         ref={fileListRef}
         onDragOver={(e) => {
           if (!hasOsFiles(e)) return; // 内部拖动交给各自的处理器
@@ -552,107 +625,28 @@ export default function NoteFileList({
             </p>
           </div>
         </div>
-        <div className="flex items-center justify-between gap-1 px-1 mb-1 flex-shrink-0">
-          {/* flex-1 + min-w-0：位置文字长了就截断，不能把右边的按钮挤出可视区 */}
-          <span className="flex-1 min-w-0 text-[10px] text-muted-foreground truncate">
-            {dragRel
-              ? "拖到文件夹上移动，拖到空白处移回根目录"
-              : currentFolder
-              ? `新建位置：${currentFolder}`
-              : "新建位置：根目录"}
-          </span>
-          {/* 新建文件：先选类型，再由父组件弹命名框落地。
-              触发按钮用原生 title 而不是 Tooltip —— Radix 的 Popover 与 Tooltip
-              都靠 asChild 克隆同一个按钮，两个触发器叠在一起会互相抢事件。 */}
-          {onCreateFile && (
-            <Popover open={createMenuOpen} onOpenChange={setCreateMenuOpen}>
-              <PopoverTrigger asChild>
-                <button
-                  type="button"
-                  aria-label="新建笔记文件"
-                  title={canCreateFile ? "新建笔记文件" : "请先设置笔记保存目录"}
-                  disabled={!canCreateFile}
-                  className="h-6 w-6 flex-shrink-0 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors active:scale-90 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
-                >
-                  <FilePlus className="h-3.5 w-3.5" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent align="end" sideOffset={6} className="w-52 p-1">
-                <p className="px-2 py-1.5 text-[10px] text-muted-foreground/70">
-                  在「{currentFolder || "根目录"}」下新建
-                </p>
-                {CREATABLE_NOTE_TYPES.map((type) => {
-                  const meta = getNoteTypeMeta(type);
-                  const Icon = TYPE_ICONS[type];
-                  return (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() => {
-                        // 选完就收起菜单：否则弹窗叠在菜单下面，用户以为没点上
-                        setCreateMenuOpen(false);
-                        onCreateFile(type);
-                      }}
-                      className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-accent transition-colors text-left"
-                    >
-                      <Icon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                      <span className="flex-1">{meta.label}</span>
-                      <span className="text-[10px] text-muted-foreground font-mono">
-                        {meta.defaultExt}
-                      </span>
-                    </button>
-                  );
-                })}
-                <p className="px-2 py-1.5 mt-1 border-t border-border/60 text-[10px] text-muted-foreground">
-                  图片和 PDF 请直接拖入或粘贴
-                </p>
-              </PopoverContent>
-            </Popover>
-          )}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                onClick={onCreateFolder}
-                aria-label="新建文件夹"
-                className="h-6 w-6 flex-shrink-0 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors active:scale-90"
-              >
-                <FolderPlus className="h-3.5 w-3.5" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={6}>
-              <p className="text-xs">在「{currentFolder || "根目录"}」下新建文件夹</p>
-            </TooltipContent>
-          </Tooltip>
-          {onRefresh && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={onRefresh}
-                  aria-label="刷新列表"
-                  className="h-6 w-6 flex-shrink-0 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors active:scale-90"
-                >
-                  <RefreshCw className="h-3.5 w-3.5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="right" sideOffset={6}>
-                <p className="text-xs">重新读取笔记目录</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
-        </div>
-
         {/* px-1 / pt-1 给行留出余量：行本身是铺满这个滚动容器宽度的，
-            任何画在 border box 外的东西（焦点描边、外投影）都会被 overflow 裁掉。 */}
+            任何画在 border box 外的东西（焦点描边、外投影）都会被 overflow 裁掉。
+            嵌在别的滚动区里的树把 px-1 让给外层（scrollInset=false），
+            否则这棵树会比主树多缩进 4px。 */}
         <div
+          data-note-tree-scroll
           className={cn(
-            "flex-1 min-h-0 overflow-y-auto px-1 pt-1 pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]",
+            // 撑满时它是唯一的滚动区（flex-1 + min-h-0）；
+            // 按内容高度时不参与伸缩，高度就是内容高度，滚动交给外层
+            fill ? "flex-1 min-h-0" : "flex-none",
+            "overflow-y-auto pt-1 pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]",
+            // 左右内边距：主树自带；嵌在别的滚动区里的树不再自带
+            scrollInset ? "px-1" : "px-0",
             dropTarget === "" &&
               dragRel &&
               "bg-primary/5 outline outline-2 outline-dashed outline-primary/40 -outline-offset-2"
           )}
           {...rootDropProps}
+          onContextMenu={(e) =>
+            // 行上的右键自己 stopPropagation 了，冒到这里的就是空白处
+            openContextMenu(e, { kind: "blank", node: null, folderRel: currentFolder })
+          }
         >
           {isEmpty ? (
             <div className="flex flex-col items-center justify-center py-10 leetcode-empty-state">
@@ -664,16 +658,48 @@ export default function NoteFileList({
               </div>
               <p className="text-sm font-medium text-foreground/70 mb-1">还没有笔记</p>
               <p className="text-xs text-muted-foreground text-center max-w-[190px] leading-relaxed">
-                点上方「新建文件」创建空白笔记，
+                右键空白处新建，
+                <br />
+                右键文件夹则建在那个文件夹里
                 <br />
                 复制图片后按 Ctrl+V 存为图片笔记
               </p>
             </div>
           ) : (
-            <div className="space-y-0.5">{renderNodes(nodes, 0)}</div>
+            <div className="space-y-0.5">{renderNodes(nodes, depthOffset)}</div>
           )}
         </div>
       </div>
+
+      {/* 右键菜单挂在滚动容器外面 —— 它是 fixed 定位，不能被侧栏的 overflow 裁掉 */}
+      {ctxMenu && (
+        <NoteTreeMenu
+          x={ctxMenu.x}
+          y={ctxMenu.y}
+          target={ctxMenu.target}
+          canCreate={canCreateFile}
+          onClose={closeContextMenu}
+          onCreateFile={(type) => onCreateFile?.(type, ctxMenu.target.folderRel)}
+          onCreateFolder={() => onCreateFolder(ctxMenu.target.folderRel)}
+          onRename={() => {
+            if (ctxMenu.target.node) onRenameStart(ctxMenu.target.node);
+          }}
+          onDelete={() => {
+            if (ctxMenu.target.node) onDelete(ctxMenu.target.node);
+          }}
+          onOpen={
+            ctxMenu.target.kind === "file"
+              ? () => {
+                  const node = ctxMenu.target.node;
+                  if (node && node.kind === "file") onOpen(node);
+                }
+              : undefined
+          }
+          onRefresh={onRefresh ? () => onRefresh() : undefined}
+        />
+      )}
     </TooltipProvider>
   );
 }
+
+export default React.memo(NoteFileList);

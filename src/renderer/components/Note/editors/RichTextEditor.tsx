@@ -179,7 +179,7 @@ const RichTextEditor = forwardRef<NoteEditorHandle, RichTextEditorProps>(functio
   const [linkValue, setLinkValue] = useState("");
   const [tableOpen, setTableOpen] = useState(false);
   const [insertingImage, setInsertingImage] = useState(false);
-  /** 已经灌进编辑器的条目路径。
+  /** 已经灌进编辑器的条目标识（根目录 + 相对路径）
    *  另存为后父组件会把 file 换成新条目，这里记下来就能跳过重新加载 ——
    *  否则会重置光标位置和撤销历史，用户刚写的东西体验上像是"被弹了一下"。 */
   const loadedRelRef = useRef<string | null>(null);
@@ -279,12 +279,16 @@ const RichTextEditor = forwardRef<NoteEditorHandle, RichTextEditorProps>(functio
   const loadIntoEditor = useCallback(
     async (target: string, force: boolean) => {
       if (!dirPath || !editor) return;
-      if (!force && loadedRelRef.current === target) return;
+      // 短路标识是「根目录 + 相对路径」而不是光 relPath：
+      // 同一个相对路径在笔记根目录和某个外部文件夹下是两个不同的文件，
+      // 只认 relPath 的话，换了根之后会留着上一个文件的内容。
+      const key = `${dirPath}\u0000${target}`;
+      if (!force && loadedRelRef.current === key) return;
       // 走 markdown 专用通道：主进程会把本地图片的相对路径换成 dataUrl
       const md = await window.electron.readMarkdownNote(dirPath, target);
       // emitUpdate:false —— 加载不是用户输入，别把它算成一次编辑
       editor.commands.setContent(md, { contentType: "markdown", emitUpdate: false });
-      loadedRelRef.current = target;
+      loadedRelRef.current = key;
       setDirty(false);
     },
     [dirPath, editor]
@@ -321,7 +325,7 @@ const RichTextEditor = forwardRef<NoteEditorHandle, RichTextEditorProps>(functio
       const ok = await window.electron.writeMarkdownNote(dirPath, target, editor.getMarkdown());
       if (ok) {
         // 另存为后父组件会改 file，这里先记下，避免重新灌内容导致光标和撤销历史被清空
-        loadedRelRef.current = target;
+        loadedRelRef.current = `${dirPath}\u0000${target}`;
         setDirty(false);
         onSaved(target);
       }
@@ -665,4 +669,4 @@ const RichTextEditor = forwardRef<NoteEditorHandle, RichTextEditorProps>(functio
   );
 });
 
-export default RichTextEditor;
+export default React.memo(RichTextEditor);

@@ -4,6 +4,7 @@ export default {
 	content: [
 		"./index.html",
 		"./sticky-note.html",
+		"./island.html",
 		"./*.{js,ts,jsx,tsx}",
 		"./{components,hooks,lib,pages,styles,utils}/**/*.{js,ts,jsx,tsx}",
 	],

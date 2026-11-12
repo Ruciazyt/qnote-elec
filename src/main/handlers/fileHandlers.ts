@@ -4,9 +4,24 @@ import * as fs from "fs";
 import * as path from "node:path";
 import { FileWriter } from "../core/fileWriter";
 import { NoteStore } from "../core/noteStore";
+import { ExternalFolderStore } from "../core/externalFolderStore";
 import { getMainWindow } from "../core/window/mainWindow";
 import { log } from "../utils/log";
-import { NoteFileEntry, NoteTreeNode, NoteType, isNoteFile } from "../../shared/noteTypes";
+import {
+  ExternalFolder,
+  NoteFileEntry,
+  NoteTreeNode,
+  NoteType,
+  isNoteFile,
+} from "../../shared/noteTypes";
+
+/**
+ * 外部文件夹的目录树最多返回多少个节点
+ *
+ * 外部文件夹是用户随手指的目录 —— 可能是整个盘符或一个大仓库，
+ * 一次全量扫描会卡住主进程。超限时截断，界面提示用户。
+ */
+const EXTERNAL_TREE_MAX_NODES = 3000;
 
 /**
  * 在同级目录下找一个不冲突的路径（同名追加 -2 / -3 …）
@@ -55,7 +70,10 @@ const MIME_BY_EXT: Readonly<Record<string, string>> = {
  * 窗口句柄是会变的东西（有热重载重建、有销毁），不能在建 handler 时快照，
  * 必须在用的时候现取。
  */
-export function registerFileHandlers(fileWriter: FileWriter) {
+export function registerFileHandlers(
+  fileWriter: FileWriter,
+  externalFolders: ExternalFolderStore
+) {
   const noteStore = new NoteStore();
 
   // 笔记根目录只由用户通过系统目录选择框确定（见 select-dirs），主进程自己存着。
@@ -279,36 +297,10 @@ export function registerFileHandlers(fileWriter: FileWriter) {
       srcPaths: string[],
       targetFolderRel = ""
     ): Promise<{ imported: string[]; skipped: string[] }> => {
-      const imported: string[] = [];
-      const skipped: string[] = [];
+      const result = await importFilesInto(dirPath, srcPaths, targetFolderRel);
 
-      // targetFolderRel 来自渲染层，挡一下路径穿越（写入前校验，不是事后补救）
-      const folder = (targetFolderRel || "").trim();
-      if (folder.includes("..") || path.isAbsolute(folder)) {
-        return { imported, skipped: [`非法目标目录：${targetFolderRel}`] };
-      }
-
-      for (const src of srcPaths) {
-        const fileName = path.basename(src);
-        // 不是笔记类型的直接跳过，不去猜用户的意图
-        if (!isNoteFile(fileName)) {
-          skipped.push(fileName);
-          continue;
-        }
-        try {
-          // allocateUniquePath 保证不覆盖同名已有文件（追加 -2/-3）
-          const relPath = allocateUniquePath(dirPath, folder ? `${folder}/${fileName}` : fileName);
-          await fs.promises.copyFile(src, path.resolve(dirPath, relPath));
-          imported.push(relPath);
-        } catch (err) {
-          log.error("导入文件失败:", src, err);
-          skipped.push(fileName);
-        }
-      }
-
-      if (imported.length > 0) broadcastNotesChanged(dirPath);
-      log.info(`[notes] 导入完成：成功 ${imported.length}，跳过 ${skipped.length}`);
-      return { imported, skipped };
+      if (result.imported.length > 0) broadcastNotesChanged(dirPath);
+      return result;
     }
   );
 
@@ -344,6 +336,228 @@ export function registerFileHandlers(fileWriter: FileWriter) {
       }
     }
   );
+
+  // ────────────────────────── 外部文件夹 ──────────────────────────
+  //
+  // 用户从磁盘任意路径添加进来的文件夹。渲染层只认 id，
+  // 路径一律由主进程从注册表里查 —— 渲染层不能指定操作目标目录。
+
+  /** 已登记的外部文件夹清单 */
+  ipcMain.handle("notes:external-folders", async (): Promise<ExternalFolder[]> => {
+    return externalFolders.list();
+  });
+
+  /**
+   * 弹系统目录选择框，把选中的文件夹登记进来
+   *
+   * 取消选择时返回 null（与「选中了但一个都没加进去」区分开：
+   * 后者返回清单本身，界面能提示"没有可添加的目录"）。
+   */
+  ipcMain.handle("notes:add-external-folders", async (): Promise<ExternalFolder[] | null> => {
+    const win = getMainWindow();
+    if (!win) {
+      log.error("notes:add-external-folders 调用时主窗口不存在，无法打开目录选择框");
+      return null;
+    }
+    const result = await dialog.showOpenDialog(win, {
+      title: "添加现有文件夹",
+      properties: ["openDirectory", "multiSelections"],
+    });
+    if (result.canceled || result.filePaths.length === 0) return null;
+    return externalFolders.add(result.filePaths);
+  });
+
+  /** 从清单里移除（不动磁盘上的文件） */
+  ipcMain.handle(
+    "notes:remove-external-folder",
+    async (_event, id: string): Promise<ExternalFolder[]> => {
+      return externalFolders.remove(id);
+    }
+  );
+
+  /**
+   * 列出某个外部文件夹里的目录树
+   *
+   * 只返回应用能预览的类型（.md / .html / .pdf / 图片 / .excalidraw），
+   * 其余文件在树里直接不出现 —— 与笔记根目录的规则一致。
+   */
+  ipcMain.handle("notes:external-tree", async (_event, id: string): Promise<NoteTreeNode[]> => {
+    const folder = await externalFolders.get(id);
+    if (!folder) return [];
+    try {
+      return noteStore.tree(folder.path, EXTERNAL_TREE_MAX_NODES);
+    } catch (err) {
+      log.error(`读取外部文件夹失败: ${folder.path}`, err);
+      return [];
+    }
+  });
+
+  /**
+   * 在文件管理器里定位外部文件夹里的某个条目
+   *
+   * 路径由主进程从 id + relPath 解析，并做包含性校验 ——
+   * 渲染层不能借这条通道打开注册表以外的位置。
+   */
+  ipcMain.handle(
+    "notes:external-reveal",
+    async (_event, id: string, relPath: string): Promise<boolean> => {
+      try {
+        const folder = await externalFolders.get(id);
+        if (!folder) return false;
+        const rootAbs = path.resolve(folder.path);
+        const abs = path.resolve(rootAbs, relPath || ".");
+        const rel = path.relative(rootAbs, abs);
+        if (rel.startsWith("..") || path.isAbsolute(rel)) {
+          throw new Error(`非法的路径: ${relPath}`);
+        }
+        if (relPath) shell.showItemInFolder(abs);
+        else await shell.openPath(abs);
+        return true;
+      } catch (err) {
+        log.error("定位外部文件夹条目失败", err);
+        return false;
+      }
+    }
+  );
+
+  // ── 外部文件夹的文件管理（增删改） ──
+  //
+  // 下面这些通道都只接受 id + 相对路径：目录由注册表解析，
+  // 渲染层没有机会把操作指向注册表以外的位置。
+
+  /** 外部文件夹的删改操作统一走这里取根目录 */
+  async function externalRoot(id: string): Promise<string | null> {
+    const folder = await externalFolders.get(id);
+    return folder?.path ?? null;
+  }
+
+  /** 删除一个文件 */
+  ipcMain.handle("notes:external-delete", async (_event, id: string, relPath: string) => {
+    const root = await externalRoot(id);
+    if (!root) return false;
+    return noteStore.delete(root, relPath);
+  });
+
+  /** 删除文件夹及其全部内容 */
+  ipcMain.handle("notes:external-delete-folder", async (_event, id: string, relPath: string) => {
+    const root = await externalRoot(id);
+    if (!root) return false;
+    return noteStore.deleteFolder(root, relPath);
+  });
+
+  /** 重命名文件或文件夹 */
+  ipcMain.handle(
+    "notes:external-rename",
+    async (_event, id: string, oldRel: string, newName: string) => {
+      const root = await externalRoot(id);
+      if (!root) return false;
+      return noteStore.rename(root, oldRel, newName);
+    }
+  );
+
+  /** 新建文件夹 */
+  ipcMain.handle(
+    "notes:external-create-folder",
+    async (_event, id: string, parentRel: string, name: string) => {
+      const root = await externalRoot(id);
+      if (!root) return false;
+      if (!noteStore.isValidFolderName(name)) return false;
+      return noteStore.createFolder(root, parentRel, name.trim());
+    }
+  );
+
+  /** 新建一篇空白笔记 */
+  ipcMain.handle(
+    "notes:external-create-file",
+    async (
+      _event,
+      id: string,
+      parentRel: string,
+      name: string,
+      type: NoteType
+    ): Promise<{ ok: true; relPath: string } | { ok: false; reason: string }> => {
+      const root = await externalRoot(id);
+      if (!root) return { ok: false, reason: "外部文件夹不存在" };
+      return noteStore.createNoteFile(root, parentRel, name, type);
+    }
+  );
+
+  /** 拖拽移动条目到另一个文件夹 */
+  ipcMain.handle(
+    "notes:external-move",
+    async (
+      _event,
+      id: string,
+      fromRel: string,
+      toFolderRel: string
+    ): Promise<{ ok: true } | { ok: false; reason: string }> => {
+      const root = await externalRoot(id);
+      if (!root) return { ok: false, reason: "外部文件夹不存在" };
+      return noteStore.move(root, fromRel, toFolderRel);
+    }
+  );
+
+  /** 从系统拖入文件 —— 复制进外部文件夹 */
+  ipcMain.handle(
+    "notes:external-import-files",
+    async (
+      _event,
+      id: string,
+      srcPaths: string[],
+      targetFolderRel = ""
+    ): Promise<{ imported: string[]; skipped: string[] }> => {
+      const root = await externalRoot(id);
+      if (!root) return { imported: [], skipped: [] };
+      const result = await importFilesInto(root, srcPaths, targetFolderRel);
+      if (result.imported.length > 0) broadcastNotesChanged(root);
+      return result;
+    }
+  );
+}
+
+/**
+ * 从系统拖进来的文件 —— 复制进目标目录
+ *
+ * 只收笔记系统认识的类型（detectNoteType 有返回的）：拖进来一个 .zip 或 .txt
+ * 在笔记列表里根本不会显示，用户会以为没导入成功，静默丢弃反而是帮忙 ——
+ * 所以这里明确跳过，并在返回值里告诉界面跳过了几个。
+ *
+ * 同名不覆盖，沿用 NoteStore.allocateImageName 那套追加后缀的思路。
+ */
+async function importFilesInto(
+  dirPath: string,
+  srcPaths: string[],
+  targetFolderRel: string
+): Promise<{ imported: string[]; skipped: string[] }> {
+  const imported: string[] = [];
+  const skipped: string[] = [];
+
+  // targetFolderRel 来自渲染层，挡一下路径穿越（写入前校验，不是事后补救）
+  const folder = (targetFolderRel || "").trim();
+  if (folder.includes("..") || path.isAbsolute(folder)) {
+    return { imported, skipped: [`非法目标目录：${targetFolderRel}`] };
+  }
+
+  for (const src of srcPaths || []) {
+    const fileName = path.basename(src);
+    // 不是笔记类型的直接跳过，不去猜用户的意图
+    if (!isNoteFile(fileName)) {
+      skipped.push(fileName);
+      continue;
+    }
+    try {
+      // allocateUniquePath 保证不覆盖同名已有文件（追加 -2/-3）
+      const relPath = allocateUniquePath(dirPath, folder ? `${folder}/${fileName}` : fileName);
+      await fs.promises.copyFile(src, path.resolve(dirPath, relPath));
+      imported.push(relPath);
+    } catch (err) {
+      log.error("导入文件失败:", src, err);
+      skipped.push(fileName);
+    }
+  }
+
+  log.info(`[notes] 导入完成：成功 ${imported.length}，跳过 ${skipped.length}`);
+  return { imported, skipped };
 }
 
 /** 在树里按 relPath 找到文件节点 */

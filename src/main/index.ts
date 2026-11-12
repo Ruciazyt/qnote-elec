@@ -27,6 +27,7 @@ import {
 import { vectorStore } from "./utils/vectorStore";
 import { initSettingsStore } from "./utils/settingsStore";
 import { registerFileHandlers } from "./handlers/fileHandlers";
+import { ExternalFolderStore } from "./core/externalFolderStore";
 import { registerNoteHandlers } from "./handlers/noteHandlers";
 import { registerTemplateHandlers } from "./handlers/templateHandlers";
 import { registerOcrHandlers } from "./handlers/ocrHandlers";
@@ -37,6 +38,7 @@ import { registerLeetcodeHandlers } from "./handlers/leetcodeHandlers";
 import { registerDatabaseTransferHandlers } from "./handlers/databaseTransferHandlers";
 import { registerClipboardPopupHandlers } from "./handlers/clipboardPopupHandlers";
 import { registerStickyNoteHandlers } from "./handlers/stickyNoteHandlers";
+import { registerIslandHandlers, disposeIsland } from "./handlers/islandHandlers";
 import { stickyNoteManager } from "./core/window/stickyNote";
 import { registerNotesProtocol } from "./handlers/notesProtocol";
 import { registerTodoHandlers } from "./handlers/todoHandlers";
@@ -56,6 +58,7 @@ import {
 } from "./core/window/appPreview";
 import { createMainWindow, getMainWindow, showMainWindow, createTray } from "./core/window";
 import { ClipboardPopupWindow } from "./core/window/clipboardPopup";
+import { IslandWindow } from "./core/window/island";
 import {
   unregisterAllShortcuts,
   registerVoiceShortcut,
@@ -230,6 +233,8 @@ app.commandLine.appendSwitch(
 let tray: Tray | null = null;
 let DB: any;
 let fileWriter: FileWriter;
+/** 外部文件夹注册表 —— 笔记页侧栏下半部分「外部文件夹」区域用 */
+let externalFolderStore: ExternalFolderStore;
 
 /**
  * 剪贴板面板快捷键被按下 —— 显示/隐藏面板
@@ -303,7 +308,7 @@ function registerIpcHandlers() {
   // 文件类 handler 里的对话框是在**调用时**才 getMainWindow()，所以放这里
   // 提前注册是安全的。曾经传 getMainWindow() 进来当参数，那会在窗口创建前
   // 拿到 null 并快照下来，导致「切换笔记目录」「插入图片」两个对话框静默失效。
-  registerFileHandlers(fileWriter);
+  registerFileHandlers(fileWriter, externalFolderStore);
   registerNoteHandlers(DB);
   registerTemplateHandlers(DB);
   registerOcrHandlers(DB);
@@ -313,6 +318,7 @@ function registerIpcHandlers() {
   registerLeetcodeHandlers(DB);
   registerClipboardPopupHandlers();
   registerStickyNoteHandlers();
+  registerIslandHandlers(fileWriter);
   registerTodoHandlers(DB);
   registerBookmarkHandlers(DB);
   registerShortcutHandlers(DB);
@@ -569,6 +575,9 @@ app.on("will-quit", () => {
   // 下次启动再摆回桌面上。记录本身已经落盘，这里只是把窗口资源收掉。
   stickyNoteManager.destroyAll();
 
+  // 销毁灵动岛窗口 —— 它是置顶的，不收掉会吊住退出流程
+  disposeIsland();
+
   // 释放内嵌浏览器的 WebContentsView
   teardownBrowserHandlers();
 
@@ -675,9 +684,35 @@ void app
         // 等待 fileWriter 初始化完成（含旧值迁移）
         await fileWriter.initPath();
 
+        // 外部文件夹注册表（笔记页侧栏下半部分那一片）
+        // 文件操作与预览协议都要用它把 id 解析成真实路径
+        externalFolderStore = new ExternalFolderStore(DB);
+
         // 初始化设置存储（依赖数据库）
         initSettingsStore(DB);
         configManager.initialize(DB);
+
+        // 灵动岛配置
+        //
+        // 启用状态要同步进窗口对象：主窗口的 minimize 事件是同步触发的，
+        // 每次都去 await 一次读库既慢又会引入闪烁，所以窗口里缓存一份。
+        try {
+          const islandSettings = await configManager.getIslandSettings();
+          const island = IslandWindow.getInstance();
+          island.setEnabled(islandSettings.enabled);
+          island.applyAttachMode(
+            islandSettings.attachMode,
+            islandSettings.position,
+            islandSettings.displayId
+          );
+          log.info("[island] 灵动岛配置已加载", {
+            enabled: islandSettings.enabled,
+            expandTrigger: islandSettings.expandTrigger,
+            attachMode: islandSettings.attachMode,
+          });
+        } catch (err) {
+          log.error("[island] 加载灵动岛配置失败", err);
+        }
 
         // 初始化本地记忆索引
         log.info("初始化本地记忆索引...");
@@ -771,13 +806,26 @@ void app
       // 注册笔记预览协议。特权声明（registerSchemesAsPrivileged）已在
       // notesProtocol 模块顶层完成 —— 那必须在 app ready 之前，挪到这里会抛异常。
       // 这里只注册 handler，getRoot 现取 fileWriter，切换目录后立即生效。
-      registerNotesProtocol(async () => {
-        try {
-          return fileWriter ? await fileWriter.getFilePath() : null;
-        } catch {
-          return null;
+      registerNotesProtocol(
+        async () => {
+          try {
+            return fileWriter ? await fileWriter.getFilePath() : null;
+          } catch {
+            return null;
+          }
+        },
+        // 外部文件夹：id → 真实路径。路径只从注册表里查，
+        // 渲染层给的 id 查不到就当没有这个文件夹。
+        async (id: string) => {
+          try {
+            if (!externalFolderStore) return null;
+            const folder = await externalFolderStore.get(id);
+            return folder?.path ?? null;
+          } catch {
+            return null;
+          }
         }
-      });
+      );
 
       // 创建托盘
       tray = createTray();

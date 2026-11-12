@@ -8,7 +8,16 @@
     "allowSyntheticDefaultImports": true,
     "sourceMap": true,
     "skipLibCheck": true,
-    "noImplicitAny": false
+    "noImplicitAny": false,
+    // 编译出错时不要产出任何文件。
+    //
+    // rootDir 只覆盖 src/main，一旦 preload 引用了 src/shared 里的模块，
+    // tsc 会报 TS6059（文件不在 rootDir 之内），同时仍然把那份共享模块的 .js
+    // 直接吐在源码旁边 —— src/shared/noteTypes.js 就这样混进了源码目录。
+    // Vite 解析无扩展名 import 时 .js 优先于 .ts，打包会抓到这份陈旧产物，
+    // 报 "NOTE_TYPES is not exported by ../shared/noteTypes.js"。
+    // noEmitOnError 让这类半成品根本不会落盘。
+    "noEmitOnError": true
   },
   "include": [
     "../src/main/preload.ts"

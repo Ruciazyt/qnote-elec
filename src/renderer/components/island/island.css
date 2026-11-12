@@ -1,0 +1,744 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   灵动岛样式
+
+   岛的形状与动效由主进程逐帧改窗口尺寸驱动（见 core/window/island.ts），
+   渲染层只负责画内容和播自己的淡入淡出。
+
+   因此这里的定位原则是：**内容用固定尺寸，不跟着视口拉伸**。
+   收起胶囊固定宽（宽度由内容量出来再报给主进程）、固定高 44；
+   展开面板固定 400 × 480，靠视口裁切来"露出"。
+   ========================================================================== */
+
+:root {
+  /* 形状 */
+  --island-radius-collapsed: 22px;
+  --island-radius-expanded: 26px;
+  --island-collapsed-height: 44px;
+  --island-expanded-width: 400px;
+  --island-expanded-height: 480px;
+
+  /* 阴影留白 —— 窗口比卡片大一圈，阴影才有地方画。
+     窗口跟卡片一样大的话，阴影画出去的部分被窗口矩形裁掉，
+     底角就变成两条硬边（看着像直角阴影）。
+     数值由 IslandApp 从 shared/island.ts 的 ISLAND_SHADOW_PAD_X 写进来，
+     这里只是兜底默认值 —— 两边对不上就会错位。 */
+  --island-shadow-pad-x: 10px;
+
+  /* 品牌色
+     岛是独立的 vite 入口，没有 import index.css —— 主窗口那套
+     --primary / --primary-strong 在这里根本不存在，写 hsl(var(--primary))
+     会解析失败，颜色整条丢掉（表现为「激活项没有高亮」）。
+     所以品牌色在这里自己抄一份，取值与 index.css 保持一致。 */
+  --island-primary: 195 80% 34%;
+  --island-primary-strong: 195 80% 30%;
+  --island-primary-foreground: 0 0% 100%;
+
+  /* 语义色 —— 同理，取值抄自 index.css */
+  --island-destructive: 0 72% 51%;
+  --island-destructive-foreground: 0 0% 100%;
+  /* 错误提示当正文用，要比按钮底色那一档更亮/更暗一点才够 4.5:1 */
+  --island-destructive-text: 0 72% 48%;
+  --island-success: 152 60% 32%;
+  --island-success-foreground: 0 0% 100%;
+  --island-warning: 38 70% 35%;
+  --island-warning-foreground: 0 0% 100%;
+
+  /* 浅色主题 */
+  --island-surface: 0 0% 100%;
+  --island-surface-inner: 214 24% 97%;
+  --island-text: 220 10% 22%;
+  /* 44% 而不是 46%：次要文字压在内层面板（97% 灰）上要过 AA 正文线，
+     46% 那一档只有 4.49:1，差 0.01 过不去。 */
+  --island-text-muted: 215 12% 44%;
+  --island-stroke: 214 22% 88%;
+  --island-hover: 214 20% 92%;
+  --island-shadow: 0 16px 36px -14px rgb(15 23 42 / 0.32);
+}
+
+.dark {
+  --island-primary: 195 75% 55%;
+  --island-primary-strong: 195 80% 60%;
+  --island-primary-foreground: 220 25% 8%;
+
+  --island-destructive: 0 62% 55%;
+  --island-destructive-foreground: 0 0% 100%;
+  /* 暗色下按钮底色那一档当文字只有 4.25:1，文字得单独提亮一档 */
+  --island-destructive-text: 0 70% 62%;
+  --island-success: 152 58% 55%;
+  --island-success-foreground: 220 15% 8%;
+  --island-warning: 48 85% 60%;
+  --island-warning-foreground: 38 50% 18%;
+
+  --island-surface: 220 16% 7%;
+  --island-surface-inner: 220 15% 11%;
+  --island-text: 210 20% 88%;
+  --island-text-muted: 215 12% 62%;
+  --island-stroke: 220 12% 22%;
+  --island-hover: 220 14% 17%;
+  --island-shadow: 0 16px 36px -12px rgb(0 0 0 / 0.55);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: transparent;
+}
+
+body {
+  /* 岛上的文字用系统 UI 字体栈，不额外加载字体 ——
+     栈与 DESIGN.md 的 Display/Body Font 一致，别自作主张换字体。 */
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  /* 整窗都可点，交互元素各自负责 */
+  user-select: none;
+  cursor: default;
+}
+
+/* ── 外壳 ────────────────────────────────────────────────────────────────── */
+
+.island-root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* 收起胶囊 —— 固定宽度，横向居中（贴顶态）/ 靠左（浮动态） */
+.island-pill {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  /* 宽度跟着摘要文字走：max-content 让它按内容的自然宽度撑开。
+     刻意不加 max-width —— 那样窗口比胶囊窄时胶囊会被压窄，
+     量出来的宽度就成了「被窗口挤出来的宽度」而不是自然宽度，
+     收起动画途中回写进主进程会把补间截断。
+     溢出交给外层 .island-root 的 overflow: hidden 裁。 */
+  width: max-content;
+  height: var(--island-collapsed-height);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px 0 10px;
+  border-radius: var(--island-radius-collapsed);
+  background: hsl(var(--island-surface));
+  border: 1px solid hsl(var(--island-stroke));
+  box-shadow: var(--island-shadow);
+  transition: opacity 160ms ease;
+}
+
+/* 浮动态：脱离屏幕顶边，四角一样圆。
+   卡片要往右挪出阴影留白那圈 —— 窗口左边那圈是留给阴影的。 */
+.island-root[data-attach="floating"] .island-pill {
+  left: var(--island-shadow-pad-x);
+  transform: none;
+}
+
+/* 贴顶态：顶边与屏幕上沿齐平 —— 顶端两角是直角，底边两角圆角。
+   上边那圈描边也去掉，不然屏幕边缘会横着多一条 1px 的线。 */
+.island-root[data-attach="attached"] .island-pill {
+  border-radius: 0 0 var(--island-radius-collapsed) var(--island-radius-collapsed);
+  border-top-color: transparent;
+}
+
+/* 展开面板 —— 固定尺寸，横向居中 / 靠左，同上 */
+.island-panel {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: var(--island-expanded-width);
+  height: var(--island-expanded-height);
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--island-radius-expanded);
+  background: hsl(var(--island-surface));
+  border: 1px solid hsl(var(--island-stroke));
+  /* 展开态不画阴影 —— 面板这么大，一层厚阴影压下去像块黑砖，
+     边界交给那圈 1px 描边就够了。收起态的胶囊保留阴影：
+     它贴在屏幕边上，靠那点投影才浮得起来。 */
+  overflow: hidden;
+  transition: opacity 200ms ease;
+}
+
+.island-root[data-attach="floating"] .island-panel {
+  left: var(--island-shadow-pad-x);
+  transform: none;
+}
+
+/* 面板贴顶时同样顶端齐屏、顶端两角为直角 */
+.island-root[data-attach="attached"] .island-panel {
+  border-radius: 0 0 var(--island-radius-expanded) var(--island-radius-expanded);
+  border-top-color: transparent;
+}
+
+/* 收起胶囊的圆角在贴顶态是「下两角圆、上两角直」 */
+.island-root[data-attach="attached"] .island-pill {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.island-root[data-attach="attached"] .island-panel {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+/* 展开时收起胶囊让位，展开后隐藏。
+   visibility 一起管：它切的是「结构性隐藏」——
+   面板收起时里面的按钮不会被 Tab 选中，也不会盖在胶囊上面。
+   visibility 本身不可过渡，所以用 0s 延迟在淡出结束后瞬间切过去。 */
+.island-pill[data-hidden="true"],
+.island-panel[data-hidden="true"] {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity 160ms ease, visibility 0s 160ms;
+}
+
+/* 展开时内容比外形晚一点到：先让岛的形状稳住，再把内容放进去。
+   延迟只加在「变可见」这一侧 —— 收起时立刻淡出，不留尾巴。 */
+.island-pill[data-hidden="false"] {
+  visibility: visible;
+  transition: opacity 160ms ease, visibility 0s 0s;
+}
+
+.island-panel[data-hidden="false"] {
+  visibility: visible;
+  /* 延迟与时长对着 shared/island.ts 的 ISLAND_CONTENT_FADE_DELAY（100ms）
+     与展开时长（300ms）—— 内容要在窗口稳住之后才到 */
+  transition: opacity 180ms ease 100ms, visibility 0s 0s;
+}
+
+/* ── 收起胶囊内部 ────────────────────────────────────────────────────────── */
+
+.island-pill-modules {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.island-module-btn {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: hsl(var(--island-text-muted));
+  transition: color 140ms ease, background-color 140ms ease;
+}
+
+.island-module-btn:hover {
+  background: hsl(var(--island-hover));
+  color: hsl(var(--island-text));
+}
+
+.island-module-btn[data-active="true"] {
+  color: hsl(var(--island-primary));
+}
+
+/* 有内容的模块挂一个小圆点 —— 「这一页现在有东西」 */
+.island-module-dot {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  background: hsl(var(--island-primary));
+}
+
+.island-pill-summary {
+  flex: 1;
+  min-width: 0;
+  /* 摘要再长也不能把胶囊撑成一条横幅 —— 到 240px 就截断 */
+  max-width: 240px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: hsl(var(--island-text));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.island-pill-summary[data-muted="true"] {
+  color: hsl(var(--island-text-muted));
+}
+
+.island-pill-toggle {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: hsl(var(--island-text-muted));
+  flex-shrink: 0;
+}
+
+.island-pill-toggle:hover {
+  background: hsl(var(--island-hover));
+  color: hsl(var(--island-text));
+}
+
+/* ── 展开面板内部 ────────────────────────────────────────────────────────── */
+
+/* ── 顶部页签行 ──────────────────────────────────────────────────────────
+   400px 宽里塞四个页签，能塞下但不能被压窄 ——
+   中文可以在任意两个字之间断行，一旦宽度不够就会断成「待/办」这种
+   竖排碎片。所以页签一律 nowrap，且不参与收缩。 */
+.island-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 6px 6px 8px;
+  border-bottom: 1px solid hsl(var(--island-stroke));
+  flex-shrink: 0;
+}
+
+.island-tab {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 7px;
+  border-radius: 8px;
+  font-size: 12px;
+  color: hsl(var(--island-text-muted));
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: color 140ms ease, background-color 140ms ease;
+}
+
+.island-tab:hover {
+  background: hsl(var(--island-hover));
+  color: hsl(var(--island-text));
+}
+
+/* 激活项：品牌底纹 + 品牌深档文字。
+   品牌色压在品牌底纹上必须用深档 —— 浅色那档在 /10 底纹上只有 4.14:1。 */
+.island-tab[data-active="true"] {
+  background: hsl(var(--island-primary) / 0.1);
+  color: hsl(var(--island-primary-strong));
+  font-weight: 600;
+}
+
+/* 计数就是个数，不用药丸 ——
+   四个药丸一排，页签看着就像四颗按钮，页面本身的信息反而被压住了。 */
+.island-tab-count {
+  font-size: 10.5px;
+  line-height: 1;
+  color: hsl(var(--island-text-muted));
+  font-variant-numeric: tabular-nums;
+}
+
+.island-panel-header-spacer {
+  flex: 1;
+}
+
+.island-header-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: hsl(var(--island-text-muted));
+}
+
+.island-header-btn:hover {
+  background: hsl(var(--island-hover));
+  color: hsl(var(--island-text));
+}
+
+.island-panel-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* 面板内的分组标题 */
+.island-section-title {
+  padding: 10px 14px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: hsl(var(--island-text-muted));
+}
+
+/* ── 列表条目 ────────────────────────────────────────────────────────────── */
+
+.island-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 14px;
+  text-align: left;
+  transition: background-color 120ms ease;
+}
+
+.island-row:hover {
+  background: hsl(var(--island-hover));
+}
+
+.island-row-title {
+  font-size: 13px;
+  line-height: 1.45;
+  color: hsl(var(--island-text));
+  word-break: break-word;
+}
+
+.island-row-meta {
+  font-size: 11px;
+  color: hsl(var(--island-text-muted));
+  margin-top: 1px;
+}
+
+.island-row-content {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: hsl(var(--island-text));
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+/* 优先级小圆点 */
+.island-priority-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+
+.island-priority-high {
+  background: hsl(var(--island-destructive));
+}
+.island-priority-medium {
+  background: hsl(var(--island-warning));
+}
+.island-priority-low {
+  background: hsl(var(--island-text-muted));
+}
+
+/* 勾选框 */
+.island-checkbox {
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  border-radius: 4px;
+  border: 1.5px solid hsl(var(--island-stroke));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: transparent;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.island-checkbox:hover {
+  border-color: hsl(var(--island-primary));
+}
+
+.island-checkbox[data-checked="true"] {
+  background: hsl(var(--island-primary));
+  border-color: hsl(var(--island-primary));
+  color: hsl(var(--island-primary-foreground));
+}
+
+/* 已完成的待办：标题划掉并压暗 */
+.island-row[data-done="true"] .island-row-title {
+  color: hsl(var(--island-text-muted));
+  text-decoration: line-through;
+}
+
+/* ── 空状态 ──────────────────────────────────────────────────────────────── */
+
+/* 岛里的次要图标。
+   不用 Tailwind 的 text-muted-foreground —— 那个类指向 hsl(var(--muted-foreground))，
+   而 --muted-foreground 住在 index.css 里，岛这个入口没 import 它。 */
+.island-icon-muted {
+  color: hsl(var(--island-text-muted));
+}
+
+.island-empty {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+}
+
+.island-empty-title {
+  font-size: 13px;
+  color: hsl(var(--island-text-muted));
+}
+
+/* 空状态里那句解释 —— 比标题亮一档，别跟标题抢 */
+.island-empty-text {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: hsl(var(--island-text-muted));
+  max-width: 240px;
+}
+
+/* ── AI 状态灯 ──────────────────────────────────────────────────────────── */
+
+.island-ai-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+}
+
+.island-ai-light {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: hsl(var(--island-text-muted));
+  flex-shrink: 0;
+}
+
+.island-ai-light[data-running="true"] {
+  background: hsl(var(--island-success));
+  animation: island-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes island-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 hsl(var(--island-success) / 0.45);
+  }
+  50% {
+    opacity: 0.65;
+    box-shadow: 0 0 0 5px hsl(var(--island-success) / 0);
+  }
+}
+
+/* ── AI 对话 ────────────────────────────────────────────────────────────── */
+
+.island-chat {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.island-chat-messages {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 6px;
+  /* 消息是内容，要能选中 —— 全局是 user-select: none */
+  user-select: text;
+}
+
+/* 用户问的在右，AI 答的在左 —— 与主窗口的助手一致 */
+.island-msg {
+  max-width: 88%;
+  padding: 7px 10px;
+  border-radius: 12px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.island-msg[data-role="user"] {
+  align-self: flex-end;
+  background: hsl(var(--island-primary) / 0.1);
+  color: hsl(var(--island-text));
+}
+
+.island-msg[data-role="assistant"] {
+  align-self: flex-start;
+  background: hsl(var(--island-surface-inner));
+  color: hsl(var(--island-text));
+}
+
+/* 正在回复的光标 */
+.island-msg-caret {
+  display: inline-block;
+  width: 6px;
+  height: 13px;
+  margin-left: 2px;
+  vertical-align: -2px;
+  border-radius: 4px;
+  background: hsl(var(--island-primary));
+  animation: island-caret 1.1s ease-in-out infinite;
+}
+
+@keyframes island-caret {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.island-chat-error {
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: hsl(var(--island-destructive) / 0.1);
+  color: hsl(var(--island-destructive-text));
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* 输入区：贴着面板底部，消息从它上面滚过去 */
+.island-chat-composer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 8px 10px 10px;
+  background: hsl(var(--island-surface));
+  border-top: 1px solid hsl(var(--island-stroke));
+}
+
+.island-chat-input {
+  flex: 1;
+  min-width: 0;
+  resize: none;
+  box-sizing: border-box;
+  padding: 7px 10px;
+  max-height: 76px;
+  border-radius: 8px;
+  border: 1px solid hsl(var(--island-stroke));
+  background: hsl(var(--island-surface-inner));
+  color: hsl(var(--island-text));
+  font-family: inherit;
+  font-size: 12.5px;
+  line-height: 1.5;
+  user-select: text;
+  /* 内容超三行时才滚，滚动条做细，别在输入框里支一条原生滚动条出来 */
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--island-stroke)) transparent;
+}
+
+.island-chat-input::-webkit-scrollbar {
+  width: 6px;
+}
+
+.island-chat-input::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.island-chat-input::-webkit-scrollbar-thumb {
+  background: hsl(var(--island-stroke));
+  border-radius: 9999px;
+}
+
+.island-chat-input::placeholder {
+  color: hsl(var(--island-text-muted));
+}
+
+/* 焦点环全应用统一 2px */
+.island-chat-input:focus {
+  outline: 2px solid hsl(var(--island-primary));
+  outline-offset: -1px;
+  border-color: transparent;
+}
+
+.island-send-btn {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: hsl(var(--island-primary));
+  color: hsl(var(--island-primary-foreground));
+  flex-shrink: 0;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.island-send-btn:disabled {
+  background: hsl(var(--island-hover));
+  color: hsl(var(--island-text-muted));
+}
+
+.island-send-btn[data-stop="true"] {
+  background: hsl(var(--island-destructive));
+  color: hsl(var(--island-destructive-foreground));
+}
+
+.island-link-btn {
+  font-size: 12px;
+  color: hsl(var(--island-primary-strong));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.island-link-btn:hover {
+  color: hsl(var(--island-primary-strong));
+  text-decoration-thickness: 2px;
+}
+
+/* ── 提示条 ──────────────────────────────────────────────────────────────── */
+
+.island-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  padding: 6px 12px;
+  border-radius: 9999px;
+  background: hsl(var(--island-text));
+  color: hsl(var(--island-surface));
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: island-toast-in 160ms ease;
+}
+
+@keyframes island-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 6px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+/* ── 滚动条 ──────────────────────────────────────────────────────────────── */
+
+.island-panel-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.island-panel-body::-webkit-scrollbar-thumb {
+  background: hsl(var(--island-stroke));
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.island-panel-body::-webkit-scrollbar-track {
+  background: transparent;
+}

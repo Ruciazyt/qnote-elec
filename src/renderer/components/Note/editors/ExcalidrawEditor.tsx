@@ -1,4 +1,4 @@
-﻿import React, {
+import React, {
   forwardRef,
   useCallback,
   useEffect,
@@ -48,9 +48,12 @@ const ExcalidrawEditor = forwardRef<NoteEditorHandle, ExcalidrawEditorProps>(fun
 
   const relPath = file?.relPath ?? null;
   /**
-   * 已经灌进画布的条目路径。
+   * 已经灌进画布的条目标识（根目录 + 相对路径）。
    * 切到别的标签再切回来时依赖没变，但 Excalidraw 组件并没有被卸载，
    * 画布内容还在 —— 这里再 load 一次反而会把用户的改动冲掉。
+   *
+   * 标识要带上根目录：同一个相对路径在笔记根目录和某个外部文件夹下
+   * 是两个不同的文件，只认 relPath 的话换了根会留着上一个文件的画布。
    */
   const loadedRelRef = useRef<string | null>(null);
   /**
@@ -68,7 +71,8 @@ const ExcalidrawEditor = forwardRef<NoteEditorHandle, ExcalidrawEditorProps>(fun
 
   useEffect(() => {
     if (!relPath || !dirPath) return;
-    if (loadedRelRef.current === relPath && reloadNonce === 0) return;
+    const key = `${dirPath}\u0000${relPath}`;
+    if (loadedRelRef.current === key && reloadNonce === 0) return;
 
     let cancelled = false;
     void (async () => {
@@ -87,7 +91,7 @@ const ExcalidrawEditor = forwardRef<NoteEditorHandle, ExcalidrawEditorProps>(fun
           ...scene,
           appState: { ...scene.appState, fileHandle: { name: file?.name } },
         });
-        loadedRelRef.current = relPath;
+        loadedRelRef.current = key;
         // 刚灌进来的内容不算用户改动
         setDirty(false);
       } catch (err) {
@@ -128,7 +132,7 @@ const ExcalidrawEditor = forwardRef<NoteEditorHandle, ExcalidrawEditorProps>(fun
         const ok = await window.electron.writeNote(dirPath, target, serialize());
         if (ok) {
           // 另存为后父组件会改 file，这里先记下，避免 effect 重新灌一遍画布
-          loadedRelRef.current = target;
+          loadedRelRef.current = `${dirPath}\u0000${target}`;
           setDirty(false);
           onSaved(target);
         }
@@ -181,4 +185,4 @@ const ExcalidrawEditor = forwardRef<NoteEditorHandle, ExcalidrawEditorProps>(fun
   );
 });
 
-export default ExcalidrawEditor;
+export default React.memo(ExcalidrawEditor);

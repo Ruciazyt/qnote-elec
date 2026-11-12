@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import * as fs from "fs";
 import * as path from "path";
 import { getMainWindow } from "../core/window/mainWindow";
+import { startAiActivity, setAiActivityTool, endAiActivity } from "../core/aiActivity";
 import { DEFAULT_AI_CHAT_SESSION_ID } from "../../shared/constants/aiChat";
 import { buildSessionPreview } from "../../shared/aiSessionPreview";
 import { aiService, AiMessage } from "../utils/aiService";
@@ -561,6 +562,9 @@ export function registerAiHandlers(DB: any, fileWriter: FileWriter) {
       const controller = new AbortController();
       activeStreams.set(sessionId, controller);
 
+      // 灵动岛的状态灯靠它知道「现在有 AI 在跑、跑的是哪一句」
+      startAiActivity(sessionId, message);
+
       // 同一会话上如果还挂着「等用户决定」的旧记录，这次新提问已经把它作废了。
       // 不清的话那份 Map 会一直留着消息历史，而且用户再也点不到它的「继续」按钮。
       for (const [sid, rec] of continuations) {
@@ -751,6 +755,8 @@ export function registerAiHandlers(DB: any, fileWriter: FileWriter) {
                   name: ev.toolCall!.name,
                   args: ev.toolCall!.args,
                 });
+                // 灵动岛的「Agent 状态灯」要显示当前在调什么工具
+                setAiActivityTool(sessionId, ev.toolCall!.name);
                 sender.send("ai-stream:tool-call", {
                   sessionId,
                   id: ev.toolCall!.id,
@@ -854,6 +860,8 @@ export function registerAiHandlers(DB: any, fileWriter: FileWriter) {
           }
         } finally {
           activeStreams.delete(sessionId);
+          // 灵动岛的状态灯：任务结束（正常结束、出错、被中止都走这里）
+          endAiActivity(sessionId);
         }
       })().catch((err) => {
         log.error(`[ai-agent] session ${sessionId} 未被内部捕获的异常:`, err);

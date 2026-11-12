@@ -10,6 +10,12 @@
  *   拖拽期间侧栏宽度会一路带动网页区收缩，网页区的 DOM 尺寸每帧都在变。
  *   用「起始指针 + 起始宽度 + 位移」计算，不会因为中间态抖动而漂移。
  *
+ * 为什么 pointermove 要过 rAF：
+ *   pointermove 的触发频率跟着鼠标轮询率走（常见 125~1000Hz），
+ *   比屏幕刷新率高得多。每一帧都调 onResize 就是在做无用功 ——
+ *   每次调用都会走一遍 React 渲染 + 落盘，而用户根本看不见中间那些值。
+ *   这里把事件攒到下一帧再统一处理，一帧最多改一次宽度。
+ *
  * 谁在用：浏览器页的收藏夹/AI 侧栏（**在右**）、笔记页的文件树（**在左**）、
  * 应用管理页的项目列表（**在左**）。侧栏所处的侧缘不同，拖拽方向也就相反 ——
  * 靠下面的 side 区分。
@@ -83,6 +89,15 @@ export function PanelResizer({
   const onDraggingChangeRef = useRef(onDraggingChange);
   onDraggingChangeRef.current = onDraggingChange;
 
+  /**
+   * 拖拽的序号
+   *
+   * 松手时「过渡的恢复」要推迟一帧（见 stop 里的注释），
+   * 用序号识别「这一轮的收尾」—— 万一马上又开始下一轮拖拽，
+   * 上一轮的收尾回调不能把过渡关掉（不然过渡就永久没了）。
+   */
+  const dragSeqRef = useRef(0);
+
   const handlePointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       // 只响应主键；右键/中键不应触发拖拽
@@ -100,17 +115,55 @@ export function PanelResizer({
       }
       setDragging(true);
       onDraggingChangeRef.current?.(true);
+      const seq = (dragSeqRef.current += 1);
 
-      const move = (ev: PointerEvent) => {
+      /**
+       * 拖拽期间的真实值
+       *
+       * latestX 记的是最新的指针位置，frame 记的是待处理的那一帧。
+       * pointermove 只负责更新 latestX 并排一帧；真正的宽度计算放在
+       * rAF 回调里 —— 一帧最多算一次，跟屏幕刷新率对齐。
+       */
+      let latestX = e.clientX;
+      let frame = 0;
+
+      const apply = (clientX: number) => {
         const origin = originRef.current;
         // 指针相对按下点的位移：侧栏在左就正着算，在右就反过来
         const delta =
-          side === "left" ? ev.clientX - origin.pointerX : origin.pointerX - ev.clientX;
+          side === "left" ? clientX - origin.pointerX : origin.pointerX - clientX;
         onResize(clampPanelWidth(origin.width + delta, minWidth, maxWidth));
       };
-      const stop = () => {
+
+      const move = (ev: PointerEvent) => {
+        latestX = ev.clientX;
+        // 这一帧已经排上了，等 rAF 统一处理
+        if (frame !== 0) return;
+        frame = requestAnimationFrame(() => {
+          frame = 0;
+          apply(latestX);
+        });
+      };
+      const stop = (ev: PointerEvent) => {
+        // 还没处理的那一帧直接丢掉 —— 它算出来的值已经过时了
+        if (frame !== 0) {
+          cancelAnimationFrame(frame);
+          frame = 0;
+        }
+        // 松手那一刻的坐标才是最终值：按它再算一次，
+        // 侧栏末端才会精确停在指针下面（而不是停在上一帧的位置）
+        apply(ev.clientX);
         setDragging(false);
-        onDraggingChangeRef.current?.(false);
+        // 过渡推迟一帧再打开。
+        //
+        // 刚 apply 的那一下几何可能和上一帧不同（松手位置比最后一次移动更靠后）。
+        // 要是同一帧里既改了宽度又打开了过渡，这一点位移会被当成动画播出来 ——
+        // 表现是「鼠标都松开了，侧栏还自己滑了一下」。
+        requestAnimationFrame(() => {
+          // 已经开始了新的一轮拖拽：这一轮的过渡本来就该是关着的，别动它
+          if (dragSeqRef.current !== seq) return;
+          onDraggingChangeRef.current?.(false);
+        });
         window.removeEventListener("pointermove", move);
         window.removeEventListener("pointerup", stop);
         window.removeEventListener("pointercancel", stop);

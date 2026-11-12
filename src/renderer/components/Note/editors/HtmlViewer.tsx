@@ -9,6 +9,13 @@ import { cn } from "@/lib/utils";
 interface HtmlViewerProps {
   file: NoteFileEntry | null;
   dirPath: string | null;
+  /**
+   * 文件所属的外部文件夹 id；null / undefined = 在笔记根目录里
+   *
+   * 预览走 qnote-note:// 协议，主进程按这个 id 查回真实目录 ——
+   * 外部文件夹里的文件不在笔记根目录下，不带 id 会去根目录找同名的文件。
+   */
+  externalId?: string | null;
 }
 
 /**
@@ -39,7 +46,7 @@ interface HtmlViewerProps {
  * 两者不能互相替代 —— sandbox 里始终没有 allow-same-origin。
  */
 const HtmlViewer = forwardRef<NoteEditorHandle, HtmlViewerProps>(function HtmlViewer(
-  { file, dirPath },
+  { file, dirPath, externalId },
   ref
 ) {
   const [html, setHtml] = useState("");
@@ -55,12 +62,18 @@ const HtmlViewer = forwardRef<NoteEditorHandle, HtmlViewerProps>(function HtmlVi
    * 路径逐段编码：笔记名可能含空格 / 中文 / # 等字符，直接拼进 URL
    * 会被当成 fragment 或非法字符。encodeURIComponent 逐段处理，
    * 保留段间的 "/" 作为层级分隔。
+   *
+   * 外部文件夹里的文件走 ext/<id>/ 形式 —— 主进程按 id 查回那个文件夹，
+   * 渲染层不能自己指定目录（见 notesProtocol.ts）。
    */
   const previewUrl = useMemo(() => {
     if (!relPath) return null;
     const encoded = relPath.split("/").map(encodeURIComponent).join("/");
+    if (externalId) {
+      return `qnote-note://ext/${encodeURIComponent(externalId)}/${encoded}`;
+    }
     return `qnote-note://note/${encoded}`;
-  }, [relPath]);
+  }, [relPath, externalId]);
 
   useEffect(() => {
     setDirty(false);
@@ -214,4 +227,4 @@ const HtmlViewer = forwardRef<NoteEditorHandle, HtmlViewerProps>(function HtmlVi
   );
 });
 
-export default HtmlViewer;
+export default React.memo(HtmlViewer);

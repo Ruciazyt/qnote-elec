@@ -738,3 +738,83 @@ describe("笔记页删除确认框（ui/dialog）", () => {
     });
   });
 });
+
+/**
+ * 右键新建的落点
+ *
+ * 组件级用例断的是「菜单把哪个目录交出去」，这里断的是**落盘那一步**：
+ * 右键某个文件夹新建，父目录必须是那个文件夹，而不是「新建位置」。
+ *
+ * 两者混了的后果很隐蔽：文件确实建出来了，但建在了用户没点的地方，
+ * 界面上还看不出来（新建完自动打开的是新文件）。
+ */
+describe("笔记页右键新建（NotesPage）", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    // 展开态才有文件树
+    window.localStorage.setItem(COLLAPSED_KEY, "false");
+  });
+
+  it("右键文件夹 → 新建文件夹落在那个文件夹里", async () => {
+    const user = userEvent.setup();
+    const createNoteFolder = vi.fn().mockResolvedValue(true);
+    await renderNotesPage({ tree: DELETE_TREE, electron: { createNoteFolder } });
+
+    fireEvent.contextMenu(getTreeRow("读书笔记"), { clientX: 120, clientY: 240 });
+    await user.click(screen.getByRole("menuitem", { name: "新建文件夹" }));
+
+    const input = screen.getByPlaceholderText("文件夹名称");
+    await user.clear(input);
+    await user.type(input, "新文件夹");
+    await user.click(screen.getByRole("button", { name: "确定" }));
+
+    await waitFor(() =>
+      expect(createNoteFolder).toHaveBeenCalledWith("D:\\notes", "读书笔记", "新文件夹")
+    );
+  });
+
+  it("右键文件夹 → 新建笔记落在那个文件夹里", async () => {
+    const user = userEvent.setup();
+    const createNoteFile = vi
+      .fn()
+      .mockResolvedValue({ ok: true, relPath: "读书笔记/方案.md" });
+    await renderNotesPage({ tree: DELETE_TREE, electron: { createNoteFile } });
+
+    fireEvent.contextMenu(getTreeRow("读书笔记"), { clientX: 120, clientY: 240 });
+    // 「新建文件」是子菜单：先展开再选类型
+    await user.click(screen.getByRole("menuitem", { name: "新建文件" }));
+    await user.click(screen.getByRole("menuitem", { name: /^文本/ }));
+
+    const input = screen.getByPlaceholderText("请输入文件名（无需后缀）");
+    await user.clear(input);
+    await user.type(input, "方案");
+    await user.click(screen.getByRole("button", { name: "确定" }));
+
+    await waitFor(() =>
+      expect(createNoteFile).toHaveBeenCalledWith("D:\\notes", "读书笔记", "方案", "markdown")
+    );
+  });
+
+  it("右键空白处 → 新建落在「新建位置」指向的目录", async () => {
+    const user = userEvent.setup();
+    const createNoteFolder = vi.fn().mockResolvedValue(true);
+    await renderNotesPage({ tree: DELETE_TREE, electron: { createNoteFolder } });
+
+    // 先把「新建位置」点到「读书笔记」上
+    await user.click(getTreeRow("读书笔记"));
+
+    const scroll = document.querySelector("[data-note-tree-scroll]") as HTMLElement;
+    fireEvent.contextMenu(scroll, { clientX: 60, clientY: 300 });
+    expect(screen.getByText("在「读书笔记」下新建")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("menuitem", { name: "新建文件夹" }));
+    const input = screen.getByPlaceholderText("文件夹名称");
+    await user.clear(input);
+    await user.type(input, "新文件夹");
+    await user.click(screen.getByRole("button", { name: "确定" }));
+
+    await waitFor(() =>
+      expect(createNoteFolder).toHaveBeenCalledWith("D:\\notes", "读书笔记", "新文件夹")
+    );
+  });
+});

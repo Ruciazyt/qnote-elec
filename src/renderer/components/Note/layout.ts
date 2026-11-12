@@ -20,6 +20,44 @@ export const NOTE_SIDEBAR_MAX_WIDTH = 560;
 /** 编辑区最小宽度：拖到侧栏再宽，也必须给右栏留出这么多 */
 export const NOTES_EDITOR_MIN_WIDTH = 420;
 
+/* ============================================================
+ * 侧栏里的上下分栏：笔记树（上） + 外部文件夹（下）
+ * ============================================================ */
+
+/**
+ * 外部文件夹区默认占的高度比例
+ *
+ * 0.4 = 笔记树 6 : 外部文件夹 4（用户定的默认值）。
+ * 用比例而不是像素：两块共享同一个容器，窗口一变高，像素值立刻过时。
+ */
+export const NOTES_SPLIT_DEFAULT_RATIO = 0.4;
+
+/** 再小外部区只剩一条缝，目录树没法看 */
+export const NOTES_SPLIT_MIN_RATIO = 0.15;
+
+/** 再大笔记树被挤没 */
+export const NOTES_SPLIT_MAX_RATIO = 0.7;
+
+/**
+ * 外部区收起时的高度
+ *
+ * 收起后只剩标题行（h-7 = 28px）+ 容器上下内边距（py-1.5 = 12px）。
+ *
+ * 这个数是写死的，所以改标题行高度或内边距时必须回来改它 ——
+ * 差几像素不会报错，只会让收起态的底部多露一条缝或多压掉一点。
+ */
+export const NOTES_EXTERNAL_COLLAPSED_HEIGHT = 40;
+
+/**
+ * 外部区收起 / 展开的时长
+ *
+ * 退场比入场短（150 / 220）：收起是用户明确不要这块内容了，
+ * 慢吞吞地缩回去会让人等；展开是用户要看到东西，值得铺开。
+ * 口径见 DESIGN.md「Motion」。
+ */
+export const NOTES_EXTERNAL_COLLAPSE_MS = 150;
+export const NOTES_EXTERNAL_EXPAND_MS = 220;
+
 /**
  * 侧栏收起后的固定宽度
  *

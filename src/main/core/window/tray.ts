@@ -69,6 +69,20 @@ export function createTray(): Tray | null {
         },
       },
       {
+        label: "灵动岛",
+        click: () => {
+          // 手动把岛叫出来 —— 主窗口在前台时岛是藏着的，
+          // 这里给一个「随时想看一眼」的入口。
+          const { IslandWindow } = require('./island');
+          const island = IslandWindow.getInstance();
+          if (island.isVisible()) {
+            island.hide();
+          } else {
+            island.show();
+          }
+        },
+      },
+      {
         label: "退出",
         click: () => {
           app.quit();

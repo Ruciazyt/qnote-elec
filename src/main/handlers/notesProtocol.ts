@@ -1,5 +1,5 @@
 /**
- * 笔记 HTML 预览协议（qnote-note://）
+ * 笔记预览协议（qnote-note://）—— 服务 HTML 与 PDF 两种笔记
  *
  * ## 为什么要它
  *
@@ -16,11 +16,20 @@
  * 自定义协议是 Electron 官方推荐的做法：它被 Chromium 视作安全来源，
  * 开发 / 生产两种模式下行为一致，锚点、表单、脚本都能正常工作。
  *
+ * ## PDF 为什么也走协议
+ *
+ * PDF 之前是用 data: URL 交给 Chromium 内置阅读器的（<object type="application/pdf">）。
+ * data: URL 有硬上限：Chromium 的 URL 长度上限是 2MB，而 base64 还要把体积膨胀约 1/3，
+ * 于是超过约 1.5MB 的 PDF 一律加载失败 —— 表现是一个空白灰框，
+ * 控制台不报错、也没有 error 事件，看起来像"预览不出来"。
+ *
+ * 协议没有这个限制：文件按流送出，几十 MB 的 PDF 照样能开。
+ *
  * ## 安全边界
  *
  * 协议只提供「当前笔记根目录内、且是受支持笔记类型」的文件：
  *   - 路径经 NoteStore.resolveSafe 校验，`../` 一律拒绝（否则等于开了一个任意文件读取口）
- *   - 只放行 EXT_TO_TYPE 登记过的扩展名，未知类型一律 403
+ *   - 只放行 HTML 与 PDF 两种类型，图片 / 其它类型一律 403
  *   - HTML 里的本地图片已在渲染前由 readHtmlWithAssets 转成 dataUrl，
  *     所以这里不开放 assets/ 目录的直接访问
  *
@@ -45,16 +54,20 @@ const noteStore = new NoteStore();
 const MIME_BY_EXT: Readonly<Record<string, string>> = {
   ".html": "text/html; charset=utf-8",
   ".htm": "text/html; charset=utf-8",
+  ".pdf": "application/pdf",
 };
 
+/** 协议只服务这两种笔记类型 */
+const SERVED_TYPES = new Set(["html", "pdf"]);
+
 /**
- * 读取笔记目录下的 HTML 文件
+ * 读取笔记目录下的 HTML / PDF 文件
  *
  * @param root 笔记根目录（用户设置的绝对路径）
  * @param relPath 相对路径，如 "工作/方案.html"
  * @returns Response，失败时返回带状态码的错误响应
  */
-export async function serveNoteHtml(root: string, relPath: string): Promise<Response> {
+export async function serveNoteFile(root: string, relPath: string): Promise<Response> {
   let abs: string;
   try {
     // resolveSafe 会拒绝一切越界路径 —— 这是这个协议最重要的一行
@@ -64,14 +77,16 @@ export async function serveNoteHtml(root: string, relPath: string): Promise<Resp
   }
 
   const type = detectNoteType(relPath);
-  if (type !== "html") {
-    // 只服务 HTML 笔记；其它类型（图片 / PDF / 笔记目录之外的东西）一律拒绝
+  if (!type || !SERVED_TYPES.has(type)) {
+    // 只服务 HTML 与 PDF；其它类型（图片 / 笔记目录之外的东西）一律拒绝
     return new Response("不支持的类型", { status: 403 });
   }
   if (!fs.existsSync(abs) || !fs.statSync(abs).isFile()) {
     return new Response("文件不存在", { status: 404 });
   }
 
+  // net.fetch 按扩展名推断 Content-Type（.pdf → application/pdf），
+  // 并且是流式的：大文件不会整份读进内存
   return net.fetch(pathToFileURL(abs).toString());
 }
 
@@ -110,13 +125,42 @@ export function declareNotesScheme(): void {
  *
  * getRoot 是异步的 —— FileWriter.getFilePath() 要查数据库，
  * 而用户随时可能在笔记页切换目录，所以每次请求都现取，不缓存。
+ *
+ * getExternalRoot 解析外部文件夹的 id → 绝对路径。
+ * 协议地址分两种 host：
+ *   - qnote-note://note/<relPath>        笔记根目录内的文件
+ *   - qnote-note://ext/<id>/<relPath>     外部文件夹里的文件
+ * 外部文件夹的路径只能由主进程从注册表里查，渲染层不能自己指定目录。
  */
-export function registerNotesProtocol(getRoot: () => Promise<string | null>): void {
+export function registerNotesProtocol(
+  getRoot: () => Promise<string | null>,
+  getExternalRoot?: (id: string) => Promise<string | null>
+): void {
   protocol.handle(NOTES_PROTOCOL, async (request) => {
     try {
       const url = new URL(request.url);
       // host 段用作"相对路径"，因此笔记里出现 / 时不需要额外编码
-      const relPath = decodeURIComponent(url.pathname).replace(/^\/+/, "");
+      const raw = decodeURIComponent(url.pathname).replace(/^\/+/, "");
+
+      // 外部文件夹：host=ext，路径是 <id>/<相对路径>
+      if (url.hostname === "ext") {
+        if (!getExternalRoot) {
+          return new Response("外部文件夹未启用", { status: 404 });
+        }
+        const slash = raw.indexOf("/");
+        const id = slash === -1 ? raw : raw.slice(0, slash);
+        const relPath = slash === -1 ? "" : raw.slice(slash + 1);
+        if (!relPath) {
+          return new Response("缺少路径", { status: 400 });
+        }
+        const extRoot = await getExternalRoot(id);
+        if (!extRoot) {
+          return new Response("外部文件夹不存在", { status: 404 });
+        }
+        return await serveNoteFile(extRoot, relPath);
+      }
+
+      const relPath = raw;
       const root = await getRoot();
 
       if (!root) {
@@ -126,7 +170,7 @@ export function registerNotesProtocol(getRoot: () => Promise<string | null>): vo
         return new Response("缺少路径", { status: 400 });
       }
 
-      return await serveNoteHtml(root, relPath);
+      return await serveNoteFile(root, relPath);
     } catch (err) {
       log.error("[notes-protocol] 处理请求失败", err);
       return new Response("内部错误", { status: 500 });
@@ -137,8 +181,8 @@ export function registerNotesProtocol(getRoot: () => Promise<string | null>): vo
 }
 
 /** 取扩展名对应的 MIME，供外部调用 */
-export function noteHtmlMime(relPath: string): string {
-  return MIME_BY_EXT[path.extname(relPath).toLowerCase()] ?? "text/html; charset=utf-8";
+export function noteMime(relPath: string): string {
+  return MIME_BY_EXT[path.extname(relPath).toLowerCase()] ?? "application/octet-stream";
 }
 
 // 模块加载即声明协议特权 —— 这一行的位置本身就是正确性的一部分：

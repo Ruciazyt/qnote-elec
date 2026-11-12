@@ -6,7 +6,7 @@ import { stickyNoteManager } from "./stickyNote";
 import { hideMainWindow, showMainWindow } from "./mainWindow";
 import { configManager } from "../../utils/config";
 import {
-  CLIPBOARD_PANEL_ITEM_COUNT,
+  clipboardPanelWindowSize,
   type ClipboardPanelPosition,
 } from "../../../shared/clipboardPanel";
 
@@ -27,60 +27,8 @@ function getPreloadPath() {
   return path.join(__dirname, "..", "..", "preload.js");
 }
 
-/** 面板展示的记录条数 */
-const ITEM_COUNT = CLIPBOARD_PANEL_ITEM_COUNT;
-
-/** 面板内边距 */
-const PANEL_PADDING = 12;
-/** 标题栏高度 */
-const HEADER_HEIGHT = 36;
 /** 面板与屏幕边缘的留白 */
 const SCREEN_MARGIN = 40;
-/** 卡片之间的间距（两种布局共用） */
-const CARD_GAP = 10;
-/**
- * 窗口四周多留出的透明边
- *
- * 窗口是透明的（transparent），面板的投影要画在窗口底子上 ——
- * 不留边的话，投影落在窗口边界外就被裁掉，面板看着像贴了张纸片。
- * 渲染层用同样的内边距扣出面板本体，两边对得上。
- */
-const SHADOW_PADDING = 16;
-
-/** 底部横排：一张卡片的尺寸 */
-const BOTTOM_CARD_WIDTH = 232;
-const BOTTOM_CARD_HEIGHT = 180;
-
-/** 侧边竖排：面板宽度与一张卡片的高度 */
-const SIDE_PANEL_WIDTH = 360;
-const SIDE_CARD_HEIGHT = 92;
-
-/**
- * 面板本体的尺寸（不含窗口四周的透明边）
- *
- * 尺寸由「卡片数 × 卡片尺寸」算出来，不写死 —— 卡片数是共享常量
- * （CLIPBOARD_PANEL_ITEM_COUNT），改条数时两处自动对齐，不会出现
- * 「窗口按 5 条算、内容却是 6 条」这种溢出。
- */
-function panelSize(position: ClipboardPanelPosition): { width: number; height: number } {
-  if (position === "side") {
-    return {
-      width: SIDE_PANEL_WIDTH,
-      height:
-        PANEL_PADDING * 2 +
-        HEADER_HEIGHT +
-        ITEM_COUNT * SIDE_CARD_HEIGHT +
-        (ITEM_COUNT - 1) * CARD_GAP,
-    };
-  }
-  return {
-    width:
-      PANEL_PADDING * 2 +
-      ITEM_COUNT * BOTTOM_CARD_WIDTH +
-      (ITEM_COUNT - 1) * CARD_GAP,
-    height: PANEL_PADDING * 2 + HEADER_HEIGHT + BOTTOM_CARD_HEIGHT,
-  };
-}
 
 /**
  * 窗口的位置与尺寸
@@ -99,14 +47,14 @@ function panelBounds(position: ClipboardPanelPosition): {
 } {
   const display = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
   const area = display.workArea;
-  const inner = panelSize(position);
+  const windowSize = clipboardPanelWindowSize(position);
 
   const width = Math.min(
-    inner.width + SHADOW_PADDING * 2,
+    windowSize.width,
     area.width - SCREEN_MARGIN * 2
   );
   const height = Math.min(
-    inner.height + SHADOW_PADDING * 2,
+    windowSize.height,
     area.height - SCREEN_MARGIN * 2
   );
 

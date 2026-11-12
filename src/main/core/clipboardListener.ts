@@ -133,8 +133,26 @@ interface ClipboardData {
   time: string;
 }
 
+/**
+ * 把剪贴板变化广播给所有窗口
+ *
+ * 灵动岛也在监听这条消息 —— 岛是独立 BrowserWindow，只发给主窗口它收不到。
+ * 主窗口本来就监听这条通道，广播之后它的行为不变。
+ */
+function broadcastClipboardChanged(payload: ClipboardData): void {
+  for (const target of BrowserWindow.getAllWindows()) {
+    if (target.isDestroyed()) continue;
+    try {
+      target.webContents.send("clipboard-changed", payload);
+    } catch (err) {
+      log.warn("[clipboard] 广播剪贴板变更失败", err);
+    }
+  }
+}
+
 export function clipboardListener(win: BrowserWindow, DB: Knex): void {
   log.info("剪贴板监听器启动");
+  void win;
 
   clipboardIntervalId = setInterval(async () => {
     // 如果正在处理中，直接返回；如果在防抖时间内，记录时间但不处理
@@ -170,7 +188,7 @@ export function clipboardListener(win: BrowserWindow, DB: Knex): void {
 
           if (saved.saved) {
             // 发送到渲染进程
-            win.webContents.send("clipboard-changed", {
+            broadcastClipboardChanged({
               id: saved.id,
               type: "text",
               content: text,
@@ -203,7 +221,7 @@ export function clipboardListener(win: BrowserWindow, DB: Knex): void {
               });
 
               if (saved.saved) {
-                win.webContents.send("clipboard-changed", {
+                broadcastClipboardChanged({
                   id: saved.id,
                   type: "image",
                   content: imageDataUrl,

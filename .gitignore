@@ -9,6 +9,14 @@
 !/build/tsconfig.main.json
 !/build/tsconfig.preload.json
 !/build/electron-builder.json
+
+# tsc 越界编译时，会把 rootDir 覆盖不到的源文件的 .js 直接吐在源码旁边
+# （例如 src/shared/noteTypes.js）。这类产物既不能进仓库，也不能留在 src 下 ——
+# Vite 解析无扩展名 import 时 .js 优先于 .ts，会抓到这份陈旧产物导致打包失败。
+src/**/*.js
+src/**/*.js.map
+!src/renderer/postcss.config.js
+!src/renderer/tailwind.config.js
 # macOS 打包图标（由 scripts/build/generate-icons.js 从 icon.svg 生成）
 build/icon.icns
 # 运行时图标（托盘 / 窗口图标，macOS 与 Linux 用 PNG，Windows 用 icon.ico）

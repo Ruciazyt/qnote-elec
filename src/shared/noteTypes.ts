@@ -116,6 +116,25 @@ export type NoteTreeNode =
   | ({ kind: "folder" } & NoteFolderEntry & { children: NoteTreeNode[] })
   | ({ kind: "file" } & NoteFileEntry);
 
+/**
+ * 外部文件夹 —— 用户从磁盘任意路径添加进来的目录
+ *
+ * 与「笔记根目录」的区别：
+ *   - 笔记根目录只有一个，由用户在路径行里「切换」；
+ *   - 外部文件夹可以有多个，来自不同盘符、不同路径，彼此独立。
+ *
+ * 外部文件夹里的文件仍按扩展名判定类型（见 EXT_TO_TYPE），
+ * 也就是说只有应用能预览的那几种才会出现在列表里。
+ */
+export interface ExternalFolder {
+  /** 短 id —— 渲染层用它定位（IPC 参数、预览协议 URL） */
+  id: string;
+  /** 绝对路径 */
+  path: string;
+  /** 显示名，默认取目录名 */
+  name: string;
+}
+
 export function isFolderNode(node: NoteTreeNode): node is Extract<NoteTreeNode, { kind: "folder" }> {
   return node.kind === "folder";
 }
@@ -124,18 +143,17 @@ export function isFolderNode(node: NoteTreeNode): node is Extract<NoteTreeNode, 
 /**
  * 读取正文的结果。
  *
- * 文本类（绘图/文本/网页）给 text，图片和 PDF 给 dataUrl ——
- * 让渲染层不用关心怎么把二进制变成能塞进 <img> / <embed> 的东西。
+ * 文本类（绘图/文本/网页）给 text，图片给 dataUrl ——
+ * 让渲染层不用关心怎么把二进制变成能塞进 <img> 的东西。
  *
- * PDF 为什么也是 dataUrl 而不是 file:// 路径：
- * 开发环境渲染层跑在 http://localhost，而主窗口开着 webSecurity，
- * 那会把 file:// 子资源整个拦掉，表现为空白且不报错。
- * data: URL 在开发和生产（file://）下行为一致，不必为环境写分支。
- * 代价是 base64 膨胀约 1/3，对笔记体量来说可以接受。
+ * PDF 不在这里：预览走主进程注册的 qnote-note:// 协议
+ * （见 src/main/handlers/notesProtocol.ts）。早先是把 PDF 转成 base64 的
+ * data: URL 传过来，但 Chromium 的 URL 长度上限是 2MB、base64 还要膨胀约 1/3，
+ * 超过约 1.5MB 的 PDF 会被静默拦掉 —— 空白框且不报错。
  */
 export type NoteContent =
   | { type: "excalidraw" | "markdown" | "html"; name: string; text: string }
-  | { type: "image" | "pdf"; name: string; dataUrl: string };
+  | { type: "image"; name: string; dataUrl: string };
 
 /** 取小写扩展名，含点；无扩展名返回空串 */
 export function getExt(fileName: string): string {

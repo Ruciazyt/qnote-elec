@@ -124,12 +124,12 @@ function luminance([r, g, b]) {
  * 全程用浮点，不做 8-bit 取整 —— 与 WCAG 计算器（及全组统一口径）对得上；
  * 取整会让 primary 白底从 4.93 变成 4.95，与文档里已有的数对不上。
  */
-function composite(src, dst, alpha) {
+export function composite(src, dst, alpha) {
   return [0, 1, 2].map((i) => src[i] * alpha + dst[i] * (1 - alpha));
 }
 
 /** 对比度 */
-function contrast(a, b) {
+export function contrast(a, b) {
   const la = luminance(a);
   const lb = luminance(b);
   const [hi, lo] = la >= lb ? [la, lb] : [lb, la];
@@ -155,7 +155,7 @@ function buildPalette(raw) {
  *
  * 透明档不在这里合成 —— 合成要看它压在什么底上，交给 resolveBg。
  */
-function tokenColor(colors, spec) {
+export function tokenColor(colors, spec) {
   const [name, alphaRaw] = spec.split("/");
   const rgb = colors.get(name);
   if (!rgb) return null;
@@ -197,6 +197,29 @@ const COMBOS = [
   ["次要文字 /80", "muted-foreground/80", "card"],
   ["次要文字 /85", "muted-foreground/85", "background"],
   ["次要文字 /85", "muted-foreground/85", "card"],
+  // 2026-11-09 补：全仓实际用到的次级文字透明度档（scripts/audit-muted-text.mjs 扫出来的）
+  ["次要文字 /25", "muted-foreground/25", "background"],
+  ["次要文字 /25", "muted-foreground/25", "card"],
+  ["次要文字 /30", "muted-foreground/30", "background"],
+  ["次要文字 /30", "muted-foreground/30", "card"],
+  ["次要文字 /40", "muted-foreground/40", "background"],
+  ["次要文字 /40", "muted-foreground/40", "card"],
+  ["次要文字 /45", "muted-foreground/45", "background"],
+  ["次要文字 /45", "muted-foreground/45", "card"],
+  ["次要文字 /50", "muted-foreground/50", "background"],
+  ["次要文字 /50", "muted-foreground/50", "card"],
+  ["次要文字 /55", "muted-foreground/55", "background"],
+  ["次要文字 /55", "muted-foreground/55", "card"],
+  ["次要文字 /65", "muted-foreground/65", "background"],
+  ["次要文字 /65", "muted-foreground/65", "card"],
+  ["次要文字 /75", "muted-foreground/75", "background"],
+  ["次要文字 /75", "muted-foreground/75", "card"],
+  // 2026-11-09 补（QQA）：全仓实际用到的次级文字透明度档
+  // （scripts/audit-muted-text.mjs 扫出来的）
+  ["次要文字 /90", "muted-foreground/90", "background"],
+  ["次要文字 /90", "muted-foreground/90", "card"],
+  ["次要文字 /95", "muted-foreground/95", "background"],
+  ["次要文字 /95", "muted-foreground/95", "card"],
   ["品牌色文字", "primary", "background"],
   ["品牌色文字", "primary", "card"],
   ["品牌色 /40", "primary/40", "background"],
@@ -381,6 +404,21 @@ function buildThemeSafe(raw) {
     if (!palette.has(name)) palette.set(name, rgb);
   }
   return computeTheme(palette, "暗色主题（.dark）");
+}
+
+/**
+ * 两套主题的调色板（token 名 → sRGB 三元组）
+ *
+ * 给「具体到某一处写法」的守卫用 —— 比如 CSS 里手写的
+ * `color: hsl(var(--muted-foreground) / 0.7)`，它要按同一套口径算对比度，
+ * 不能自己再实现一遍 HSL 转换。
+ */
+export function buildPalettes() {
+  const dark = buildPalette(darkRaw);
+  for (const [name, rgb] of buildPalette(lightRaw)) {
+    if (!dark.has(name)) dark.set(name, rgb);
+  }
+  return { light: buildPalette(lightRaw), dark };
 }
 
 // 只有被当命令行跑的时候才打印；被 import 时安静退出
