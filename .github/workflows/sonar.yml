@@ -84,62 +84,30 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # Scan: run the sonar-scanner CLI directly instead of the official action.
+      # Scan with the official action (pinned to a full commit SHA).
       #
-      # Why not the action: the action's output only lands in the Actions log,
-      # and that log returns 403 for anonymous requests -- so there is no way to
-      # see what the scanner actually picked up. Running the CLI ourselves lets
-      # us copy the interesting lines into the workflow summary, which IS
-      # readable through the REST API (check run output.summary).
-      #
-      # Every option is passed with -D instead of relying on
+      # The analysis scope is passed on the command line, not only through
       # sonar-project.properties: command line wins over the properties file,
       # so there is nothing left to guess about.
       #
-      # Scope covers only the four core directories under src/ (main process,
+      # Both spellings are passed:
+      #   -Dsonar.sources     the classic scope (SonarQube 10.x and older)
+      #   -Dsonar.inclusions  the scope key newer SonarQube/SonarCloud use
+      # Only the core directories under src/ are in scope (main process,
       # renderer, shared types, data layer). scripts/ is left out on purpose:
       # the free SonarCloud tier counts the whole organization's lines of code
       # and rejects anything above 50000, which blocks the analysis outright.
       - name: SonarCloud scan
         if: steps.sonar-token.outputs.enabled == 'true'
+        uses: SonarSource/sonarqube-scan-action@e805d875275f728fac1885b413934be6d7c63f65 # v8.4.1
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: |
-          set -uo pipefail
-          SCANNER_VERSION="8.3.1.16491"
-          SCANNER_HOME="$RUNNER_TEMP/sonar-scanner-cli-${SCANNER_VERSION}-linux"
-          curl -fsSL --retry 3 --retry-delay 5 \
-            "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SCANNER_VERSION}-linux.zip" \
-            -o "$RUNNER_TEMP/scanner.zip"
-          unzip -q "$RUNNER_TEMP/scanner.zip" -d "$RUNNER_TEMP"
-          chmod +x "$SCANNER_HOME/bin/sonar-scanner"
-
-          "$SCANNER_HOME/bin/sonar-scanner" \
-            -Dsonar.projectKey=Ruciazyt_qnote-elec \
-            -Dsonar.projectName=QNote \
-            -Dsonar.organization=ruciazyt \
-            -Dsonar.host.url=https://sonarcloud.io \
-            -Dsonar.token="$SONAR_TOKEN" \
-            -Dsonar.sourceEncoding=UTF-8 \
-            -Dsonar.scm.provider=git \
-            -Dsonar.scm.disabled=false \
-            -Dsonar.sources=src/main,src/renderer,src/shared,src/database \
-            -Dsonar.tests=src/main,src/renderer,src/shared,src/database \
-            -Dsonar.test.inclusions='**/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.spec.tsx,**/test/**' \
-            -Dsonar.exclusions='**/node_modules/**,**/dist/**,**/dist_electron/**,**/build/**,**/.data/**,**/out-tsc/**,**/coverage/**,**/*.d.ts,**/*.min.js,**/public/**,**/*.svg,**/*.png,**/*.ico,**/*.icns,**/*.css,**/*.html' \
-            -Dsonar.javascript.lcov.reportPaths=src/renderer/coverage/lcov.info \
-            -Dsonar.typescript.lcov.reportPaths=src/renderer/coverage/lcov.info \
-            2>&1 | tee "$RUNNER_TEMP/scan.log"
-          code=${PIPESTATUS[0]}
-
-          {
-            echo "### scanner log"
-            echo ""
-            echo '```'
-            grep -Ei 'project root|load properties|sonar\.(sources|tests|exclusions)|files indexed|lines of code|ERROR|WARN' "$RUNNER_TEMP/scan.log" | head -150
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-          exit "$code"
+        with:
+          args: >
+            -Dsonar.sources=src/main,src/renderer,src/shared,src/database
+            -Dsonar.tests=src/main,src/renderer,src/shared,src/database
+            -Dsonar.inclusions=src/main/**,src/renderer/**,src/shared/**,src/database/**
+            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/dist_electron/**,**/build/**,**/.data/**,**/out-tsc/**,**/coverage/**,**/*.d.ts,**/*.min.js,**/public/**,**/*.svg,**/*.png,**/*.ico,**/*.icns,**/*.css,**/*.html
 
       # 清单 + 判定。用 --wait 等本次提交的分析真正算完，
       # 否则查到的还是上一次的旧结果，门禁就成了假通过。
