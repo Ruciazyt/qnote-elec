@@ -58,6 +58,22 @@ jobs:
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: '22'
+          # 关掉 setup-node v5 的「按 packageManager 字段自动启用缓存」。
+          #
+          # 这个作业只跑 node scripts/quality/sonar-issues.js，
+          # 脚本只用 node 内置模块，**不跑 pnpm install** ——
+          # 于是 pnpm store 目录压根不存在。
+          # setup-node 的 post 步骤（保存缓存）会拿这个路径去建缓存，
+          # 路径不存在时就报：
+          #   Path Validation Error: Path(s) specified in the action for
+          #   caching do(es) not exist, hence no cache is being saved.
+          # post 步骤失败 → 整个作业判红 → build / build-mac / release
+          # 全部 skipped。1.11.1 的发版就挂在这条上（实际步骤全绿，
+          # 只有 post 步骤红）。
+          #
+          # 其它作业（build / build-mac / sonar.yml）都有 pnpm install，
+          # store 目录存在，缓存存得下来，不需要这个开关。
+          package-manager-cache: false
 
       - name: Check SonarCloud token
         id: sonar-token
