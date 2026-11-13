@@ -509,7 +509,7 @@ async function main() {
         process.stdout.write('\n');
         if (!analysis || analysis.revision !== head) {
             console.warn(
-                `⚠️  在超时时间内没等到提交 ${head.slice(0, 7)} 的分析结果，沿用最近一次分析。`
+                `⚠️  在超时时间内没等到提交 ${head.slice(0, 7)} 的分析结果。`
             );
         }
     }
@@ -532,6 +532,47 @@ async function main() {
     const analysis = await fetchLastAnalysis();
     const blockTypeList = blockTypes();
     const blockSeverityList = blockSeverities();
+
+    // ------------------------------------------------------------------
+    // 分析结果不是当前提交 → 判不了，别拿旧结果当现状判
+    // ------------------------------------------------------------------
+    //
+    // 为什么必须这么判：SonarCloud 上存的 issue 是**上一次扫描**的结果。
+    // 那次扫描可能针对的是几天前、甚至几天前的提交 —— 期间代码早就改了，
+    // 那些问题可能已经修掉（也可能更糟）。
+    //
+    // 拿旧结果判当前代码，两个方向都会错：
+    //   · 旧结果里有、现在已修 → **误拦**（发版被一件不存在的事卡住）
+    //   · 旧结果里没有、现在有 → **假通过**（带着没扫过的代码发版）
+    //
+    // 后者更危险 —— 它会让门禁在没有实际检查过代码的情况下放行。
+    //
+    // 所以：分析结果的 revision 与 HEAD 对不上时，判不了（退出码 2），
+    // 由调用方决定是「告警继续」还是「中止」。CI 里 2 只告警。
+    //
+    // 什么时候会这样？扫描没跑成（SonarCloud 配额超限、令牌失效、
+    // 扫描器本身报错）—— 这类情况本来就该「判不了」，
+    // 而不是拿一份不知道多旧的清单来当现状。
+    const stale = Boolean(analysis && head && analysis.revision !== head);
+    if (opts.gate && stale) {
+        console.error('');
+        console.error('⚠️  SonarCloud 质量门禁无法判定：分析结果不是当前提交的');
+        console.error('');
+        console.error(`   当前提交：${head.slice(0, 7)}`);
+        console.error(
+            `   最近一次分析：${analysis.revision ? analysis.revision.slice(0, 7) : '（没有）'}` +
+                (analysis?.date ? `（${new Date(analysis.date).toLocaleString('zh-CN')}）` : '')
+        );
+        console.error('');
+        console.error('   这份清单反映的是上一次扫描时的代码，不能拿来判现在的代码 ——');
+        console.error('   拿它判会两个方向都错：已修的问题误拦，没扫到的问题假通过。');
+        console.error('');
+        console.error('   排查扫描为什么没跑成（常见原因：SonarCloud 组织的 LOC 配额超限、');
+        console.error('   令牌失效、扫描器报错）。清单仍在 .data/sonar/sonar-issues.md。');
+        console.error('');
+        process.exit(2);
+    }
+
     // 命中规则：类型在拦截名单里，且（没设级别过滤 或 级别也在名单里）。
     // 类型认不出来（接口没给）按拦截处理 —— 判不准的时候宁可保守。
     const blocking = issues.filter((issue) => {
@@ -551,7 +592,7 @@ async function main() {
         blockSeverities: blockSeverityList,
         now: new Date().toLocaleString('zh-CN'),
         showAll: opts.showAll,
-        stale: Boolean(analysis && head && analysis.revision !== head),
+        stale,
     };
 
     const markdown = renderMarkdown(issues, summary, meta);
