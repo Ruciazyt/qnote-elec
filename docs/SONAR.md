@@ -169,7 +169,50 @@ analysis: 60669.
 正确写法：**只给 `sonar.sources`**，测试文件靠 `sonar.test.inclusions` 标记。
 落在 sources 范围内的测试文件会被算作测试代码，不计入 LOC 配额。
 
-### 4.3 改了范围怎么确认生效
+### 4.3 ⚠️ 组织开着「自动分析」，CI 扫描会被挡
+
+SonarCloud 的 **Automatic Analysis**（组织级设置）会在每次推 master 时**自己**
+跑一次分析。它没有客户端配置，扫的是**整个仓库** —— 60700+ 行，免费额度直接拒。
+
+更麻烦的是，scanner 看到「自动分析开着 + 这是 CI 分析」会**拒绝运行**：
+
+```
+ERROR You are running CI analysis while Automatic Analysis is enabled.
+      Please consider disabling one or the other.        (exit code 3)
+```
+
+CI 里已经把 `CI` 环境变量清空（scanner 靠它判断是不是 CI 分析），但这只解决了
+「拒绝运行」，自动分析那次的全仓库分析仍会跑并超配额。
+
+**根治办法**：在 SonarCloud 网页后台关掉组织的 Automatic Analysis
+（Organization → Automatic Analysis）。API 改不了 —— 它是组织级设置：
+
+```
+POST /api/settings/set  key=sonar.autoscan.enabled  component=<项目>   → Setting cannot be set on a Project
+POST /api/settings/set  key=sonar.autoscan.enabled  component=ruciazyt → Component key 'ruciazyt' not found
+```
+
+### 4.4 当前的覆盖范围（**未解决**）
+
+配置里写的是四个核心目录，但服务端实际只索引到 **`src/main` 的 98 个文件**
+（`ncloc` 16522）—— `src/renderer`（174 个源文件）、`src/shared`（17 个）、
+`src/database`（12 个）都还没进去。
+
+已排除的假设：
+
+- ❌ properties 没被读到 —— scanner 日志里明确写着
+  `Project root configuration file: .../sonar-project.properties`
+- ❌ 多目录写法不支持 —— `sonar.sources=src`（单目录）与四个目录（多目录）结果一样
+- ❌ `sonar.tests` 导致 —— 现在根本设了 `sonar.tests`
+- ⚠️ `src/renderer` 自带 `package.json`，可能被 Sonar 当成**独立模块**而剔除
+  （Sonar 对含构建文件的目录按模块处理，模块不在范围内时其文件不参与分析）——
+  这个还没验证
+
+门禁本身是好的：分析能产出，命中拦截级别的问题会真的挡发版
+（2026-11-13 的 1.12.0 就是被 3 条 `S2083` 路径穿越告警挡下的 ——
+那 3 条是误报，已在 SonarCloud 上标成 False Positive）。
+
+### 4.5 改了范围怎么确认生效
 
 Actions 的日志匿名访问返回 403，**只有 SonarCloud 侧的数据能读到**。用 API 核对：
 
