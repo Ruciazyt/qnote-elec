@@ -109,29 +109,7 @@ jobs:
         with:
           args: >
             -Dsonar.sources=src
-            -Dsonar.scanner.logToFile=sonar-scan.log
             -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/dist_electron/**,**/build/**,**/.data/**,**/out-tsc/**,**/coverage/**,**/*.d.ts,**/*.min.js,**/public/**,**/*.svg,**/*.png,**/*.ico,**/*.icns,**/*.css,**/*.html
-
-      # 把 scanner 日志的关键行暴露成 annotation。
-      #
-      # Actions 的日志匿名访问 403，workflow summary 也不进 API（output.summary
-      # 读回来是空的）—— 只有 annotation 能匿名读到。
-      # 而 scanner 自己的输出只在日志里，所以让它先写文件
-      # （-Dsonar.scanner.logToFile），再从文件里挑关键行。
-      - name: "Diagnostics: scanner log"
-        if: always() && steps.sonar-token.outputs.enabled == 'true'
-        run: |
-          if [ ! -f sonar-scan.log ]; then
-            echo "::error title=scanner::no scanner log file found"
-            exit 0
-          fi
-          grep -Ei 'project root|load properties|sonar\.(sources|tests|exclusions)|module|skipping|indexed|lines of code|excluded' sonar-scan.log \
-            | head -40 \
-            | while IFS= read -r line; do
-                safe=$(printf '%s' "$line" | sed -e 's/%/%25/g' -e 's/\r//g' | cut -c1-900)
-                echo "::error title=scanner::${safe}"
-              done
-          exit 0
 
       # 清单 + 判定。用 --wait 等本次提交的分析真正算完，
       # 否则查到的还是上一次的旧结果，门禁就成了假通过。
