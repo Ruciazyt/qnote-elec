@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
 import { MonitorPlay } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { setNativeViewCover } from "@/hooks/useNativeViewCover";
 import { cn } from "@/lib/utils";
 import type { AppProject } from "@shared/appTypes";

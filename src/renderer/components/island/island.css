@@ -397,7 +397,7 @@ body {
   font-size: 13px;
   line-height: 1.45;
   color: hsl(var(--island-text));
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .island-row-meta {
@@ -414,7 +414,7 @@ body {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 /* 优先级小圆点 */
@@ -560,7 +560,7 @@ body {
   font-size: 12.5px;
   line-height: 1.5;
   white-space: pre-wrap;
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .island-msg[data-role="user"] {

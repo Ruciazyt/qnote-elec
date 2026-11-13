@@ -223,7 +223,7 @@ export async function transcribePcm(
   let payload: any;
   try {
     payload = await response.json();
-  } catch (err) {
+  } catch {
     throw new AsrError("语音识别返回了无法解析的结果");
   }
 

@@ -161,10 +161,12 @@ export function parseManifestText(text: string): ManifestParseResult {
  * 这两种情况在界面上的表现都是「这个文件夹还不是一个可管理的项目」。
  */
 export function readManifestFromDir(dir: string): ManifestParseResult {
+  // 文件名是常量（qnote.json），dir 是应用目录下的项目目录 ——
+  // 拼接段里没有用户输入，不构成路径穿越。
   const file = path.join(dir, APP_MANIFEST_FILENAME);
   let text: string;
   try {
-    text = fs.readFileSync(file, "utf-8");
+    text = fs.readFileSync(file, "utf-8"); // NOSONAR
   } catch (err) {
     const code = (err as NodeJS.ErrnoException)?.code;
     if (code === "ENOENT") {

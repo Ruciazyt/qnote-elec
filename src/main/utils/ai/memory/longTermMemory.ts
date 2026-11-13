@@ -24,9 +24,9 @@
  * 和当下这句话没有任何字面重叠，打分必然趋近于 0。
  * 所以这里用的是**语义类别匹配**（见 recall 的实现），刻意不复用。
  */
-import * as fs from "fs";
+import * as fs from "node:fs";
 import * as path from "node:path";
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import { app } from "electron";
 import { log } from "../../log";
 
@@ -79,7 +79,7 @@ const MAX_CONTENT_LEN = 300;
 function dedupeKey(content: string): string {
   return content
     .toLowerCase()
-    .replace(/[\s，。、；：！？,.!?;:"'"'()（）【】\[\]]+/g, "");
+    .replace(/[\s，。、；：！？,.!?;:"'"'()（）【】[\]]+/g, "");
 }
 
 /** 生成 id */

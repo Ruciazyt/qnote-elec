@@ -4,7 +4,6 @@ import userEvent from "@testing-library/user-event";
 import { ResizableSidebar, type ResizableSidebarProps } from "./ResizableSidebar";
 import {
   PANEL_COLLAPSED_BUTTON_INSET,
-  PANEL_COLLAPSED_BUTTON_SIZE,
   PANEL_COLLAPSED_WIDTH,
   PANEL_HEADER_PADDING_X,
 } from "./layout";

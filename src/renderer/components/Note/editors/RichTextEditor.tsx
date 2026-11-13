@@ -209,7 +209,9 @@ const RichTextEditor = forwardRef<NoteEditorHandle, RichTextEditorProps>(functio
           try {
             const dataUrl = await new Promise<string>((resolve, reject) => {
               const reader = new FileReader();
-              reader.onload = () => resolve(String(reader.result));
+              // result 可能是 ArrayBuffer —— 直接 String() 会变成 "[object ArrayBuffer]"
+              reader.onload = () =>
+                resolve(typeof reader.result === 'string' ? reader.result : '');
               reader.onerror = () => reject(reader.error);
               reader.readAsDataURL(file);
             });
@@ -408,11 +410,6 @@ const RichTextEditor = forwardRef<NoteEditorHandle, RichTextEditorProps>(functio
     setLinkOpen(false);
   };
 
-  const openLinkEditor = () => {
-    if (!editor) return;
-    setLinkValue((editor.getAttributes("link").href as string) ?? "");
-    setLinkOpen((v) => !v);
-  };
 
   return (
     <TooltipProvider delayDuration={300}>

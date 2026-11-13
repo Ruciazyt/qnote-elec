@@ -106,7 +106,7 @@ function serializeTodo(row: any): TodoRow {
 const PRIORITY_RANK: Record<string, number> = { high: 0, medium: 1, low: 2 };
 
 /**
- * 广播 Todo 列表变更
+ * 广播待办列表变更
  *
  * 待办页是 keep-alive 的（切走只是 display:none，组件不卸载），列表只在
  * 挂载时拉一次。剪贴板那边新建待办时，待办页收不到任何通知，用户看到的

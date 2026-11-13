@@ -92,7 +92,7 @@ describe("隐藏控件", () => {
       "components/x.tsx",
       `export function X() { return (<div className="opacity-0 group-hover:opacity-100"><button>删</button></div>); }`
     );
-    expect(findHiddenFocusables([bad]).length).toBe(1);
+    expect(findHiddenFocusables([bad])).toHaveLength(1);
   });
 
   it("变异输入：带 focus 显形规则的放行", () => {
@@ -220,7 +220,7 @@ describe("隐藏控件", () => {
          </div>
        ); }`
     );
-    expect(findHiddenFocusables([bad]).length).toBe(1);
+    expect(findHiddenFocusables([bad])).toHaveLength(1);
   });
 
   it("变异输入：pointer-events-auto 能抵消祖先的 pointer-events-none", () => {
@@ -334,7 +334,7 @@ describe("品牌色当文字", () => {
       "components/x.tsx",
       `export function X() { return (<span className="bg-primary/10 text-primary">已配置</span>); }`
     );
-    expect(findBrandTextOnBrand([bad]).length).toBe(1);
+    expect(findBrandTextOnBrand([bad])).toHaveLength(1);
   });
 
   it("变异输入：text-primary-strong 放行", () => {
@@ -378,7 +378,7 @@ describe("品牌色当文字", () => {
       `export function X() { return (<span className="bg-primary/20 text-primary">已配置</span>); }`
     );
     const found = findBrandTextOnBrand([bad]);
-    expect(found.length).toBe(1);
+    expect(found).toHaveLength(1);
     expect(found[0].kind).toBe("brand-tint-too-deep");
   });
 
@@ -388,7 +388,7 @@ describe("品牌色当文字", () => {
       `export function X() { return (<span className="bg-primary/20 text-primary-strong">已配置</span>); }`
     );
     const found = findBrandTextOnBrand([bad]);
-    expect(found.length).toBe(1);
+    expect(found).toHaveLength(1);
     expect(found[0].kind).toBe("brand-tint-too-deep");
   });
 
@@ -405,7 +405,7 @@ describe("品牌色当文字", () => {
       "components/x.tsx",
       `export function X() { return (<span className="bg-primary/5 text-primary">已配置</span>); }`
     );
-    expect(findBrandTextOnBrand([bad]).length).toBe(1);
+    expect(findBrandTextOnBrand([bad])).toHaveLength(1);
   });
 
   it("变异输入：纯装饰的品牌底纹（没有文字）放行", () => {
@@ -421,6 +421,6 @@ describe("品牌色当文字", () => {
       "components/x.tsx",
       `export function X() { return (<span className="bg-primary/[0.08] text-primary">已配置</span>); }`
     );
-    expect(findBrandTextOnBrand([bad]).length).toBe(1);
+    expect(findBrandTextOnBrand([bad])).toHaveLength(1);
   });
 });

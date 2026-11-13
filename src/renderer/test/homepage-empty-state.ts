@@ -339,6 +339,6 @@ export function readPrimaryStrong(
 ): string | null {
   const block = extractBlock(css, scope === "dark" ? "\\.dark" : ":root");
   if (!block) return null;
-  const m = /--primary-strong:\s*([^;]+);/.exec(block);
+  const m = /--primary-strong:([^;]+);/.exec(block);
   return m ? m[1].trim() : null;
 }

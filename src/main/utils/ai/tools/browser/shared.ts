@@ -79,12 +79,11 @@ export async function runAction(
   const tab = browser.getActiveTab();
 
   const parts = [`操作成功。${navigated ? '（该操作触发了页面跳转）' : ''}`];
-  if (result.tag) parts.push(`目标元素：<${result.tag}${result.role ? ` role=${result.role}` : ''}>`);
+  if (result.tag) parts.push(`目标元素：<${result.tag}${result.role ? " role=" + result.role : ''}>`);
   if (typeof result.checked === 'boolean') parts.push(result.checked ? '当前为已勾选' : '当前为未勾选');
   if (result.value !== undefined) parts.push(`当前值：${result.value || '(空)'}`);
   if (tab) {
-    parts.push(`当前页面：${tab.title || '(无标题)'}`);
-    parts.push(`URL：${tab.url}`);
+    parts.push(`当前页面：${tab.title || '(无标题)'}`, `URL：${tab.url}`);
   }
   // 「派发出去了但用户点不到」——这类必须显式说，否则模型会以为成功并往下走
   if (result.notice) parts.push(`注意：${result.notice}`);

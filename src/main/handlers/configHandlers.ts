@@ -1,8 +1,7 @@
-import { ipcMain } from "electron";
+import { ipcMain, app } from "electron";
 import { configManager } from "../utils/config";
 import { setBaiduKeys } from "../utils/baiduOCR";
 import { log } from "../utils/log";
-import { app } from "electron";
 import { isClipboardPanelPosition } from "../../shared/clipboardPanel";
 
 // 注：原先这里有一个 get-latest-release handler，用 GitHub API 查最新版本号。

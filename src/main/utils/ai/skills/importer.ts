@@ -41,7 +41,8 @@
  * 早期那个 200KB 上限会把正常的 SKILL.md 直接挡在门外。
  */
 
-import { validateSkill, SKILL_CATEGORY, MAX_SKILL_NAME_LENGTH } from './skill';
+import { validateSkill, MAX_SKILL_NAME_LENGTH } from "./skill";
+
 
 export interface ParsedSkill {
   name: string;
@@ -262,16 +263,21 @@ function extractFrontmatter(text: string): {
 
   const meta: Record<string, string> = {};
   for (const line of block.split('\n')) {
-    const m = line.match(/^([A-Za-z0-9_-]+)\s*:\s*(.*)$/);
-    if (!m) continue;
-    let value = m[2].trim();
+    // 按第一个冒号切，不走正则 —— 原正则里两个 \s* 相邻，长行上会退化成平方级回溯。
+    // 语义与原正则保持一致：key 必须在**行首**（缩进行是嵌套键，不取），
+    // key 与冒号之间可以有空格。
+    const colon = line.indexOf(":");
+    if (colon <= 0) continue;
+    const key = line.slice(0, colon).trimEnd();
+    if (!/^[A-Za-z0-9_-]+$/.test(key)) continue;
+    let value = line.slice(colon + 1).trim();
     if (
       (value.startsWith('"') && value.endsWith('"')) ||
       (value.startsWith("'") && value.endsWith("'"))
     ) {
       value = value.slice(1, -1);
     }
-    meta[m[1].toLowerCase()] = value;
+    meta[key.toLowerCase()] = value;
   }
   return { meta, body };
 }
@@ -391,7 +397,7 @@ export async function fetchSkillPreview(rawUrl: string): Promise<FetchPreviewRes
   try {
     // GitHub 仓库链接 / 目录链接 → 先在仓库里找到技能文件
     const loc = parseGithubLocation(check.url);
-    let target = check.url;
+    let target: URL;
     let fallbackName = '';
 
     if (loc) {
@@ -476,4 +482,4 @@ export async function fetchSkillPreview(rawUrl: string): Promise<FetchPreviewRes
   }
 }
 
-export { SKILL_CATEGORY };
+export { SKILL_CATEGORY } from "./skill";

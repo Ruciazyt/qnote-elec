@@ -279,7 +279,11 @@ export function normalizeError(err: unknown, provider: AiProvider): never {
 
   const e = err as any;
   const status = e?.status ?? e?.response?.status as number | undefined;
-  const message = e?.error?.message ?? e?.message ?? String(err);
+  // 未知值不能直接 String() —— 对象会变成 "[object Object]"
+  const message =
+    e?.error?.message ??
+    e?.message ??
+    (typeof err === 'string' ? err : (JSON.stringify(err) ?? String(err)));
 
   log.error(`AI 调用失败 [${provider}]`, { status, message });
   throw new AiApiError(`AI 调用失败: ${message}`, status, provider);
@@ -293,7 +297,7 @@ export function extractTextContent(content: unknown): string {
       .map((part: any) => (typeof part === 'string' ? part : part?.text ?? ''))
       .join('');
   }
-  return content ? String(content) : '';
+  return typeof content === 'string' ? content : content ? JSON.stringify(content) : '';
 }
 
 /** 从 LangChain result.usage_metadata 规整成旧 AiUsage 格式 */

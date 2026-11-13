@@ -1,0 +1,104 @@
+name: SonarCloud
+
+# -----------------------------------------------------------------------
+# SonarCloud 扫描 —— 推 master 与提 PR 时各跑一次
+#
+# 这个工作流负责「产生分析结果」；
+# 发版时真正阻断的是 build-and-release.yml 里的 sonar-gate 作业，
+# 它跑同一个 scripts/quality/sonar-issues.js 判定有没有命中级别的问题。
+#
+# 令牌来自仓库 secret SONAR_TOKEN。没配的话整个扫描会跳过（不红），
+# 免得还没接好就把 CI 搞挂。
+#
+# 手动触发：Actions 页 → SonarCloud → Run workflow
+# -----------------------------------------------------------------------
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: read
+
+    steps:
+      # fetch-depth: 0 —— Sonar 要完整 git 历史才能做 blame
+      # 与「新增代码」判定，浅克隆会让它把整个仓库都当成新代码。
+      - name: Checkout code
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
+        with:
+          version: 10.32.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      # 覆盖率报告：SonarCloud 侧填 src/renderer/coverage/lcov.info
+      # 不产出 lcov 的话，覆盖率指标会是 0，质量门禁那一条必然红。
+      - name: Run unit tests with coverage
+        run: pnpm --dir src/renderer run test:coverage
+
+      - name: Check SonarCloud token
+        id: sonar-token
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          if [ -z "$SONAR_TOKEN" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No SONAR_TOKEN secret configured, skipping SonarCloud scan"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # 扫描器用的是官方 action，固定到完整 commit SHA（仓库惯例）
+      - name: SonarCloud scan
+        if: steps.sonar-token.outputs.enabled == 'true'
+        uses: SonarSource/sonarqube-scan-action@e805d875275f728fac1885b413934be6d7c63f65 # v8.4.1
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      # 清单 + 判定。用 --wait 等本次提交的分析真正算完，
+      # 否则查到的还是上一次的旧结果，门禁就成了假通过。
+      #
+      # 退出码：1 = 查到了命中级别的问题（本次工作流红）；
+      #         2 = 判不了（令牌失效 / 网络不通）—— 只告警。
+      - name: Collect issue list
+        if: steps.sonar-token.outputs.enabled == 'true'
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_BLOCK_SEVERITIES: ${{ vars.SONAR_BLOCK_SEVERITIES }}
+        run: |
+          code=0
+          node scripts/quality/sonar-issues.js --gate --wait || code=$?
+          if [ "$code" -eq 2 ]; then
+            echo "::warning::SonarCloud issues could not be fetched (token or network problem)"
+            exit 0
+          fi
+          exit "$code"
+
+      - name: Upload issue list
+        if: always() && steps.sonar-token.outputs.enabled == 'true'
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: sonar-issues
+          path: .data/sonar/
+          if-no-files-found: ignore
+          retention-days: 14

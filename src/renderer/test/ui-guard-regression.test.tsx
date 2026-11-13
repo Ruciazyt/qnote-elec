@@ -96,7 +96,7 @@ const DESTRUCTIVE_CASES: Array<[string, string]> = [
 ];
 
 /** 造一个「按钮被 opacity-0 藏起来」的坏例子 */
-function hiddenFocusableSource(file: string): string {
+function hiddenFocusableSource(_file: string): string {
   return `export function X() { return (
      <div className="opacity-0">
        <button>删</button>
@@ -105,7 +105,7 @@ function hiddenFocusableSource(file: string): string {
 }
 
 /** 造一个「描述里没有点名目标」的坏例子 */
-function unnamedDescriptionSource(file: string): string {
+function unnamedDescriptionSource(_file: string): string {
   return `export function X() {
      return (
        <DialogContent>
@@ -189,7 +189,7 @@ describe("品牌色当文字：基线清空后守卫仍然拦得住", () => {
       `export function X() { return (<span className="bg-primary/10 text-primary-strong">已配置</span>); }`
     );
 
-    expect(findBrandTextOnBrand([brandText]).length).toBe(1);
+    expect(findBrandTextOnBrand([brandText])).toHaveLength(1);
     expect(findBrandTextOnBrand([strongText])).toEqual([]);
   });
 
@@ -230,7 +230,7 @@ describe("品牌色当文字：基线清空后守卫仍然拦得住", () => {
       `export function X() { return (<button className="text-primary hover:bg-primary/10">删</button>); }`
     );
     const found = findBrandTextOnBrand([bad]);
-    expect(found.length).toBe(1);
+    expect(found).toHaveLength(1);
     expect(found[0].signature).toBe("components/x.tsx|hover:bg-primary/10 text-primary");
   });
 

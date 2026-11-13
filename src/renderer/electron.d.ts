@@ -352,8 +352,7 @@ interface ElectronAPI {
   browserBookmarkClear: () => Promise<boolean>;
 
   // ==================== 应用管理 ====================
-  appListProjects: () => Promise<import("@shared/appTypes").AppProject[]>;
-  appImportProject: (dirPath: string) => Promise<import("@shared/appTypes").AppImportResult>;
+  appListProjects: () => Promise<import("@shared/appTypes").AppProject[]>;  appImportProject: (dirPath: string) => Promise<import("@shared/appTypes").AppImportResult>;
   appRemoveProject: (id: number) => Promise<{ ok: boolean; error?: string }>;
   appRefreshProjects: () => Promise<import("@shared/appTypes").AppProject[]>;
   appWriteManifest: (
@@ -370,7 +369,19 @@ interface ElectronAPI {
   ) => Promise<{ ok: boolean; error?: string }>;
   appOpenFolder: (target: string) => Promise<{ ok: boolean; error?: string }>;
   appPickProjectDir: () => Promise<string | null>;
-  appStart: (projectId: number) => Promise<{ ok: boolean; error?: string }>;
+  appStart: (
+    projectId: number,
+    confirmedManifestHash?: string
+  ) => Promise<{
+    ok: boolean;
+    error?: string;
+    needsConfirmation?: import("@shared/appTypes").StartConfirmation;
+  }>;
+  /** 从应用市场导入一个项目 —— 目标目录已有 qnote.json 时拒绝覆盖 */
+  appImportFromMarket: (
+    dirPath: string,
+    payload: Partial<import("@shared/appTypes").AppManifest>
+  ) => Promise<import("@shared/appTypes").AppImportResult>;
   appStop: (projectId: number) => Promise<{ ok: boolean; error?: string }>;
   appRuntimeStates: () => Promise<import("@shared/appTypes").AppRuntimeState[]>;
   appLogs: (projectId: number) => Promise<import("@shared/appTypes").AppLogLine[]>;
@@ -405,6 +416,47 @@ interface ElectronAPI {
       message: string;
     }) => void
   ) => () => void;
+
+  // ==================== 云端存储 ====================
+  // 只管**共享数据**（发布出去的 APP 目录）。
+  // 用户私有的东西（笔记、剪贴板、Todo、AI 对话）不经过这里 ——
+  // 它们永远在本地 SQLite。详见 docs/CLOUD-STORAGE.md。
+  cloudGetConfig: () => Promise<import("@shared/cloudTypes").CloudStorageConfig>;
+  cloudSaveConfig: (payload: {
+    backend?: import("@shared/cloudTypes").CloudBackend;
+    d1?: import("@shared/cloudTypes").D1Config | null;
+    endpoint?: string | null;
+  }) => Promise<
+    | { ok: true; data: import("@shared/cloudTypes").CloudStorageConfig }
+    | { ok: false; error: string }
+  >;
+  cloudSwitchBackend: (backend: import("@shared/cloudTypes").CloudBackend) => Promise<
+    | { ok: true; data: import("@shared/cloudTypes").CloudStorageConfig }
+    | { ok: false; error: string }
+  >;
+  cloudTestConnection: (payload: {
+    d1?: import("@shared/cloudTypes").D1Config;
+    endpoint?: string;
+  }) => Promise<import("@shared/cloudTypes").CloudConnectionStatus>;
+  cloudListApps: (query?: import("@shared/cloudTypes").PublishedAppQuery) => Promise<
+    | { ok: true; data: import("@shared/cloudTypes").PublishedAppListResult }
+    | { ok: false; error: string }
+  >;
+  cloudGetApp: (id: string) => Promise<
+    | { ok: true; data: import("@shared/cloudTypes").PublishedApp | null }
+    | { ok: false; error: string }
+  >;
+  cloudPublishApp: (
+    input: import("@shared/cloudTypes").PublishedAppInput,
+    existingId?: string
+  ) => Promise<
+    | { ok: true; data: import("@shared/cloudTypes").PublishedApp }
+    | { ok: false; error: string }
+  >;
+  cloudRemoveApp: (id: string) => Promise<
+    { ok: true; data: boolean } | { ok: false; error: string }
+  >;
+  cloudMarkPulled: (id: string) => Promise<boolean>;
   // ==================== 主页快捷方式 ====================
   shortcutList: () => Promise<import("./components/shortcut/types").ShortcutRow[]>;
   shortcutResolveIcon: (kind: string, target: string) => Promise<string | null>;

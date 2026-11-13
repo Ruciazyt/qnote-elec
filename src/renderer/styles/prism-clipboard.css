@@ -49,7 +49,7 @@
 .clipboard-code .code-block--plain code[class*="language-"],
 .clipboard-code .code-block--plain code.language-none {
   white-space: pre-wrap;
-  word-break: break-word;
+  overflow-wrap: anywhere;
   overflow-wrap: anywhere;
 }
 
@@ -96,7 +96,7 @@
 .clipboard-code pre code {
   display: block;
   white-space: pre-wrap;
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .clipboard-code pre code.language-none {

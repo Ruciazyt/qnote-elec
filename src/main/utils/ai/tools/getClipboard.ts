@@ -12,7 +12,7 @@ export const getClipboardHistoryTool = tool(
     const { DB } = getToolContext();
     const { limit = 10, type } = input;
 
-    let q = DB('note')
+    const q = DB('note')
       .select('id', 'content', 'type', 'created_at', 'ocr_result')
       .orderBy('created_at', 'desc')
       .limit(limit);

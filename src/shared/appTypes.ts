@@ -39,6 +39,15 @@ export interface AppManifest {
  */
 export type AppProjectStatus = "ready" | "missing-manifest" | "invalid-manifest";
 
+/**
+ * 项目的来源
+ *
+ * - `local` —— 用户自己导入的。清单是他自己写的，运行前不需要额外确认。
+ * - `market` —— 从应用市场获取的。清单是**别人**写的，属于不可信输入，
+ *   第一次运行前必须由用户显式确认。
+ */
+export type AppOrigin = "local" | "market";
+
 export interface AppProject {
   id: number;
   /** 展示名 */
@@ -56,6 +65,37 @@ export interface AppProject {
   description?: string;
   /** 不可用原因 */
   error?: string;
+  /** 来源 —— 本机导入还是从市场获取 */
+  origin?: AppOrigin;
+  /**
+   * 用户已确认过的清单指纹
+   *
+   * 存的是**清单内容的哈希**而不是布尔值 —— 清单改了（作者更新、
+   * 本地被人动过）哈希就对不上，确认框会再弹一次。
+   */
+  confirmedManifestHash?: string;
+}
+
+/**
+ * 启动前需要用户确认时返回的信息
+ *
+ * 主进程不知道用户同不同意，所以它只把「需要确认」这件事和该看的东西
+ * 一起交回渲染层 —— 由渲染层弹确认框，用户点了再带着确认结果回来。
+ */
+export interface StartConfirmation {
+  projectId: number;
+  /** 项目名 */
+  name: string;
+  /** 完整命令行 —— 不截断，用户要能自己看清楚 */
+  commandLine: string;
+  /** 来源 */
+  origin: AppOrigin;
+  /** 风险分析结果 */
+  risk: import("./appRisk").RiskReport;
+  /** 清单指纹 —— 用户确认后带回来，主进程核对是不是同一份 */
+  manifestHash: string;
+  /** 来源说明（市场条目的话是作者署名） */
+  sourceLabel?: string;
 }
 
 /**

@@ -175,7 +175,7 @@ function measure(token, alpha, ownBases, themes, palettes) {
       if (!bgRgb || !card) continue;
       // 规则自己的底先叠在卡片上
       bases.push({
-        name: `自有底 ${ob.token}${ob.alpha !== 1 ? `/${Math.round(ob.alpha * 100)}` : ""}`,
+        name: `自有底 ${ob.token}${ob.alpha !== 1 ? "/" + Math.round(ob.alpha * 100) : ""}`,
         color: composite(bgRgb, card, ob.alpha),
       });
     }

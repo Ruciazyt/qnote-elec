@@ -421,7 +421,7 @@ contextBridge.exposeInMainWorld("electron", {
   toggleNoteImportant: (noteId: number, important: boolean) =>
     ipcRenderer.invoke("toggle-note-important", noteId, important),
 
-  // Todo API
+  // 待办 API
   todoList: () => ipcRenderer.invoke("todo:list"),
   todoCreate: (input: { title: string; notes?: string; priority?: "high" | "medium" | "low"; due_date?: string | null }) =>
     ipcRenderer.invoke("todo:create", input),
@@ -432,7 +432,7 @@ contextBridge.exposeInMainWorld("electron", {
   todoArchive: (id: number) => ipcRenderer.invoke("todo:archive", id),
   todoUnarchive: (id: number) => ipcRenderer.invoke("todo:unarchive", id),
   /**
-   * 订阅 Todo 列表变更
+   * 订阅待办列表变更
    *
    * 待办页是 keep-alive 的，切走不卸载；待办的增删改除了发生在待办页自身，
    * 也可能来自剪贴板那边新建。没有这个通知，待办页只能等下次挂载才拿到
@@ -538,7 +538,11 @@ contextBridge.exposeInMainWorld("electron", {
   /** 系统目录选择器 —— 返回选中的绝对路径，取消则返回 null */
   appPickProjectDir: () => ipcRenderer.invoke("app:pick-project-dir"),
   /** 启动项目的常驻进程 */
-  appStart: (projectId: number) => ipcRenderer.invoke("app:start", projectId),
+  appStart: (projectId: number, confirmedManifestHash?: string) =>
+    ipcRenderer.invoke("app:start", projectId, confirmedManifestHash),
+  /** 从应用市场导入一个项目 —— 目标目录已有 qnote.json 时拒绝覆盖 */
+  appImportFromMarket: (dirPath: string, payload: unknown) =>
+    ipcRenderer.invoke("app:import-from-market", dirPath, payload),
   appStop: (projectId: number) => ipcRenderer.invoke("app:stop", projectId),
   appRuntimeStates: () => ipcRenderer.invoke("app:runtime-states"),
   appLogs: (projectId: number) => ipcRenderer.invoke("app:logs", projectId),
@@ -570,6 +574,37 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("app:preview-error", listener);
     return () => ipcRenderer.removeListener("app:preview-error", listener);
   },
+
+  // ==================== 云端存储 API ====================
+  // 只管**共享数据**（发布出去的 APP 目录）。
+  // 用户私有的东西（笔记、剪贴板、待办、AI 对话）不经过这里 ——
+  // 它们永远在本地 SQLite。详见 docs/CLOUD-STORAGE.md。
+  //
+  // 类型就地写，不从 src/shared import —— preload 的 tsconfig 把 rootDir
+  // 钉在 src/main，引用 src/shared 会报 TS6059，还会把共享模块的 .js
+  // 吐在源码旁边。渲染层那侧的声明在 src/renderer/electron.d.ts。
+  /** 读当前配置：共享存储用的是本地还是 D1 */
+  cloudGetConfig: () => ipcRenderer.invoke("cloud:get-config"),
+  /** 保存配置；切到 d1 / public 时主进程会先做真实的连通性检查 */
+  cloudSaveConfig: (payload: { backend?: string; d1?: unknown; endpoint?: string | null }) =>
+    ipcRenderer.invoke("cloud:save-config", payload),
+  /** 只切前后端，不动 D1 配置 */
+  cloudSwitchBackend: (backend: string) =>
+    ipcRenderer.invoke("cloud:switch-backend", backend),
+  /** 测试连接 —— 只检查，不改配置 */
+  cloudTestConnection: (payload: { d1?: unknown; endpoint?: string }) =>
+    ipcRenderer.invoke("cloud:test-connection", payload),
+  /** 列出已发布的 APP */
+  cloudListApps: (query?: unknown) => ipcRenderer.invoke("cloud:list-apps", query),
+  /** 取一条 */
+  cloudGetApp: (id: string) => ipcRenderer.invoke("cloud:get-app", id),
+  /** 发布 / 更新一条；给了 existingId 就是更新 */
+  cloudPublishApp: (input: unknown, existingId?: string) =>
+    ipcRenderer.invoke("cloud:publish-app", input, existingId),
+  /** 删除一条 */
+  cloudRemoveApp: (id: string) => ipcRenderer.invoke("cloud:remove-app", id),
+  /** 「被获取」计数加一 */
+  cloudMarkPulled: (id: string) => ipcRenderer.invoke("cloud:mark-pulled", id),
 
   // ==================== 主页快捷方式 API ====================
   shortcutList: () => ipcRenderer.invoke("shortcut:list"),

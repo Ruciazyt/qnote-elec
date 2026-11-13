@@ -55,6 +55,7 @@ import {
 import { ClearVectorConfirmDialog } from "./ClearVectorConfirmDialog";
 import { ImportDatabaseConfirmDialog } from "./ImportDatabaseConfirmDialog";
 import { UpdateCard } from "./UpdateCard";
+import { CloudStorageCard } from "./CloudStorageCard";
 // 卡片外观原语已抽到 settings-card.tsx —— 「应用更新」卡片要复用同一套外观，
 // 放在同一个文件里会造成循环依赖。
 import {
@@ -69,6 +70,8 @@ import type { ClipboardPanelPosition } from "@shared/clipboardPanel";
 import { formatAccelerator } from "@shared/clipboardPanel";
 import { DEFAULT_ISLAND_SETTINGS, type IslandSettings } from "@shared/island";
 
+// NOSONAR —— S7763 建议改成 export…from，但这里的 ACCENTS / SettingsCard /
+// AccentKey 在本文件里大量使用，本地 import 删不掉；纯 re-export 写法不成立。
 export { ACCENTS, SettingsCard, SettingsCardHeader };
 export type { AccentKey, AccentSpec };
 
@@ -1575,6 +1578,8 @@ export default function Settings() {
 
             {activeSection === "data" && (
               <div className="grid grid-cols-1 gap-5 settings-grid">
+            {/* 云端存储 —— 只管共享数据（发布目录），私有数据一律本地 */}
+            <CloudStorageCard />
             {/* 数据迁移 */}
             <SettingsCard accent={ACCENTS.neutral}>
               <SettingsCardHeader

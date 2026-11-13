@@ -10,7 +10,7 @@
   color: hsl(var(--foreground));
   font-size: 0.9375rem;
   line-height: 1.75;
-  word-break: break-word;
+  overflow-wrap: anywhere;
   outline: none;
   min-height: 100%;
   padding: 1.5rem 2rem 4rem;

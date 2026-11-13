@@ -1,4 +1,4 @@
-import { ipcMain, IpcMainInvokeEvent, BrowserWindow } from "electron";
+import { ipcMain, IpcMainInvokeEvent } from "electron";
 import { log } from "../utils/log";
 import { configManager } from "../utils/config";
 import { IslandWindow } from "../core/window/island";

@@ -99,7 +99,8 @@ export function StickyNoteApp() {
         }
         setNote(init);
         setDraft(init.text);
-      } catch (err) {
+      } catch {
+        // 忽略：加载失败已经有 loadError 提示，这里不重复往上抛
         if (!cancelled) setLoadError("便签加载失败");
       }
     })();

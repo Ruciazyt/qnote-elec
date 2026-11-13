@@ -78,7 +78,6 @@ const NAMED_KEYS = new Set([
 /** 裸的功能键（F1~F24）：允许不带修饰键 */
 const FUNCTION_KEY = /^f([1-9]|1\d|2[0-4])$/;
 /** 裸的单个字母 / 数字 */
-const BARE_CHAR_KEY = /^[a-z0-9]$/;
 
 export interface AcceleratorCheck {
   ok: boolean;
@@ -149,9 +148,8 @@ export function validateAccelerator(accelerator: string): AcceleratorCheck {
   const lowerKey = last.toLowerCase();
   const isFunctionKey = FUNCTION_KEY.test(lowerKey);
   const isNamedKey = NAMED_KEYS.has(lowerKey);
-  const isBareChar = BARE_CHAR_KEY.test(lowerKey);
   const isAlphanumeric =
-    /^[a-z0-9]$/i.test(last) || /^[!-\/:-@\[-`{-~]$/.test(last);
+    /^[a-z0-9]$/i.test(last) || /^[!-/:-@[-`{-~]$/.test(last);
 
   if (!isFunctionKey && !isNamedKey && !isAlphanumeric) {
     return { ok: false, error: `无法识别的按键「${last}」` };

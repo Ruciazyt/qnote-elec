@@ -96,7 +96,6 @@ export function useStickyHold() {
   }, []);
 
   const finishHold = useCallback(() => {
-    const start = startRef.current;
     startRef.current = null;
     window.removeEventListener("pointermove", handleMove);
     window.removeEventListener("pointerup", finishHold);

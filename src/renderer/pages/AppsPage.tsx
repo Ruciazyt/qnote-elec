@@ -20,12 +20,16 @@ import { AppProjectList } from "@/components/apps/AppProjectList";
 import { AppProjectHeader } from "@/components/apps/AppProjectHeader";
 import { ManifestDialog, type ManifestDraft, type ManifestPayload } from "@/components/apps/ManifestDialog";
 import { RemoveProjectDialog } from "@/components/apps/RemoveProjectDialog";
+import { StartConfirmDialog } from "@/components/apps/StartConfirmDialog";
 import { SpecDialog } from "@/components/apps/SpecDialog";
+import { PublishedAppMarket } from "@/components/apps/PublishedAppMarket";
 import type {
   AppLogLine,
   AppProject,
   AppRuntimeState,
+  StartConfirmation,
 } from "@shared/appTypes";
+import type { CloudBackend } from "@shared/cloudTypes";
 
 /**
  * 应用管理页
@@ -109,6 +113,21 @@ export default function AppsPage() {
   const [pendingImport, setPendingImport] = useState<{ path: string; name: string } | null>(null);
   /** 移除项目的确认框 */
   const [removeOpen, setRemoveOpen] = useState(false);
+  /**
+   * 启动前需要用户确认（来自应用市场的项目）
+   *
+   * 确认的内容由主进程给 —— 命令行、风险分析、清单指纹。
+   */
+  const [startConfirmation, setStartConfirmation] = useState<StartConfirmation | null>(null);
+  /**
+   * 右侧看什么：本机项目详情，还是应用市场
+   *
+   * 左侧列表两种视图下都在 —— 市场里要发布的是「本机的某个项目」，
+   * 没有左边的选中项就没法发布。
+   */
+  const [view, setView] = useState<"local" | "market">("local");
+  /** 共享存储的后端 —— 市场视图里要标出来 */
+  const [cloudBackend, setCloudBackend] = useState<CloudBackend>("local");
 
   const [logCollapsed, setLogCollapsed] = useCollapsedState(LOG_COLLAPSED_KEY, false);
 
@@ -172,6 +191,28 @@ export default function AppsPage() {
   useEffect(() => {
     void reload();
   }, [reload]);
+
+  // 共享存储的后端 —— 市场视图里要标出「发布目录存在本地还是云端」
+  //
+  // 依赖 isRouteActive：keep-alive 下本页切走不卸载，只在 mount 时读一次配置的话，
+  // 用户在设置页把后端从「仅本地」切成「D1」之后，这页的徽标还是旧的 ——
+  // 而这个徽标是用户判断「到底连上了没有」的唯一依据，显示错了比不显示更糟。
+  // 切走再切回来时重新读一次，徽标就跟上了。
+  useEffect(() => {
+    if (!isRouteActive) return;
+    let alive = true;
+    void (async () => {
+      try {
+        const config = await window.electron.cloudGetConfig();
+        if (alive) setCloudBackend(config.backend);
+      } catch (err) {
+        console.error("读取云端配置失败", err);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [isRouteActive]);
 
   // 主进程广播
   useEffect(() => {
@@ -251,14 +292,43 @@ export default function AppsPage() {
     }
   }, [reload, toast]);
 
+  /**
+   * 启动项目
+   *
+   * 来自市场的项目第一次启动前要用户确认 —— 主进程会返回
+   * needsConfirmation，这里弹确认框，用户点了再带着清单指纹回去。
+   */
   const handleStart = useCallback(
-    async (project: AppProject) => {
-      const res = await window.electron.appStart(project.id);
+    async (project: AppProject, confirmedManifestHash?: string) => {
+      const res = await window.electron.appStart(project.id, confirmedManifestHash);
+      if (res.needsConfirmation) {
+        setStartConfirmation(res.needsConfirmation);
+        return;
+      }
       if (!res.ok) {
         toast({ title: "启动失败", description: res.error, variant: "destructive" });
       }
     },
     [toast]
+  );
+
+  /** 用户在确认框里点了「运行」—— 带指纹再启动一次 */
+  const handleStartConfirmed = useCallback(
+    async (manifestHash: string) => {
+      const confirmation = startConfirmation;
+      setStartConfirmation(null);
+      if (!confirmation) return;
+      await handleStart(
+        {
+          id: confirmation.projectId,
+          name: confirmation.name,
+          path: "",
+          status: "ready",
+        },
+        manifestHash
+      );
+    },
+    [handleStart, startConfirmation]
   );
 
   const handleStop = useCallback(
@@ -422,6 +492,36 @@ export default function AppsPage() {
         <Boxes className="h-4 w-4 text-muted-foreground/70" />
         <span className="text-sm font-medium">应用管理</span>
 
+        {/* 视图切换 —— 本机项目 / 应用市场
+            做成两段小按钮而不是下拉：这两个视图是平级的，
+            放在工具栏上一眼就能看见，不用点开才知道还有另一个。 */}
+        <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60 ml-1">
+          {(
+            [
+              { id: "local", label: "本机项目" },
+              { id: "market", label: "应用市场" },
+            ] as const
+          ).map((option) => {
+            const active = view === option.id;
+            return (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => setView(option.id)}
+                aria-pressed={active}
+                className={cn(
+                  "px-2 py-0.5 rounded text-[11px] font-medium transition-colors",
+                  active
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+
         <div className="flex-1" />
 
         <Button
@@ -485,9 +585,18 @@ export default function AppsPage() {
           />
         </ResizableSidebar>
 
-        {/* 右：项目详情 */}
+        {/* 右：项目详情 / 应用市场 */}
         <section className="flex-1 min-w-0 min-h-0 flex flex-col">
-          {!selected ? (
+          {view === "market" ? (
+            /* 市场视图 —— 共享数据（发布目录）
+               左侧的本机项目列表照旧留着：发布的对象是「本机的某个项目」，
+               没有选中项就没法发布。 */
+            <PublishedAppMarket
+              selectedProject={selected}
+              backend={cloudBackend}
+              onChanged={() => void reload()}
+            />
+          ) : !selected ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center px-6">
               <FileCode2 className="h-9 w-9 text-muted-foreground/25" />
               <p className="text-sm text-muted-foreground/70">
@@ -598,6 +707,14 @@ export default function AppsPage() {
       )}
 
       <SpecDialog open={specOpen} onClose={() => setSpecOpen(false)} />
+
+      {/* 启动前确认 —— 来自应用市场的项目第一次运行前要过这一关 */}
+      <StartConfirmDialog
+        open={startConfirmation !== null}
+        confirmation={startConfirmation}
+        onClose={() => setStartConfirmation(null)}
+        onConfirm={(manifestHash) => void handleStartConfirmed(manifestHash)}
+      />
 
       {/* 移除确认 */}
       {selected && (

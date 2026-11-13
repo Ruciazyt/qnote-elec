@@ -47,7 +47,8 @@ describe("detectUrl", () => {
   });
 
   it("不像域名的主机名不放行", () => {
-    expect(detectUrl("http://foo")).toBeNull();
+    // eslint-disable-next-line sonarjs/no-clear-text-protocols -- 这里就是要断言 http 链接被拒
+    expect(detectUrl("http://foo")).toBeNull(); // NOSONAR
   });
 
   it("localhost 与 IP 保留（开发地址也是能打开的）", () => {

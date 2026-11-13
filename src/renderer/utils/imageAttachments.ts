@@ -68,7 +68,9 @@ export function dataUrlToAttachment(
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result ?? ""));
+    // result 可能是 ArrayBuffer —— 直接 String() 会变成 "[object ArrayBuffer]"
+    reader.onload = () =>
+      resolve(typeof reader.result === "string" ? reader.result : "");
     reader.onerror = () => reject(new Error("读取文件失败"));
     reader.readAsDataURL(file);
   });

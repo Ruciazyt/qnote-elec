@@ -557,6 +557,18 @@ async function createAppProjectTable(DB: Knex): Promise<void> {
       table.text("description");
       /** 不可用原因 */
       table.text("error");
+      /**
+       * 来源 —— 'local'（用户自己导入）/ 'market'（从应用市场获取）
+       *
+       * 市场来的清单是别人写的，运行前要用户确认；本机导入的不用。
+       */
+      table.string("origin").notNullable().defaultTo("local");
+      /**
+       * 用户已确认过的清单指纹
+       *
+       * 存哈希而不是布尔值 —— 清单改了哈希就对不上，确认框会再弹一次。
+       */
+      table.string("confirmed_manifest_hash").notNullable().defaultTo("");
       table.integer("sort_order").notNullable().defaultTo(0);
       table.timestamp("created_at").defaultTo(DB.fn.now());
       table.timestamp("updated_at").defaultTo(DB.fn.now());
@@ -596,10 +608,47 @@ async function migrateAppProjectSchema(DB: Knex): Promise<void> {
 
     await ensureTable(DB, "app_project", createAppProjectTable);
 
+    // 来源标记与确认指纹（2026-11-13）
+    //
+    // origin 区分「用户自己导入的」与「从应用市场拉来的」——
+    // 后者的清单是别人写的，运行前必须让用户确认一次。
+    // confirmed_manifest_hash 存的是**清单内容的哈希**而不是布尔值：
+    // 清单改了哈希就对不上，确认框会再弹一次。
+    await addAppProjectOriginColumns(DB);
+
     // 工作区概念已废弃 —— 表留着只会让人误以为还有这回事
     await DB.raw("DROP TABLE IF EXISTS app_workspace");
   } catch (err) {
     log.error("迁移应用项目表结构失败:", err);
+  }
+}
+
+/**
+ * 给 app_project 补上 origin / confirmed_manifest_hash 两列
+ *
+ * 老库的 app_project 没有这两列 —— 补上，默认 origin='local'
+ * （老项目全是用户自己导入的）。
+ */
+async function addAppProjectOriginColumns(DB: Knex): Promise<void> {
+  try {
+    const columns = await DB.raw("PRAGMA table_info(app_project)");
+    const names = columns.map((column: any) => column.name);
+
+    if (!names.includes("origin")) {
+      await DB.raw(
+        "ALTER TABLE app_project ADD COLUMN origin TEXT NOT NULL DEFAULT 'local'"
+      );
+      log.info("已为 app_project 表添加 origin 字段");
+    }
+
+    if (!names.includes("confirmed_manifest_hash")) {
+      await DB.raw(
+        "ALTER TABLE app_project ADD COLUMN confirmed_manifest_hash TEXT NOT NULL DEFAULT ''"
+      );
+      log.info("已为 app_project 表添加 confirmed_manifest_hash 字段");
+    }
+  } catch (err) {
+    log.error("添加 app_project 来源字段失败:", err);
   }
 }
 
@@ -846,7 +895,6 @@ export async function migrateRun(path?: string): Promise<void> {
 
     // 应用管理：项目表（结构随「导入文件夹」模型调整过，带迁移）
     await migrateAppProjectSchema(DB);
-
     // 检查并添加leetcode_problem表的title字段
     await addLeetcodeProblemTitleColumn(DB);
 

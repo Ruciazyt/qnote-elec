@@ -191,6 +191,21 @@ export function AppProjectHeader({
         </span>
       )}
 
+      {/* 来源徽标 —— 来自应用市场的项目
+          清单是别人写的，运行前会弹确认框。这里提前标出来，
+          用户不用等到点了「启动」才知道这个项目不是自己写的。 */}
+      {project.origin === "market" && (
+        <span
+          className={cn(
+            LINE,
+            "text-[11px] px-1.5 rounded border border-amber-500/40 text-amber-700 dark:text-amber-400 flex-shrink-0"
+          )}
+          title="来自应用市场 —— 清单是发布者写的，第一次运行前会让你确认它要执行的命令"
+        >
+          来自市场
+        </span>
+      )}
+
       {/* 预览地址 —— 端口信息就在这里。
           紧凑态下这一格显示的是「端口 7788」，宽度绰绰有余；
           完整地址在 title 提示与复制按钮里。 */}

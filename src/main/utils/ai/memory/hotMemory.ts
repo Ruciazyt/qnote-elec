@@ -22,10 +22,8 @@ import { BaseMessage, HumanMessage, AIMessage, SystemMessage } from '@langchain/
 import type { Knex } from 'knex';
 import { log } from '../../log';
 import {
-  aiContentToText,
   buildUserContent,
   parseAiImages,
-  type AiImageAttachment,
 } from '../../../../shared/aiImages';
 
 /** 会话热状态（摘要 + 未压缩的原始消息） */

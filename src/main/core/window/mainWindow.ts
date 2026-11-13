@@ -1,7 +1,6 @@
-import { BrowserWindow, ipcMain } from "electron";
+import { BrowserWindow, ipcMain, app } from "electron";
 import * as path from "node:path";
 import * as fs from "node:fs";
-import { app } from "electron";
 import { log } from "../../utils/log";
 import { markQuitting, shouldHideToTray } from "../../utils/appState";
 import { resolveAppIcon } from "../../utils/assets";
@@ -288,10 +287,12 @@ export function createMainWindow(): BrowserWindow {
   win.on("unmaximize", unmaximizeHandler);
   win.on("minimize", minimizeStateHandler);
   win.on("restore", restoreStateHandler);
-  ipcListenerRefs.push({ channel: "maximize", handler: maximizeHandler as any });
-  ipcListenerRefs.push({ channel: "unmaximize", handler: unmaximizeHandler as any });
-  ipcListenerRefs.push({ channel: "minimize", handler: minimizeStateHandler as any });
-  ipcListenerRefs.push({ channel: "restore", handler: restoreStateHandler as any });
+  ipcListenerRefs.push(
+    { channel: "maximize", handler: maximizeHandler as any },
+    { channel: "unmaximize", handler: unmaximizeHandler as any },
+    { channel: "minimize", handler: minimizeStateHandler as any },
+    { channel: "restore", handler: restoreStateHandler as any }
+  );
 
   // 注册窗口控制IPC事件
   const minimizeHandler = () => {
@@ -338,10 +339,12 @@ export function createMainWindow(): BrowserWindow {
   ipcMain.on("close-window", closeWindowHandler);
   ipcMain.on("open-dev-tools", openDevToolsHandler);
 
-  ipcListenerRefs.push({ channel: "minimize-window", handler: minimizeHandler as any });
-  ipcListenerRefs.push({ channel: "maximize-window", handler: maximizeWindowHandler as any });
-  ipcListenerRefs.push({ channel: "close-window", handler: closeWindowHandler as any });
-  ipcListenerRefs.push({ channel: "open-dev-tools", handler: openDevToolsHandler as any });
+  ipcListenerRefs.push(
+    { channel: "minimize-window", handler: minimizeHandler as any },
+    { channel: "maximize-window", handler: maximizeWindowHandler as any },
+    { channel: "close-window", handler: closeWindowHandler as any },
+    { channel: "open-dev-tools", handler: openDevToolsHandler as any }
+  );
 
   log.info("主窗口事件注册完成");
 

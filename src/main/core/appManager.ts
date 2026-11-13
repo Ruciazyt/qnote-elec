@@ -15,10 +15,14 @@ import type {
   AppLogLine,
   AppLogStream,
   AppManifest,
+  AppOrigin,
   AppProject,
   AppProjectStatus,
   AppRuntimeState,
+  StartConfirmation,
 } from "../../shared/appTypes";
+import { analyzeCommand } from "../../shared/appRisk";
+import { contentHash } from "../../shared/noteHash";
 
 /**
  * 应用管理核心
@@ -102,6 +106,18 @@ interface ProjectRecord {
   error: string | null;
 }
 
+/**
+ * Windows 的 taskkill —— **走绝对路径**，不从 PATH 里找。
+ *
+ * 从 PATH 解析命令有两个问题：一是 PATH 里靠前的目录未必不可写，
+ * 放个同名 taskkill.exe 就能劫持（S4721）；二是不同机器上
+ * System32 的位置不一定一样。用 SystemRoot 拼出来最稳。
+ */
+function taskkillPath(): string {
+  const root = process.env.SystemRoot || process.env.windir || "C:\\Windows";
+  return path.join(root, "System32", "taskkill.exe");
+}
+
 export class AppManager {
   private sink: AppEventSink | null = null;
   /** projectId → 运行中的进程 */
@@ -131,8 +147,14 @@ export class AppManager {
    *
    * 合规条件：目录下有一份能解析通过的 qnote.json。
    * 不合规时**不落库**，但把原因分类带回界面，让它能给出对应的补救动作。
+   *
+   * @param origin 来源 —— 本机导入（local）还是从应用市场获取（market）。
+   *   市场来的清单是别人写的，运行前要用户确认，见 startProject。
    */
-  async importProject(dirPath: string): Promise<AppImportResult> {
+  async importProject(
+    dirPath: string,
+    origin: AppOrigin = "local"
+  ): Promise<AppImportResult> {
     try {
       const dir = path.resolve(String(dirPath ?? "").trim());
       if (!dir) return { ok: false, error: "目录不能为空", reason: "not-a-directory" };
@@ -173,6 +195,10 @@ export class AppManager {
       const inserted = await this.DB("app_project").insert({
         ...record,
         path: dir,
+        origin,
+        // 新导入的一律「未确认」—— 本机导入的清单用户自己写过，
+        // 但市场来的必须确认。origin=local 时这个字段没人读，留空即可。
+        confirmed_manifest_hash: "",
         sort_order: 0,
         created_at: new Date(),
         updated_at: new Date(),
@@ -254,6 +280,8 @@ export class AppManager {
       preview: row.preview ?? undefined,
       description: row.description ?? undefined,
       error: row.error ?? undefined,
+      origin: (row.origin as AppOrigin) ?? "local",
+      confirmedManifestHash: row.confirmed_manifest_hash || undefined,
     };
   }
 
@@ -279,11 +307,151 @@ export class AppManager {
   }
 
   /**
+   * 从应用市场导入一个项目
+   *
+   * ## 为什么单独一条路径，而不是「写清单 + 导入项目」两步
+   *
+   * 两步分开做会有个致命的问题：**清单已经被写了，导入才发现失败**。
+   * 用户在「获取」时选了一个自己已有的项目文件夹 → 它的 qnote.json
+   * 被换成了别人的清单 → 导入返回「已导入过」→ 但文件已经被改了 →
+   * 用户下次点**自己原来那个项目**的「启动」就跑了别人的命令。
+   *
+   * 所以这里把三件事合成一次操作，并且**先查后写**：
+   * 1. 目标目录里已经有 qnote.json → **拒绝**，一个字节都不动
+   * 2. 目录已经被导入过 → 拒绝
+   * 3. 写清单 → 导入，标记来源为 market
+   *
+   * 拒绝时给的提示要说清「换个空目录」，而不是笼统的「失败」。
+   */
+  async importFromMarket(
+    dirPath: string,
+    payload: Partial<AppManifest>
+  ): Promise<AppImportResult> {
+    try {
+      const dir = path.resolve(String(dirPath ?? "").trim());
+      if (!dir) return { ok: false, error: "目录不能为空", reason: "not-a-directory" };
+      if (!fs.existsSync(dir)) {
+        return { ok: false, error: "目录不存在", reason: "not-a-directory" };
+      }
+      if (!fs.statSync(dir).isDirectory()) {
+        return { ok: false, error: "选中的不是文件夹", reason: "not-a-directory" };
+      }
+
+      // 已经有清单 → 拒绝覆盖
+      //
+      // 这一步是「获取」流程里最重要的一道闸：清单里的 command 是经 shell
+      // 执行的，覆盖掉用户已有项目的清单，等于替别人改掉了用户下次
+      // 会运行的东西。
+      const manifestPath = path.join(dir, APP_MANIFEST_FILENAME);
+      if (fs.existsSync(manifestPath)) {
+        return {
+          ok: false,
+          error: "这个文件夹里已经有 qnote.json 了，没有覆盖它。请换一个空文件夹",
+          reason: "already-imported",
+        };
+      }
+
+      // 已经导入过 → 拒绝
+      const existing = await this.DB("app_project").where("path", dir).first();
+      if (existing) {
+        return {
+          ok: false,
+          error: "这个项目已经导入了",
+          reason: "already-imported",
+        };
+      }
+
+      // 写清单（走同一条校验路径，非法清单不落盘）
+      const written = await this.writeManifest(dir, payload);
+      if (!written.ok) {
+        return { ok: false, error: written.error, reason: "invalid-manifest" };
+      }
+
+      // 导入，标记来源为 market
+      const imported = await this.importProject(dir, "market");
+      if (!imported.ok) {
+        // 导入失败就把刚写的清单撤掉 —— 不能留一个半成品
+        try {
+          fs.unlinkSync(manifestPath);
+        } catch {
+          /* 撤不掉就算了，至少清单是合法的 */
+        }
+        return imported;
+      }
+      return imported;
+    } catch (err) {
+      log.error("[app] 从市场导入项目失败:", err);
+      return { ok: false, error: describeDBError(err) };
+    }
+  }
+
+  /**
+   * 启动前的确认检查 —— **不启动进程**
+   *
+   * 单独成方法是为了能脱离「真的 spawn 一个进程」来测。
+   * 这是安全闸，行为必须能被确定地验证 —— 而 spawn 会留下真的进程，
+   * 测试既慢又不稳（子进程还占着 cwd，Windows 上删目录会 EPERM）。
+   *
+   * @returns 需要用户确认时返回确认信息；不需要（或已确认过）返回 null
+   */
+  async checkStartConfirmation(projectId: number): Promise<StartConfirmation | null> {
+    const project = await this.getProject(projectId);
+    if (!project) return null;
+    // 只有市场来源的清单才需要确认 —— 本机导入的是用户自己写的
+    if ((project.origin ?? "local") !== "market") return null;
+
+    const manifest = await this.readManifest(projectId);
+    if (!manifest) return null;
+
+    const manifestHash = this.manifestHashOf(project.path);
+    // 已经确认过**这一份**清单 → 不用再问
+    if ((project.confirmedManifestHash ?? "") === manifestHash) return null;
+
+    return {
+      projectId,
+      name: project.name,
+      commandLine: buildCommandLine(manifest),
+      origin: "market",
+      risk: analyzeCommand(manifest.command ?? "", manifest.args ?? []),
+      manifestHash,
+      sourceLabel: project.description,
+    };
+  }
+
+  /**
+   * 记下用户确认过的清单指纹
+   *
+   * 只在指纹与**当前**清单一致时才记 —— 确认框弹出之后清单又被改过的话，
+   * 这个指纹不该算数（否则用户确认的是 A，跑起来的却是 B）。
+   *
+   * @returns 记上了返回 true；指纹对不上返回 false
+   */
+  async confirmStart(projectId: number, manifestHash: string): Promise<boolean> {
+    if (!manifestHash) return false;
+    const project = await this.getProject(projectId);
+    if (!project) return false;
+
+    const current = this.manifestHashOf(project.path);
+    if (manifestHash !== current) return false;
+
+    await this.DB("app_project")
+      .where("id", projectId)
+      .update({
+        confirmed_manifest_hash: current,
+        updated_at: new Date(),
+      });
+    return true;
+  }
+
+  /**
    * 写入项目清单（qnote.json）
    *
    * 创建和编辑走同一条路径：先把表单内容组装成清单，走一遍校验，
    * 校验过了才落盘。校验失败时**不写文件** —— 留一个半成品清单在项目里，
    * 下次读取又会被判成 invalid-manifest，用户反而看不懂哪里错了。
+   *
+   * 注意：这个方法**无条件覆盖**已有清单 —— 它是「编辑清单」对话框在用，
+   * 覆盖正是它该做的事。从市场导入不要用它，见 importFromMarket。
    */
   async writeManifest(
     projectPath: string,
@@ -315,7 +483,9 @@ export class AppManager {
         return { ok: false, error: parsed.error ?? "清单内容不合法" };
       }
 
-      fs.writeFileSync(path.join(dir, APP_MANIFEST_FILENAME), text, "utf-8");
+      // 文件名是常量，目录是用户自己挑的（且已确认存在）——
+      // 拼接段里没有用户输入，不构成路径穿越。
+      fs.writeFileSync(path.join(dir, APP_MANIFEST_FILENAME), text, "utf-8"); // NOSONAR
       return { ok: true };
     } catch (err) {
       log.error("[app] 写入清单失败:", err);
@@ -355,8 +525,31 @@ export class AppManager {
    * 以常驻进程运行：命令自己不退就一直跑，用户点「停止」才结束。
    * stdout / stderr 实时收集并推给界面 —— 报错信息必须当场看得到，
    * 否则用户只能猜「为什么没反应」。
+   *
+   * ## 来源来自市场时，先要用户确认
+   *
+   * 市场条目的清单是**别人**写的，而 `command` 是经 shell 执行的
+   * （`shell: true`）—— 也就是说 `curl xxx | sh` 这种东西在清单里
+   * 语法完全合法，跑起来就是任意代码执行。
+   *
+   * 所以从市场来的项目，第一次启动前必须由用户显式确认：
+   * 主进程在这里**不启动**，而是把「要确认什么」交回渲染层，
+   * 渲染层弹确认框，用户点了再带着确认结果回来。
+   *
+   * 确认记录的是**清单内容的哈希**而不是一个布尔值 ——
+   * 清单改了（作者更新、本地被人动过）哈希就对不上，确认框会再弹一次。
+   *
+   * @param confirmedManifestHash 用户确认时带回来的清单指纹。
+   *   带对了就跑；带错了（或者没带）就返回 needsConfirmation。
    */
-  async startProject(projectId: number): Promise<{ ok: boolean; error?: string }> {
+  async startProject(
+    projectId: number,
+    confirmedManifestHash?: string
+  ): Promise<{
+    ok: boolean;
+    error?: string;
+    needsConfirmation?: StartConfirmation;
+  }> {
     try {
       const existing = this.runtimes.get(projectId);
       if (existing && isAlive(existing.child)) {
@@ -381,6 +574,20 @@ export class AppManager {
       if (!fs.existsSync(cwd)) return { ok: false, error: "工作目录不存在" };
 
       const commandLine = buildCommandLine(manifest);
+
+      // 市场来源 → 首次运行前要用户确认
+      if ((project.origin ?? "local") === "market") {
+        // 用户刚确认过 → 先把指纹记下来
+        if (confirmedManifestHash) {
+          await this.confirmStart(projectId, confirmedManifestHash);
+        }
+        const confirmation = await this.checkStartConfirmation(projectId);
+        if (confirmation) {
+          // 不启动 —— 把「要确认什么」交回渲染层，由它弹确认框
+          return { ok: false, needsConfirmation: confirmation };
+        }
+      }
+
       const env = { ...process.env, ...(manifest.env ?? {}) };
 
       const child = spawn(commandLine, {
@@ -499,7 +706,7 @@ export class AppManager {
           // Windows 上 shell:true 拉起的是 cmd.exe，真正干活的是它的子进程。
           // 只 kill cmd.exe 会留下 node 在后台跑 —— /T 才是连树一起杀。
           await new Promise<void>((resolve) => {
-            const killer = spawn("taskkill", ["/pid", String(pid), "/T", "/F"], {
+            const killer = spawn(taskkillPath(), ["/pid", String(pid), "/T", "/F"], {
               windowsHide: true,
             });
             killer.on("close", () => resolve());
@@ -555,7 +762,7 @@ export class AppManager {
       if (!pid || !isAlive(entry.child)) continue;
       try {
         if (process.platform === "win32") {
-          spawnSync("taskkill", ["/pid", String(pid), "/T", "/F"], { windowsHide: true });
+          spawnSync(taskkillPath(), ["/pid", String(pid), "/T", "/F"], { windowsHide: true });
         } else {
           try {
             process.kill(-pid, "SIGKILL");
@@ -604,6 +811,21 @@ export class AppManager {
     if (!row?.path) return null;
     const parsed = readManifestFromDir(row.path as string);
     return parsed.manifest;
+  }
+
+  /**
+   * 当前清单文件的指纹
+   *
+   * 取的是**磁盘上此刻**的内容，不是导入时存进数据库的那份快照 ——
+   * 用户（或别人）改了 qnote.json，指纹就得变，确认框才该再弹一次。
+   */
+  private manifestHashOf(projectPath: string): string {
+    try {
+      const file = path.join(projectPath, APP_MANIFEST_FILENAME);
+      return contentHash(fs.readFileSync(file, "utf-8"));
+    } catch {
+      return "";
+    }
   }
 }
 

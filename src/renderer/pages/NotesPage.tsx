@@ -58,7 +58,6 @@ import type { NoteEditorHandle } from "@/components/Note/editorHandle";
 import {
   NOTE_TYPES,
   ExternalFolder,
-  NoteFileEntry,
   NoteTreeNode,
   NoteType,
   getNoteTypeMeta,
@@ -900,7 +899,7 @@ export default function NotesPage() {
       const parentRel = node.relPath.includes("/")
         ? node.relPath.slice(0, node.relPath.lastIndexOf("/"))
         : "";
-      if (siblingRelPaths(tree, parentRel).includes(`${parentRel ? `${parentRel}/` : ""}${newName}`)) {
+      if (siblingRelPaths(tree, parentRel).includes(`${parentRel ? parentRel + "/" : ""}${newName}`)) {
         toast({ title: "同名条目已存在！", variant: "destructive" });
         return;
       }
@@ -914,7 +913,7 @@ export default function NotesPage() {
       // 路径尾部变了，同步所有引用
       const remap = (rel: string): string =>
         rel.startsWith(`${node.relPath}/`)
-          ? `${parentRel ? `${parentRel}/` : ""}${newName}/${rel.slice(node.relPath.length + 1)}`
+          ? `${parentRel ? parentRel + "/" : ""}${newName}/${rel.slice(node.relPath.length + 1)}`
           : rel;
 
       setCurrentFolder(remap(currentFolder));
@@ -2126,7 +2125,7 @@ export default function NotesPage() {
             createExternalName
               ? `外部文件夹「${createExternalName}」`
               : filePath || "未设置路径"
-          }${createTarget ? ` / ${createTarget}` : ""}${
+          }${createTarget ? " / " + createTarget : ""}${
             creatingType ? ` · 后缀 ${getNoteTypeMeta(creatingType).defaultExt}` : ""
           }`}
           value={newFileName}

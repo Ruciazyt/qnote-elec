@@ -5,13 +5,11 @@
  * BrowserSidePanel（应用宽度）、useBrowserSidePanel（持久化与钳制）都要用同一份定义。
  */
 
-import { PANEL_RESIZER_WIDTH, clampPanelWidth } from "@/components/panel/layout";
-
 /**
  * 分割线厚度与宽度钳制已经不止浏览器页在用（笔记页、应用管理页都用同一套），
  * 所以实现在 @/components/panel/layout —— 这里转出，既有调用点不用改。
  */
-export { PANEL_RESIZER_WIDTH, clampPanelWidth };
+export { PANEL_RESIZER_WIDTH, clampPanelWidth } from "@/components/panel/layout";
 
 export type SidePanelView = "bookmarks" | "ai";
 

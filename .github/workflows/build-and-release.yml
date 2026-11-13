@@ -16,7 +16,78 @@ on:
       - '[0-9]+.[0-9]+.[0-9]+'
 
 jobs:
+  # ------------------------------------------------------------------
+  # SonarCloud 质量门禁
+  #
+  # 发版前的最后一道闸：先查 SonarCloud 上有没有未解决且命中拦截级别的
+  # 问题，有就停在这里 —— 不出包、不建 Release。
+  #
+  # 只在 tag 上跑（正式发布）。日常推 master 的扫描在 sonar.yml 里。
+  #
+  # 令牌没配时这个作业直接跳过（成功），不会把发版堵死。
+  # ------------------------------------------------------------------
+  sonar-gate:
+    name: SonarCloud gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '22'
+
+      - name: Check SonarCloud token
+        id: sonar-token
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          if [ -z "$SONAR_TOKEN" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No SONAR_TOKEN secret configured, skipping the SonarCloud gate"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # --wait：等本次提交的分析在 SonarCloud 上算完再取清单。
+      # 扫描器把结果传上去之后，计算任务还要跑一会儿，
+      # 立刻查会拿到上一次的旧结果。
+      #
+      # 退出码：1 = 查到了命中级别的问题（挡发版）；
+      #         2 = 判不了（令牌失效 / 网络不通）—— 只告警，不挡发版。
+      # SonarCloud 抽风不该拦住一次正常发版，但代码有问题必须拦住。
+      - name: Check SonarCloud issues
+        if: steps.sonar-token.outputs.enabled == 'true'
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_BLOCK_SEVERITIES: ${{ vars.SONAR_BLOCK_SEVERITIES }}
+        run: |
+          code=0
+          node scripts/quality/sonar-issues.js --gate --wait || code=$?
+          if [ "$code" -eq 2 ]; then
+            echo "::warning::SonarCloud gate could not be evaluated (token or network problem), continuing"
+            exit 0
+          fi
+          exit "$code"
+
+      - name: Upload issue list
+        if: always() && steps.sonar-token.outputs.enabled == 'true'
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: sonar-issues
+          path: .data/sonar/
+          if-no-files-found: ignore
+          retention-days: 14
+
   build:
+    needs: sonar-gate
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     # actions: write —— 删未签名的 artifact 要调 REST 接口
@@ -373,6 +444,7 @@ jobs:
   # -----------------------------------------------------------------------
   build-mac:
     name: Build macOS (arm64 + x64)
+    needs: sonar-gate
     runs-on: macos-15
     timeout-minutes: 90
     permissions:

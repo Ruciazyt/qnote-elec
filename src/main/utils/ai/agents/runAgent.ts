@@ -30,7 +30,7 @@ import {
   type BaseMessage,
 } from '@langchain/core/messages';
 import type { StructuredToolInterface } from '@langchain/core/tools';
-import { randomUUID } from 'crypto';
+import { randomUUID } from 'node:crypto';
 import { extractTextContent } from '../providers';
 import { log } from '../../log';
 import type {

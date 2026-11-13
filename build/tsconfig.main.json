@@ -29,9 +29,14 @@
     // 根包没有 —— 主进程这套 tsc 解析不到 vitest 的类型，编译会报
     // TS2307: Cannot find module 'vitest'，直接卡住发版。
     // 渲染层的 tsconfig.app.json 早就 exclude 了 **/*.test.ts，主进程这边对齐。
+    //
+    // src/database 同理 —— 云端存储层的用例也在渲染层的 vitest 里跑
+    // （vitest.config.ts 的 include 扩到了 ../database）。
     "../src/main/**/*.test.ts",
     "../src/shared/**/*.test.ts",
+    "../src/database/**/*.test.ts",
     "../src/main/**/*.spec.ts",
-    "../src/shared/**/*.spec.ts"
+    "../src/shared/**/*.spec.ts",
+    "../src/database/**/*.spec.ts"
   ]
 }

@@ -1,6 +1,6 @@
 import knex, { Knex } from "knex";
-import * as path from "path";
-import * as fs from "fs";
+import * as path from "node:path";
+import * as fs from "node:fs";
 import { log } from "../main/utils/log";
 
 let DB: Knex | null = null;
@@ -107,7 +107,13 @@ export function getDB(appPath?: string): Knex {
  * 认不出来的错误保持原文，不要硬编 —— 原文进日志，用户反馈时能对照。
  */
 export function describeDBError(err: unknown): string {
-  const raw = err instanceof Error ? err.message : String(err ?? "");
+  // 未知值不能直接 String() —— 对象会变成 "[object Object]"
+  const raw =
+    err instanceof Error
+      ? err.message
+      : typeof err === "string"
+        ? err
+        : (JSON.stringify(err) ?? String(err ?? ""));
   const text = raw.toLowerCase();
 
   if (text.includes("unable to acquire a connection")) {

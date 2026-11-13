@@ -1,7 +1,7 @@
 /**
- * get_todos — 列出用户的 Todo
+ * get_todos — 列出用户的待办
  *
- * 用途：用户问"我还有哪些 todo 没完成"，AI 调用此工具
+ * 用途：用户问"我还有哪些待办没完成"，AI 调用此工具
  */
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';

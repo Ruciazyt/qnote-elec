@@ -12,9 +12,9 @@
  * 不值得为装一个钩子再扩大安装链路的风险面。
  */
 
-const { execFileSync } = require('child_process');
-const path = require('path');
-const fs = require('fs');
+const { execFileSync } = require('node:child_process');
+const path = require('node:path');
+const fs = require('node:fs');
 const { resolveExe } = require('../lib/resolve-exe');
 
 const ROOT = path.resolve(__dirname, '../..');

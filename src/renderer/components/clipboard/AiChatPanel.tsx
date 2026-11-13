@@ -14,7 +14,6 @@ import {
   Check,
   Wrench,
   Loader2,
-  CheckCircle2,
   AlertCircle,
   Sparkles,
   RefreshCw,

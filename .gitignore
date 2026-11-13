@@ -52,6 +52,10 @@ __pycache__/
 # Build outputs
 renderer/dist/
 
+# 覆盖率报告（vitest --coverage 的产物，给 SonarCloud 用的 lcov 在这下面）
+coverage/
+**/coverage/
+
 # 开发期数据库（见 src/database/index.ts：开发环境数据不能放进 dist/）
 /.data/
 
@@ -59,6 +63,11 @@ renderer/dist/
 .env
 .env.*
 *.log
+
+# wrangler 的本地状态（cloud-worker/.wrangler/ 里是本地 D1 副本与构建产物）
+# 跟根目录的 /.data/ 一个道理 —— 开发期数据不进仓库
+cloud-worker/.wrangler/
+cloud-worker/node_modules/
 
 # IDEs and editors
 .idea/

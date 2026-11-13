@@ -27,8 +27,8 @@
  * 配了代码签名证书时**不降级**：降级产物会丢签名，属于静默降级。
  * 这时直接报错，让人去开开发者模式或用管理员身份跑。
  */
-const { spawnSync } = require("child_process");
-const path = require("path");
+const { spawnSync } = require("node:child_process");
+const path = require("node:path");
 
 const projectRoot = path.resolve(__dirname, "..", "..");
 const configPath = path.join(projectRoot, "build", "electron-builder.json");

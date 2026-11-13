@@ -31,6 +31,11 @@ pnpm run build:react    # 只构建渲染层
 pnpm run build:app      # 只跑 electron-builder（打包前会自动生成图标）
 pnpm run generate:icons # 只生成图标（macOS 的 .icns + 运行时 PNG）
 pnpm run release:patch  # 发补丁版本（1.10.0 → 1.10.1）
+pnpm run sonar:issues   # 拉 SonarCloud 的问题清单（不需要 Java）
+pnpm run verify:sonar   # 同上，但命中拦截级别就退出码 1
+pnpm run sonar:local    # 本地现扫（SonarJS 规则，不需要令牌）
+pnpm run lint           # ESLint（缺陷类 + 安全类规则）
+pnpm run test:coverage  # 跑测试并产出 lcov 覆盖率报告
 ```
 
 ---
@@ -219,14 +224,21 @@ pnpm run release:patch    # 或 release:minor / release:major
 该脚本会依次：校验工作区干净 → 校验当前版本号格式 → **核对发版类型与本批提交
 是否匹配**（有 `feat` 却发 patch 会被直接拦下）→ 拉取最新代码 → 安装依赖 →
 **运行单元测试**（测试不过直接中止，不会带着红测试发版）→
+**跑 SonarCloud 质量门禁**（有命中拦截级别的问题就中止，清单见
+`.data/sonar/sonar-issues.md`）→
 按 semver 规则 bump `package.json` 的 version → 以 `chore(release): bump version to X.Y.Z`
 提交 → 打 `X.Y.Z` 注释 tag → 推送分支与 tag。推送 tag 后
-`build-and-release.yml` 触发，产出安装版、便携版与 `latest.yml` 并创建 Release。
+`build-and-release.yml` 触发，先过 `sonar-gate` 作业（不过就不出包、不建 Release），
+然后产出安装版、便携版与 `latest.yml` 并创建 Release。
 
 > 新版本号以 `package.json` 为准，不解析 `pnpm version` 的输出 ——
 > pnpm 打印的是 `Version bumped successfully: 1.10.0 → 1.10.1` 这类多行文本，
 > 不是纯版本号。同理不设 `ELECTRON_BUILDER_VERSION` 之类的环境变量覆盖，
 > 该变量在 electron-builder 26.x 里并不生效。
+
+> 门禁查的是 SonarCloud 上**最近一次分析**的结果，不是现扫一遍 ——
+> 现扫需要 JDK 17+ 与 sonar-scanner CLI（见 §6.6）。令牌缺失时门禁跳过，
+> 不会把发版卡死；紧急情况可用 `SKIP_SONAR=1` 显式跳过（会留痕）。
 
 **`auto-build.yml` 不创建 Release。** 它只在每次推 master 时跑一次构建，
 把产物上传为 Actions Artifact 用于验证"这次提交能构建出可用的包"。
@@ -272,6 +284,7 @@ git diff --cached | grep -nEi "sk-[A-Za-z0-9]{20,}|api[_-]?key\s*[:=]\s*['\"][^'
 - [ ] `pnpm run build:electron` 通过（改过主进程或 preload）
 - [ ] `pnpm run build:react` 通过（改过渲染层）
 - [ ] `pnpm test` 通过（改过渲染层或公共逻辑）
+- [ ] `pnpm run sonar:issues` 无命中拦截级别的问题（改过主进程 / 脚本 / 渲染层）
 - [ ] 新增/修改的 UI 遵循 `.cursor/rules/react.mdc` 的 React 最佳实践
 - [ ] 改过 `.github/workflows/` 的，检查脚本里有无非 ASCII 字符（有就用 `shell: pwsh`，见 6.2）
 - [ ] 没有顺手改无关文件；格式化工具的噪音改动单独成一个 `style:` 提交
@@ -287,10 +300,13 @@ git diff --cached | grep -nEi "sk-[A-Za-z0-9]{20,}|api[_-]?key\s*[:=]\s*['\"][^'
 | 跨端共享类型 | `src/shared/` |
 | 数据表与迁移 | `src/database/` |
 | 应用管理（项目清单、进程启停、HTML 预览） | `src/main/core/appManager.ts`、`src/main/core/window/appPreview.ts`、`src/main/utils/appManifest.ts`、`src/renderer/components/apps/` |
+| 清单命令的风险分析（市场来源项目的启动确认） | `src/shared/appRisk.ts`（纯函数）、`src/main/core/appManager.ts`（`checkStartConfirmation` / `confirmStart`）、`src/renderer/components/apps/StartConfirmDialog.tsx` |
 | 通用面板件（可折叠侧栏、拖拽分割线、宽度偏好） | `src/renderer/components/panel/`、`src/renderer/hooks/usePanelWidth.ts`、`src/renderer/hooks/useCoalescedStorage.ts`（合并写盘：拖拽时别每帧同步写 localStorage） |
 | 上下分栏（笔记树 / 外部文件夹，默认 6:4，可拖动） | `src/renderer/components/panel/PanelHeightResizer.tsx`（纵向分割线）、`src/renderer/hooks/useSplitRatio.ts`（比例持久化）、`src/renderer/components/Note/layout.ts`（比例与收起态高度常量） |
 | 灵动岛（最小化后顶在屏幕顶边的浮层） | `src/shared/island.ts`（契约）、`src/main/core/window/island.ts`（窗口与几何）、`src/main/handlers/islandHandlers.ts`（IPC）、`src/renderer/components/island/`（界面） |
+| 云端存储（共享数据放 D1，私有数据留本地） | `src/database/cloud/`（存储层）、`src/main/handlers/cloudHandlers.ts`（IPC）、`src/renderer/components/core/CloudStorageCard.tsx`、`src/renderer/components/apps/PublishedAppMarket.tsx` |
 | 打包 / 发布配置 | `build/`、`scripts/`、`.github/workflows/` |
+| 静态分析 / 质量门禁 | `sonar-project.properties`（分析范围）、`eslint.config.mjs` + `tsconfig.lint.json`（本地 SonarJS 规则）、`scripts/quality/`（清单与门禁脚本）、`.github/workflows/sonar.yml`（扫描）、`docs/SONAR.md` + `docs/SONAR-DEBT.md`（规范与存量债台账） |
 
 主进程新增 IPC 时六个地方要同步改，漏一处会静默失效：
 
@@ -380,6 +396,20 @@ macOS 产物的签名 / 公证与是否进正式 Release，都是**条件式**�
   挪到 ready 之后就不生效了，预览页会打不开。
   用它而不是 `file://` 的原因：Chromium 在 `file://` 下会拦掉
   `<script type="module">`，vite 产物全是白屏。
+- **清单里的 `command` 是经 shell 执行的**（`spawn(..., shell: true)`）——
+  `;` `&&` `|` `$(` 都会被解释。所以清单是**不可信输入**时
+  （从应用市场获取的），运行前必须让用户确认：
+  - `app_project` 表有 `origin`（`local` / `market`）与
+    `confirmed_manifest_hash` 两列，**后者存的是清单内容的哈希** ——
+    清单改了就对不上，确认框会再弹一次
+  - 判定逻辑在 `AppManager.checkStartConfirmation` ——
+    **单独成方法是为了能脱离 spawn 来测**，别为了省事把它塞回 startProject
+  - 风险分析在 `src/shared/appRisk.ts`（纯函数）。它**不是安全边界** ——
+    关键词匹配挡不住刻意伪装，真正的防线是「来源标记 + 运行前确认」
+  - 市场导入走 `app:import-from-market` **专用路径**：
+    目标目录已有 `qnote.json` 就拒绝，**一个字节都不动**。
+    别改回「写清单 + 导入项目」两步 —— 两步分开的话清单已经写了，
+    导入才发现失败，用户自己已有项目的清单就被换成了别人的命令
 - **原生视图盖在 DOM 之上**：预览区是 `WebContentsView`，
   永远压住渲染层，z-index 无效。要开弹窗必须先把预览收起来
   （`AppPreviewPane` 的 `suspended`），否则对话框点不动。
@@ -453,6 +483,160 @@ macOS 产物的签名 / 公证与是否进正式 Release，都是**条件式**�
   always-on-top 状态有时会掉 —— 掉了岛就变回一个普通窗口，
   随便哪个应用盖上来，岛就没了（表现为「有时候被别的窗口挡住」）。
   设层级顺带把自己顶到 topmost 档的最前面。
+
+### 6.6 SonarQube Cloud 质量门禁
+
+静态分析走 [SonarQube Cloud](https://sonarcloud.io/project/overview?id=Ruciazyt_qnote-elec)
+（原名 SonarCloud，界面已改名），项目 key `Ruciazyt_qnote-elec`，组织 `Ruciazyt`。
+**详细说明在 `docs/SONAR.md`**，改这块行为前先读它。
+几条容易踩的约束：
+
+- **分析范围写在 `sonar-project.properties` 里，不在脚本里**。`sonar.sources` 必须
+  包含 `scripts/` —— SonarCloud 报的 S4036（命令注入）、S5852 / S8786（正则回溯）、
+  S8705（参数注入）几乎全在构建与发版脚本里，它们不在 `src/` 下，默认配置会把
+  这一整块漏掉。
+- **覆盖率必须真的产出 lcov**。`pnpm run test:coverage` 跑出
+  `src/renderer/coverage/lcov.info`，Sonar 侧填的路径要对上。vitest 的根目录是
+  `src/renderer`，它写出来的 SF 路径是相对该目录的、而且 Windows 上是反斜杠 ——
+  直接喂给 Sonar 会让它去找 `<仓库根>/App.tsx`，覆盖率整体算成 0。
+  `scripts/quality/normalize-lcov.js` 负责把路径改写成相对仓库根的正斜杠形式，
+  `test:coverage` 脚本里已经串上了，别拆开。
+- **门禁查的是最近一次分析，不是现扫**。本地查 API 不需要 Java；现扫要 JDK 17+
+  与 sonar-scanner CLI（`pnpm run sonar:scan`），CI 的 `sonar.yml` 每次推 master 会扫。
+  本地 HEAD 与那次分析的提交对不上时，清单顶部会明确标出来。
+- **CI 里判定要带 `--wait`**：扫描器把结果传上去之后计算任务还要跑一会儿，
+  立刻查 API 拿到的是上一次的旧结果 —— 门禁就成了假通过。
+- **令牌缺失时门禁跳过，不阻断发版**。令牌来自环境变量 `SONAR_TOKEN` 或
+  `.data/sonar/token`（`.data/` 已 gitignore）；CI 用仓库 secret `SONAR_TOKEN`。
+  项目是私有的，匿名访问 SonarCloud API 一律返回 "Project doesn't exist"。
+- **默认拦「缺陷 + 漏洞」两类**（`BUG` / `VULNERABILITY`），代码异味只报不拦。
+  **不按严重级别拦** —— 这个项目有 700+ 个未解决问题，其中代码异味占 695 个，
+  按级别拦（CRITICAL/MAJOR 有 334 个）会把发版永久堵死，门禁最后肯定会被
+  `SKIP_SONAR=1` 绕过。改口径用环境变量 `SONAR_BLOCK_TYPES`（CI 用仓库变量同名覆盖），
+  写 `all` 表示全拦；要配合级别过滤再加 `SONAR_BLOCK_SEVERITIES`。
+  紧急情况 `SKIP_SONAR=1` 显式跳过，会留痕。
+- **严重级别有两套名字**：Cloud 换成了新的 impact 模型（BLOCKER / HIGH / MEDIUM / LOW），
+  老接口仍返回旧模型（CRITICAL / MAJOR / MINOR）—— 只认一套的话，
+  HIGH 级问题会被当成"不拦"悄悄放过去。两套都要认。
+- **门禁放在 bump 版本号之前**（`scripts/release/release.js`）：不过就不改版本号、
+  不打 tag、不推远端，不会留下半成品。CI 侧还有一道 `sonar-gate` 作业 ——
+  tag 触发时先过门禁，不过就不出包、不建 Release。
+- **`.data/sonar/` 是清单落点**（`sonar-issues.md` + `sonar-issues.json`），
+  那个目录已 gitignore，清单不会进仓库。
+- **存量债有台账**（`docs/SONAR-DEBT.md`）：哪些清了、哪些**判��后决定不追**、
+  各自的理由与"真要清该怎么做"。改静态分析口径前先读它 ——
+  里面"明确不修"的那几条（认知复杂度、循环内 await、可选链、props 只读等）
+  是**主动决策**，不是遗漏，别把它们当待办又清一遍。
+
+#### 用户要求修复 Sonar 问题时的标准动作
+
+**先跑 `pnpm run sonar:issues` 拿清单，再动手改。** 不要凭印象改、
+也不要先去 SonarCloud 网页上翻 —— 脚本已经拉好、分好组、带文件行号，
+并且写了一份到 `.data/sonar/sonar-issues.md`。
+
+```bash
+pnpm run sonar:issues        # 出清单（不阻断），清单同时写到 .data/sonar/
+pnpm run verify:sonar        # 同上，但命中拦截级别就退出码 1（等价于 --gate）
+```
+
+**没有令牌时用本地扫描代替**（`pnpm run sonar:local`）：SonarCloud 对 JS/TS 用的
+就是 `eslint-plugin-sonarjs` 这套规则，本地现扫等于把 Sonar 的一部分提前搬到本地。
+它不需要令牌、不用等 CI，但**不含**只有服务端才知道的东西（跨文件数据流、
+覆盖率、安全热点的人工复核结论）。两份清单一起看。
+
+```bash
+pnpm run sonar:local         # 本地现扫，error + warning 清单
+pnpm run sonar:local -- --gate   # 有 error 就退出码 1
+pnpm run lint                # 同上的底层命令（eslint .）
+pnpm run lint:fix            # 能自动修的机械问题（未用 import、prefer-const 等）
+```
+
+配置在根目录 `eslint.config.mjs`（flat config）与 `tsconfig.lint.json`（类型感知
+用的 tsconfig）。规则是**挑过的**：只开缺陷类与安全类，纯代码异味类的度量规则
+（函数必须有显式返回类型、认知复杂度、行数上限）本地一律关着 —— 开着只会把
+真正的问题淹掉。
+
+拿到清单后的处理顺序：
+
+1. **先看概览**：按严重级别、类型、规则分布排序 —— 同一类规则成片出现时，
+   往往是同一个根因，改一处能消掉一整批，别一条一条单独修。
+2. **只修真实问题**。清单里有噪音是正常的：
+   - 规则本来就对、只是触发姿势特殊 → 用 `// NOSONAR` 标注并写清理由
+     （仓库里已有先例，见 `src/main/core/window/appPreview.ts`）
+   - 误报 / 不可复现 → 别改代码去迎合扫描器，先确认是不是分析范围配错了
+3. **改完复跑**：同一个命令再跑一次，确认这批消失了、没带出新的。
+   清单反映的是 SonarCloud 上**最近一次分析**的结果，
+   所以本地复跑看到的还是旧快照 —— 要看新结果得推 master 让 CI 重扫，
+   或本地 `pnpm run sonar:scan`（需要 JDK 17+）。
+4. **按第 2 节拆提交**：一条规则一批改动，不要把不同规则混在一个提交里。
+5. **别顺手改无关文件**：Sonar 清单会把整个仓库的问题都列出来，
+   一次全修完动静太大 —— 按规则分批改、每批一个提交更安全。
+
+清单里的每条都带一条直达 SonarCloud 的链接，
+需要看上下文（该规则的完整说明、示例代码）时点它。
+
+### 6.7 云端存储：共享数据与私有数据的边界
+
+QNote 的数据分两层，**边界不能模糊**。规范全文在 `docs/CLOUD-STORAGE.md`，
+改这块行为前先读它。
+
+| 层 | 内容 | 存哪 |
+| --- | --- | --- |
+| **私有** | 笔记、剪贴板、Todo、AI 对话、快捷方式、书签、题单、记忆索引、设置 | **永远本地 SQLite**，零改动 |
+| **共享** | 已发布的 APP 目录（`published_app`） | 本地 SQLite / **公共目录 Worker** / 直连 D1，用户在设置页切 |
+
+共享存储有**三个**后端，接口完全一样：
+
+| 后端 | 连什么 | 用户要做什么 | 凭据在哪 |
+| --- | --- | --- | --- |
+| `local` | 本地 SQLite | 什么都不用做 | 无 |
+| `public` | 公共目录 Worker 代理 | 什么都不用做（地址已内置） | **只在 Worker 侧** |
+| `d1` | 直连 Cloudflare D1 REST | 填账号 ID / 库 ID / Token | 在用户本机（是他自己的） |
+
+几条容易踩的约束：
+
+- **私有数据不上云**。别因为「反正有 D1 了」就把某个用户自有的表搬过去 ——
+  笔记、剪贴板、Todo、AI 对话里全是用户自己的内容。
+  要新增共享数据，先问一句「这条数据所有人看都合适吗」。
+- **D1 的 API Token 是账号级的，控制台里也没法只授权到单个库**
+  （Cloudflare 文档原话："A Cloudflare API token with D1 access is
+  account-wide"）。所以**不要把 Token 内置进客户端** ——
+  那等于把账号下所有 D1 库的写权限发给每一个用户。
+  「所有用户零配置」的正确解法是 `cloud-worker/`：Worker 用 D1 绑定直连，
+  客户端只内置一个**公开地址**。
+- **共享存储是多后端的**，各后端必须给出**一样的行为**。
+  差异只允许出现在 `SqlExecutor`（两个方法）里，查询逻辑写在
+  `SharedStoreOnExecutor` 上，各后端共用。
+  改查询逻辑后要跑 `src/database/cloud/sharedStore.test.ts` ——
+  那是**契约测试**，同一套用例跑每个后端一遍。
+- **Worker 的 SQL 白名单必须有测试**。它的地址是公开的（内置在客户端里），
+  谁都能往里 POST —— 白名单一松，数据库的全权就暴露在公网上。
+  改白名单要同时看 `cloud-worker/src/guard.test.ts`（守白名单本身）
+  与 `cloud-worker/src/index.live.test.ts`（守「客户端实际发的语句不被误伤」）。
+- **D1 上没有交互式事务**。每条查询包在自己的隐式事务里，
+  `BEGIN` / `COMMIT` 跨请求无效。唯一能拿到原子性的手段是
+  **batch**（一次请求发多条语句，全成或全滚）。
+  凡是需要原子性的地方一律走 `executor.batch()`，
+  别自己拼 `BEGIN` / `COMMIT`。
+- **写操作不重试**。D1 只自动重试只读查询；我们也不重试写 ——
+  重试一次写可能变成写两条。只读查询才会走退避重试。
+- **配置存在本地** `settings` 表（键名 `cloud_storage_config`）。
+  看着别扭但是必须的：配置决定用哪个后端，配置本身在云端就是先鸡后蛋。
+  解析失败必须退回纯本地，不能抛异常 —— 一份坏配置不该让应用起不来。
+- **切到云端前先做真实的连通性检查**，通不过就不切，让用户留在本地。
+  云端建表失败也要退回本地，不让应用因为云端不可用而起不来。
+- **API Token 走运行时配置**（设置页填、存本地 settings），
+  不进仓库 —— 见第 4 节的红线。
+- **公共目录地址是公开的**，可以内置进安装包（它不是密钥）；
+  真正的凭据在 Worker 侧。注意主进程是 **tsc** 编译的，
+  `process.env` 是**运行时**读的 —— 「CI 里设个环境变量就烤进包里」
+  在当前构建链下不成立。
+- **共享表的 id 用字符串**，不用自增整数：自增 id 在本地库和云端库里
+  是两套不同的编号空间，切来切去会撞。
+- **preload 不能 import `src/shared`**：preload 的 tsconfig 把 `rootDir`
+  钉在 `src/main`，引用共享模块会报 TS6059，还会把共享模块的 `.js`
+  吐在源码旁边。preload 里的类型就地写，完整声明放
+  `src/renderer/electron.d.ts`。
 
 
 

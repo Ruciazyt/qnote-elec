@@ -1,5 +1,5 @@
-const { execFileSync } = require('child_process');
-const path = require('path');
+const { execFileSync } = require('node:child_process');
+const path = require('node:path');
 const { resolveExe } = require('../lib/resolve-exe');
 
 /**
@@ -165,7 +165,7 @@ function killPid(pid) {
 }
 
 function main() {
-    let targets = [];
+    const targets = [];
     const seen = new Set();
     for (const pattern of PROCESS_PATTERNS) {
         try {

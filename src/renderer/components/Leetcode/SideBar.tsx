@@ -224,7 +224,7 @@ export default function Sidebar({ onSelectCollection, selectedCollectionId }: Si
           // 构建描述信息，包含错误信息（如果有）
           let description =
             result.message ||
-            `成功导入 ${successCount} 个题单${failCount > 0 ? `，失败 ${failCount} 个` : ""}`;
+            `成功导入 ${successCount} 个题单${failCount > 0 ? "，失败 " + failCount + " 个" : ""}`;
           if (result.errors) {
             description += `\n\n${result.errors}`;
           }
@@ -272,7 +272,7 @@ export default function Sidebar({ onSelectCollection, selectedCollectionId }: Si
 
   return (
     <TooltipProvider delayDuration={300}>
-      /* 折叠轨宽度走行内样式：轨道宽是共享常量（PANEL_COLLAPSED_WIDTH），
+      {/* 折叠轨宽度走行内样式：轨道宽是共享常量（PANEL_COLLAPSED_WIDTH），
          写成 Tailwind 的 w-10 就把数字写死在类名里了 —— 改了共享常量，
          这一页不会跟着变（笔记页与应用页的通用面板件都走行内样式）。
          展开态用 w-64（256px），这一页不支持拖拽调宽，维持原状。
@@ -285,7 +285,7 @@ export default function Sidebar({ onSelectCollection, selectedCollectionId }: Si
 
          motion-reduce:transition-none 是系统级「减少动态效果」的退路：
          开着的时候折叠/展开直接到位，不做宽度位移。对齐笔记页、
-         快捷面板与通用面板件（2026-11-05 走查补齐）。 */
+         快捷面板与通用面板件（2026-11-05 走查补齐）。 */}
       <div
         className={cn(
           "bg-sidebar h-full flex flex-col transition-[width] ease-out motion-reduce:transition-none",

@@ -99,7 +99,7 @@ function buildPreview(content: string, max = 120): string {
  * ## 为什么要收起来
  *
  * 一条记录原本挂着 8 个图标按钮，但真正每天都会点的只有「复制 / 删除 / 置顶」几个，
- * 其余（记忆索引、Todo、存为笔记、代码高亮、重要）都属于「偶尔想起来才用得上」。
+ * 其余（记忆索引、待办、存为笔记、代码高亮、重要）都属于「偶尔想起来才用得上」。
  * 8 个按钮把操作栏撑满一整行，窄窗口下还会把卡片横向顶开，扫一眼过去反而
  * 找不到常用的那几个。收成「4 个常用 + 1 个更多」之后，操作栏宽度基本固定，
  * 视线也只需要在左边那一小段里扫。
@@ -255,7 +255,7 @@ export function ClipboardList({
   /* ───────────────────── 编辑模式 ─────────────────────
    *
    * 剪贴板里躺着的常是「抄下来但还差一点」的东西 —— 少截一段结尾、
-   * 多了个 TODO 标记、链接被换成了完整地址。直接扔掉重抄一遍太亏，
+   * 多了个 待办 标记、链接被换成了完整地址。直接扔掉重抄一遍太亏，
    * 所以给它一个就地编辑：点编辑 → 正文换成 textarea → 存回数据库。
    *
    * draft 与 record.content 分离是必须的：受控输入要跟着用户每一次敲键走，
@@ -460,7 +460,6 @@ export function ClipboardList({
         const codeClassName = highlightLanguage
           ? languageToPrismClass[highlightLanguage] || "language-none"
           : "language-none";
-        const isPlainCode = !highlightLanguage;
         // Language label lookup for the active badge
         const activeLanguageLabel = highlightLanguage
           ? getSupportedLanguages().find((l) => l.value === highlightLanguage)?.label
@@ -546,7 +545,7 @@ export function ClipboardList({
           },
         });
 
-        // 收进快捷方式：和「存为笔记」「加为 Todo」同类，都是把这条记录
+        // 收进快捷方式：和「存为笔记」「加为待办」同类，都是把这条记录
         // 转到别处去，因此归在「更多」菜单里，不占操作栏的位置。
         if (recordUrl && onAddToShortcut) {
           moreMenuItems.push({

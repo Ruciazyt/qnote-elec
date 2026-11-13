@@ -20,7 +20,7 @@
  */
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
-import * as fs from 'fs';
+import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { NoteStore } from '../../../core/noteStore';
 import { withDefaultExt, detectNoteType, NoteType } from '../../../../shared/noteTypes';

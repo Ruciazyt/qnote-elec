@@ -379,7 +379,7 @@ for (const h of hits) {
     }
   }
   h.selector = sel;
-  h.cssBg = bgToken ? `${bgToken}${bgAlpha !== 1 ? ` / ${bgAlpha}` : ""}` : "";
+  h.cssBg = bgToken ? `${bgToken}${bgAlpha !== 1 ? " / " + bgAlpha : ""}` : "";
   // 改实心后压这个底还剩多少
   if (bgToken) {
     const eff = [];

@@ -230,23 +230,43 @@ export class ObservabilityCallback extends BaseCallbackHandler {
    * 忽略未处理的 hook（避免父类抛错）
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  handleChainStart(..._args: any[]): void {}
+  handleChainStart(..._args: any[]): void {
+    // 故意留空：这些钩子在本实现里不需要做任何事
+  }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  handleChainEnd(..._args: any[]): void {}
+  handleChainEnd(..._args: any[]): void {
+    // 故意留空：这些钩子在本实现里不需要做任何事
+  }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  handleChainError(..._args: any[]): void {}
+  handleChainError(..._args: any[]): void {
+    // 故意留空：这些钩子在本实现里不需要做任何事
+  }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  handleLLMNewToken(..._args: any[]): void {}
+  handleLLMNewToken(..._args: any[]): void {
+    // 故意留空：这些钩子在本实现里不需要做任何事
+  }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  handleRetrieverStart(..._args: any[]): void {}
+  handleRetrieverStart(..._args: any[]): void {
+    // 故意留空：这些钩子在本实现里不需要做任何事
+  }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  handleRetrieverEnd(..._args: any[]): void {}
+  handleRetrieverEnd(..._args: any[]): void {
+    // 故意留空：这些钩子在本实现里不需要做任何事
+  }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  handleRetrieverError(..._args: any[]): void {}
+  handleRetrieverError(..._args: any[]): void {
+    // 故意留空：这些钩子在本实现里不需要做任何事
+  }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  handleToolEvent(..._args: any[]): void {}
+  handleToolEvent(..._args: any[]): void {
+    // 故意留空：这些钩子在本实现里不需要做任何事
+  }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  handleChatModelStreamEvent(..._args: any[]): void {}
+  handleChatModelStreamEvent(..._args: any[]): void {
+    // 故意留空：这些钩子在本实现里不需要做任何事
+  }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  handleCustomEvent(..._args: any[]): void {}
+  handleCustomEvent(..._args: any[]): void {
+    // 故意留空：这些钩子在本实现里不需要做任何事
+  }
 }

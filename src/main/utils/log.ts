@@ -1,6 +1,6 @@
 import { app } from "electron";
 import * as path from "node:path";
-import * as fs from "fs";
+import * as fs from "node:fs";
 
 // ---------------------------------------------------------------------------
 // 容量上限与防递归都是硬性要求，不是可选项。
@@ -239,7 +239,7 @@ class Logger {
                 } else if (typeof arg === 'object') {
                     try {
                         return JSON.stringify(arg);
-                    } catch (e) {
+                    } catch {
                         return '[无法序列化的对象]';
                     }
                 } else {

@@ -15,11 +15,38 @@
  * 找不到就原样返回 —— 静默换一个路径比直接失败难查得多。
  */
 
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 
 /** 一次解析缓存住结果：同一个命令在一个脚本里会被调用很多次 */
 const cache = new Map();
+
+/**
+ * 在一个目录里找可执行文件
+ *
+ * 先按原名找一遍（命令自带扩展名时）→ 再拼平台对应的后缀
+ * （Windows 读 PATHEXT）。找不到返回 null。
+ *
+ * 单独拆出来是为了让调用方不用 label —— label 在 SonarCloud 上
+ * 是 S1141（结构化流程里不要用 goto）。
+ */
+function findInDir(dir, name, exts) {
+  try {
+    const exact = path.join(dir, name);
+    if (fs.existsSync(exact)) return exact;
+  } catch {
+    // 目录无权限读就跳过，继续找下一个
+  }
+  for (const ext of exts) {
+    const candidate = path.join(dir, name + ext);
+    try {
+      if (fs.existsSync(candidate)) return candidate;
+    } catch {
+      // 同上
+    }
+  }
+  return null;
+}
 
 function resolveExe(name) {
   if (path.isAbsolute(name)) return name;
@@ -34,28 +61,11 @@ function resolveExe(name) {
       : [''];
 
   let resolved = name;
-  outer: for (const dir of dirs) {
-    // 先按原名找一遍：命令名自带扩展名时（powershell.exe、git.exe）
-    // 再拼 PATHEXT 会变成 powershell.exe.EXE，永远找不到
-    try {
-      const exact = path.join(dir, name);
-      if (fs.existsSync(exact)) {
-        resolved = exact;
-        break outer;
-      }
-    } catch {
-      // 目录无权限读就跳过，继续找下一个
-    }
-    for (const ext of exts) {
-      const candidate = path.join(dir, name + ext);
-      try {
-        if (fs.existsSync(candidate)) {
-          resolved = candidate;
-          break outer;
-        }
-      } catch {
-        // 目录无权限读就跳过，继续找下一个
-      }
+  for (const dir of dirs) {
+    const found = findInDir(dir, name, exts);
+    if (found) {
+      resolved = found;
+      break;
     }
   }
 

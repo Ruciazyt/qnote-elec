@@ -152,7 +152,6 @@ function NoteExternalFolders({
 
   /** 展开 / 收起某个外部文件夹 */
   const toggleFolder = (id: string) => {
-    const isOpen = expanded.has(id);
     setExpanded((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);

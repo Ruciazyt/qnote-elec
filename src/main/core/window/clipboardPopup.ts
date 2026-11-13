@@ -1,6 +1,5 @@
-import { BrowserWindow, screen, ipcMain } from "electron";
+import { BrowserWindow, screen, ipcMain, app } from "electron";
 import * as path from "node:path";
-import { app } from "electron";
 import { log } from "../../utils/log";
 import { stickyNoteManager } from "./stickyNote";
 import { hideMainWindow, showMainWindow } from "./mainWindow";

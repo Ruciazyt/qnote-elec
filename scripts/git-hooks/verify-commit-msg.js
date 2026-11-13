@@ -12,9 +12,9 @@
  * 规则集中在这一个文件里，改规则就是改这里。
  */
 
-const fs = require('fs');
-const path = require('path');
-const { execFileSync } = require('child_process');
+const fs = require('node:fs');
+const path = require('node:path');
+const { execFileSync } = require('node:child_process');
 const { resolveExe } = require('../lib/resolve-exe');
 
 /**
@@ -140,7 +140,9 @@ function validate(message) {
     return errors;
   }
 
-  const [, rawType, scope, breaking, subject] = matched;
+  // 第 4 段是 type 后的 `!` 标记 —— 破坏性变更用「`!`」或「BREAKING CHANGE 脚注」
+  // 二选一即可（见下方脚注校验），所以这里不需要它，直接跳过这一段
+  const [, rawType, scope, , subject] = matched;
 
   // ---- type
   if (!TYPES.has(rawType)) {

@@ -7,7 +7,6 @@ import {
   Pencil,
   Upload,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import {
   getNoteTypeMeta,

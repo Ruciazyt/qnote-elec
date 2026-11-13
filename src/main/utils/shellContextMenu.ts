@@ -284,7 +284,7 @@ export async function getContextMenuStatus(): Promise<ShellContextMenuStatus> {
 
     // 两个类目都要核对：只修好一半的话，右键文件夹能用、右键文件还是死的
     const commands = await Promise.all(
-      REG_CLASS_ROOTS.map((root) => regCommandValue(hkcuShellKey(root, "\\command")))
+      REG_CLASS_ROOTS.map((root) => regCommandValue(hkcuShellKey(root, String.raw`\command`)))
     );
     const valid = commands.every((cmd) => isCommandCurrent(cmd));
 
@@ -366,7 +366,7 @@ export async function setContextMenuEnabled(
 
     for (const root of REG_CLASS_ROOTS) {
       const base = hkcuShellKey(root, "");
-      const command = hkcuShellKey(root, "\\command");
+      const command = hkcuShellKey(root, String.raw`\command`);
 
       if (enabled) {
         // 命令先写、标签后写。

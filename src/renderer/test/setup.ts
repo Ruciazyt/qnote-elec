@@ -18,9 +18,15 @@ import { createElectronStub } from "./electron-stub";
 // （要验真实尺寸变化，另走「真实 CSS + 无头 Electron 量 DOM」那条路。）
 if (typeof window !== "undefined" && !("ResizeObserver" in window)) {
   class ResizeObserverStub {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
+    observe() {
+      // 桩实现：测试环境不关心元素尺寸变化
+    }
+    unobserve() {
+      // 桩实现
+    }
+    disconnect() {
+      // 桩实现
+    }
   }
   window.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver;
 }

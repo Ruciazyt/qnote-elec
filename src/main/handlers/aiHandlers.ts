@@ -1,7 +1,7 @@
 import { ipcMain, IpcMainInvokeEvent, dialog } from "electron";
-import { randomUUID } from "crypto";
-import * as fs from "fs";
-import * as path from "path";
+import { randomUUID } from "node:crypto";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { getMainWindow } from "../core/window/mainWindow";
 import { startAiActivity, setAiActivityTool, endAiActivity } from "../core/aiActivity";
 import { DEFAULT_AI_CHAT_SESSION_ID } from "../../shared/constants/aiChat";
@@ -45,7 +45,6 @@ import {
 } from "../utils/ai/tools";
 import { longTermMemory } from "../utils/ai/memory/longTermMemory";
 import {
-  KnexChatMessageHistory,
 } from "../utils/ai/memory/chatHistory";
 import {
   getHotState,
@@ -159,7 +158,8 @@ function buildMemoryDigest(notes: Array<{ content?: string; type?: string; ocr_r
  * 共享 helper：根据用户消息 + 历史 + 记忆检索，拼装要发给 LLM 的完整 messages 数组。
  * send-ai-message 和 send-ai-message-stream 都走这条路径，避免两边重复实现。
  */
-async function buildMessages(
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- 接线时用：send-ai-message 与 send-ai-message-stream 都走这条路径
+async function buildMessages( // NOSONAR
   DB: any,
   message: string,
   chatSessionId: string,

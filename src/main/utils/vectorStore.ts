@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto';
+import { randomUUID } from 'node:crypto';
 import type { Knex } from 'knex';
 import { log } from './log';
 
@@ -447,7 +447,7 @@ class VectorStore {
     content: string,
     type: string,
     ocrResult: string | undefined,
-    aiConfig?: AiConfig
+    _aiConfig?: AiConfig
   ): Promise<{ success: boolean; vectorId?: string; error?: string }> {
     try {
       await this.ensureInitialized();
@@ -479,7 +479,7 @@ class VectorStore {
   async searchSimilar(
     query: string,
     topK: number,
-    aiConfig?: AiConfig
+    _aiConfig?: AiConfig
   ): Promise<{ success: boolean; results?: VectorSearchResult[]; error?: string }> {
     try {
       await this.ensureInitialized();
@@ -506,7 +506,7 @@ class VectorStore {
         .filter((row) => row.similarity > MEMORY_MIN_SIMILARITY)
         .sort((left, right) => right.similarity - left.similarity)
         .slice(0, topK)
-        .map(({ similarity, ...result }) => result);
+        .map(({ similarity: _similarity, ...result }) => result);
 
       log.info(`Memory search found ${results.length} results`);
       return { success: true, results };

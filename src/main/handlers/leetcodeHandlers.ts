@@ -734,7 +734,7 @@ export function registerLeetcodeHandlers(DB: any) {
         summary += `，${failCount} 道题目解析失败`;
       }
 
-      log.info(`准备创建题单：${collectionName}，包含 ${successCount} 道题目${failCount > 0 ? `，${failCount} 道失败` : ''}`);
+      log.info(`准备创建题单：${collectionName}，包含 ${successCount} 道题目${failCount > 0 ? "，" + failCount + " 道失败" : ''}`);
 
       const insertResult = await DB.from("leetcode_collection").insert({
         name: collectionName,
@@ -912,7 +912,7 @@ export function registerLeetcodeHandlers(DB: any) {
         successCount,
         failCount,
         errors: errors || undefined,
-        message: `成功导入 ${successCount} 个题单${failCount > 0 ? `，失败 ${failCount} 个` : ''}`
+        message: `成功导入 ${successCount} 个题单${failCount > 0 ? "，失败 " + failCount + " 个" : ''}`
       };
     } catch (error: any) {
       log.error("导入题单失败", error);

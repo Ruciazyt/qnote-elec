@@ -145,7 +145,12 @@ export function classifyError(err: unknown): {
 } {
   const anyErr = err as any;
   const message =
-    anyErr?.message || (err instanceof Error ? err.message : String(err ?? ''));
+    anyErr?.message ||
+      (err instanceof Error
+        ? err.message
+        : typeof err === 'string'
+          ? err
+          : (JSON.stringify(err) ?? String(err ?? '')));
   const status: number | undefined =
     anyErr?.status ?? anyErr?.statusCode ?? anyErr?.response?.status;
   const name: string = anyErr?.name ?? '';

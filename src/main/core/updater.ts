@@ -186,7 +186,13 @@ function patch(partial: Partial<UpdateStatus>): void {
  * 动作的情况，其余统一给一个"网络或发布源不可用"的概括。
  */
 function humanizeError(err: unknown): string {
-  const raw = err instanceof Error ? err.message : String(err);
+  // 未知值不能直接 String() —— 对象会变成 "[object Object]"
+  const raw =
+    err instanceof Error
+      ? err.message
+      : typeof err === "string"
+        ? err
+        : (JSON.stringify(err) ?? String(err));
   if (/ENOTFOUND|EAI_AGAIN|ECONNREFUSED|ETIMEDOUT|ESOCKETTIMEDOUT|ECONNRESET/i.test(raw)) {
     return "无法连接更新服务器，请检查网络后重试";
   }

@@ -1,6 +1,6 @@
 import { BrowserWindow, dialog, ipcMain } from "electron";
 import type { Knex } from "knex";
-import * as fs from "fs";
+import * as fs from "node:fs";
 import * as path from "node:path";
 import { log } from "../utils/log";
 

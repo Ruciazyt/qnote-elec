@@ -1,6 +1,6 @@
-import { ipcMain, IpcMainInvokeEvent, dialog, BrowserWindow, shell } from "electron";
+import { ipcMain, dialog, BrowserWindow, shell } from "electron";
 import { readClipboardImage } from "../utils/clipboard";
-import * as fs from "fs";
+import * as fs from "node:fs";
 import * as path from "node:path";
 import { FileWriter } from "../core/fileWriter";
 import { NoteStore } from "../core/noteStore";

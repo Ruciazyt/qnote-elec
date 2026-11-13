@@ -66,12 +66,13 @@ export function initAppPreviewProtocol(
     protocol.handle(APP_PREVIEW_SCHEME, async (request) => {
       try {
         const url = new URL(request.url);
-        const match = new RegExp(`^${HOST_PREFIX}(\\d+)$`).exec(url.hostname);
+        const match = new RegExp(String.raw`^${HOST_PREFIX}(\d+)$`).exec(url.hostname);
         if (!match) {
           return new Response("无效的项目地址", { status: 400 });
         }
         const projectId = Number(match[1]);
-        const dir = resolveProjectDir(projectId);
+        // eslint-disable-next-line sonarjs/no-extra-arguments -- 初始化用的空实现没有参数，但类型声明接受 projectId
+        const dir = resolveProjectDir(projectId); // NOSONAR
         if (!dir) {
           return new Response("项目不存在", { status: 404 });
         }
@@ -87,7 +88,7 @@ export function initAppPreviewProtocol(
               return s;
             }
           });
-        let relative = segments.join("/");
+        const relative = segments.join("/");
 
         let target = resolveWithin(dir, relative || "index.html");
         if (!target) {
@@ -216,7 +217,13 @@ function isAbortedError(err: unknown): boolean {
 
 /** 把 Chromium 的网络错误码翻译成人话 */
 function describeLoadError(err: unknown): string {
-  const raw = err instanceof Error ? err.message : String(err);
+  // 未知值不能直接 String() —— 对象会变成 "[object Object]"
+  const raw =
+    err instanceof Error
+      ? err.message
+      : typeof err === "string"
+        ? err
+        : (JSON.stringify(err) ?? String(err));
   const table: [RegExp, string][] = [
     [/ERR_CONNECTION_REFUSED/i, "连接被拒绝 —— 服务可能还没启动"],
     [/ERR_NAME_NOT_RESOLVED/i, "域名解析失败"],

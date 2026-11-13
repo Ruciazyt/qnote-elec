@@ -54,6 +54,7 @@ function renderElement(e: SnapshotElement): string {
   if (e.nearbyText) line += ` ~"${e.nearbyText}"`;
 
   const scope: string[] = [];
+  // NOSONAR —— 这两次 push 各有各的条件，合成一次会改变语义
   if (e.shadow) scope.push('shadow');
   if (e.frame) scope.push(`iframe#${e.frame}`);
   if (scope.length) line += ` (${scope.join(' ')})`;
@@ -89,17 +90,15 @@ export const browserGetSnapshotTool = tool(
     const notes = Array.isArray(snapshot.notes) ? snapshot.notes : [];
 
     const lines: string[] = [];
-    lines.push(`当前页面：${snapshot.title || '(无标题)'}`);
-    lines.push(`URL：${snapshot.url}`);
+    lines.push(`当前页面：${snapshot.title || '(无标题)'}`, `URL：${snapshot.url}`);
 
     if (elements.length === 0) {
-      lines.push('');
       lines.push(
+        '',
         '可交互元素：（无）—— 该页面可能未加载完、是一个纯阅读页，或所有内容都在跨源 iframe 内（见下方提示）。'
       );
     } else {
-      lines.push('');
-      lines.push(`可交互元素（${elements.length} 个，用编号操作）：`);
+      lines.push('', `可交互元素（${elements.length} 个，用编号操作）：`);
       for (const el of elements) lines.push(renderElement(el));
       if (snapshot.truncated) {
         lines.push(`… 已截断，页面共命中 ${snapshot.totalInteractive ?? '?'} 个可交互元素。`);
@@ -107,8 +106,7 @@ export const browserGetSnapshotTool = tool(
     }
 
     if (snapshot.text) {
-      lines.push('');
-      lines.push(`页面文本（截取 ${Math.min(snapshot.text.length, TEXT_LIMIT)} 字）：`);
+      lines.push('', `页面文本（截取 ${Math.min(snapshot.text.length, TEXT_LIMIT)} 字）：`);
       lines.push(snapshot.text.slice(0, TEXT_LIMIT));
     }
 
@@ -117,8 +115,8 @@ export const browserGetSnapshotTool = tool(
       for (const n of notes) lines.push(`提示：${n}`);
     }
 
-    lines.push('');
     lines.push(
+      '',
       `本次快照约 ${snapshot.estTokens ?? '?'} token。下一步用 browser_click / browser_fill 按编号操作；` +
         '页面可能变化，操作后请重新获取快照。'
     );

@@ -1,4 +1,4 @@
-import { ipcMain, IpcMainInvokeEvent } from "electron";
+﻿import { ipcMain, IpcMainInvokeEvent } from "electron";
 import { vectorStore } from "../utils/vectorStore";
 import { log } from "../utils/log";
 
@@ -107,7 +107,8 @@ export function registerVectorHandlers(DB: any) {
    * 记忆检索 —— 主进程内部能力，当前没有 IPC 通道。
    * 实现留着，接 UI 时注册通道即可。
    */
-  const handleMemorySearch = async (_event: IpcMainInvokeEvent, query: string, topK: number = 5) => {
+  // eslint-disable-next-line sonarjs/no-dead-store, @typescript-eslint/no-unused-vars -- 实现留着，接 UI 时注册通道即可
+  const handleMemorySearch = async (_event: IpcMainInvokeEvent, query: string, topK: number = 5) => { // NOSONAR
     try {
       const result = await vectorStore.searchSimilar(query, topK);
 
@@ -136,7 +137,8 @@ export function registerVectorHandlers(DB: any) {
    * 批量记忆索引 —— 主进程内部能力，当前没有 IPC 通道。
    * 实现留着，接 UI 时注册通道即可。
    */
-  const handleBatchIndexMemory = async () => {
+  // eslint-disable-next-line sonarjs/no-dead-store, @typescript-eslint/no-unused-vars -- 实现留着，接 UI 时注册通道即可
+  const handleBatchIndexMemory = async () => { // NOSONAR
     try {
       // 只获取未索引的笔记
       const notes = await DB.from("note")
@@ -226,7 +228,8 @@ export function registerVectorHandlers(DB: any) {
    * 记忆存储配置 —— 主进程内部能力，当前没有 IPC 通道。
    * 实现留着，接 UI 时注册通道即可。
    */
-  const handleGetMemoryStoreConfig = async () => {
+  // eslint-disable-next-line sonarjs/no-dead-store, @typescript-eslint/no-unused-vars -- 实现留着，接 UI 时注册通道即可
+  const handleGetMemoryStoreConfig = async () => { // NOSONAR
     return {
       chromaServerUrl: "local-memory",
       embeddingServiceUrl: "local-memory"
@@ -237,7 +240,8 @@ export function registerVectorHandlers(DB: any) {
    * 写记忆存储配置 —— 主进程内部能力，当前没有 IPC 通道。
    * 实现留着，接 UI 时注册通道即可。
    */
-  const handleSetMemoryStoreConfig = async (_event: IpcMainInvokeEvent, chromaServerUrl: string, embeddingServiceUrl: string) => {
+  // eslint-disable-next-line sonarjs/no-dead-store, @typescript-eslint/no-unused-vars -- 实现留着，接 UI 时注册通道即可
+  const handleSetMemoryStoreConfig = async (_event: IpcMainInvokeEvent, chromaServerUrl: string, embeddingServiceUrl: string) => { // NOSONAR
     try {
       log.info("记忆模式下忽略远程向量配置", { chromaServerUrl, embeddingServiceUrl });
       const result = await vectorStore.updateConfig(chromaServerUrl, embeddingServiceUrl);

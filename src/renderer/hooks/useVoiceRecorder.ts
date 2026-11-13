@@ -338,7 +338,7 @@ export function useVoiceRecorder(): UseVoiceRecorder {
     const mimeType = pickMimeType();
     try {
       session.recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
-    } catch (err) {
+    } catch {
       stream.getTracks().forEach((track) => track.stop());
       setError("无法启动录音");
       setStatus("error");
@@ -380,7 +380,7 @@ export function useVoiceRecorder(): UseVoiceRecorder {
 
     try {
       session.recorder.start();
-    } catch (err) {
+    } catch {
       teardown();
       setError("无法启动录音");
       setStatus("error");

@@ -1,5 +1,5 @@
 import { ipcMain, IpcMainInvokeEvent } from "electron";
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 import { log } from "../utils/log";
 import { SKILL_CATEGORY, validateSkill } from "../utils/ai/skills";
 import { fetchSkillPreview } from "../utils/ai/skills/importer";

@@ -771,7 +771,7 @@ export function findBrandTextOnBrand(sources: { rel: string; sf: ts.SourceFile }
         overLimit ? "brand-tint-too-deep" : "brand-text-on-brand",
         `${rel}|${tokens
           .filter((t) => BRAND_BG.test(t) || BRAND_TEXT.test(t))
-          .sort()
+          .sort((a, b) => a.localeCompare(b))
           .join(" ")}`,
         overLimit
           ? `品牌底纹到 /${brandTint(baseDeepest!)}（超过 /${MAX_BRAND_TINT} 禁用档），文字还是品牌色`

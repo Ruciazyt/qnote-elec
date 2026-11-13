@@ -125,7 +125,9 @@ describe("文档里的对比度数字必须能在矩阵里找到出处", () => {
 
       const lines = fs.readFileSync(abs, "utf8").split(/\r?\n/);
       lines.forEach((line, i) => {
-        const re = /(\d+\.\d+)(?::1\b|:\s*1\b)/g;
+        // 数字段限界（{1,10}）—— 两个无界 \d+ 之间隔着 \. 时，
+        // 长数字串上会平方级回溯（S5852）
+        const re = /(\d{1,10}\.\d{1,10}):\s*1\b/g;
         let m: RegExpExecArray | null;
         while ((m = re.exec(line)) !== null) {
           const value = m[1];

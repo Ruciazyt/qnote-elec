@@ -1,6 +1,6 @@
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
 
 /**
  * 记录本轮构建的基准时刻，供 wait-dist-stable.js 判断「哪些写入属于本轮」。

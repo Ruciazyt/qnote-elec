@@ -17,7 +17,7 @@ import { floatingPanelStore } from "./core/floatingPanel";
 import { getDB, closeDB } from "../database";
 import { log, installStdoutGuard } from "./utils/log";
 import { parseExternalUrl } from "./utils/externalUrl";
-import * as fs from "fs";
+import * as fs from "node:fs";
 import { setBaiduKeys } from "./utils/baiduOCR";
 import {
   configManager,
@@ -50,6 +50,8 @@ import { initUpdater } from "./core/updater";
 import { parseAddShortcutArg, repairContextMenu } from "./utils/shellContextMenu";
 import { registerAsrHandlers } from "./handlers/asrHandlers";
 import { registerAppHandlers, teardownAppHandlers, resolveAppProjectDir } from "./handlers/appHandlers";
+import { registerCloudHandlers } from "./handlers/cloudHandlers";
+import { initCloudStorage } from "../database/cloud/cloudManager";
 import {
   registerAppPreviewScheme,
   initAppPreviewProtocol,
@@ -325,6 +327,8 @@ function registerIpcHandlers() {
   registerAsrHandlers();
   registerUpdateHandlers();
   registerAppHandlers(DB);
+  // 云端存储 —— 只管共享数据（发布目录），私有数据一律留在本地
+  registerCloudHandlers();
 }
 
 /** 必须在 createMainWindow() 之后调用 —— 下面这些 handler 要用 win 挂载原生视图 */
@@ -691,6 +695,12 @@ void app
         // 初始化设置存储（依赖数据库）
         initSettingsStore(DB);
         configManager.initialize(DB);
+
+        // 云端存储 —— 共享数据的后端（本地 / D1）
+        //
+        // 要等本地库就绪才能初始化：配置存在本地 settings 表里，
+        // 而本地后端建表也要用这个 DB。
+        initCloudStorage(DB);
 
         // 灵动岛配置
         //

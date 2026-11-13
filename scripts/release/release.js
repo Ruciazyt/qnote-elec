@@ -16,9 +16,9 @@
  * 规则改动只改这一个文件和 scripts/release/verify-version.js。
  */
 
-const { execFileSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+const { execFileSync } = require('node:child_process');
+const fs = require('node:fs');
+const path = require('node:path');
 const { validate: validateVersion, validateFormat } = require('./verify-version');
 const { resolveExe } = require('../lib/resolve-exe');
 
@@ -188,6 +188,56 @@ function hasTestScript() {
     }
 }
 
+/**
+ * Sonar 质量门禁
+ *
+ * 查的是 SonarCloud 上最近一次分析的结果（未解决的 issue），
+ * 有命中拦截级别的问题就中止发版，并把清单打到控制台。
+ *
+ * 令牌从环境变量 SONAR_TOKEN 或 .data/sonar/token 读；
+ * 没有令牌时门禁脚本自己跳过（不会把发版卡死），
+ * 需要强制时设 SONAR_REQUIRED=1。
+ *
+ * 应急跳过：SKIP_SONAR=1 —— 会留痕在提交历史里。
+ */
+function runSonarGate() {
+    if (process.env.SKIP_SONAR === '1') {
+        console.log('⚠️  SKIP_SONAR=1 —— 本次跳过 Sonar 质量门禁');
+        return;
+    }
+
+    console.log('🔍 Sonar 质量门禁...');
+    try {
+        // 用 process.execPath 直接起 node，不从 PATH 找 node ——
+        // 同名可执行文件被劫持的话会跑到别的东西上去（SonarCloud S4036）
+        execFileSync(
+            process.execPath,
+            [path.join(ROOT, 'scripts', 'quality', 'sonar-issues.js'), '--gate'],
+            { stdio: 'inherit', cwd: ROOT }
+        );
+    } catch (error) {
+        // 退出码 2 = 「判不了」（令牌失效、网络不通），1 = 「查到了问题」。
+        // 两者的处理不同：前者是环境问题，让人先把门禁跑通再发版；
+        // 后者是代码问题，清单已经打出来了。
+        const undeterminable = error.status === 2;
+        console.error('');
+        if (undeterminable) {
+            console.error('❌ Sonar 质量门禁无法判定，发版中止');
+            console.error('');
+            console.error('   不是代码有问题，是门禁自己没跑通（令牌无效 / 网络不通）。');
+            console.error('   修好之后重新发版；确认要跳过可以用 SKIP_SONAR=1。');
+        } else {
+            console.error('❌ Sonar 质量门禁未通过，发版中止');
+            console.error('');
+            console.error('   完整清单见 .data/sonar/sonar-issues.md');
+            console.error('   修完再跑一次 `pnpm run release:patch`；');
+            console.error('   应急可用 SKIP_SONAR=1 跳过（会留痕在提交历史里）。');
+        }
+        console.error('');
+        process.exit(1);
+    }
+}
+
 function main() {
     const rawType = process.argv[2] || 'patch'; // patch, minor, major
 
@@ -275,7 +325,13 @@ function main() {
             }
         }
 
-        // 7. 更新版本号
+        // 8. Sonar 质量门禁
+        //
+        // 放在 bump 之前 —— 门禁不过就别改版本号、更别推 tag。
+        // 清单落在 .data/sonar/sonar-issues.md（该目录已 gitignore）。
+        runSonarGate();
+
+        // 9. 更新版本号
         //
         // 版本号的唯一来源是 package.json —— 不设任何环境变量覆盖
         // （ELECTRON_BUILDER_VERSION 在 electron-builder 25.x 里并不生效，
@@ -292,7 +348,7 @@ function main() {
         const newVersion = readPackageVersion();
         console.log(`✅ 新版本: ${newVersion}`);
 
-        // 8. 再次校验新版本号
+        // 10. 再次校验新版本号
         const newVersionErrors = validateVersion(newVersion, null);
         if (newVersionErrors.length > 0) {
             console.error('❌ 新版本号不符合规范：');
@@ -300,7 +356,7 @@ function main() {
             process.exit(1);
         }
 
-        // 9. 提交版本更改
+        // 11. 提交版本更改
         //
         // 提交信息走 Angular 规范（type(scope): subject），
         // 且会被 .githooks/commit-msg 校验
@@ -311,7 +367,7 @@ function main() {
             cwd: ROOT,
         });
 
-        // 10. 创建Git标签
+        // 12. 创建Git标签
         //
         // tag 名 = 版本号本身，不加 v 前缀（AGENTS.md 第 3.3 节）
         console.log('🏷️  创建Git标签...');

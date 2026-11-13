@@ -32,11 +32,11 @@
  * 可以直接 `sha256sum -c SHA256SUMS.txt` 校验。
  */
 
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
-const crypto = require('crypto');
-const { execFileSync } = require('child_process');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const crypto = require('node:crypto');
+const { execFileSync } = require('node:child_process');
 const { resolveExe } = require('../lib/resolve-exe');
 
 const ROOT = path.resolve(__dirname, '..', '..');
@@ -288,7 +288,7 @@ function printFileInfo(file, trustMap) {
     console.log('   证书链     : 未校验（PowerShell 不可用或文件过多）');
     return true;
   }
-  console.log(`   证书链     : ${trust.Status}${trust.StatusMessage ? ` — ${trust.StatusMessage}` : ''}`);
+  console.log(`   证书链     : ${trust.Status}${trust.StatusMessage ? ' — ' + trust.StatusMessage : ''}`);
   if (trust.Subject) console.log(`   发布者     : ${trust.Subject}`);
   if (trust.Issuer) console.log(`   签发者     : ${trust.Issuer}`);
   if (trust.NotAfter) console.log(`   证书有效期 : 至 ${trust.NotAfter}`);
@@ -358,7 +358,7 @@ function main() {
     for (const f of signedOthers.slice(0, 10)) {
       const t = trustMap.get(f);
       console.log(
-        `   ${t ? `链状态 ${t.Status}` : '未校验'} · ${rel(f)}`
+        `   ${t ? '链状态 ' + t.Status : '未校验'} · ${rel(f)}`
       );
     }
     if (signedOthers.length > 10) {

@@ -6,8 +6,6 @@
  * 需要共用同一份定义，不能各写各的魔法数字。
  */
 
-import { PANEL_COLLAPSED_WIDTH } from "@/components/panel/layout";
-
 /** 默认宽度 —— 沿用改造前的 w-72（18rem = 288px），首次打开观感不变 */
 export const NOTE_SIDEBAR_DEFAULT_WIDTH = 288;
 
@@ -68,4 +66,4 @@ export const NOTES_EXTERNAL_EXPAND_MS = 220;
  * 折叠轨里只放一个 32×32 的切换按钮，锚在左起 8px（PANEL_COLLAPSED_BUTTON_INSET）：
  * 8 + 32 + 8 = 48，按钮正好落在轨道正中，左右各留 8px，focus 描边不会被裁。
  */
-export const NOTE_SIDEBAR_COLLAPSED_WIDTH = PANEL_COLLAPSED_WIDTH;
+export { PANEL_COLLAPSED_WIDTH as NOTE_SIDEBAR_COLLAPSED_WIDTH } from "@/components/panel/layout";

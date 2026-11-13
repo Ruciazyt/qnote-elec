@@ -19,10 +19,10 @@
  *
  * 幂等：electron-builder 自己写过的话再写一遍没有副作用。
  */
-const fs = require("fs");
-const os = require("os");
-const path = require("path");
-const { execFileSync } = require("child_process");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+const { execFileSync } = require("node:child_process");
 
 const projectRoot = path.resolve(__dirname, "..", "..");
 const pkg = require(path.join(projectRoot, "package.json"));

@@ -71,7 +71,7 @@ export function usePanelWidth({
 
   const setWidth = useCallback(
     (next: number, limitMax?: number) => {
-      setWidthState((prev) =>
+      setWidthState(() =>
         clampPanelWidth(
           next,
           minWidth,

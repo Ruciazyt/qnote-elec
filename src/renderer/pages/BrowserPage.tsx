@@ -19,7 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { setNativeViewCover } from "@/hooks/useNativeViewCover";
 import { cn } from "@/lib/utils";
 import type { BrowserState, BrowserTabState } from "@/components/browser/types";
-import { BookmarkList, useBookmarkState, isBookmarkable } from "@/components/browser/BookmarkList";
+import { useBookmarkState, isBookmarkable } from "@/components/browser/BookmarkList";
 import { BookmarkBar } from "@/components/browser/BookmarkBar";
 import { BrowserSidePanel } from "@/components/browser/BrowserSidePanel";
 import { PanelResizer } from "@/components/panel/PanelResizer";
@@ -85,7 +85,6 @@ export default function BrowserPage() {
     setView: setSideView,
     width: sidePanelWidth,
     setWidth: setSidePanelWidth,
-    resetWidth: resetSidePanelWidth,
   } = useBrowserSidePanel();
 
   const containerRef = useRef<HTMLDivElement>(null);

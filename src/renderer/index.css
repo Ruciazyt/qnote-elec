@@ -362,7 +362,8 @@
 
 /* 卡片悬停效果 */
 .hover-card {
-  transition: all 0.2s ease-in-out;
+  /* 不写 all：以后改了别的属性，会跟着一起动 */
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out, background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
 }
 
 .hover-card:hover {
@@ -716,7 +717,7 @@
 
 /* 按钮悬停动画 */
 .btn-hover {
-  transition: all 0.2s ease-in-out;
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out, background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
 }
 
 .btn-hover:hover {
@@ -753,7 +754,8 @@
   color: hsl(var(--success) / 0.9) !important;
   box-shadow: 0 0 12px hsl(var(--success) / 0.2), 0 2px 8px hsl(var(--success) / 0.15) !important;
   transform: scale(1.03);
-  transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  /* 不写 all：以后改了别的属性，会跟着一起动 */
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.2s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s cubic-bezier(0.22, 1, 0.36, 1), color 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* 复制成功 Check 图标 — 弹入 + 脉冲光晕 */
@@ -1000,7 +1002,8 @@
 .ai-char-counter.near-limit {
   background-color: hsl(48 92% 95%);
   border-color: hsl(38 90% 55% / 0.45);
-  color: hsl(38 75% 40%);
+  /* 40% 亮度时对比度只有 3.49，正文不够 —— 压到 34% 才有 4.61 */
+  color: hsl(38 75% 34%);
   box-shadow: 0 0 0 1px hsl(38 90% 55% / 0.2);
   animation: counterPulse 1.2s ease-in-out infinite;
 }
@@ -1025,7 +1028,8 @@
 .dark .ai-char-counter.at-limit {
   background-color: hsl(0 60% 20% / 0.7);
   border-color: hsl(0 60% 50% / 0.5);
-  color: hsl(0 70% 65%);
+  /* 65% 亮度时对比度只有 4.40，正文不够 —— 提到 72% 才有 5.57 */
+  color: hsl(0 72% 72%);
   box-shadow: 0 0 0 1.5px hsl(0 60% 50% / 0.2);
 }
 
@@ -1624,7 +1628,8 @@ kbd.kbd-key:active {
    pattern.
    ---------------------------------------------------------------------------- */
 .leetcode-collection-card {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  /* 不写 all：以后改了别的属性，会跟着一起动 */
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .leetcode-collection-card:hover {

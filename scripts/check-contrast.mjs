@@ -367,7 +367,7 @@ function printTheme(theme) {
     const custom = card === undefined && bg === undefined ? Object.entries(r.perBase)[0] : null;
     const verdict = r.aaa ? "AAA" : r.aa ? "AA" : r.large ? "仅大字" : "不过线";
     console.log(
-      `${pad(r.name, 22)}${pad(r.fg, 26)}${pad(r.bg + (custom ? ` @${custom[0]}` : ""), 22)}` +
+      `${pad(r.name, 22)}${pad(r.fg, 26)}${pad(r.bg + (custom ? " @" + custom[0] : ""), 22)}` +
         `${pad(custom ? custom[1].toFixed(2) : card !== undefined ? card.toFixed(2) : "-", 9)}` +
         `${pad(bg !== undefined ? bg.toFixed(2) : "-", 9)}` +
         `${pad(r.worst.toFixed(2), 8)}${verdict}`

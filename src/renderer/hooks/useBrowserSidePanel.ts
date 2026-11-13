@@ -78,7 +78,7 @@ export function useBrowserSidePanel(): {
   }, [width]);
 
   const setWidth = useCallback((next: number, maxWidth?: number) => {
-    setWidthState((prev) =>
+    setWidthState(() =>
       clampPanelWidth(
         next,
         SIDE_PANEL_MIN_WIDTH,

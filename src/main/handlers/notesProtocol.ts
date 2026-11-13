@@ -38,7 +38,7 @@
  */
 import { protocol, net } from "electron";
 import * as path from "node:path";
-import * as fs from "fs";
+import * as fs from "node:fs";
 import { pathToFileURL } from "node:url";
 import { NoteStore } from "../core/noteStore";
 import { detectNoteType } from "../../shared/noteTypes";

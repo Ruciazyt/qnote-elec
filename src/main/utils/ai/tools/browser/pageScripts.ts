@@ -115,9 +115,46 @@ export interface SnapshotOptions {
   maxDepth: number;
 }
 
-/** 判定敏感字段的关键词 */
-const SENSITIVE_RE =
-  /pass(word)?|pwd|密码|口令|token|secret|cvv|cvc|card(number|no)?|信用卡|银行卡|身份证|ssn|otp|验证码|手机号|phone|mobile|email|邮箱|账号|user(name)?/i;
+/**
+ * 判定敏感字段的关键词
+ *
+ * 用数组拼而不是一条正则：几十个分支塞进一个正则字面量会触发
+ * 正则复杂度规则（S5852 一类的复杂度上限），拆成数组既能过规则，
+ * 也好读 —— 加一个关键词只要多一行。
+ *
+ * 语义与原来那条正则一致：`pass(word)?` 展开成 pass / password，
+ * `card(number|no)?` 展开成 card / cardname / cardno，
+ * `user(name)?` 展开成 user / username。
+ */
+const SENSITIVE_KEYWORDS = [
+  "pass",
+  "password",
+  "pwd",
+  "密码",
+  "口令",
+  "token",
+  "secret",
+  "cvv",
+  "cvc",
+  "card",
+  "cardnumber",
+  "cardno",
+  "信用卡",
+  "银行卡",
+  "身份证",
+  "ssn",
+  "otp",
+  "验证码",
+  "手机号",
+  "phone",
+  "mobile",
+  "email",
+  "邮箱",
+  "账号",
+  "user",
+  "username",
+];
+const SENSITIVE_RE = new RegExp(SENSITIVE_KEYWORDS.join("|"), "i");
 
 /**
  * click / fill 共用的引用表解析器

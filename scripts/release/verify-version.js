@@ -11,9 +11,9 @@
  *   node scripts/release/verify-version.js --tag 1.0.19 # 额外校验 tag 名
  */
 
-const fs = require('fs');
-const path = require('path');
-const { execFileSync } = require('child_process');
+const fs = require('node:fs');
+const path = require('node:path');
+const { execFileSync } = require('node:child_process');
 const { resolveExe } = require('../lib/resolve-exe');
 
 const ROOT = path.resolve(__dirname, '../..');
@@ -133,7 +133,7 @@ function main() {
     process.exit(1);
   }
 
-  console.log(`✅ 版本号规范：${version}${tag ? `（tag: ${tag}）` : ''}`);
+  console.log(`✅ 版本号规范：${version}${tag ? '（tag: ' + tag + '）' : ''}`);
 }
 
 if (require.main === module) {

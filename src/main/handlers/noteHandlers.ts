@@ -94,7 +94,7 @@ export function registerNoteHandlers(DB: any) {
     }
     try {
       // Escape % and _ to prevent SQL LIKE wildcards from causing unexpected matches
-      const escapedKeyword = keyword.trim().replace(/[%_]/g, "\\$&");
+      const escapedKeyword = keyword.trim().replace(/[%_]/g, String.raw`\$&`);
       const records = await DB.from("note")
         .select("*")
         .where("content", "like", `%${escapedKeyword}%`)

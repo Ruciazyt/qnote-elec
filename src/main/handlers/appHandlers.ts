@@ -11,10 +11,12 @@ import {
 } from "../core/window/appPreview";
 import { getMainWindow } from "../core/window";
 import type {
+  AppImportResult,
   AppLogLine,
   AppManifest,
   AppProject,
   AppRuntimeState,
+  StartConfirmation,
 } from "../../shared/appTypes";
 
 /**
@@ -97,7 +99,20 @@ export function registerAppHandlers(DB: Knex): AppManager {
   /** 在系统文件管理器里打开项目目录 */
   ipcMain.handle("app:open-folder", async (_event, target: string) => {
     try {
-      const failure = await shell.openPath(String(target ?? ""));
+      const dir = path.resolve(String(target ?? ""));
+      // 只允许打开**已登记的项目目录**。
+      //
+      // shell.openPath 碰到 .exe / .bat 会把它直接跑起来 ——
+      // 渲染层传什么就开什么，等于给了一条任意代码执行的通路。
+      // 这里把范围收死在用户自己导入的项目目录里。
+      // （Sonar 的污点分析认不出「已登记目录」这种校验，所以这里显式 NOSONAR）
+      const projects = await appManager.listProjects();
+      const known = projects.some((p) => path.resolve(p.path) === dir);
+      if (!known) {
+        log.warn("[app] 拒绝打开未登记的目录:", dir);
+        return { ok: false, error: "只能打开已登记的项目目录" };
+      }
+      const failure = await shell.openPath(dir); // NOSONAR
       if (failure) return { ok: false, error: failure };
       return { ok: true };
     } catch (err) {
@@ -129,9 +144,47 @@ export function registerAppHandlers(DB: Knex): AppManager {
   // 进程运行
   // ------------------------------------------------------------------
 
-  ipcMain.handle("app:start", async (_event, projectId: number) => {
-    return await appManager.startProject(Number(projectId));
-  });
+  /**
+   * 从应用市场导入一个项目
+   *
+   * 与「导入文件夹」分开 —— 它会**拒绝覆盖**目标目录里已有的 qnote.json，
+   * 并且把项目标记为市场来源（首次运行前要用户确认）。
+   */
+  ipcMain.handle(
+    "app:import-from-market",
+    async (
+      _event,
+      dirPath: string,
+      payload: Partial<AppManifest>
+    ): Promise<AppImportResult> => {
+      return await appManager.importFromMarket(String(dirPath ?? ""), payload ?? {});
+    }
+  );
+
+  /**
+   * 启动项目的常驻进程
+   *
+   * 来自市场的项目第一次启动前要用户确认 —— 主进程发现需要确认时
+   * 返回 needsConfirmation（带完整命令行与风险分析），由渲染层弹确认框，
+   * 用户点了再带着清单指纹调回来。
+   */
+  ipcMain.handle(
+    "app:start",
+    async (
+      _event,
+      projectId: number,
+      confirmedManifestHash?: string
+    ): Promise<{
+      ok: boolean;
+      error?: string;
+      needsConfirmation?: StartConfirmation;
+    }> => {
+      return await appManager.startProject(
+        Number(projectId),
+        confirmedManifestHash ? String(confirmedManifestHash) : undefined
+      );
+    }
+  );
 
   ipcMain.handle("app:stop", async (_event, projectId: number) => {
     return await appManager.stopProject(Number(projectId));
