@@ -232,6 +232,64 @@ export function initUpdater(): void {
   // 改成必须由用户点「重启并安装」才会安装，行为可预期，也不会踩这条规则。
   autoUpdater.autoInstallOnAppQuit = false;
 
+  // 关掉更新包的 Authenticode 签名校验
+  //
+  // ## 为什么
+  //
+  // 产物是**未签名**的：CI 里没有代码签名证书（自签名证书按规范已于
+  // 2026-10-28 停用 —— 它比不签名更糟，证书链不受信任反而更容易被拦）。
+  // 而 electron-builder 26 在 verifyUpdateCodeSignature 为真（默认）时，
+  // 会把公司名兜底成 publisherName 写进 resources/app-update.yml：
+  //
+  //   PublishManager.js:204
+  //   const publisherName = winPackager.isForceCodeSigningVerification ? ... : undefined
+  //   // winPackager.js:26
+  //   get isForceCodeSigningVerification() {
+  //     return this.platformSpecificBuildOptions.verifyUpdateCodeSignature !== false
+  //   }
+  //
+  // electron-updater 的 NsisUpdater.verifySignature 只要读到 publisherName
+  // 就强制校验签名，于是每次更新都报：
+  //
+  //   New version 1.12.1 is not signed by the application owner:
+  //   publisherName: Ruciazyt ...
+  //
+  // ## 为什么用自定义函数而不是 = false
+  //
+  // NsisUpdater 的 setter 是：
+  //
+  //   set verifyUpdateCodeSignature(value) {
+  //     if (value) { this._verifyUpdateCodeSignature = value }   // false 会被忽略
+  //   }
+  //
+  // 传 false 什么都不会发生。传一个返回 null 的函数才是「校验通过」
+  // （verifySignature 拿到的返回值不为 null 才算失败）。
+  //
+  // ## 这样做的代价与还剩什么保护
+  //
+  // 少了 Authenticode 这一层。**还剩下的**：
+  //   · latest.yml 里的 sha512 —— 下载完会逐字节校验，下载损坏/被换包都会
+  //     被发现（这一层 electron-updater 默认就有，与签名无关）
+  //   · 安装仍要走 NSIS 界面由用户确认，不会静默安装
+  //     （autoInstallOnAppQuit = false，见上面）
+  //   · 更新源指向本仓库的 Release
+  //
+  // 真正的签名（SignPath Foundation 或商业 CA）配好后，把这里删掉、
+  // 并把 build/electron-builder.json 里的 verifyUpdateCodeSignature 去掉即可。
+  // electron-updater 的类型声明里没有这个属性（它在 NsisUpdater 上，
+  // 而 autoUpdater 的静态类型是 AppUpdater），所以这里做一次类型断言。
+  // 只在 Windows 上设：mac 走的是 Squirrel.Mac，签名要求不一样，
+  // 且未签名产物的 mac 自动更新本来就不可用（见下）。
+  if (process.platform === "win32") {
+    const verifier = autoUpdater as unknown as {
+      verifyUpdateCodeSignature: (
+        publisherNames: string[],
+        filePath: string
+      ) => Promise<string | null>;
+    };
+    verifier.verifyUpdateCodeSignature = async () => null;
+  }
+
   // electron-updater 默认用 console 输出日志，进了打包版就什么都看不到。
   // 接到应用自己的日志系统里，报障时能直接看 app.log。
   autoUpdater.logger = {
