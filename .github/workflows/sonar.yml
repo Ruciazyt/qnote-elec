@@ -111,6 +111,51 @@ jobs:
             -Dsonar.sources=src
             -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/dist_electron/**,**/build/**,**/.data/**,**/out-tsc/**,**/coverage/**,**/*.d.ts,**/*.min.js,**/public/**,**/*.svg,**/*.png,**/*.ico,**/*.icns,**/*.css,**/*.html
 
+      # Run the scanner a second time, this time keeping its output.
+      #
+      # The action's own output only lands in the Actions log, and that log
+      # returns 403 for anonymous requests -- so there was no way to see what
+      # the scanner actually did. This step calls the very same binary (the
+      # action installed it under /opt/hostedtoolcache) and turns the
+      # interesting lines into annotations, which ARE readable via the API.
+      #
+      # The scanner binary path is stable: <version>-build.<build>. The glob
+      # keeps it working across scanner versions.
+      - name: "Diagnostics: scanner output"
+        if: always() && steps.sonar-token.outputs.enabled == 'true'
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          SCANNER=$(ls -d /opt/hostedtoolcache/sonar-scanner-cli/*/linux-x64/bin/sonar-scanner 2>/dev/null | head -1)
+          if [ -z "$SCANNER" ]; then
+            echo "::error title=scanner::scanner binary not found under /opt/hostedtoolcache"
+            exit 0
+          fi
+          set +e
+          "$SCANNER" \
+            -Dsonar.projectKey=Ruciazyt_qnote-elec \
+            -Dsonar.projectName=QNote \
+            -Dsonar.organization=ruciazyt \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.token="$SONAR_TOKEN" \
+            -Dsonar.sourceEncoding=UTF-8 \
+            -Dsonar.scm.provider=git \
+            -Dsonar.scm.disabled=false \
+            -Dsonar.sources=src \
+            -Dsonar.exclusions='**/node_modules/**,**/dist/**,**/dist_electron/**,**/build/**,**/.data/**,**/out-tsc/**,**/coverage/**,**/*.d.ts,**/*.min.js,**/public/**,**/*.svg,**/*.png,**/*.ico,**/*.icns,**/*.css,**/*.html' \
+            > scanner-output.log 2>&1
+          code=$?
+          {
+            grep -Ei 'project root|load properties|sonar\.(sources|tests|exclusions)|module|skipping|indexed|lines of code|excluded|warning|error' scanner-output.log \
+              | head -60 \
+              | while IFS= read -r line; do
+                  safe=$(printf '%s' "$line" | sed -e 's/%/%25/g' -e 's/\r//g' | cut -c1-900)
+                  echo "::error title=scanner::${safe}"
+                done
+            echo "::error title=scanner::scanner exit code ${code}"
+          }
+          exit 0
+
       # 清单 + 判定。用 --wait 等本次提交的分析真正算完，
       # 否则查到的还是上一次的旧结果，门禁就成了假通过。
       #
