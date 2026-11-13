@@ -26,14 +26,14 @@ const GIT = resolveExe('git');
 const VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
 
 /**
- * 当前发布线 —— 1.10.x
+ * 当前发布线 —— 1.11.x
  *
- * 1.9.x 从 1.9.0 起步，这期间累积了一个功能级提交 —— 灵动岛（island）、
- * 剪贴板面板几何常量与外部文件夹接口。按 semver 规则它要求 minor 版本，
- * 而 minor 落在 1.10.0 —— 所以换到 1.10.x。
+ * 1.10.x 从 1.10.0 起步，这期间累积了一个功能级提交 —— 云端存储
+ * （共享数据走 Cloudflare D1、私有数据留本地）与应用市场。
+ * 按 semver 规则它要求 minor 版本，而 minor 落在 1.11.0 —— 所以换到 1.11.x。
  * 换线理由见 AGENTS.md 第 3.1 节。
  */
-const RELEASE_LINE = { major: 1, minor: 10 };
+const RELEASE_LINE = { major: 1, minor: 11 };
 
 /** 读取根 package.json 的 version */
 function readVersion() {
