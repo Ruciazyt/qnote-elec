@@ -86,17 +86,21 @@ jobs:
 
       # Scan with the official action (pinned to a full commit SHA).
       #
-      # The analysis scope is passed on the command line, not only through
+      # The analysis scope is passed on the command line as well as through
       # sonar-project.properties: command line wins over the properties file,
-      # so there is nothing left to guess about.
+      # so both places stay in sync and there is nothing left to guess about.
       #
-      # Both spellings are passed:
-      #   -Dsonar.sources     the classic scope (SonarQube 10.x and older)
-      #   -Dsonar.inclusions  the scope key newer SonarQube/SonarCloud use
-      # Only the core directories under src/ are in scope (main process,
+      # Scope covers only the four core directories under src/ (main process,
       # renderer, shared types, data layer). scripts/ is left out on purpose:
       # the free SonarCloud tier counts the whole organization's lines of code
       # and rejects anything above 50000, which blocks the analysis outright.
+      #
+      # Do NOT pass sonar.tests here. Two ways it goes wrong, both measured:
+      #   - identical to sonar.sources -> Sonar drops the scope and scans the
+      #     whole repository (60700+ LOC, analysis rejected by the quota)
+      #   - a subdirectory of a sources directory -> Sonar drops that whole
+      #     parent directory to avoid indexing files twice (98 files left)
+      # Test files are marked as tests by sonar.test.inclusions instead.
       - name: SonarCloud scan
         if: steps.sonar-token.outputs.enabled == 'true'
         uses: SonarSource/sonarqube-scan-action@e805d875275f728fac1885b413934be6d7c63f65 # v8.4.1
@@ -105,7 +109,7 @@ jobs:
         with:
           args: >
             -Dsonar.sources=src/main,src/renderer,src/shared,src/database
-            -Dsonar.tests=src/renderer/test
+            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/dist_electron/**,**/build/**,**/.data/**,**/out-tsc/**,**/coverage/**,**/*.d.ts,**/*.min.js,**/public/**,**/*.svg,**/*.png,**/*.ico,**/*.icns,**/*.css,**/*.html
 
       # 清单 + 判定。用 --wait 等本次提交的分析真正算完，
       # 否则查到的还是上一次的旧结果，门禁就成了假通过。
