@@ -108,7 +108,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           args: >
-            -Dsonar.sources=src/main,src/renderer,src/shared,src/database
+            -Dsonar.sources=src
             -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/dist_electron/**,**/build/**,**/.data/**,**/out-tsc/**,**/coverage/**,**/*.d.ts,**/*.min.js,**/public/**,**/*.svg,**/*.png,**/*.ico,**/*.icns,**/*.css,**/*.html
 
       # 清单 + 判定。用 --wait 等本次提交的分析真正算完，

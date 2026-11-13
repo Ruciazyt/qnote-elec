@@ -134,7 +134,66 @@ CI 每次推 master 都会自动扫描，本地只用 `sonar:issues` 看结果�
 
 ---
 
-## 4. 清单怎么看
+## 4. 分析范围与配额
+
+### 4.1 免费额度是硬约束
+
+SonarCloud 免费版按**组织的代码行数**计上限：**50000 行**。超了不是「扣分」，
+而是**直接拒绝产生这次分析**：
+
+```
+This analysis will make your organization 'ruciazyt' reach the maximum
+allowed lines limit of 50000. Current LOC usage is: 0. LOC count in this
+analysis: 60669.
+```
+
+一旦分析产生不了，质量门禁就永远是「判不了」—— 门禁形同虚设。
+所以分析范围必须压在 50000 行以内。
+
+当前范围（见 `sonar-project.properties`）只有 `src/` 下四个核心目录：
+`src/main`、`src/renderer`、`src/shared`、`src/database`。`scripts/` 不扫。
+
+代价要认：`S4036`（命令注入）、`S5852 / S8786`（正则回溯）、`S8705`（参数注入）
+这几类原本主要落在 `scripts/` 里，现在 Sonar 不再报。它们的质量由
+`pnpm run lint` 与项目自己的守卫测试覆盖。
+
+### 4.2 ⚠️ 不要设 `sonar.tests`
+
+这是 2026-11-13 实测踩出来的坑，两种写法都会让**分析范围整个失效**：
+
+| 写法 | 现象 |
+| --- | --- |
+| `sonar.tests` 与 `sonar.sources` **完全相同** | Sonar 判定范围冲突，放弃这份额定、**退回扫描整个仓库** —— LOC 一直 60700+，超配额被拒。改 `exclusions`、`inclusions` 全都不管用。 |
+| `sonar.tests` 指向某个 sources 目录的**子目录** | Sonar 为避免「文件被索引两次」把**整个父目录**踢出范围。实测只剩 98 个文件、`ncloc` 16522 —— 渲染层一行都没扫。 |
+
+正确写法：**只给 `sonar.sources`**，测试文件靠 `sonar.test.inclusions` 标记。
+落在 sources 范围内的测试文件会被算作测试代码，不计入 LOC 配额。
+
+### 4.3 改了范围怎么确认生效
+
+Actions 的日志匿名访问返回 403，**只有 SonarCloud 侧的数据能读到**。用 API 核对：
+
+```bash
+# 取令牌（.data/sonar/token 里第一条非注释行）
+curl -s -H "Authorization: Bearer $TOKEN" \
+  'https://sonarcloud.io/api/measures/component?component=Ruciazyt_qnote-elec&metricKeys=ncloc,files'
+```
+
+`ncloc` 明显小于 50000、`files` 明显大于几百，才说明范围真的生效了。
+扫描失败时看组织任务状态（那儿有失败原因和 LOC 构成）：
+
+```bash
+curl -s -H "Authorization: Bearer $TOKEN" \
+  'https://sonarcloud.io/api/ce/activity?component=Ruciazyt_qnote-elec&ps=5'
+```
+
+> 服务端设置改不了分析范围：`POST /api/settings/set` 写 `sonar.exclusions`
+> 返回成功，但读回来是空串 —— SonarCloud 不允许用 API 改分析范围
+> （那等于绕过配额）。范围只能在 `sonar-project.properties` 与 CI 参数里定。
+
+---
+
+## 5. 清单怎么看
 
 两个脚本都会把清单写到：
 
@@ -155,9 +214,9 @@ CI 每次推 master 都会自动扫描，本地只用 `sonar:issues` 看结果�
 
 ---
 
-## 5. 门禁口径
+## 6. 门禁口径
 
-### 5.1 默认拦哪些
+### 6.1 默认拦哪些
 
 **默认拦「缺陷 + 漏洞」两类**（`BUG` / `VULNERABILITY`），代码异味只报不拦。
 
@@ -185,7 +244,7 @@ CI 里用仓库变量覆盖（`Settings` → `Secrets and variables` → `Action
 > 脚本两套都认 —— 只认一套的话，在 Cloud 上会**漏判**：
 > HIGH 级别的问题会被当成"不拦"悄悄放过去。
 
-### 5.2 发版时的拦截点
+### 6.2 发版时的拦截点
 
 **本地（`scripts/release/release.js`）** —— 在 bump 版本号**之前**查一次：
 
@@ -202,7 +261,7 @@ pnpm run release:patch
 不过就不出包、不建 Release。`release` 作业的条件是 `needs.build.result == 'success'`，
 门禁失败会让 `build` 被跳过，Release 自然不会建。
 
-### 5.3 应急跳过
+### 6.3 应急跳过
 
 ```bash
 SKIP_SONAR=1 pnpm run release:patch
@@ -212,7 +271,7 @@ SKIP_SONAR=1 pnpm run release:patch
 
 ---
 
-## 6. CI 里发生了什么
+## 7. CI 里发生了什么
 
 | 工作流 | 触发 | 干什么 |
 | --- | --- | --- |
@@ -231,7 +290,7 @@ SKIP_SONAR=1 pnpm run release:patch
 
 ---
 
-## 7. 常见问题
+## 8. 常见问题
 
 **`/api/issues/search 返回 401`**
 令牌无效、过期或被撤销，**或者建成了分析令牌而不是用户令牌** ——
