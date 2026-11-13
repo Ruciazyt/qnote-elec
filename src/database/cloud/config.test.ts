@@ -17,6 +17,7 @@ import {
   parseCloudConfig,
   saveCloudConfig,
 } from "./config";
+import { resolveDefaultEndpoint } from "./defaults";
 
 /**
  * 云端配置与后端切换的回归
@@ -26,17 +27,40 @@ import {
  *
  * 解析失败时的行为必须是「退回纯本地」，而不是抛异常 ——
  * 一份坏配置不该让整个应用起不来。
+ *
+ * ## 「没配过」与「配坏了」是两件事
+ *
+ * - 没配过（库里没有这条记录）→ 用**内置的公共目录地址**（零配置）
+ * - 配坏了（JSON 非法、后端名不认识、D1 三项缺一不可）
+ *   → 退回**纯本地**
+ *
+ * 第二种不能顺带连上公共目录：用户明明写过配置，说明他有明确意图；
+ * 拿内置地址替他做决定是越权。测试里这两条要分开断言。
  */
 
+/** 内置的公共目录地址 —— 正式版里非空 */
+const BUILTIN_ENDPOINT = resolveDefaultEndpoint();
+
+/** 「什么都没配」时实际生效的后端 */
+const ZERO_CONFIG_BACKEND = BUILTIN_ENDPOINT ? "public" : "local";
+
 describe("云端配置解析", () => {
-  it("没配过时就是纯本地", () => {
+  it("没配过时用内置的公共目录 —— 零配置", () => {
     const config = parseCloudConfig(null);
-    expect(config.backend).toBe("local");
+    expect(config.backend).toBe(ZERO_CONFIG_BACKEND);
     expect(config.d1).toBeNull();
+    expect(config.endpoint).toBe(BUILTIN_ENDPOINT || null);
+  });
+
+  it("内置了公共目录地址时，装上就能用，不用填任何东西", () => {
+    // 正式版内置了地址 → 默认就是公共目录
+    expect(BUILTIN_ENDPOINT).not.toBe("");
+    expect(BUILTIN_ENDPOINT).toMatch(/^https?:\/\//);
+    expect(parseCloudConfig(null).backend).toBe("public");
   });
 
   it("空串等同于没配过", () => {
-    expect(parseCloudConfig("").backend).toBe("local");
+    expect(parseCloudConfig("").backend).toBe(ZERO_CONFIG_BACKEND);
   });
 
   it("不是合法 JSON → 退回纯本地，不抛异常", () => {
@@ -111,8 +135,9 @@ describe("云端配置解析", () => {
     expect(config.backend).toBe("local");
   });
 
-  it("默认配置本身就是纯本地", () => {
-    expect(DEFAULT_CLOUD_CONFIG.backend).toBe("local");
+  it("默认配置就是没配过时实际生效的那份", () => {
+    expect(DEFAULT_CLOUD_CONFIG.backend).toBe(ZERO_CONFIG_BACKEND);
+    expect(DEFAULT_CLOUD_CONFIG.endpoint).toBe(BUILTIN_ENDPOINT || null);
   });
 });
 
@@ -188,7 +213,7 @@ describe("配置读写", () => {
 
   it("没写过配置时读到默认", async () => {
     const config = await loadCloudConfig(DB);
-    expect(config.backend).toBe("local");
+    expect(config.backend).toBe(ZERO_CONFIG_BACKEND);
     expect(config.d1).toBeNull();
   });
 

@@ -27,8 +27,23 @@
  * 真正的凭据在 Worker 那边：它用 D1 绑定直连数据库，不需要任何 Token。
  */
 
-/** 源码里写死的默认地址 —— 部署完 Worker 后填这里 */
-export const DEFAULT_CLOUD_ENDPOINT = "";
+/**
+ * 源码里写死的默认地址 —— 部署完 Worker 后填这里
+ *
+ * 这就是「所有用户零配置连上同一个公共目录」的落点：
+ * 地址非空时，配置读取不到任何设置时默认就用 `public` 后端
+ * （见 src/database/cloud/config.ts 的 defaultConfig）。
+ *
+ * ⚠️ **workers.dev 在中国大陆被 DNS 污染** —— 实测解析到
+ * `74.86.151.162` / `2a03:2880:…face:b00c`（Facebook 段，不是 Cloudflare），
+ * 大陆用户连不上，市场页会是空的。海外、港澳台正常。
+ * 要覆盖大陆用户，得把这个 Worker 绑到自有域名上，把地址换掉。
+ *
+ * 这是**公开地址**，不是密钥 —— 它会打进每一个用户的安装包里，
+ * 内置它不违反 AGENTS.md 第 4 节（那条红线针对的是 Token / Secret）。
+ * 真正的凭据在 Worker 那边：它用 D1 绑定直连数据库，不需要任何 Token。
+ */
+export const DEFAULT_CLOUD_ENDPOINT = "https://qnote-catalog.810945981.workers.dev";
 
 /**
  * 取实际生效的公共目录地址

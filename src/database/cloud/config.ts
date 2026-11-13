@@ -39,13 +39,15 @@ import type {
 
 const SETTINGS_KEY = "cloud_storage_config";
 
-/** 默认配置 —— 没配过时的样子 */
-export const DEFAULT_CLOUD_CONFIG: CloudStorageConfig = {
-  backend: "local",
-  d1: null,
-  endpoint: null,
-  lastCheck: null,
-};
+/**
+ * 默认配置 —— 没配过时的样子
+ *
+ * 内置了公共目录地址时，这里就是 public（零配置）；
+ * 没有内置地址时是 local。用 defaultConfig() 而不是写死，
+ * 是为了跟实际生效的默认值保持一致 —— 写死的话，
+ * 「内置地址」和「默认后端」两处会各说各话。
+ */
+export const DEFAULT_CLOUD_CONFIG: CloudStorageConfig = defaultConfig();
 
 /**
  * 把存盘的那一串 JSON 解析成配置对象
@@ -61,10 +63,10 @@ export function parseCloudConfig(raw: string | null | undefined): CloudStorageCo
     parsed = JSON.parse(raw);
   } catch {
     log.warn("[cloud] 云端配置解析失败，退回默认");
-    return defaultConfig();
+    return fallbackConfig();
   }
   if (!parsed || typeof parsed !== "object") {
-    return defaultConfig();
+    return fallbackConfig();
   }
 
   const obj = parsed as Partial<CloudStorageConfig>;
@@ -80,13 +82,19 @@ export function parseCloudConfig(raw: string | null | undefined): CloudStorageCo
   // 配置不全就去连云端，注定失败，不如直接退回本地
   if (backend === "d1" && !d1) {
     log.warn("[cloud] 后端标为 d1 但 D1 配置不全，按本地处理");
-    return { ...defaultConfig(), d1: null, endpoint };
+    return { ...fallbackConfig(), d1: null, endpoint };
   }
 
   // 后端写着 public 但没有地址 —— 退回 local
+  //
+  // 这里**不能**用 defaultConfig()：那个函数会在内置地址存在时
+  // 给出 public + endpoint。而用户显式写了 public 却没有地址，
+  // 说明他想要公共目录却没填地址 —— 用内置地址替他做决定是越权，
+  // 而且这里要保证 backend 与 endpoint 自洽（不能出现
+  // backend=public 而 endpoint=null 的组合）。
   if (backend === "public" && !endpoint) {
     log.warn("[cloud] 后端标为 public 但没有公共目录地址，按本地处理");
-    return { ...defaultConfig(), d1, endpoint: null };
+    return { ...fallbackConfig(), d1, endpoint: null };
   }
 
   return { backend, d1, endpoint, lastCheck: obj.lastCheck ?? null };
@@ -97,6 +105,10 @@ export function parseCloudConfig(raw: string | null | undefined): CloudStorageCo
  *
  * 有内置的公共目录地址时，默认就用它 —— 这就是「所有用户零配置」的落点：
  * 装上就能用，不需要填任何东西。
+ *
+ * 注意与 fallbackConfig() 的区别：
+ *   - defaultConfig()  = 「用户什么都没配」→ 用内置地址（零配置）
+ *   - fallbackConfig() = 「用户配了但配坏了」→ 纯本地（安全兜底）
  */
 function defaultConfig(): CloudStorageConfig {
   const endpoint = resolveDefaultEndpoint();
@@ -106,6 +118,16 @@ function defaultConfig(): CloudStorageConfig {
     endpoint: endpoint || null,
     lastCheck: null,
   };
+}
+
+/**
+ * 兜底配置 —— 纯本地
+ *
+ * 配置坏了、或者用户显式选的后端缺必要字段时用它。
+ * 不用内置地址：一份坏配置不该让应用悄悄连上公共目录。
+ */
+function fallbackConfig(): CloudStorageConfig {
+  return { backend: "local", d1: null, endpoint: null, lastCheck: null };
 }
 
 /** 挑出 D1 配置里的有效字段 —— 三个都要非空字符串 */
@@ -137,7 +159,7 @@ export async function loadCloudConfig(DB: Knex): Promise<CloudStorageConfig> {
     return parseCloudConfig(typeof raw === "string" ? raw : null);
   } catch (error) {
     log.error("[cloud] 读取云端配置失败，按纯本地处理", error);
-    return defaultConfig();
+    return fallbackConfig();
   }
 }
 
