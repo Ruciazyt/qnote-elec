@@ -104,7 +104,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           args: >
-            -Dsonar.sources=src/main
+            -Dsonar.sources=src/main,src/renderer,src/shared,src/database
             -Dsonar.tests=src/renderer/test
 
       # 清单 + 判定。用 --wait 等本次提交的分析真正算完，
