@@ -300,6 +300,25 @@ jobs:
           # 这里用另一个名字，真正要用时才赋给 CSC_KEY_PASSWORD。
           CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
           
+
+      # Print the generated update-source config.
+      #
+      # The updater reads resources/app-update.yml at runtime, and its
+      # publisherName decides whether electron-updater enforces an
+      # Authenticode signature check on the downloaded installer.
+      # With unsigned artifacts that check fails and every update dies with
+      # ERR_UPDATER_INVALID_SIGNATURE -- so the file is worth eyeballing
+      # once per release. Workflow commands land in the job annotations,
+      # which are readable through the REST API (the job log itself is not).
+      - name: Show generated app-update.yml
+        shell: pwsh
+        run: |
+          $p = "dist_electron/win-unpacked/resources/app-update.yml"
+          if (Test-Path $p) {
+            Get-Content $p | ForEach-Object { Write-Host "::notice title=app-update::$_" }
+          } else {
+            Write-Host "::notice title=app-update::app-update.yml not found"
+          }
       # ------------------------------------------------------------------
       # SignPath Foundation 免费签名（面向符合条件的开源项目）
       #
