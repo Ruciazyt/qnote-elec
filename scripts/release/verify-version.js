@@ -26,14 +26,15 @@ const GIT = resolveExe('git');
 const VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
 
 /**
- * 当前发布线 —— 1.11.x
+ * 当前发布线 —— 1.12.x
  *
- * 1.10.x 从 1.10.0 起步，这期间累积了一个功能级提交 —— 云端存储
- * （共享数据走 Cloudflare D1、私有数据留本地）与应用市场。
- * 按 semver 规则它要求 minor 版本，而 minor 落在 1.11.0 —— 所以换到 1.11.x。
+ * 1.11.x 这条线发布了云端存储（共享数据走 Cloudflare D1、私有数据留本地）、
+ * 应用市场与市场来源应用的运行前确认。1.12.0 在此之上把公共目录地址内置
+ * 进安装包 —— 装上就能用同一个公共目录，不需要任何配置。
+ * 按 semver 规则它要求 minor 版本，而 minor 落在 1.12.0 —— 所以换到 1.12.x。
  * 换线理由见 AGENTS.md 第 3.1 节。
  */
-const RELEASE_LINE = { major: 1, minor: 11 };
+const RELEASE_LINE = { major: 1, minor: 12 };
 
 /** 读取根 package.json 的 version */
 function readVersion() {
