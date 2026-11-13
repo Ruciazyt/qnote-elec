@@ -84,30 +84,62 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # 扫描器用的是官方 action，固定到完整 commit SHA（仓库惯例）
+      # Scan: run the sonar-scanner CLI directly instead of the official action.
       #
-      # 分析范围在这里**再显式传一遍**（sonar.sources / sonar.tests /
-      # sonar.exclusions），不只依赖 sonar-project.properties：
+      # Why not the action: the action's output only lands in the Actions log,
+      # and that log returns 403 for anonymous requests -- so there is no way to
+      # see what the scanner actually picked up. Running the CLI ourselves lets
+      # us copy the interesting lines into the workflow summary, which IS
+      # readable through the REST API (check run output.summary).
       #
-      # 实测过 —— 只改 properties 时，scanner 仍然扫到了 .github/
-      # （语言分布里冒出 yaml=672），说明 properties 里那份 sources
-      # 根本没被采纳，扫的还是仓库根。命令行参数的优先级高于
-      # properties 文件，两处都写就一定能生效。
+      # Every option is passed with -D instead of relying on
+      # sonar-project.properties: command line wins over the properties file,
+      # so there is nothing left to guess about.
       #
-      # 范围只覆盖 src/ 下的四个核心目录（主进程 / 渲染层 / 共享类型 /
-      # 数据层）。scripts/ 不扫 —— SonarCloud 免费额度按组织代码行数计，
-      # 上限 50000 行，把 scripts/ 一起扫会直接超限、连分析都产生不了
-      # （详见 sonar-project.properties 里的说明）。
+      # Scope covers only the four core directories under src/ (main process,
+      # renderer, shared types, data layer). scripts/ is left out on purpose:
+      # the free SonarCloud tier counts the whole organization's lines of code
+      # and rejects anything above 50000, which blocks the analysis outright.
       - name: SonarCloud scan
         if: steps.sonar-token.outputs.enabled == 'true'
-        uses: SonarSource/sonarqube-scan-action@e805d875275f728fac1885b413934be6d7c63f65 # v8.4.1
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          args: >
-            -Dsonar.sources=src/main,src/renderer,src/shared,src/database
-            -Dsonar.tests=src/main,src/renderer,src/shared,src/database
-            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/dist_electron/**,**/build/**,**/.data/**,**/out-tsc/**,**/coverage/**,**/*.d.ts,**/*.min.js,**/public/**,**/*.svg,**/*.png,**/*.ico,**/*.icns,**/*.css,**/*.html
+        run: |
+          set -uo pipefail
+          SCANNER_VERSION="8.3.1.16491"
+          SCANNER_HOME="$RUNNER_TEMP/sonar-scanner-cli-${SCANNER_VERSION}-linux"
+          curl -fsSL --retry 3 --retry-delay 5 \
+            "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SCANNER_VERSION}-linux.zip" \
+            -o "$RUNNER_TEMP/scanner.zip"
+          unzip -q "$RUNNER_TEMP/scanner.zip" -d "$RUNNER_TEMP"
+          chmod +x "$SCANNER_HOME/bin/sonar-scanner"
+
+          "$SCANNER_HOME/bin/sonar-scanner" \
+            -Dsonar.projectKey=Ruciazyt_qnote-elec \
+            -Dsonar.projectName=QNote \
+            -Dsonar.organization=ruciazyt \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.token="$SONAR_TOKEN" \
+            -Dsonar.sourceEncoding=UTF-8 \
+            -Dsonar.scm.provider=git \
+            -Dsonar.scm.disabled=false \
+            -Dsonar.sources=src/main,src/renderer,src/shared,src/database \
+            -Dsonar.tests=src/main,src/renderer,src/shared,src/database \
+            -Dsonar.test.inclusions='**/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.spec.tsx,**/test/**' \
+            -Dsonar.exclusions='**/node_modules/**,**/dist/**,**/dist_electron/**,**/build/**,**/.data/**,**/out-tsc/**,**/coverage/**,**/*.d.ts,**/*.min.js,**/public/**,**/*.svg,**/*.png,**/*.ico,**/*.icns,**/*.css,**/*.html' \
+            -Dsonar.javascript.lcov.reportPaths=src/renderer/coverage/lcov.info \
+            -Dsonar.typescript.lcov.reportPaths=src/renderer/coverage/lcov.info \
+            2>&1 | tee "$RUNNER_TEMP/scan.log"
+          code=${PIPESTATUS[0]}
+
+          {
+            echo "### scanner log"
+            echo ""
+            echo '```'
+            grep -Ei 'project root|load properties|sonar\.(sources|tests|exclusions)|files indexed|lines of code|ERROR|WARN' "$RUNNER_TEMP/scan.log" | head -150
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$code"
 
       # 清单 + 判定。用 --wait 等本次提交的分析真正算完，
       # 否则查到的还是上一次的旧结果，门禁就成了假通过。
