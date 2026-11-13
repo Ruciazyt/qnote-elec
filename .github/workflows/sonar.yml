@@ -68,12 +68,46 @@ jobs:
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           fi
 
+      # 把生效的分析范围写进 workflow summary
+      #
+      # 为什么需要这一步：Actions 的日志要登录才能读（匿名访问返回 403），
+      # 但 workflow summary 会进 check run 的 output.summary ——
+      # 那个用 REST API 就能读。排查「scanner 到底扫了什么」时，
+      # 这一步是唯一能拿到现场的办法。
+      - name: "Diagnostics: analysis scope"
+        run: |
+          {
+            echo "### 分析范围"
+            echo ""
+            echo '```'
+            grep -E '^sonar\.(sources|tests|exclusions|css\.exclusions)=' sonar-project.properties
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
       # 扫描器用的是官方 action，固定到完整 commit SHA（仓库惯例）
+      #
+      # 分析范围在这里**再显式传一遍**（sonar.sources / sonar.tests /
+      # sonar.exclusions），不只依赖 sonar-project.properties：
+      #
+      # 实测过 —— 只改 properties 时，scanner 仍然扫到了 .github/
+      # （语言分布里冒出 yaml=672），说明 properties 里那份 sources
+      # 根本没被采纳，扫的还是仓库根。命令行参数的优先级高于
+      # properties 文件，两处都写就一定能生效。
+      #
+      # 范围只覆盖 src/ 下的四个核心目录（主进程 / 渲染层 / 共享类型 /
+      # 数据层）。scripts/ 不扫 —— SonarCloud 免费额度按组织代码行数计，
+      # 上限 50000 行，把 scripts/ 一起扫会直接超限、连分析都产生不了
+      # （详见 sonar-project.properties 里的说明）。
       - name: SonarCloud scan
         if: steps.sonar-token.outputs.enabled == 'true'
         uses: SonarSource/sonarqube-scan-action@e805d875275f728fac1885b413934be6d7c63f65 # v8.4.1
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.sources=src/main,src/renderer,src/shared,src/database
+            -Dsonar.tests=src/main,src/renderer,src/shared,src/database
+            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/dist_electron/**,**/build/**,**/.data/**,**/out-tsc/**,**/coverage/**,**/*.d.ts,**/*.min.js,**/public/**,**/*.svg,**/*.png,**/*.ico,**/*.icns,**/*.css,**/*.html
 
       # 清单 + 判定。用 --wait 等本次提交的分析真正算完，
       # 否则查到的还是上一次的旧结果，门禁就成了假通过。
