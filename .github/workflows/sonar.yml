@@ -101,52 +101,57 @@ jobs:
       #   - a subdirectory of a sources directory -> Sonar drops that whole
       #     parent directory to avoid indexing files twice (98 files left)
       # Test files are marked as tests by sonar.test.inclusions instead.
+      # Run the scanner ourselves instead of going through the official action.
+      #
+      # Two reasons:
+      #
+      # 1. The action's output only lands in the Actions log, and that log
+      #    returns 403 for anonymous requests. Calling the scanner from a run
+      #    step keeps its output, and the interesting lines can be turned into
+      #    annotations -- those ARE readable through the REST API.
+      #
+      # 2. SonarCloud has "Automatic Analysis" enabled for this organization:
+      #    every push to master makes SonarCloud run an analysis by itself.
+      #    That analysis has no client-side configuration, so it always covers
+      #    the whole repository (60700+ LOC, rejected by the free tier's
+      #    quota). Worse, the scanner refuses to run while both are active:
+      #      "You are running CI analysis while Automatic Analysis is enabled.
+      #       Please consider disabling one or the other."   (exit code 3)
+      #    The scanner decides "this is a CI analysis" by looking at the CI
+      #    environment variable; clearing it makes this run look manual, and
+      #    the scoped analysis below is the one that lands last -- so it is
+      #    the one the quality gate reads.
+      #
+      # Scope: only the core directories under src/ (main process, renderer,
+      # shared types, data layer). scripts/ is left out on purpose -- the free
+      # tier counts the whole organization's lines of code and rejects
+      # anything above 50000.
+      #
+      # Do NOT pass sonar.tests. Two ways it goes wrong, both measured:
+      #   - identical to sonar.sources -> Sonar drops the scope and scans the
+      #     whole repository (60700+ LOC, analysis rejected by the quota)
+      #   - a subdirectory of a sources directory -> Sonar drops that whole
+      #     parent directory to avoid indexing files twice (98 files left)
+      # Test files are marked as tests by sonar.test.inclusions instead.
       - name: SonarCloud scan
         if: steps.sonar-token.outputs.enabled == 'true'
-        uses: SonarSource/sonarqube-scan-action@e805d875275f728fac1885b413934be6d7c63f65 # v8.4.1
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          # SonarCloud has "Automatic Analysis" turned on for this organization:
-          # every push to master makes SonarCloud run an analysis by itself.
-          # That analysis has no client-side configuration, so it always covers
-          # the whole repository -- 60700+ LOC, which the free tier rejects.
-          #
-          # Worse, the scanner refuses to run while both are active:
-          #   "You are running CI analysis while Automatic Analysis is enabled.
-          #    Please consider disabling one or the other." (exit code 3)
-          #
-          # The scanner decides "this is a CI analysis" by looking at the CI
-          # environment variable, so clearing it makes this run look like a
-          # manual analysis. Both then run; ours (scoped correctly) is the
-          # one that lands last, so it is the one the quality gate reads.
-          CI: ""
-        with:
-          args: >
-            -Dsonar.sources=src/main,src/renderer,src/shared,src/database
-            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/dist_electron/**,**/build/**,**/.data/**,**/out-tsc/**,**/coverage/**,**/*.d.ts,**/*.min.js,**/public/**,**/*.svg,**/*.png,**/*.ico,**/*.icns,**/*.css,**/*.html
-
-      # Run the scanner a second time, this time keeping its output.
-      #
-      # The action's own output only lands in the Actions log, and that log
-      # returns 403 for anonymous requests -- so there was no way to see what
-      # the scanner actually did. This step calls the very same binary (the
-      # action installed it under /opt/hostedtoolcache) and turns the
-      # interesting lines into annotations, which ARE readable via the API.
-      #
-      # It is disabled by default: every extra run uploads another analysis,
-      # and the analysis that lands last is the one the quality gate reads.
-      # Turn it on (workflow_dispatch) when the scope needs to be inspected.
-      - name: "Diagnostics: scanner output"
-        if: false
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           CI: ""
         run: |
-          SCANNER=$(ls -d /opt/hostedtoolcache/sonar-scanner-cli/*/linux-x64/bin/sonar-scanner 2>/dev/null | head -1)
+          set -uo pipefail
+          SCANNER_VERSION="8.3.1-build.16491"
+          curl -fsSL --retry 3 --retry-delay 5 \
+            "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SCANNER_VERSION}-linux.zip" \
+            -o "$RUNNER_TEMP/scanner.zip"
+          unzip -q "$RUNNER_TEMP/scanner.zip" -d "$RUNNER_TEMP"
+          SCANNER=$(ls "$RUNNER_TEMP"/sonar-scanner-cli-*/bin/sonar-scanner 2>/dev/null | head -1)
           if [ -z "$SCANNER" ]; then
-            echo "::error title=scanner::scanner binary not found under /opt/hostedtoolcache"
-            exit 0
+            echo "::error title=scanner::scanner binary not found after unzip"
+            exit 1
           fi
+          chmod +x "$SCANNER"
+
           set +e
           "$SCANNER" \
             -Dsonar.projectKey=Ruciazyt_qnote-elec \
@@ -158,11 +163,15 @@ jobs:
             -Dsonar.scm.provider=git \
             -Dsonar.scm.disabled=false \
             -Dsonar.sources=src/main,src/renderer,src/shared,src/database \
+            -Dsonar.test.inclusions='**/*.test.ts,**/*.test.tsx,**/*.spec.ts,**/*.spec.tsx,**/test/**' \
             -Dsonar.exclusions='**/node_modules/**,**/dist/**,**/dist_electron/**,**/build/**,**/.data/**,**/out-tsc/**,**/coverage/**,**/*.d.ts,**/*.min.js,**/public/**,**/*.svg,**/*.png,**/*.ico,**/*.icns,**/*.css,**/*.html' \
-            > scanner-output.log 2>&1
+            -Dsonar.javascript.lcov.reportPaths=src/renderer/coverage/lcov.info \
+            -Dsonar.typescript.lcov.reportPaths=src/renderer/coverage/lcov.info \
+            > scanner.log 2>&1
           code=$?
+
           {
-            grep -Ei 'project root|load properties|sonar\.(sources|tests|exclusions)|module|skipping|indexed|lines of code|excluded|warning|error' scanner-output.log \
+            grep -Ei 'project root|load properties|sonar\.(sources|tests|exclusions)|module|skipping|indexed|lines of code|excluded|WARN|ERROR' scanner.log \
               | head -60 \
               | while IFS= read -r line; do
                   safe=$(printf '%s' "$line" | sed -e 's/%/%25/g' -e 's/\r//g' | cut -c1-900)
@@ -170,7 +179,7 @@ jobs:
                 done
             echo "::error title=scanner::scanner exit code ${code}"
           }
-          exit 0
+          exit "$code"
 
       # 清单 + 判定。用 --wait 等本次提交的分析真正算完，
       # 否则查到的还是上一次的旧结果，门禁就成了假通过。
