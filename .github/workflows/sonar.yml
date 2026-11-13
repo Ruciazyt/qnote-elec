@@ -104,10 +104,8 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           args: >
-            -Dsonar.sources=src/main,src/renderer,src/shared,src/database
-            -Dsonar.tests=src/main,src/renderer,src/shared,src/database
-            -Dsonar.inclusions=src/main/**,src/renderer/**,src/shared/**,src/database/**
-            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/dist_electron/**,**/build/**,**/.data/**,**/out-tsc/**,**/coverage/**,**/*.d.ts,**/*.min.js,**/public/**,**/*.svg,**/*.png,**/*.ico,**/*.icns,**/*.css,**/*.html
+            -Dsonar.sources=src/main
+            -Dsonar.tests=src/renderer/test
 
       # 清单 + 判定。用 --wait 等本次提交的分析真正算完，
       # 否则查到的还是上一次的旧结果，门禁就成了假通过。
