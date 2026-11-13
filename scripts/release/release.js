@@ -362,7 +362,17 @@ function main() {
         // 且会被 .githooks/commit-msg 校验
         console.log('💾 提交版本更改...');
         execFileSync(GIT, ['add', 'package.json', 'pnpm-lock.yaml'], { stdio: 'inherit', cwd: ROOT });
-        execFileSync(GIT, ['commit', '-m', `chore(release): bump version to ${newVersion}`], {
+        // 跳过质量门禁时把痕迹写进提交信息 ——
+        // AGENTS.md 说「应急可用 SKIP_SONAR=1 跳过（会留痕在提交历史里）」，
+        // 光打印一行不算留痕：过几个月谁还记得那次发版是跳过的？
+        const commitArgs = ['commit', '-m', `chore(release): bump version to ${newVersion}`];
+        if (process.env.SKIP_SONAR === '1') {
+            commitArgs.push(
+                '-m',
+                '本次跳过 SonarCloud 质量门禁（SKIP_SONAR=1）：门禁无法判定或命中问题。'
+            );
+        }
+        execFileSync(GIT, commitArgs, {
             stdio: 'inherit',
             cwd: ROOT,
         });
