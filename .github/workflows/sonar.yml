@@ -122,7 +122,7 @@ jobs:
           CI: ""
         with:
           args: >
-            -Dsonar.sources=src
+            -Dsonar.sources=src/main,src/renderer,src/shared,src/database
             -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/dist_electron/**,**/build/**,**/.data/**,**/out-tsc/**,**/coverage/**,**/*.d.ts,**/*.min.js,**/public/**,**/*.svg,**/*.png,**/*.ico,**/*.icns,**/*.css,**/*.html
 
       # Run the scanner a second time, this time keeping its output.
@@ -157,7 +157,7 @@ jobs:
             -Dsonar.sourceEncoding=UTF-8 \
             -Dsonar.scm.provider=git \
             -Dsonar.scm.disabled=false \
-            -Dsonar.sources=src \
+            -Dsonar.sources=src/main,src/renderer,src/shared,src/database \
             -Dsonar.exclusions='**/node_modules/**,**/dist/**,**/dist_electron/**,**/build/**,**/.data/**,**/out-tsc/**,**/coverage/**,**/*.d.ts,**/*.min.js,**/public/**,**/*.svg,**/*.png,**/*.ico,**/*.icns,**/*.css,**/*.html' \
             > scanner-output.log 2>&1
           code=$?
