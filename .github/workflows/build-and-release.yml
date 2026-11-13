@@ -39,6 +39,21 @@ jobs:
         with:
           fetch-depth: 0
 
+      # 必须先装 pnpm 再跑 setup-node。
+      #
+      # package.json 里写了 "packageManager": "pnpm@10.32.0"，setup-node v5
+      # 看到它就会自动启用依赖缓存，而缓存要先调用 pnpm 拿 store 路径 ——
+      # pnpm 不在 PATH 上时这一步直接报
+      # "Unable to locate executable file: pnpm"，
+      # 作业在「Setup Node.js」就挂了，后面 build / build-mac / release 全部 skipped。
+      #
+      # 之前这个作业漏了这一步：其它作业（build / build-mac / sonar.yml）都有，
+      # 只有它没有，于是 1.11.0 的发版流水线整条卡死在门禁作业上。
+      - name: Setup pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
+        with:
+          version: 10.32.0
+
       - name: Setup Node.js
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
