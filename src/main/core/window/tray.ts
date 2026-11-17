@@ -10,6 +10,12 @@ function createTrayFromPath(iconPath: string): Tray {
     throw new Error(`无法加载图标文件: ${iconPath}`);
   }
 
+  if (process.platform === "darwin" && iconPath.endsWith("/trayTemplate.png")) {
+    // 保留 16pt 与 @2x 表示，系统根据菜单栏背景调整模板的颜色。
+    iconImage.setTemplateImage(true);
+    return new Tray(iconImage);
+  }
+
   // 边长按平台取：Windows 任务栏是 16px，macOS 菜单栏是 16pt@2x = 32px。
   const size = getTrayIconSize();
   return new Tray(iconImage.resize({ width: size, height: size }));

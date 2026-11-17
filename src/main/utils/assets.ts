@@ -18,7 +18,7 @@
  * - Windows：`.ico` 优先（多尺寸，任务栏 / exe 图标都用它）
  * - macOS / Linux：PNG（由 `scripts/build/generate-icons.js` 从 `icon.svg` 生成）
  *
- * macOS 上 PNG 由生成脚本产出为 `resources/icon.png` 与 `resources/icon-tray.png`，
+ * macOS 上生成脚本产出 `resources/icon.png` 与透明菜单栏图标 `trayTemplate.png`，
  * 打包时随 `resources/` 一起进 `process.resourcesPath/resources`。
  * 开发态还能退化到 `src/renderer/public/icon-256.png`（仓库里已有）。
  */
@@ -104,7 +104,7 @@ const APP_ICON_CANDIDATES: Readonly<Record<string, readonly string[]>> = {
 /** 托盘图标的候选文件名，按平台 */
 const TRAY_ICON_CANDIDATES: Readonly<Record<string, readonly string[]>> = {
   win32: ["icon.ico", "icon-tray.png", "icon.png"],
-  darwin: ["icon-tray.png", "icon.png", "icon-256.png"],
+  darwin: ["trayTemplate.png", "icon-tray.png", "icon.png", "icon-256.png"],
   linux: ["icon-tray.png", "icon.png", "icon-256.png"],
 };
 
