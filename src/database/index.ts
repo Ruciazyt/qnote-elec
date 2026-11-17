@@ -25,6 +25,10 @@ export function closeDB(): void {
 }
 
 export function getDB(appPath?: string): Knex {
+  // 无参数表示取当前连接。启动时安装版已用 userData 初始化，后续面板
+  // 不能重新推导开发路径，否则会读错库并销毁主窗口正在使用的连接。
+  if (!appPath && DB) return DB;
+
   let dbPath: string;
   log.info("appPath:", appPath);
   log.info("start to get DB");
