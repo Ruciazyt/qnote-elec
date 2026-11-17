@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import http from "node:http";
 import knexFactory, { type Knex } from "knex";
