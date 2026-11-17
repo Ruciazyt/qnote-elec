@@ -27,7 +27,7 @@ pnpm run build:electron # 只编译主进程与 preload
 pnpm run build:react    # 只构建渲染层
 pnpm run build:app      # 只跑 electron-builder（打包前会自动生成图标）
 pnpm run generate:icons # 只生成图标（macOS 的 .icns + 运行时 PNG）
-pnpm run release:patch  # 发补丁版本（1.12.0 → 1.12.1）
+pnpm run release:patch  # 发补丁版本（1.13.0 → 1.13.1）
 pnpm run sonar:issues   # 拉 SonarCloud 的问题清单（不需要 Java）
 pnpm run verify:sonar   # 同上，但命中拦截级别就退出码 1
 pnpm run sonar:local    # 本地现扫（SonarJS 规则，不需要令牌）
@@ -139,15 +139,16 @@ pnpm run verify:commit "feat(updater): 增加应用更新卡片"
 ### 3.1 格式
 
 ```
-MAJOR.MINOR.PATCH        例：1.12.0
+MAJOR.MINOR.PATCH        例：1.13.0
 ```
 
 - 三段纯数字，不带 `v` 前缀、不带 `-rc` 之类后缀
-- 当前发布线是 **1.12.x**
-  - 换线理由：1.11.x 这条线发布了云端存储（共享数据走 Cloudflare D1、
-    私有数据留本地）、应用市场与市场来源应用的运行前确认。1.12.0 在此之上
-    把公共目录地址内置进安装包 —— 装上就能用同一个公共目录，不需要任何配置。
-    按 3.2 的规则它要求 minor 版本，而 minor 落在 1.12.0。
+- 当前发布线是 **1.13.x**
+  - 换线理由：1.12.x 这条线发布了云端存储（共享数据走 Cloudflare D1、
+    私有数据留本地）、应用市场与市场来源应用的运行前确认、公共目录地址内置。
+    1.13.0 在此之上把仓库按功能域重组（renderer 的页面与 hooks、main 的 core、
+    shared 的子目录）、全仓去掉解释性注释，并让灵动岛 AI 面板支持选择与新建对话。
+    按 3.2 的规则它要求 minor 版本，而 minor 落在 1.13.0。
   - 换线必须同步改 `scripts/release/verify-version.js` 的 `RELEASE_LINE` ——
     两处不一致会被版本号校验拦下。
   - **切线与 version bump 不能拆成两个提交，更不能把切线提交单独推到 master。**
@@ -166,17 +167,17 @@ MAJOR.MINOR.PATCH        例：1.12.0
 
 | 场景 | 变更 |
 | --- | --- |
-| 修复缺陷、性能优化、重构、文档、测试、构建、CI、杂项 | patch（1.12.0 → 1.12.1） |
-| 新增功能 | minor（1.12.0 → 1.13.0） |
-| 不兼容的 API / 配置 / 数据结构变更 | major（1.12.0 → 2.0.0） |
+| 修复缺陷、性能优化、重构、文档、测试、构建、CI、杂项 | patch（1.13.0 → 1.13.1） |
+| 新增功能 | minor（1.13.0 → 1.14.0） |
+| 不兼容的 API / 配置 / 数据结构变更 | major（1.13.0 → 2.0.0） |
 
 
 ### 3.3 Tag 与 Release
 
-- **Tag 名 = 版本号本身**：`1.12.0`，**不加 `v` 前缀**
-- Release 标题 = `QNote 1.12.0`
+- **Tag 名 = 版本号本身**：`1.13.0`，**不加 `v` 前缀**
+- Release 标题 = `QNote 1.13.0`
 - Tag 必须与 `package.json` 的 `version` 完全一致
-- tag 是**带注释的**（`git tag -a`），注释写 `Release 1.12.0`
+- tag 是**带注释的**（`git tag -a`），注释写 `Release 1.13.0`
 - 一个版本号只发一次。改过内容要重发，就 bump 到下一个 patch 号
 
 
