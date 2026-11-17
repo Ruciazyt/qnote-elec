@@ -74,7 +74,7 @@ jobs:
             -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/dist_electron/**,**/build/**,**/.data/**,**/out-tsc/**,**/coverage/**,**/*.d.ts,**/*.min.js,**/public/**,**/*.svg,**/*.png,**/*.ico,**/*.icns,**/*.css,**/*.html
 
       - name: "Diagnostics: scanner output"
-        if: false
+        if: failure()
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           CI: ""

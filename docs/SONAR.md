@@ -117,30 +117,41 @@ analysis: 60669.
 | `sonar.tests` 指向某个 sources 目录的**子目录** | Sonar 为避免「文件被索引两次」把**整个父目录**踢出范围。实测只剩 98 个文件、`ncloc` 16522 —— 渲染层一行都没扫。 |
 
 
-### 4.3 ⚠️ 组织开着「自动分析」，CI 扫描会被挡
+### 4.3 ⚠️ 组织 key 必须小写
 
+SonarCloud 上组织 key 是 `ruciazyt`（显示名 "Rucia_zyt"）。
+`sonar.organization` 写成大写 `Ruciazyt` 时，认证能过、也能连上服务器，
+但加载插件那一步会报：
 
+```
+ERROR Fail to load the list of plugins installed on the server: Not authorized or organization not found
+```
+
+退出码同样是 3。这个错和下面「自动分析开启」的错长得不一样，别混。
+
+项目 key 是 `Ruciazyt_qnote-elec`（大写 R），`sonar-project.properties` 与
+`scripts/quality/sonar-issues.js` 两处一致，不用动。
+
+### 4.4 ⚠️ 组织开着「自动分析」，CI 扫描会被挡
 
 ```
 ERROR You are running CI analysis while Automatic Analysis is enabled.
       Please consider disabling one or the other.        (exit code 3)
 ```
 
-
-
 ```
 POST /api/settings/set  key=sonar.autoscan.enabled  component=<项目>   → Setting cannot be set on a Project
 POST /api/settings/set  key=sonar.autoscan.enabled  component=ruciazyt → Component key 'ruciazyt' not found
 ```
 
-### 4.4 当前的覆盖范围（**未解决**）
+自动分析要在 SonarCloud 控制台里关（组织 → Administration → Automatic Analysis），
+API 改不动。
 
+### 4.5 当前的覆盖范围（**待验证**）
 
-
-- ❌ properties 没被读到 —— scanner 日志里明确写着
-- ❌ 多目录写法不支持 —— `sonar.sources=src`（单目录）与四个目录（多目录）结果一样
-- ❌ `sonar.tests` 导致 —— 现在根本设了 `sonar.tests`
-- ⚠️ `src/renderer` 自带 `package.json`，可能被 Sonar 当成**独立模块**而剔除
+`sonar.sources` 是四个目录，测试文件由 `sonar.test.inclusions` 单独标，没有设
+`sonar.tests`（设了会退回全仓扫描，见 4.2）。下一次扫描跑通后按实际的 `ncloc`
+重新核对 —— 免费额度 50000 LOC，超过就被拒。
 
 
 ### 4.5 改了范围怎么确认生效
