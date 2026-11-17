@@ -15,6 +15,7 @@
  * - `build/icon.icns`        —— electron-builder 的 `mac.icon` 来源
  * - `resources/icon.png`     —— 运行时图标（窗口图标 / 打包后的资源目录）
  * - `resources/icon-tray.png`—— 托盘图标源图
+ * - `resources/trayTemplate.png` / `trayTemplate@2x.png` —— macOS 透明模板图标
  *
  * ## 为什么 mac 用「满幅方形」而运行时图标保留圆角
  *
@@ -22,7 +23,7 @@
  * 四角透明的图过去，就会出现「圆角套圆角」，边缘发虚、四角透出桌面背景。
  * 正确做法是送满幅方形位图，把圆角交给系统。
  *
- * 而托盘图标、窗口图标是应用内自己画的，不经过系统遮罩，保留圆角才好看。
+ * 窗口和其他平台的托盘保留圆角；macOS 菜单栏使用独立的透明单色模板。
  *
  * ## 依赖
  *
@@ -36,6 +37,7 @@ const { createRequire } = require("node:module");
 
 const projectRoot = path.resolve(__dirname, "..", "..");
 const sourceSvgPath = path.join(projectRoot, "src", "renderer", "public", "icon.svg");
+const traySvgPath = path.join(projectRoot, "src", "renderer", "public", "tray.svg");
 const buildDir = path.join(projectRoot, "build");
 const resourcesDir = path.join(projectRoot, "resources");
 
@@ -150,6 +152,15 @@ async function main() {
   const trayIconPath = path.join(resourcesDir, "icon-tray.png");
   writeFile(trayIconPath, await renderPng(sharp, originalSvg, TRAY_ICON_SIZE));
   console.log(`✔ 托盘图标: ${path.relative(projectRoot, trayIconPath)} (${TRAY_ICON_SIZE}px)`);
+
+  // macOS 模板图标的逻辑尺寸是 16pt，@2x 文件提供 Retina 像素密度。
+  // 文件名和同目录的 @2x 配对让 nativeImage 自动加载两种分辨率。
+  const traySvg = fs.readFileSync(traySvgPath, "utf8");
+  for (const scale of [1, 2]) {
+    const fileName = scale === 1 ? "trayTemplate.png" : "trayTemplate@2x.png";
+    writeFile(path.join(resourcesDir, fileName), await renderPng(sharp, traySvg, 16 * scale));
+  }
+  console.log("✔ macOS 菜单栏模板图标: 16pt（1x / 2x，透明背景）");
 }
 
 main().catch((error) => {

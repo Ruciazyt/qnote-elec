@@ -22,6 +22,8 @@ build/icon.icns
 # 运行时图标（托盘 / 窗口图标，macOS 与 Linux 用 PNG，Windows 用 icon.ico）
 resources/icon.png
 resources/icon-tray.png
+resources/trayTemplate.png
+resources/trayTemplate@2x.png
 *.7z
 *.zip
 *.tar.gz
