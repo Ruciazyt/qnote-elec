@@ -58,7 +58,7 @@ const APP_ICON_CANDIDATES: Readonly<Record<string, readonly string[]>> = {
 
 const TRAY_ICON_CANDIDATES: Readonly<Record<string, readonly string[]>> = {
   win32: ["icon.ico", "icon-tray.png", "icon.png"],
-  darwin: ["icon-tray.png", "icon.png", "icon-256.png"],
+  darwin: ["trayTemplate.png", "icon-tray.png", "icon.png", "icon-256.png"],
   linux: ["icon-tray.png", "icon.png", "icon-256.png"],
 };
 

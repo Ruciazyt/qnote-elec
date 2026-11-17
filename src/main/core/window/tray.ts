@@ -10,6 +10,11 @@ function createTrayFromPath(iconPath: string): Tray {
     throw new Error(`无法加载图标文件: ${iconPath}`);
   }
 
+  if (process.platform === "darwin" && iconPath.endsWith("/trayTemplate.png")) {
+    iconImage.setTemplateImage(true);
+    return new Tray(iconImage);
+  }
+
   const size = getTrayIconSize();
   return new Tray(iconImage.resize({ width: size, height: size }));
 }

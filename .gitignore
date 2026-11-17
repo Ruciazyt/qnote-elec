@@ -15,6 +15,8 @@ src/**/*.js.map
 build/icon.icns
 resources/icon.png
 resources/icon-tray.png
+resources/trayTemplate.png
+resources/trayTemplate@2x.png
 *.7z
 *.zip
 *.tar.gz

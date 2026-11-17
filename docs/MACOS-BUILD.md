@@ -98,6 +98,11 @@ pnpm run build:app -- --mac --arm64 --x64 --publish never
 pnpm run generate:icons
 ```
 
+生成的 `build/icon.icns` 含 32 / 64 / 128 / 256 / 512 / 1024 六个尺寸。
+mac 应用图标是满幅方形（圆角由系统遮罩加），窗口图标保留圆角。
+菜单栏图标从 `src/renderer/public/tray.svg` 生成透明背景的单色模板，
+输出 `resources/trayTemplate.png`（16px）与 `trayTemplate@2x.png`（32px），
+系统根据菜单栏背景自动调整颜色。
 
 ## 七、已知限制
 
