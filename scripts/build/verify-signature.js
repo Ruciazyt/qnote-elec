@@ -1,36 +1,5 @@
 'use strict';
 
-/**
- * 打包产物的代码签名体检
- *
- * ## 为什么需要这个脚本
- *
- * 「文件带了签名」和「签名有效」是两件事，混在一起就会得出错误结论：
- *
- *   - 自签名证书（CN=自己，Issuer=自己）能证明文件没被篡改，但证书链在系统里
- *     找不到信任根。Windows 的判定是 UnknownError —— SmartScreen 照样弹
- *     「未知发布者」，企业 EDR 照样按「签名无效」拦。
- *   - 有些扫描器对「有签名但链不可信」的判定比「完全没签名」更严：
- *     未签名只算「未知」，签名了却链不可信会同时命中「签名被伪造/剥离」
- *     这类启发式规则，结论直接升级成高危。
- *
- * 所以发版前要分三层看清：
- *
- *   1. 哪些文件带了签名 —— 读 PE 头的数据目录表，第 4 项是 Certificate Table
- *   2. 这些签名的证书链系统认不认 —— Get-AuthenticodeSignature
- *   3. 产物的 SHA256 —— 企业白名单、误报申诉、用户核对都要用
- *
- * 用法：
- *
- *   node scripts/build/verify-signature.js [输出目录]
- *
- * 默认只报告、不失败 —— 签名不合格不应该把打包流程卡死（那会让「先发布、
- * 后换证书」这条路走不通）。要卡门禁就加 --strict，此时只要有文件带签名
- * 但证书链不被系统信任，就以退出码 1 结束。
- *
- * 报告里会顺带在输出目录写一份 SHA256SUMS.txt，格式与 sha256sum 一致，
- * 可以直接 `sha256sum -c SHA256SUMS.txt` 校验。
- */
 
 const fs = require('node:fs');
 const os = require('node:os');
@@ -42,25 +11,11 @@ const { resolveExe } = require('../lib/resolve-exe');
 const ROOT = path.resolve(__dirname, '..', '..');
 const PKG = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
 
-/** 会参与执行的可执行文件后缀 —— 这些是安全扫描重点盯的对象 */
 const PE_EXTENSIONS = ['.exe', '.dll', '.node'];
 
-/** 一次扫描最多交给 PowerShell 多少个文件做证书链校验 */
 const TRUST_CHECK_LIMIT = 40;
 
-// ---------------------------------------------------------------------------
-// PE 头解析：判断文件里有没有 Authenticode 签名
-// ---------------------------------------------------------------------------
 
-/**
- * 读 PE 头的 Certificate Table，判断文件是否带 Authenticode 签名
- *
- * 数据目录表第 4 项（索引 4）是 Certificate Table。它的 VirtualAddress
- * 字段按 PE 规范存的是**文件偏移**（不是 RVA），Size 大于 0 即为带签名。
- *
- * @param {string} file
- * @returns {boolean}
- */
 function hasAuthenticodeSignature(file) {
   let fd;
   try {
@@ -68,12 +23,11 @@ function hasAuthenticodeSignature(file) {
     const head = Buffer.alloc(4096);
     const read = fs.readSync(fd, head, 0, 4096, 0);
     if (read < 64) return false;
-    if (head.readUInt16LE(0) !== 0x5a4d) return false; // 'MZ'
+    if (head.readUInt16LE(0) !== 0x5a4d) return false;
 
     const peOffset = head.readUInt32LE(0x3c);
-    // PE 头 + COFF 头 + 可选头 + 5 个目录项，缺一不可
     if (peOffset + 24 + 176 > read) return false;
-    if (head.readUInt32LE(peOffset) !== 0x00004550) return false; // 'PE\0\0'
+    if (head.readUInt32LE(peOffset) !== 0x00004550) return false;
 
     const sizeOfOptionalHeader = head.readUInt16LE(peOffset + 20);
     const optOffset = peOffset + 24;
@@ -82,8 +36,8 @@ function hasAuthenticodeSignature(file) {
 
     const magic = head.readUInt16LE(optOffset);
     let dirOffset;
-    if (magic === 0x20b) dirOffset = optOffset + 112; // PE32+
-    else if (magic === 0x10b) dirOffset = optOffset + 96; // PE32
+    if (magic === 0x20b) dirOffset = optOffset + 112;
+    else if (magic === 0x10b) dirOffset = optOffset + 96;
     else return false;
 
     const certDirOffset = dirOffset + 4 * 8;
@@ -97,26 +51,12 @@ function hasAuthenticodeSignature(file) {
       try {
         fs.closeSync(fd);
       } catch {
-        /* 关闭失败不影响结论 */
       }
     }
   }
 }
 
-// ---------------------------------------------------------------------------
-// 证书链校验：借 PowerShell 的 Get-AuthenticodeSignature
-// ---------------------------------------------------------------------------
 
-/**
- * 取一批文件的签名状态（证书链是否被系统信任）
- *
- * Node 读不了 Windows 证书链，只能借 PowerShell。脚本内容保持纯 ASCII，
- * 输出里的 StatusMessage 可能被系统本地化成中文 —— 所以先把控制台输出
- * 编码设为 UTF8，避免 Node 按 utf8 解码时出现乱码。
- *
- * @param {string[]} files
- * @returns {Array<Object>}
- */
 function checkTrustWithPowerShell(files) {
   if (process.platform !== 'win32' || files.length === 0) return [];
 
@@ -172,27 +112,16 @@ function checkTrustWithPowerShell(files) {
     const parsed = JSON.parse(text);
     return Array.isArray(parsed) ? parsed : [parsed];
   } catch {
-    // 证书链校验失败不算致命：报告里降级成「未校验」
     return [];
   } finally {
     try {
       fs.unlinkSync(tmpScript);
     } catch {
-      /* 临时文件删不掉也不影响构建 */
     }
   }
 }
 
-// ---------------------------------------------------------------------------
-// 产物收集
-// ---------------------------------------------------------------------------
 
-/**
- * 递归收集目录下的可执行文件
- *
- * @param {string} dir
- * @param {string[]} out
- */
 function collectPeFiles(dir, out) {
   let entries;
   try {
@@ -213,11 +142,6 @@ function collectPeFiles(dir, out) {
   }
 }
 
-/**
- * 收集打包产物：安装包 / 便携版压缩包 / 解包目录里的可执行文件
- *
- * @param {string} outputDir
- */
 function collectArtifacts(outputDir) {
   const installers = [];
   const archives = [];
@@ -245,30 +169,22 @@ function collectArtifacts(outputDir) {
   return { installers, archives, appFiles, unpackedDir };
 }
 
-/** 计算文件的 SHA256 */
 function sha256(file) {
   const hash = crypto.createHash('sha256');
   hash.update(fs.readFileSync(file));
   return hash.digest('hex');
 }
 
-// ---------------------------------------------------------------------------
-// 报告
-// ---------------------------------------------------------------------------
 
 function formatSize(bytes) {
   return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
 }
 
-/** 相对仓库根的展示路径 */
 function rel(file) {
   const p = path.relative(ROOT, file);
   return p.startsWith('..') ? file : p;
 }
 
-/**
- * 打印单个文件的签名信息
- */
 function printFileInfo(file, trustMap) {
   const stat = fs.statSync(file);
   console.log(`\n【${path.basename(file)}】`);
@@ -322,31 +238,26 @@ function main() {
     return;
   }
 
-  // 主程序 exe 与安装包单独展开细说
   const productName = PKG.build?.productName || 'QNote';
   const mainExe = path.join(unpackedDir, `${productName}.exe`);
   const keyFiles = [];
   if (fs.existsSync(mainExe)) keyFiles.push(mainExe);
   for (const f of installers) keyFiles.push(f);
 
-  // 所有带签名的文件都过一遍证书链（数量通常很小）
   const signedAppFiles = appFiles.filter((f) => hasAuthenticodeSignature(f));
   const trustTargets = [...new Set([...keyFiles, ...signedAppFiles])].slice(0, TRUST_CHECK_LIMIT);
 
   const trustList = checkTrustWithPowerShell(trustTargets);
   const trustMap = new Map(trustList.map((t) => [t.Path, t]));
 
-  // ---- 安装包 ----
   for (const file of installers) {
     printFileInfo(file, trustMap);
   }
 
-  // ---- 主程序 ----
   if (fs.existsSync(mainExe)) {
     printFileInfo(mainExe, trustMap);
   }
 
-  // ---- 解包目录里的其它可执行文件 ----
   const otherAppFiles = appFiles.filter((f) => f !== mainExe);
   const unsigned = otherAppFiles.filter((f) => !hasAuthenticodeSignature(f));
   const signedOthers = otherAppFiles.filter(
@@ -377,7 +288,6 @@ function main() {
     }
   }
 
-  // ---- SHA256 清单 ----
   const hashTargets = [...installers, ...archives];
   if (hashTargets.length > 0) {
     const lines = hashTargets.map((f) => `${sha256(f)}  ${path.basename(f)}`);
@@ -387,7 +297,6 @@ function main() {
     for (const line of lines) console.log(`   ${line}`);
   }
 
-  // ---- 结论 ----
   const allSigned = [
     ...installers,
     ...(fs.existsSync(mainExe) ? [mainExe] : []),

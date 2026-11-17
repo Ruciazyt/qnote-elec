@@ -1,19 +1,8 @@
-/**
- * PNG 编解码 —— 只依赖 Node 内置 zlib
- *
- * 为什么自己写：像素宠物流水线要能在任意机器上直接 `node xxx.mjs` 跑通，
- * 不该因为缺一个原生图像库就装不上。编码够用即可（8 位 RGBA，非隔行），
- * 解码则要能吃下手机截图常见的 24 位 RGB —— 本项目的源图就是 256x270 的
- * Format24bppRgb，**没有 alpha 通道**，棋盘格背景是烤进像素里的。
- */
 
 import zlib from 'node:zlib';
 
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
-/* ------------------------------------------------------------------ */
-/* 编码                                                                */
-/* ------------------------------------------------------------------ */
 
 function crc32(buf) {
   let c;
@@ -40,21 +29,16 @@ function chunk(type, data) {
   return Buffer.concat([len, typeBuf, data, crcBuf]);
 }
 
-/**
- * 把 RGBA 像素编码成 PNG
- * @param {Uint8Array} rgba  长度 = w*h*4
- */
 export function encodePng(rgba, w, h) {
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(w, 0);
   ihdr.writeUInt32BE(h, 4);
-  ihdr[8] = 8; // bit depth
-  ihdr[9] = 6; // color type RGBA
+  ihdr[8] = 8;
+  ihdr[9] = 6;
   ihdr[10] = 0;
   ihdr[11] = 0;
   ihdr[12] = 0;
 
-  // 每行前置 filter byte 0（None）
   const raw = Buffer.alloc((w * 4 + 1) * h);
   for (let y = 0; y < h; y++) {
     raw[y * (w * 4 + 1)] = 0;
@@ -69,21 +53,9 @@ export function encodePng(rgba, w, h) {
   ]);
 }
 
-/* ------------------------------------------------------------------ */
-/* 解码                                                                */
-/* ------------------------------------------------------------------ */
 
-/** 各种 color type 对应的通道数 */
 const CHANNELS = { 0: 1, 2: 3, 4: 2, 6: 4 };
 
-/**
- * 解码 PNG 为原始像素
- *
- * 支持 8 位、color type 0/2/4/6、非隔行 —— 覆盖截图与本项目产物。
- * 返回的 data 是按行紧密排列的原始通道数据，不含 alpha 预乘。
- *
- * @returns {{width:number,height:number,channels:number,data:Buffer}}
- */
 export function decodePng(buf) {
   if (!buf.subarray(0, 8).equals(PNG_SIGNATURE)) throw new Error('不是合法的 PNG');
 
@@ -112,7 +84,6 @@ export function decodePng(buf) {
   const channels = CHANNELS[colorType];
   if (!channels) throw new Error(`暂不支持 color type ${colorType}`);
 
-  // 反过滤：PNG 每行前置一个 filter 字节，必须按行按类型还原
   const raw = zlib.inflateSync(Buffer.concat(idat));
   const stride = width * channels;
   const out = Buffer.alloc(height * stride);
@@ -137,7 +108,6 @@ export function decodePng(buf) {
         case 2: v = v + b; break;
         case 3: v = v + ((a + b) >> 1); break;
         case 4: {
-          // Paeth：取 a/b/c 中与 p=a+b-c 最接近的一个作为预测值
           const p = a + b - c;
           const pa = Math.abs(p - a);
           const pb = Math.abs(p - b);

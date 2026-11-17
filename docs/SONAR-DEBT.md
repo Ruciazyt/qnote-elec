@@ -1,10 +1,6 @@
 # SonarCloud 存量债台账
 
-**数据来源**：SonarCloud 项目 `Ruciazyt_qnote-elec`，2026-11-09 的那次分析
-（提交 `77a8c21`，即 1.9.0 发版时），共 **703** 个未解决问题。
 
-> ⚠️ 那次分析已经落后当前代码。修完之后要推 master 让 CI 重扫，
-> 数字才会准。本文档记的是**当时的账**，处置结论仍然有效。
 
 ---
 
@@ -16,8 +12,6 @@
 | 缺陷（BUG） | 2 | **全修** |
 | 代码异味（CODE_SMELL） | 695 | 按规则分档处置，见下 |
 
-**发版门禁只看前两类**（缺陷 + 漏洞），代码异味只报不拦 —— 理由见
-`docs/SONAR.md` §5.1。
 
 ---
 
@@ -60,7 +54,6 @@
 
 ## 4. 代码异味：明确不修（附理由）
 
-这几条不是"还没来得及"，是**判��后决定不追**。真要清，按下面的建议来。
 
 | 规则 | 数量 | 不修的理由 | 真要清怎么做 |
 | --- | ---: | --- | --- |
@@ -75,13 +68,8 @@
 
 ### 在 SonarCloud 上把规则标成 Won't Fix
 
-上面"明确不修"的几条，建议在 SonarCloud 的质量配置里标成 **Won't Fix**，
-让门禁面板只剩真正要追的东西：
 
-> SonarCloud → 项目 → **Quality Profiles** → 对应规则 → 右上角菜单 →
-> **Set as Won’t Fix**（或把严重度降到 Info）
 
-标完之后 `pnpm run sonar:issues` 的清单里就不会再刷这些。
 
 ---
 
@@ -100,11 +88,9 @@ pnpm run sonar:issues
 pnpm run verify:sonar
 ```
 
-本地也能现扫（不需要令牌、不用等 CI）：
 
 ```bash
 pnpm run sonar:local        # SonarJS 规则清单
 pnpm run sonar:local -- --gate
 ```
 
-> 两份清单的口径差异见 `docs/SONAR.md` §3.1。

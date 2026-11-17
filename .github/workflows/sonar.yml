@@ -1,17 +1,5 @@
 name: SonarCloud
 
-# -----------------------------------------------------------------------
-# SonarCloud 扫描 —— 推 master 与提 PR 时各跑一次
-#
-# 这个工作流负责「产生分析结果」；
-# 发版时真正阻断的是 build-and-release.yml 里的 sonar-gate 作业，
-# 它跑同一个 scripts/quality/sonar-issues.js 判定有没有命中级别的问题。
-#
-# 令牌来自仓库 secret SONAR_TOKEN。没配的话整个扫描会跳过（不红），
-# 免得还没接好就把 CI 搞挂。
-#
-# 手动触发：Actions 页 → SonarCloud → Run workflow
-# -----------------------------------------------------------------------
 
 on:
   push:
@@ -29,20 +17,18 @@ jobs:
       pull-requests: read
 
     steps:
-      # fetch-depth: 0 —— Sonar 要完整 git 历史才能做 blame
-      # 与「新增代码」判定，浅克隆会让它把整个仓库都当成新代码。
       - name: Checkout code
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
         with:
           fetch-depth: 0
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320
         with:
           version: 10.32.0
 
       - name: Setup Node.js
-        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
         with:
           node-version: '22'
           cache: 'pnpm'
@@ -51,8 +37,6 @@ jobs:
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
 
-      # 覆盖率报告：SonarCloud 侧填 src/renderer/coverage/lcov.info
-      # 不产出 lcov 的话，覆盖率指标会是 0，质量门禁那一条必然红。
       - name: Run unit tests with coverage
         run: pnpm --dir src/renderer run test:coverage
 
@@ -68,12 +52,6 @@ jobs:
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           fi
 
-      # 把生效的分析范围写进 workflow summary
-      #
-      # 为什么需要这一步：Actions 的日志要登录才能读（匿名访问返回 403），
-      # 但 workflow summary 会进 check run 的 output.summary ——
-      # 那个用 REST API 就能读。排查「scanner 到底扫了什么」时，
-      # 这一步是唯一能拿到现场的办法。
       - name: "Diagnostics: analysis scope"
         run: |
           {
@@ -84,58 +62,17 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # Scan with the official action (pinned to a full commit SHA).
-      #
-      # The analysis scope is passed on the command line as well as through
-      # sonar-project.properties: command line wins over the properties file,
-      # so both places stay in sync and there is nothing left to guess about.
-      #
-      # Scope covers only the four core directories under src/ (main process,
-      # renderer, shared types, data layer). scripts/ is left out on purpose:
-      # the free SonarCloud tier counts the whole organization's lines of code
-      # and rejects anything above 50000, which blocks the analysis outright.
-      #
-      # Do NOT pass sonar.tests here. Two ways it goes wrong, both measured:
-      #   - identical to sonar.sources -> Sonar drops the scope and scans the
-      #     whole repository (60700+ LOC, analysis rejected by the quota)
-      #   - a subdirectory of a sources directory -> Sonar drops that whole
-      #     parent directory to avoid indexing files twice (98 files left)
-      # Test files are marked as tests by sonar.test.inclusions instead.
       - name: SonarCloud scan
         if: steps.sonar-token.outputs.enabled == 'true'
-        uses: SonarSource/sonarqube-scan-action@e805d875275f728fac1885b413934be6d7c63f65 # v8.4.1
+        uses: SonarSource/sonarqube-scan-action@e805d875275f728fac1885b413934be6d7c63f65
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          # SonarCloud has "Automatic Analysis" turned on for this organization:
-          # every push to master makes SonarCloud run an analysis by itself.
-          # That analysis has no client-side configuration, so it always covers
-          # the whole repository -- 60700+ LOC, which the free tier rejects.
-          #
-          # Worse, the scanner refuses to run while both are active:
-          #   "You are running CI analysis while Automatic Analysis is enabled.
-          #    Please consider disabling one or the other." (exit code 3)
-          #
-          # The scanner decides "this is a CI analysis" by looking at the CI
-          # environment variable, so clearing it makes this run look like a
-          # manual analysis. Both then run; ours (scoped correctly) is the
-          # one that lands last, so it is the one the quality gate reads.
           CI: ""
         with:
           args: >
             -Dsonar.sources=src/main,src/renderer,src/shared,src/database
             -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/dist_electron/**,**/build/**,**/.data/**,**/out-tsc/**,**/coverage/**,**/*.d.ts,**/*.min.js,**/public/**,**/*.svg,**/*.png,**/*.ico,**/*.icns,**/*.css,**/*.html
 
-      # Run the scanner a second time, this time keeping its output.
-      #
-      # The action's own output only lands in the Actions log, and that log
-      # returns 403 for anonymous requests -- so there was no way to see what
-      # the scanner actually did. This step calls the very same binary (the
-      # action installed it under /opt/hostedtoolcache) and turns the
-      # interesting lines into annotations, which ARE readable via the API.
-      #
-      # It is disabled by default: every extra run uploads another analysis,
-      # and the analysis that lands last is the one the quality gate reads.
-      # Turn it on (workflow_dispatch) when the scope needs to be inspected.
       - name: "Diagnostics: scanner output"
         if: false
         env:
@@ -172,11 +109,6 @@ jobs:
           }
           exit 0
 
-      # 清单 + 判定。用 --wait 等本次提交的分析真正算完，
-      # 否则查到的还是上一次的旧结果，门禁就成了假通过。
-      #
-      # 退出码：1 = 查到了命中级别的问题（本次工作流红）；
-      #         2 = 判不了（令牌失效 / 网络不通）—— 只告警。
       - name: Collect issue list
         if: steps.sonar-token.outputs.enabled == 'true'
         env:
@@ -193,7 +125,7 @@ jobs:
 
       - name: Upload issue list
         if: always() && steps.sonar-token.outputs.enabled == 'true'
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
         with:
           name: sonar-issues
           path: .data/sonar/

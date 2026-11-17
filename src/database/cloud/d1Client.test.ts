@@ -1,8 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect, vi } from "vitest";
 
-// log.ts 依赖 electron（写日志要看 userData 路径），这里把它挡掉 ——
-// D1 客户端本身不需要任何 electron 能力。
 vi.mock("electron", () => ({
   app: {
     getPath: () => "C:/tmp",
@@ -13,17 +11,7 @@ vi.mock("electron", () => ({
 
 import { D1Client, D1Error } from "./d1Client";
 
-/**
- * D1 REST 客户端的行为回归
- *
- * 这里锁的是「D1 的脾气」—— 哪些能重试、哪些不能、错误怎么冒出来。
- * 这些规则一旦搞错，后果都很隐蔽：
- *   - 把写操作也重试 → 一次失败变两条数据
- *   - batch 当成普通查询发 → 失去 D1 上唯一的原子性来源
- *   - 把 D1 的错误当网络错误 → 用户看到「无法连接」而不是「Token 无效」
- */
 
-/** 造一个可控的 fetch 替身 */
 function makeFetch(
   handler: (url: string, init: RequestInit, callIndex: number) => {
     status?: number;
@@ -44,7 +32,6 @@ function makeFetch(
   return { impl: impl as unknown as typeof fetch, calls };
 }
 
-/** 一个成功的 D1 响应 */
 function okResponse(rows: unknown[] = []) {
   return {
     success: true,
@@ -112,7 +99,6 @@ describe("D1 客户端", () => {
       { sql: "CREATE TABLE IF NOT EXISTS b (y INT)" },
     ]);
 
-    // batch 必须是数组形态，不能退化成一条拼接的 sql
     expect(Array.isArray(calls[0].body.batch)).toBe(true);
     expect(calls[0].body.batch).toHaveLength(2);
     expect(calls[0].body.sql).toBeUndefined();

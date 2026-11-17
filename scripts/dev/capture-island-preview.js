@@ -1,28 +1,9 @@
-/**
- * 灵动岛截图工具（临时）
- *
- * QNote 的 dev 实例没法用 CDP 连（/json/list 永远不返回），
- * 所以另起一个最小 Electron 应用：加载岛的真实产物 + 喂假数据，
- * 用 webContents.capturePage() 把收起态与展开态各截一张。
- *
- * 只开一个窗口：展开态靠改窗口尺寸 + 推一次 island:state 复现，
- * 不再二次 loadFile（同一进程里第二个窗口的 file:// 加载偶发 ERR_FAILED）。
- *
- * 用法：electron scripts/dev/capture-island-preview.js
- * 产物：dist/island-preview-*.png
- */
 const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
 
 const repoRoot = path.resolve(__dirname, "..", "..");
 
-/**
- * 阴影留白 —— 窗口比卡片大一圈，阴影才有地方画
- *
- * 与 shared/island.ts 的 ISLAND_SHADOW_PAD_X / ISLAND_SHADOW_PAD_Y 同值。
- * 截图窗口要按这个放大，否则阴影会被窗口矩形裁掉（截出来就是那道硬边）。
- */
 const PAD_X = 10;
 const PAD_Y = 32;
 
@@ -80,7 +61,6 @@ const SAMPLE_NOTES = [
   { relPath: "草稿.excalidraw", name: "草稿.excalidraw", mtime: Date.now() - 7200_000, type: "excalidraw" },
 ];
 
-/** AI 对话页的历史消息（默认 AI 会话里的） */
 const SAMPLE_AI_HISTORY = [
   { id: 1, role: "user", content: "帮我看看今天的待办怎么排优先级" },
   {
@@ -91,6 +71,30 @@ const SAMPLE_AI_HISTORY = [
       "「多屏跟随」可以放到明天，它要动主进程的窗口逻辑。",
   },
   { id: 3, role: "user", content: "行，先做宽度" },
+];
+
+const SAMPLE_SESSIONS = [
+  {
+    id: "s-1",
+    title: "整理周报",
+    preview: "把本周的进展汇总一下",
+    created_at: new Date("2026-11-11T10:00:00Z"),
+    updated_at: new Date("2026-11-11T10:00:00Z"),
+  },
+  {
+    id: "s-2",
+    title: "查接口签名",
+    preview: "HMAC 怎么算，密钥放哪",
+    created_at: new Date("2026-11-10T14:20:00Z"),
+    updated_at: new Date("2026-11-10T14:20:00Z"),
+  },
+  {
+    id: "s-3",
+    title: "灵动岛的收起态宽度",
+    preview: "定成 330 还是 260",
+    created_at: new Date("2026-11-09T09:05:00Z"),
+    updated_at: new Date("2026-11-09T09:05:00Z"),
+  },
 ];
 
 function registerMocks() {
@@ -125,6 +129,16 @@ function registerMocks() {
   ipcMain.handle("popup-get-clipboard-history", () => SAMPLE_CLIPBOARD);
   ipcMain.handle("popup-copy-clipboard-item", () => ({ success: true }));
   ipcMain.handle("get-ai-chat-session-history", () => SAMPLE_AI_HISTORY);
+  ipcMain.handle("get-ai-chat-sessions", () => SAMPLE_SESSIONS);
+  ipcMain.handle("create-ai-chat-session", () => ({
+    id: "s-new",
+    title: "新建对话",
+    preview: "",
+    created_at: new Date(),
+    updated_at: new Date(),
+  }));
+  ipcMain.handle("delete-ai-chat-session", () => true);
+  ipcMain.handle("get-ai-skills", () => []);
   ipcMain.handle("send-ai-agent-stream", () => ({ sessionId: "preview-session" }));
   ipcMain.on("island:set-collapsed-width", () => {});
   ipcMain.on("island:set-interactive", () => {});
@@ -136,7 +150,6 @@ function registerMocks() {
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-/** 打印一下当前状态：哪个页签高亮、面板里是哪个页 —— 截图对不上时先看这个 */
 async function dumpState(win, tag) {
   const state = await win.webContents.executeJavaScript(`
     (() => {
@@ -179,9 +192,6 @@ app.whenReady().then(async () => {
   });
 
   await win.loadFile(htmlPath);
-  // 窗口是隐藏的，合成器不产帧 —— CSS 过渡会冻在起始值上，
-  // 截出来的静态图会停在动画中间（按钮显示成禁用色、面板半透明）。
-  // 截图前把过渡关掉，让每张图都是最终态。
   await win.webContents.executeJavaScript(`
     (() => {
       const style = document.createElement('style');
@@ -191,10 +201,8 @@ app.whenReady().then(async () => {
   `);
   await wait(1500);
 
-  // ── 收起态 ──
   await capture(win, path.join(repoRoot, "dist", "island-preview-collapsed.png"));
 
-  // ── 收起态（浮动态）—— 拖离屏幕顶边后是颗四角一样圆的药丸 ──
   win.webContents.send("island:state", {
     expanded: false,
     page: "todo",
@@ -205,7 +213,6 @@ app.whenReady().then(async () => {
   await wait(600);
   await capture(win, path.join(repoRoot, "dist", "island-preview-collapsed-floating.png"));
 
-  // ── 展开态：改窗口尺寸 + 推一次状态 ──
   win.setSize(400 + PAD_X * 2, 480 + PAD_Y);
   win.webContents.send("island:state", {
     expanded: true,
@@ -218,7 +225,6 @@ app.whenReady().then(async () => {
   await capture(win, path.join(repoRoot, "dist", "island-preview-expanded.png"));
   await dumpState(win, "[expanded]");
 
-  // ── 展开态（剪贴板页签），顺带看另一个页签的排版 ──
   win.webContents.send("island:state", {
     expanded: true,
     page: "clipboard",
@@ -230,7 +236,6 @@ app.whenReady().then(async () => {
   await capture(win, path.join(repoRoot, "dist", "island-preview-clipboard.png"));
   await dumpState(win, "[clipboard]");
 
-  // ── 展开态（AI 对话页）—— 岛上能直接问，不用跳主窗口 ──
   win.webContents.send("island:state", {
     expanded: true,
     page: "ai",
@@ -239,9 +244,22 @@ app.whenReady().then(async () => {
     position: { x: 0, y: 0 },
   });
   await wait(1000);
-  // 在输入框里放一句话，看输入区（sticky 底栏）长什么样。
-  // 用 execCommand 走真实的 input 事件 —— 直接改 .value 的话 React 的
-  // 受控状态不同步，截图里会看到「有字但发送按钮是禁用的」这种假象。
+  await capture(win, path.join(repoRoot, "dist", "island-preview-ai-sessions.png"));
+  await dumpState(win, "[ai-sessions]");
+
+  const opened = await win.webContents.executeJavaScript(`
+    (() => {
+      const el = document.querySelector('.island-ai-session-open');
+      if (!el) return 'no-session';
+      el.click();
+      return el.getAttribute('aria-label');
+    })()
+  `);
+  await wait(1000);
+  console.log("[opened]", opened);
+  await capture(win, path.join(repoRoot, "dist", "island-preview-ai-chat.png"));
+  await dumpState(win, "[ai-chat]");
+
   const typed = await win.webContents.executeJavaScript(`
     (() => {
       const el = document.querySelector('.island-chat-input');
@@ -256,7 +274,6 @@ app.whenReady().then(async () => {
   await capture(win, path.join(repoRoot, "dist", "island-preview-ai.png"));
   await dumpState(win, "[ai]");
 
-  // ── 页签条放大图：肉眼分不清高亮落在哪个页签上时用它 ──
   const header = await win.webContents.capturePage({
     clip: { x: PAD_X, y: 0, width: 400, height: 56 },
   });

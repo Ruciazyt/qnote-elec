@@ -21,24 +21,7 @@ import {
   type SqlExecutor,
 } from "./sharedStore";
 
-/**
- * 共享存储的**契约测试**
- *
- * 同一套用例跑在两个后端上 —— 本地 SQLite 与 D1。
- *
- * ## 为什么要有这个
- *
- * 共享存储是「双后端」的：同一份逻辑要跑在本地 SQLite 和 Cloudflare D1 上。
- * 两个后端的行为只要有一处不一致，就会出现「本地能发布、D1 发布不了」
- * 这类只在特定环境下才暴露的问题 —— 而 D1 需要联网、需要真实账号，
- * 平时根本测不到。
- *
- * 把行为钉成一份契约，两边都跑一遍，就能在**不联网**的情况下
- * 保证两边一致。D1 那侧用「假 D1」执行器 —— 它按 D1 的语义实现
- * （尤其是 batch 的原子性与 D1 不支持交互式事务这一点）。
- */
 
-/** 一条最小的发布记录 */
 const SAMPLE = {
   name: "番茄钟",
   description: "一个网页版番茄钟",
@@ -48,19 +31,8 @@ const SAMPLE = {
   tags: "工具,计时",
 };
 
-/* ============================================================
- * 假 D1 执行器
- * ============================================================
- *
- * 用真的 SQLite 跑，但**按 D1 的规矩来**：
- *   - batch 里的语句要么全成要么全不成（D1 的 batch 是事务）
- *   - 不提供交互式事务
- *
- * 这样测出来的行为就是 D1 上该有的行为。
- */
 class FakeD1Executor implements SqlExecutor {
   private readonly db: Knex;
-  /** batch 里的语句是否整体回滚过 */
   batchRollbacks = 0;
 
   constructor(db: Knex) {
@@ -95,7 +67,6 @@ class FakeD1Executor implements SqlExecutor {
   }
 }
 
-/** 建一个内存里的 SQLite，给两个后端各用一份 */
 function makeDb(): Knex {
   return knexFactory({
     client: "sqlite3",
@@ -104,7 +75,6 @@ function makeDb(): Knex {
   });
 }
 
-/** 两个后端跑同一套契约 */
 function describeBackend(
   name: string,
   makeStore: (db: Knex) => SharedStore
@@ -161,8 +131,6 @@ function describeBackend(
 
     it("关键词能按名称 / 简介 / 标签 / 作者匹配", async () => {
       await store.publish(SAMPLE);
-      // 第二条刻意换成不含「番茄」的简介 —— 否则搜「番茄」会命中两条，
-      // 那就不是在测「按名称匹配」了
       await store.publish({
         ...SAMPLE,
         name: "别的应用",
@@ -188,7 +156,6 @@ function describeBackend(
 
       const second = await store.list({ limit: 2, offset: 2 });
       expect(second.apps).toHaveLength(2);
-      // 两页不能有重叠
       const firstIds = first.apps.map((a) => a.id);
       expect(second.apps.every((a) => !firstIds.includes(a.id))).toBe(true);
     });
@@ -248,7 +215,6 @@ function describeBackend(
 
     it("通配符不会被当成 SQL 里的模式", async () => {
       await store.publish(SAMPLE);
-      // % 在 LIKE 里是通配符 —— 查 % 应该命中「百分号」而不是全部
       const result = await store.list({ keyword: "%" });
       expect(result.total).toBe(0);
     });
@@ -294,7 +260,6 @@ describe("D1 的原子性边界", () => {
       ).rejects.toThrow();
 
       expect(executor.batchRollbacks).toBe(1);
-      // 第一条也不能留下 —— 整批是一个事务
       const rows = await executor.all(
         "SELECT * FROM published_app WHERE id = ?",
         ["a"]

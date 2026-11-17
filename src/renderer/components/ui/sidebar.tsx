@@ -3,9 +3,9 @@ import { Slot } from "@radix-ui/react-slot";
 import { VariantProps, cva } from "class-variance-authority";
 import { PanelLeft } from "lucide-react";
 
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/ui/use-mobile";
 import { cn } from "@/lib/utils";
-import { randomInt } from "@/utils/randomId";
+import { randomInt } from "@/utils/system/randomId";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -15,13 +15,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 const SIDEBAR_COOKIE_NAME = "sidebar:state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
-/** localStorage key —— 侧栏宽度也要跨重启保留，否则每次启动都被打回默认值 */
 const SIDEBAR_WIDTH_STORAGE_KEY = "qnote-sidebar-width";
-/**
- * 默认 168px（原 192px）。
- * 菜单项最窄占用约 132px（分组 padding 16 + 按钮 padding 16 + 链接 padding 16
- * + 图标 16 + gap 12 + "力扣分类"四字 56），默认留约 36px 余量。
- */
 const SIDEBAR_WIDTH = "10.5rem";
 const SIDEBAR_WIDTH_MOBILE = "18rem";
 const SIDEBAR_WIDTH_ICON = "3rem";
@@ -73,12 +67,6 @@ function clampSidebarWidthPx(px: number): number {
   return Math.min(Math.max(Math.round(px), SIDEBAR_WIDTH_MIN), SIDEBAR_WIDTH_MAX);
 }
 
-/**
- * 初始宽度 —— 优先取用户拖出来的值
- *
- * 之前宽度只存在 React state 里，重启就打回默认：拖拽 rail 调完宽度，
- * 下次启动等于白拖。localStorage 不可用时静默降级为默认值。
- */
 function loadSidebarWidth(): string {
   try {
     const raw = Number.parseFloat(localStorage.getItem(SIDEBAR_WIDTH_STORAGE_KEY) ?? "");
@@ -114,18 +102,13 @@ const SidebarProvider = React.forwardRef<
     const [sidebarWidth, setSidebarWidth] = React.useState<string>(loadSidebarWidth);
     const [isResizing, setIsResizing] = React.useState(false);
 
-    // 拖出来的宽度跨重启保留（写盘走 effect，不包在 setter 里 ——
-    // setter 内做副作用在 React 严格模式下会被调用两次）
     React.useEffect(() => {
       try {
         localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, String(widthToPx(sidebarWidth)));
       } catch {
-        // localStorage 不可用时忽略，仅本次会话有效
       }
     }, [sidebarWidth]);
 
-    // This is the internal state of the sidebar.
-    // We use openProp and setOpenProp for control from outside the component.
     const [_open, _setOpen] = React.useState(defaultOpen);
     const open = openProp ?? _open;
     const setOpen = React.useCallback(
@@ -137,27 +120,21 @@ const SidebarProvider = React.forwardRef<
           _setOpen(openState);
         }
 
-        // This sets the cookie to keep the sidebar state.
         document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
       },
       [setOpenProp, open]
     );
 
-    // Helper to toggle the sidebar.
     const toggleSidebar = React.useCallback(() => {
       return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open);
     }, [isMobile, setOpen, setOpenMobile]);
 
-    // Adds a keyboard shortcut to toggle the sidebar.
     React.useEffect(() => {
       const handleKeyDown = (event: KeyboardEvent) => {
         if (event.key !== SIDEBAR_KEYBOARD_SHORTCUT || !(event.metaKey || event.ctrlKey)) {
           return;
         }
 
-        // 在输入区里 Ctrl/Cmd+B 是加粗，不是收起侧栏。
-        // 之前这里无条件 preventDefault，笔记编辑器里按加粗会把侧栏收起来 ——
-        // 抢快捷键会让用户以为编辑器坏了，所以必须让出可编辑上下文。
         const target = event.target as HTMLElement | null;
         if (
           target &&
@@ -178,8 +155,6 @@ const SidebarProvider = React.forwardRef<
       return () => window.removeEventListener("keydown", handleKeyDown);
     }, [toggleSidebar]);
 
-    // We add a state so that we can do data-state="expanded" or "collapsed".
-    // This makes it easier to style the sidebar with Tailwind classes.
     const state = open ? "expanded" : "collapsed";
 
     const contextValue = React.useMemo<SidebarContext>(
@@ -289,7 +264,7 @@ const Sidebar = React.forwardRef<
         data-collapsible={state === "collapsed" ? collapsible : ""}
         data-variant={variant}
         data-side={side}>
-        {/* This is what handles the sidebar gap on desktop */}
+        {}
         <div
           className={cn(
             "duration-200 relative h-svh w-[--sidebar-width] bg-transparent transition-[width] ease-linear",
@@ -308,22 +283,14 @@ const Sidebar = React.forwardRef<
             side === "left"
               ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
               : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
-            // Adjust the padding for floating and inset variants.
             variant === "floating" || variant === "inset"
               ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4)_+2px)]"
-              // 侧栏是外框的一部分（与标题栏同色），不再有任何边框或投影
-              // 悬浮感全部交给右侧的内容面板：色差 + 圆角已经把两块分开了，
-              // 侧栏再叠一层阴影反而会把它从外框里"抠"出来，看着割裂。
               : "group-data-[collapsible=icon]:w-[--sidebar-width-icon]",
             className
           )}
           {...props}>
           <div
             data-sidebar="sidebar"
-            // 毛玻璃外框：与标题栏共用 .glass-frame，两者合成同一个外框。
-            // 右缘原先也有过一道内高光，和标题栏那条一样在浅色下是白杠，已一并移除。
-            // 原来的 bg-sidebar 换成 .glass-frame —— 后者同样是 class 选择器且在样式表里
-            // 更靠后，能稳定覆盖 Tailwind 的 bg-* 工具类；留着 bg-sidebar 只会造成误读。
             className="flex h-full w-full flex-col glass-frame group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow">
             {children}
           </div>
@@ -573,7 +540,6 @@ const SidebarGroupAction = React.forwardRef<
       data-sidebar="group-action"
       className={cn(
         "absolute right-3 top-3.5 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground outline-none ring-primary transition-transform hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
-        // Increases the hit area of the button on mobile.
         "after:absolute after:-inset-2 after:md:hidden",
         "group-data-[collapsible=icon]:hidden",
         className
@@ -716,7 +682,6 @@ const SidebarMenuAction = React.forwardRef<
       data-sidebar="menu-action"
       className={cn(
         "absolute right-1 top-1.5 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground outline-none ring-primary transition-transform hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 peer-hover/menu-button:text-sidebar-accent-foreground [&>svg]:size-4 [&>svg]:shrink-0",
-        // Increases the hit area of the button on mobile.
         "after:absolute after:-inset-2 after:md:hidden",
         "peer-data-[size=sm]/menu-button:top-1",
         "peer-data-[size=default]/menu-button:top-1.5",
@@ -758,7 +723,6 @@ const SidebarMenuSkeleton = React.forwardRef<
     showIcon?: boolean;
   }
 >(({ className, showIcon = false, ...props }, ref) => {
-  // Random width between 50 to 90%.
   const width = React.useMemo(() => {
     return `${randomInt(40) + 50}%`;
   }, []);

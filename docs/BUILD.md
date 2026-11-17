@@ -2,7 +2,6 @@
 
 ## 📦 构建类型
 
-QNote 支持两种构建类型：
 
 1. **安装版** (`QNote-Setup-x.x.x.exe`) - 传统的 Windows 安装程序
 2. **便携版** (`QNote-x.x.x-portable.zip`) - 免安装的便携版压缩包
@@ -28,10 +27,6 @@ pnpm run build
 pnpm run build-portable
 ```
 
-> 💡 `pnpm run build-portable` 只跑 `electron-builder --win dir`，产物是
-> `dist_electron/win-unpacked/` 这个**未打包目录**。ZIP 由
-> `scripts/build/post-build.js` 生成 —— 它要在压缩前写入便携版标记，
-> 所以要拿 ZIP 必须走完整的 `pnpm run build`。
 
 ### 构建脚本说明
 
@@ -48,15 +43,11 @@ pnpm run build-portable
 
 ### GitHub Actions 自动构建
 
-每次推送**形如 `1.0.19` 的版本号 tag** 时，GitHub Actions 会自动：
 
 1. **构建应用**: 同时构建安装版和便携版
 2. **创建 Release**: 在 GitHub 上创建新的 Release
 3. **上传文件**: 将构建的文件上传到 Release 中
 
-> tag 名 = 版本号本身，**不带 `v` 前缀**。`v1.0.19` 与 `1.0.19` 在 GitHub 上是两套
-> 不同的 tag，混用会让 Release 列表出现两串同号条目，electron-updater 取
-> `/releases/download/<tag>/latest.yml` 时也会对不上。详见 AGENTS.md 第 3.3 节。
 
 ### 发布命令
 
@@ -73,7 +64,6 @@ pnpm run release:major
 
 ### 发布流程详解
 
-当执行发布命令时，会自动执行以下步骤：
 
 1. **版本更新**: 更新 `package.json` 中的版本号
 2. **Git 提交**: 提交版本更新（`chore(release): bump version to X.Y.Z`）
@@ -83,14 +73,11 @@ pnpm run release:major
 6. **构建应用**: 在 GitHub 服务器上构建安装版和便携版
 7. **创建 Release**: 自动创建 GitHub Release 并上传构建文件
 
-> 脚本在 bump 之前还会校验三件事：工作区是否干净、版本号格式是否合法、
-> **发版类型与本批提交是否匹配**（有 `feat` 却发 patch 会被直接拦下）。
 
 ## 🔧 GitHub Actions 配置
 
 ### 工作流文件
 
-`.github/workflows/build-and-release.yml` 定义了自动构建和发布的流程。
 
 ### 主要步骤
 
@@ -104,7 +91,6 @@ pnpm run release:major
 
 ### 构建产物
 
-每次发布会生成以下文件：
 
 - `QNote-Setup-x.x.x.exe` - Windows 安装程序
 - `QNote-x.x.x-portable.zip` - Windows 便携版压缩包
@@ -112,39 +98,27 @@ pnpm run release:major
 
 ## 🔄 自动更新
 
-安装版支持在设置页「数据与开发 → 应用更新」里检查、下载并安装新版本。
-实现基于 [`electron-updater`](https://www.electron.build/auto-update)，
-更新源是本仓库的 GitHub Releases。
 
 ### 运作方式
 
 1. 应用启动后从 `resources/app-update.yml` 读取更新源配置
-   （由 `build/electron-builder.json` 的 `publish` 段在打包时生成）
 2. 用户点「检查更新」→ 请求 Releases 的 `latest.yml` 拿到最新版本号
 3. 用户点「下载更新」→ 下载安装包并校验 SHA512，全程显示进度
 4. 用户点「重启并安装」→ 静默执行 NSIS 安装器覆盖旧版本，装完自动拉起应用
 
-下载完成后若用户没点安装，直接退出应用也会自动完成安装。
 
 ### latest.yml 必须随 Release 一起上传
 
-`latest.yml` 里记着版本号、安装包文件名与 SHA512 校验和。
-electron-updater 先取它，再据此下载安装包 —— **少了这个文件，
-「检查更新」必然失败**（报 `ERR_UPDATER_CHANNEL_FILE_NOT_FOUND`）。
 
-两个 workflow 都已把它加进上传列表：
 
 | 文件 | 上传位置 |
 | --- | --- |
 | `.github/workflows/build-and-release.yml` | 构建产物 → Actions Artifact → Release |
 | `.github/workflows/auto-build.yml` | 只进 Actions Artifact，**不创建 Release** |
 
-`auto-build.yml` 每次推 master 跑一次，作用是验证「这次提交能构建出可用的包」。
-正式 Release 一律由版本号 tag 触发 `build-and-release.yml` —— 这样版本号才有唯一来源。
 
 ### 版本号必须三处一致
 
-以下三处必须指向同一个版本号，否则更新判定会失效：
 
 | 位置 | 来源 |
 | --- | --- |
@@ -152,26 +126,14 @@ electron-updater 先取它，再据此下载安装包 —— **少了这个文�
 | `latest.yml` 里的 `version` | 同上 |
 | 应用运行时 `app.getVersion()` | 同上 |
 
-`auto-build.yml` 以前用 commit 数拼版本号（`1.0.<commit 数>`），并用
-`ELECTRON_BUILDER_VERSION` 环境变量覆盖版本 —— 但 **electron-builder 25.x
-并不支持这个变量**，实际版本始终取自 package.json。结果是产物叫 `1.0.18`、
-tag 却叫 `1.0.447`，更新永远判定「已是最新」。
 
-现在正式发布统一走 `build-and-release.yml`（打版本号 tag 触发），
-`auto-build.yml` 只读取并打印 package.json 的版本号，不做任何改写，
-也不会创建 Release。
 
 ### 便携版不支持自动更新
 
-便携版是免安装的解压目录，没有安装器，无法"覆盖安装自己"——
-NSIS 安装器只会把新版本装到程序目录，用户手里的便携目录还是旧的。
 
-`scripts/build/post-build.js` 会在压缩前往 `resources/` 写入 `portable.marker`，
-主进程启动时据此识别便携版并关闭自动更新，改为引导用户去下载页手动替换。
 
 ### 更新源不可达时
 
-`build/electron-builder.json` 的 `publish` 段是更新源的唯一开关：
 
 ```json
 "publish": {
@@ -181,11 +143,7 @@ NSIS 安装器只会把新版本装到程序目录，用户手里的便携目录
 }
 ```
 
-**注意：GitHub 的 Release 附件只有仓库公开时才能被匿名下载。**
-仓库若为私有，`electron-updater` 取 `latest.yml` 会拿到 404，
-「检查更新」会提示"更新源不可访问"。
 
-三种处理方式：
 
 | 场景 | 做法 |
 | --- | --- |
@@ -193,8 +151,6 @@ NSIS 安装器只会把新版本装到程序目录，用户手里的便携目录
 | 仓库私有但有公开分发渠道 | 把 `publish` 改成 `generic` 并指向一个公开可访问的目录（该目录里放 `latest.yml` 与安装包），`npmRebuild` 与上传步骤同步调整 |
 | 仓库私有且只自用 | 不发 Release 即可；「打开下载页」按钮会带着浏览器登录态跳到 Releases 页 |
 
-切换 `publish` 后需要重新构建 —— `app-update.yml` 是打包时生成并写进
-`resources/` 的，改配置不会影响已经打好的安装包。
 
 ## 📁 目录结构
 
@@ -236,7 +192,6 @@ qnote-elec/
 pnpm run build
 ```
 
-建议验证以下内容：
 
 - 构建过程中依赖安装与编译均成功完成
 - `dist/` 与 `dist_electron/` 中生成预期产物
@@ -244,7 +199,6 @@ pnpm run build
 
 ### 手动验证
 
-构建完成后，检查 `dist_electron/` 目录：
 
 ```powershell
 # 列出构建文件
@@ -272,43 +226,25 @@ Get-ChildItem -Path dist_electron -Force
 
 4. **`ENOENT: ... node_modules\.pnpm\node_modules\@emnapi\runtime`**
 
-   electron-builder 的原生模块重建步骤会遍历整棵依赖树，撞上 pnpm 留下的
-   **悬空 junction**（`@img/sharp-wasm32` 的 wasm 变体在 win32-x64 上不会安装，
-   但 pnpm 仍会建链接）就报 ENOENT，整个打包直接失败。
 
-   本项目的运行时原生模块只有 sqlite3，且它是 **N-API**（ABI 稳定，Node 和
-   Electron 通用），本来就不需要针对 Electron 重编译，因此构建配置里已经
-   关闭了该步骤（`build/electron-builder.json` 的 `"npmRebuild": false`）。
 
 5. **`Cannot create symbolic link : 客户端没有所需的权限`**
 
-   出在解压 `winCodeSign` 工具包时（里面带 darwin 的符号链接）。非管理员
-   且没开「开发者模式」的 Windows 建不了符号链接，解压失败 → 打包失败。
 
-   失败的是 macOS 的库文件，跟 Windows 构建毫无关系，纯粹是环境权限问题。
 
-   **`pnpm run build` 已经能自动处理，不用手工干预**：打包脚本
-   `scripts/build/build-app.js` 会先照常打包；一旦识别到这个报错，就自动
-   改用「跳过 exe 资源写入」重打一次，再用缓存里的 `rcedit-x64.exe`
-   把图标和版本信息补回去 —— `rcedit` 是独立可执行文件，不需要符号链接。
-   产物与正常打包一致。
 
-   想知道最终 exe 有没有写对，可以查一下：
 
    ```powershell
    (Get-Item dist_electron\win-unpacked\QNote.exe).VersionInfo |
      Select-Object FileDescription, ProductName, FileVersion
    ```
 
-   另外两种处理方式：
 
    | 做法 | 说明 |
    | --- | --- |
    | 开启 Windows「开发者模式」 | 设置 → 系统 → 开发者选项，普通用户即可创建符号链接，之后连降级都不会触发 |
    | 以管理员身份运行终端 | 同上，权限直接满足 |
 
-   注意：**CI（GitHub Actions）不受影响** —— 它的 runner 默认就有符号链接权限，
-   走的是常规路径。
 
 ### GitHub Actions 失败
 

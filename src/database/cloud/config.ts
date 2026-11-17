@@ -1,5 +1,5 @@
 import type { Knex } from "knex";
-import { log } from "../../main/utils/log";
+import { log } from "../../main/core/system/log";
 import { createLocalSharedStore, type SharedStore } from "./sharedStore";
 import { createD1SharedStore, createEndpointSharedStore } from "./d1Store";
 import { normalizeEndpoint, resolveDefaultEndpoint } from "./defaults";
@@ -7,55 +7,13 @@ import type {
   CloudBackend,
   CloudStorageConfig,
   D1Config,
-} from "../../shared/cloudTypes";
+} from "../../shared/cloud/cloudTypes";
 
-/**
- * 云端存储的配置与切换
- *
- * ## 配置存哪
- *
- * 存**本地** SQLite 的 `settings` 表。这看着别扭 —— 明明是「云端」的配置，
- * 却存本地 —— 但这是必须的：配置决定了「用哪个后端」，
- * 如果配置本身在云端，那就是先鸡后蛋（要先连上云端才能知道连哪个云端）。
- * 而本地库是一定在的（私有数据都在那儿），所以读配置永远读得到。
- *
- * ## 三种后端
- *
- * | backend | 连什么 | 用户要做什么 |
- * | --- | --- | --- |
- * | `local` | 本地 SQLite 的 published_app 表 | 什么都不用做 |
- * | `d1` | 直连 Cloudflare D1 REST | 填账号 ID / 库 ID / Token |
- * | `public` | 公共目录 Worker 代理 | 什么都不用做（地址已内置） |
- *
- * `public` 是「所有用户零配置」的那一档 —— 它不需要任何凭据，
- * 凭据在 Worker 那边。客户端只内置一个公开地址。
- *
- * ## 密钥不进仓库
- *
- * 直连 D1 用的 API Token 由用户在设置页填，运行时注入到内存，
- * 跟着本项目的其它密钥（百度 OCR、AI API Key）走同一条路 ——
- * 见 AGENTS.md 第 4 节。
- */
 
 const SETTINGS_KEY = "cloud_storage_config";
 
-/**
- * 默认配置 —— 没配过时的样子
- *
- * 内置了公共目录地址时，这里就是 public（零配置）；
- * 没有内置地址时是 local。用 defaultConfig() 而不是写死，
- * 是为了跟实际生效的默认值保持一致 —— 写死的话，
- * 「内置地址」和「默认后端」两处会各说各话。
- */
 export const DEFAULT_CLOUD_CONFIG: CloudStorageConfig = defaultConfig();
 
-/**
- * 把存盘的那一串 JSON 解析成配置对象
- *
- * 解析失败不能抛 —— 配置坏了应该退回默认（纯本地），
- * 而不是让整个应用起不来。坏掉的那份原样留着，
- * 用户在设置页看一眼就知道要重新填。
- */
 export function parseCloudConfig(raw: string | null | undefined): CloudStorageConfig {
   if (!raw) return defaultConfig();
   let parsed: unknown;
@@ -78,20 +36,11 @@ export function parseCloudConfig(raw: string | null | undefined): CloudStorageCo
     backend = obj.backend;
   }
 
-  // 后端写着 d1 但没配全 —— 按 local 处理
-  // 配置不全就去连云端，注定失败，不如直接退回本地
   if (backend === "d1" && !d1) {
     log.warn("[cloud] 后端标为 d1 但 D1 配置不全，按本地处理");
     return { ...fallbackConfig(), d1: null, endpoint };
   }
 
-  // 后端写着 public 但没有地址 —— 退回 local
-  //
-  // 这里**不能**用 defaultConfig()：那个函数会在内置地址存在时
-  // 给出 public + endpoint。而用户显式写了 public 却没有地址，
-  // 说明他想要公共目录却没填地址 —— 用内置地址替他做决定是越权，
-  // 而且这里要保证 backend 与 endpoint 自洽（不能出现
-  // backend=public 而 endpoint=null 的组合）。
   if (backend === "public" && !endpoint) {
     log.warn("[cloud] 后端标为 public 但没有公共目录地址，按本地处理");
     return { ...fallbackConfig(), d1, endpoint: null };
@@ -100,16 +49,6 @@ export function parseCloudConfig(raw: string | null | undefined): CloudStorageCo
   return { backend, d1, endpoint, lastCheck: obj.lastCheck ?? null };
 }
 
-/**
- * 默认配置
- *
- * 有内置的公共目录地址时，默认就用它 —— 这就是「所有用户零配置」的落点：
- * 装上就能用，不需要填任何东西。
- *
- * 注意与 fallbackConfig() 的区别：
- *   - defaultConfig()  = 「用户什么都没配」→ 用内置地址（零配置）
- *   - fallbackConfig() = 「用户配了但配坏了」→ 纯本地（安全兜底）
- */
 function defaultConfig(): CloudStorageConfig {
   const endpoint = resolveDefaultEndpoint();
   return {
@@ -120,17 +59,10 @@ function defaultConfig(): CloudStorageConfig {
   };
 }
 
-/**
- * 兜底配置 —— 纯本地
- *
- * 配置坏了、或者用户显式选的后端缺必要字段时用它。
- * 不用内置地址：一份坏配置不该让应用悄悄连上公共目录。
- */
 function fallbackConfig(): CloudStorageConfig {
   return { backend: "local", d1: null, endpoint: null, lastCheck: null };
 }
 
-/** 挑出 D1 配置里的有效字段 —— 三个都要非空字符串 */
 function sanitizeD1Config(input: unknown): D1Config | null {
   if (!input || typeof input !== "object") return null;
   const obj = input as Partial<D1Config>;
@@ -141,17 +73,14 @@ function sanitizeD1Config(input: unknown): D1Config | null {
   return { accountId, databaseId, apiToken };
 }
 
-/** 挑出公共目录地址 */
 function sanitizeEndpoint(input: unknown): string | null {
   if (typeof input !== "string") return null;
   const trimmed = normalizeEndpoint(input);
   if (!trimmed) return null;
-  // 只认 http(s) —— 别的协议（比如 file:）不该被当成云端地址
   if (!/^https?:\/\//i.test(trimmed)) return null;
   return trimmed;
 }
 
-/** 从本地库读配置 */
 export async function loadCloudConfig(DB: Knex): Promise<CloudStorageConfig> {
   try {
     const row = await DB("settings").where("configName", SETTINGS_KEY).first();
@@ -163,7 +92,6 @@ export async function loadCloudConfig(DB: Knex): Promise<CloudStorageConfig> {
   }
 }
 
-/** 把配置写回本地库 */
 export async function saveCloudConfig(
   DB: Knex,
   config: CloudStorageConfig
@@ -190,20 +118,9 @@ export async function saveCloudConfig(
   }
 }
 
-/**
- * 当前生效的共享存储
- *
- * 启动时建一次，之后一直复用 —— 共享存储的建表 / 连通性检查
- * 都是网络往返，不该每次查询都重连。
- */
 let activeStore: SharedStore | null = null;
 let activeStoreKey = "";
 
-/**
- * 拿到（必要时重建）当前共享存储
- *
- * @param DB 本地库 —— local 后端要用它建表
- */
 export async function getSharedStore(DB: Knex): Promise<SharedStore> {
   const config = await loadCloudConfig(DB);
   const key = storeKey(config);
@@ -218,13 +135,11 @@ export async function getSharedStore(DB: Knex): Promise<SharedStore> {
   return store;
 }
 
-/** 配置变了就换一份 —— 设置页改完调用它 */
 export async function resetSharedStore(): Promise<void> {
   activeStore = null;
   activeStoreKey = "";
 }
 
-/** 配置的指纹 —— 变了就说明要重建 */
 function storeKey(config: CloudStorageConfig): string {
   if (config.backend === "d1" && config.d1) {
     return `d1:${config.d1.accountId}:${config.d1.databaseId}`;
@@ -235,7 +150,6 @@ function storeKey(config: CloudStorageConfig): string {
   return "local";
 }
 
-/** 按配置建一份共享存储 */
 async function buildStore(
   config: CloudStorageConfig,
   DB: Knex
@@ -246,7 +160,6 @@ async function buildStore(
       await store.init();
       return store;
     } catch (error) {
-      // 云端建表失败 —— 退回本地，别让应用因为云端不可用而起不来
       log.error("[cloud] D1 初始化失败，本次退回本地共享存储", error);
       const local = createLocalSharedStore(DB);
       await local.init();

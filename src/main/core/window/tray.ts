@@ -1,5 +1,5 @@
 import { Tray, Menu, nativeImage, app } from "electron";
-import { log } from "../../utils/log";
+import { log } from "../system/log";
 import { getTrayIconSize, resolveTrayIcons } from "../../utils/assets";
 
 let tray: Tray | null = null;
@@ -10,7 +10,6 @@ function createTrayFromPath(iconPath: string): Tray {
     throw new Error(`无法加载图标文件: ${iconPath}`);
   }
 
-  // 边长按平台取：Windows 任务栏是 16px，macOS 菜单栏是 16pt@2x = 32px。
   const size = getTrayIconSize();
   return new Tray(iconImage.resize({ width: size, height: size }));
 }
@@ -51,8 +50,6 @@ export function createTray(): Tray | null {
       {
         label: "显示应用",
         click: () => {
-          // 复用 mainWindow 的统一入口，托盘点击和菜单项行为才一致：
-          // 最小化态要 restore，托盘隐藏态要补回被摘掉的图标。
           const { showMainWindow } = require('./mainWindow');
           showMainWindow();
         },
@@ -60,9 +57,7 @@ export function createTray(): Tray | null {
       {
         label: "剪贴板面板",
         click: () => {
-          // 全局快捷键在设置页可配，而任何组合都可能被别的程序占着
-          // （系统保留键、其它软件注册的热键），注册失败时托盘菜单是兜底入口
-          const { ClipboardPopupWindow } = require('./clipboardPopup');
+          const { ClipboardPopupWindow } = require('./clipboard/clipboardPopup');
           void ClipboardPopupWindow.getInstance()
             .show()
             .catch((err) => log.error("从托盘打开剪贴板面板失败", err));
@@ -71,9 +66,7 @@ export function createTray(): Tray | null {
       {
         label: "灵动岛",
         click: () => {
-          // 手动把岛叫出来 —— 主窗口在前台时岛是藏着的，
-          // 这里给一个「随时想看一眼」的入口。
-          const { IslandWindow } = require('./island');
+          const { IslandWindow } = require('./island/island');
           const island = IslandWindow.getInstance();
           if (island.isVisible()) {
             island.hide();

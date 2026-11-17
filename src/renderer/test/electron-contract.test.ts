@@ -7,26 +7,7 @@ import {
   readContract,
 } from "./electron-contract";
 
-/**
- * IPC 契约：preload ↔ electron.d.ts ↔ 渲染层调用点
- *
- * 这份用例把「新增 IPC 要改三处」从口头约定变成会红的断言。
- * 判定标准只有一条：两边都有才算数 ——
- *   - preload 暴露了、electron.d.ts 没声明 → 渲染层拿不到类型
- *   - electron.d.ts 声明了、preload 没暴露 → 真机上调用是 undefined
- * 两类都是静默失效，绿测试却看不出来。
- */
 
-/**
- * 已知漂移（待清）
- *
- * 这里是给「类型还在、preload 已删」这类历史残留留的豁免名单：
- * 名单里的名字不计入漂移断言，名单外的漂移一律让用例变红。
- *
- * 上一轮清过两条 —— getAiToolsConfig / setAiToolsConfig（只有声明，三处皆无）
- * 与 onSaveNotification（完整死链）—— 都已从 electron.d.ts 与 preload 里删掉，
- * 所以现在名单是空的。新增漂移时把名字写进来，并注明为什么可以先放着。
- */
 const KNOWN_STALE_DECLARATIONS: string[] = [];
 
 const contract = readContract();
@@ -83,15 +64,12 @@ describe("桩的白名单", () => {
   });
 
   it("陈旧声明不在白名单里 —— 类型还在、preload 已删的调用会当场炸", () => {
-    // 不写死名单里的名字：名单会变，真正要守的是「凡是没暴露的声明都调不通」
     for (const name of contract.declaredButNotExposed) {
       expect(() => (window.electron as Record<string, unknown>)[name]()).toThrow();
     }
   });
 
   it("被删掉的历史 API 不再是桩的一部分", () => {
-    // 万能 send 与 save-notification 已从 preload 和 d.ts 删掉，
-    // 桩里也不能再有 —— 否则又变回「调用得到、什么都不发生」
     for (const name of ["send", "onSaveNotification", "getAiToolsConfig", "setAiToolsConfig"]) {
       expect(() => (window.electron as Record<string, unknown>)[name]).toThrow();
     }
@@ -99,8 +77,6 @@ describe("桩的白名单", () => {
 });
 
 describe("守卫本身能抓漂移（变异输入）", () => {
-  // 判定逻辑要是改了而用例还绿，这条守卫就是假的安全网。
-  // 这里拿变异的名单喂给 compareContract，确认每一类漂移都被判出来。
 
   it("声明多一个 → 判为陈旧声明（类型还在、preload 已删）", () => {
     const diff = compareContract({

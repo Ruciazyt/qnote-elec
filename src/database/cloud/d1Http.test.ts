@@ -16,23 +16,7 @@ import { D1Client } from "./d1Client";
 import { D1SqlExecutor } from "./d1Store";
 import { SharedStoreOnExecutor } from "./sharedStore";
 
-/**
- * D1 客户端走**真实 HTTP** 的端到端回归
- *
- * `d1Client.test.ts` 用的是假 fetch —— 它验证逻辑，但没验证
- * 「JSON 真的发出去、真的解析回来」这一层。这一层出过的问题最难查：
- * 请求体字段名拼错、响应结构对不上，症状都是「连上了但读不出东西」。
- *
- * 这里起一个真的 HTTP 服务器，模仿 Cloudflare 的 REST 接口
- * （同样的路径、同样的请求体、同样的响应体形状），
- * 让真实的 D1Client + SharedStoreOnExecutor 跑一遍完整流程。
- *
- * 服务器背后是真 SQLite，并且**按 D1 的语义实现 batch** ——
- * 一条失败整批回滚。这是 D1 上唯一的原子性来源，
- * 值得用真 HTTP 验一遍。
- */
 
-/** 记下服务器收到的请求，供断言用 */
 interface CapturedRequest {
   path: string;
   auth: string | undefined;
@@ -74,7 +58,6 @@ describe("D1 客户端的真实 HTTP 端到端", () => {
         body,
       });
 
-      // 鉴权 —— 与 Cloudflare 一致：无权限返回 403 + 错误码 10000
       if (req.headers["authorization"] !== "Bearer tok-secret") {
         res.writeHead(403, { "Content-Type": "application/json" });
         res.end(
@@ -90,7 +73,6 @@ describe("D1 客户端的真实 HTTP 端到端", () => {
         ? body.batch
         : [{ sql: body.sql, params: body.params }];
 
-      // D1 的 batch 是一个事务：任何一条失败，整批回滚
       let result;
       try {
         result = await db.transaction(async (trx) => {
@@ -139,13 +121,11 @@ describe("D1 客户端的真实 HTTP 端到端", () => {
     await db.destroy();
   });
 
-  /** 造一个指向本地服务器的客户端 */
   const makeClient = (token = "tok-secret") =>
     new D1Client({
       accountId: "acct",
       databaseId: "db",
       apiToken: token,
-      // 只把主机换成本地，路径原样保留 —— 这样断言请求路径时才有意义
       fetchImpl: (url, init) =>
         fetch(`http://127.0.0.1:${port}${new URL(url).pathname}`, init),
     });
@@ -157,8 +137,6 @@ describe("D1 客户端的真实 HTTP 端到端", () => {
     captured.length = 0;
     await makeClient().query("SELECT 1");
 
-    // 与 Cloudflare 文档里的 curl 一致：
-    // https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/d1/database/$DATABASE_ID/query
     expect(captured[0].path).toBe(
       "/client/v4/accounts/acct/d1/database/db/query"
     );
@@ -188,7 +166,6 @@ describe("D1 客户端的真实 HTTP 端到端", () => {
     expect(listed.total).toBe(1);
     expect(listed.apps[0].name).toBe("番茄钟");
 
-    // 覆盖发布保留 pulls 与 created_at
     await store.incrementPulls(published.id);
     const updated = await store.publish(
       { name: "改过的名字", manifest: "{}" },
@@ -198,7 +175,6 @@ describe("D1 客户端的真实 HTTP 端到端", () => {
     expect(updated.createdAt).toBe(published.createdAt);
     expect(updated.name).toBe("改过的名字");
 
-    // 删除
     expect(await store.remove(published.id)).toBe(true);
     expect((await store.list()).total).toBe(0);
   });
@@ -209,7 +185,6 @@ describe("D1 客户端的真实 HTTP 端到端", () => {
     await store.publish({ name: "番茄钟", manifest: "{}" });
 
     expect((await store.list({ keyword: "番茄" })).total).toBe(1);
-    // 这是被契约测试抓到过的那个 bug：% 在 LIKE 里是通配符
     expect((await store.list({ keyword: "%" })).total).toBe(0);
     expect((await store.list({ keyword: "_" })).total).toBe(0);
   });
@@ -244,7 +219,6 @@ describe("D1 客户端的真实 HTTP 端到端", () => {
       )
     ).rejects.toThrow();
 
-    // 第一条也不能留下
     const list = await store.list();
     expect(list.apps.find((a) => a.id === "a")).toBeUndefined();
   });

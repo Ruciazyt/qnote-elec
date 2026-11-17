@@ -6,15 +6,6 @@ import {
   parseManifestText,
 } from "./appManifest";
 
-/**
- * 项目清单解析
- *
- * 清单是用户自己写的 JSON，出错方式五花八门。这里锁的是「哪些输入被接受、
- * 哪些被拒绝、拒绝时给的提示是否指向真正的问题」——
- * 提示写错了，用户会去改错的地方。
- *
- * 纯函数，不碰文件系统，也不需要 mock electron。
- */
 
 describe("清单解析 parseManifestText", () => {
   it("接受一份合法清单", () => {

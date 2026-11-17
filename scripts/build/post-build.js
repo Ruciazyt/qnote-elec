@@ -1,32 +1,11 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-/**
- * 便携版标记文件名
- *
- * 与主进程 src/main/core/updater.ts 里的 PORTABLE_MARKER 必须一致。
- * 便携版没有安装器，无法"覆盖安装自己"——NSIS 安装器只会把新版本装到
- * 程序目录去，用户手里的便携目录还是旧的。所以便携版必须关闭自动更新，
- * 改成引导用户去下载页手动替换。
- *
- * 写标记的时机在压缩之前：NSIS 安装版在 build:app 阶段就已经打好，
- * 不受这个文件影响，因此只有便携版压缩包里会带上它。
- */
 const PORTABLE_MARKER = 'portable.marker';
 
-/**
- * 仓库根目录 —— 构建产物目录必须落在这个范围之内
- *
- * electron-builder 的产物目录本来就定义在仓库根下
- * （package.json build.directories.output），所以这里以仓库根为基准。
- */
 const ROOT = path.resolve(__dirname, '../..');
 
-/** 在便携版目录里写入标记文件 */
 function writePortableMarker(unpackedDir) {
-    // unpackedDir 来自命令行传入的产物目录，写文件之前独立再校验一次：
-    // 目标必须仍在仓库根之内，否则一次路径穿越就能把标记写到仓库外。
-    // 判定方式与主进程 src/main/core/noteStore.ts 的 resolveSafe 一致。
     const unpackedDirAbs = path.resolve(ROOT, unpackedDir);
     const unpackedRel = path.relative(ROOT, unpackedDirAbs);
     if (unpackedRel.startsWith('..') || path.isAbsolute(unpackedRel)) {
@@ -48,17 +27,8 @@ function writePortableMarker(unpackedDir) {
     return true;
 }
 
-/**
- * 创建便携版 ZIP
- *
- * outputDir 是构建产物目录（默认 dist_electron）。做成参数是为了能对
- * 其它输出目录复用同一套逻辑（例如验证构建时指定目录）。
- */
 async function createPortableZip(outputDir = 'dist_electron') {
     return new Promise((resolve, reject) => {
-        // outputDir 来自命令行，先解析成绝对路径再确认它落在仓库根之内 ——
-        // 不校验就拼接，等于允许 "../../evil" 这类越界写入（SonarCloud S8707）。
-        // 校验放在最前面：参数不合法就没必要再往下走。
         const distPath = path.resolve(ROOT, outputDir);
         const distRel = path.relative(ROOT, distPath);
         if (distRel.startsWith('..') || path.isAbsolute(distRel)) {
@@ -75,7 +45,6 @@ async function createPortableZip(outputDir = 'dist_electron') {
             return;
         }
 
-        // 读取package.json获取版本号（路径同样以仓库根为基准，不受调用时 cwd 影响）
         const packageJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
         const version = packageJson.version;
 
@@ -84,14 +53,12 @@ async function createPortableZip(outputDir = 'dist_electron') {
 
         console.log(`📦 正在创建便携版ZIP: ${zipName}`);
 
-        // 创建zip文件
         const output = fs.createWriteStream(zipPath);
         const archive = archiver('zip', { zlib: { level: 9 } });
 
         output.on('close', () => {
             console.log(`✅ 便携版ZIP创建完成: ${zipName} (${(archive.pointer() / (1024 * 1024)).toFixed(2)} MB)`);
 
-            // 删除win-unpacked目录
             fs.rmSync(unpackedDir, { recursive: true, force: true });
             console.log(`🗑️  删除临时目录: win-unpacked`);
 
@@ -104,11 +71,8 @@ async function createPortableZip(outputDir = 'dist_electron') {
 
         archive.pipe(output);
 
-        // 写便携版标记 —— 必须在压缩之前，否则标记不会进压缩包，
-        // 运行时就识别不出这是便携版，会误以为可以自动更新。
         writePortableMarker(unpackedDir);
 
-        // 将整个win-unpacked目录添加到zip中，但重命名为QNote-portable
         archive.directory(unpackedDir, 'QNote-portable');
         archive.finalize();
     });
@@ -137,9 +101,7 @@ async function processPortableFiles(outputDir = 'dist_electron') {
     }
 }
 
-// 如果直接运行此脚本
 if (require.main === module) {
-    // 允许传参指定构建产物目录：node scripts/build/post-build.js [outputDir]
     const outputDir = process.argv[2] || 'dist_electron';
     processPortableFiles(outputDir).catch(error => {
         console.error('❌ 后处理失败:', error.message);

@@ -1,20 +1,6 @@
 #!/usr/bin/env node
 'use strict';
 
-/**
- * 发版脚本 —— 版本号唯一来源是根 package.json
- *
- *   node scripts/release/release.js patch   # 1.1.0 → 1.1.1
- *   node scripts/release/release.js minor   # 1.1.0 → 1.2.0
- *   node scripts/release/release.js major   # 1.1.0 → 2.0.0
- *
- * 三条硬规则（AGENTS.md 第 2.2 / 3 节）：
- *   1. 版本号是 MAJOR.MINOR.PATCH 纯数字三段，不带 v 前缀
- *   2. tag 名 = 版本号本身
- *   3. 发版类型不得低于本批提交的内容要求（有 feat 至少 minor，有破坏性变更至少 major）
- *
- * 规则改动只改这一个文件和 scripts/release/verify-version.js。
- */
 
 const { execFileSync } = require('node:child_process');
 const fs = require('node:fs');
@@ -24,40 +10,18 @@ const { resolveExe } = require('../lib/resolve-exe');
 
 const ROOT = path.resolve(__dirname, '../..');
 
-/** 合法的发版类型（白名单） */
 const RELEASE_TYPES = ['patch', 'minor', 'major'];
 
-/**
- * 发版类型白名单 —— 用查表而不是正则
- *
- * releaseType 会作为参数交给 pnpm version（Windows 上还要过一遍 shell），
- * 值里带上空格、引号、分号这类元字符就可能被拼成别的命令。
- *
- * 查表而不是「校验完继续用原值」：从这张固定表里取出来的值只能是
- * patch / minor / major 三个字面量之一，命令行参数本身流不到子进程里
- * （SonarCloud S8705 命令参数注入）。
- */
 const RELEASE_TYPE_BY_NAME = {
     patch: 'patch',
     minor: 'minor',
     major: 'major',
 };
 
-// 命令解析成绝对路径再执行 —— 靠 PATH 查找意味着同名的可执行文件可以被劫持，
-// SonarCloud 会把这记成 S4036 安全漏洞（质量门禁里 Security Rating 直接掉到 E）。
-// 参数一律走数组形式，不经过 shell，路径带空格也不会出问题。
 const GIT = resolveExe('git');
 const PNPM = resolveExe('pnpm');
-// Windows 上 pnpm 是 .cmd 批处理，必须借 shell 才能执行；POSIX 上是带 shebang 的脚本
 const IS_WIN = process.platform === 'win32';
 
-/**
- * 取上一个版本号 tag
- *
- * 只认纯数字三段的 tag —— 项目里早先存在过 v1.0.x 和 1.0.<commit 数>
- * 两种形态（详见 AGENTS.md 第 3 节），那些旧 tag 不参与版本推导，
- * 否则会把 commit 数当成版本号继续用下去。
- */
 function getLastVersionTag() {
     try {
         const out = execFileSync(GIT, ['tag', '--list', '--sort=-v:refname'], {
@@ -75,18 +39,10 @@ function getLastVersionTag() {
     }
 }
 
-/**
- * 统计上个版本之后提交里出现的 type
- *
- * 这是"提交规范驱动版本号"的落地：AGENTS.md 第 2.2 节规定
- * feat → minor、破坏性变更 → major。这里把规则真正跑起来，
- * 避免出现"加了功能却只发了个 patch"的版本号失真。
- */
 function collectCommitTypes(sinceTag) {
     const range = sinceTag ? `${sinceTag}..HEAD` : 'HEAD';
     let log = '';
     try {
-        // 用 \x1f / \x1e 分隔记录：一条提交一条，正文里的空行不会被误切成新提交
         log = execFileSync(GIT, ['log', '--format=%s%x1f%B%x1e', range], {
             encoding: 'utf8',
             stdio: ['ignore', 'pipe', 'ignore'],
@@ -112,18 +68,6 @@ function collectCommitTypes(sinceTag) {
     return { feat, breaking, total: records.length };
 }
 
-/**
- * 校验发版类型与提交内容是否匹配
- *
- * 规则（AGENTS.md 第 2.2 / 3.2 节）：
- *   - 出现 BREAKING CHANGE → 至少 major
- *   - 出现 feat             → 至少 minor
- *   - 否则                   → patch 即可
- *
- * 往高了发不拦（多发一个 minor 总比漏发功能安全），往低了发直接拦。
- *
- * @returns {{ok: boolean, required: string, total: number, feat: boolean, breaking: boolean}}
- */
 function checkReleaseTypeAgainstCommits(releaseType, sinceTag) {
     const { feat, breaking, total } = collectCommitTypes(sinceTag);
     const rank = { patch: 0, minor: 1, major: 2 };
@@ -154,7 +98,6 @@ function checkReleaseTypeAgainstCommits(releaseType, sinceTag) {
     return { ok: true, required, total, feat, breaking };
 }
 
-/** 检查 Node.js 版本 */
 function checkNodeVersion() {
     const nodeVersion = process.version;
     const majorVersion = parseInt(nodeVersion.slice(1).split('.')[0]);
@@ -168,17 +111,10 @@ function checkNodeVersion() {
     console.log(`✅ Node.js版本检查通过: ${nodeVersion}`);
 }
 
-/** 读取根 package.json 的 version */
 function readPackageVersion() {
     return JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
 }
 
-/**
- * 根 package.json 里有没有 test 脚本
- *
- * 用来区分「没有测试可跑」与「测试跑挂了」—— 这两件事必须分开处理，
- * 见 main() 里第 6 步的说明。
- */
 function hasTestScript() {
     try {
         const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
@@ -188,18 +124,6 @@ function hasTestScript() {
     }
 }
 
-/**
- * Sonar 质量门禁
- *
- * 查的是 SonarCloud 上最近一次分析的结果（未解决的 issue），
- * 有命中拦截级别的问题就中止发版，并把清单打到控制台。
- *
- * 令牌从环境变量 SONAR_TOKEN 或 .data/sonar/token 读；
- * 没有令牌时门禁脚本自己跳过（不会把发版卡死），
- * 需要强制时设 SONAR_REQUIRED=1。
- *
- * 应急跳过：SKIP_SONAR=1 —— 会留痕在提交历史里。
- */
 function runSonarGate() {
     if (process.env.SKIP_SONAR === '1') {
         console.log('⚠️  SKIP_SONAR=1 —— 本次跳过 Sonar 质量门禁');
@@ -208,17 +132,12 @@ function runSonarGate() {
 
     console.log('🔍 Sonar 质量门禁...');
     try {
-        // 用 process.execPath 直接起 node，不从 PATH 找 node ——
-        // 同名可执行文件被劫持的话会跑到别的东西上去（SonarCloud S4036）
         execFileSync(
             process.execPath,
             [path.join(ROOT, 'scripts', 'quality', 'sonar-issues.js'), '--gate'],
             { stdio: 'inherit', cwd: ROOT }
         );
     } catch (error) {
-        // 退出码 2 = 「判不了」（令牌失效、网络不通），1 = 「查到了问题」。
-        // 两者的处理不同：前者是环境问题，让人先把门禁跑通再发版；
-        // 后者是代码问题，清单已经打出来了。
         const undeterminable = error.status === 2;
         console.error('');
         if (undeterminable) {
@@ -239,10 +158,8 @@ function runSonarGate() {
 }
 
 function main() {
-    const rawType = process.argv[2] || 'patch'; // patch, minor, major
+    const rawType = process.argv[2] || 'patch';
 
-    // 白名单校验：从固定表里查出来的值只能是三个字面量之一，
-    // 命令行参数本身不会流到子进程（SonarCloud S8705 命令参数注入）。
     const releaseType = RELEASE_TYPE_BY_NAME[rawType];
     if (!releaseType) {
         console.error(`❌ 无效的发布类型: ${JSON.stringify(rawType)}`);
@@ -253,10 +170,8 @@ function main() {
     console.log(`🚀 开始 ${releaseType} 版本发布流程...`);
 
     try {
-        // 0. 检查Node.js版本
         checkNodeVersion();
 
-        // 1. 检查工作目录是否干净
         console.log('📋 检查Git工作目录状态...');
         try {
             execFileSync(GIT, ['diff-index', '--quiet', 'HEAD', '--'], { stdio: 'inherit', cwd: ROOT });
@@ -265,10 +180,6 @@ function main() {
             process.exit(1);
         }
 
-        // 2. 校验当前版本号格式（发版前必须已经是合法的 MAJOR.MINOR.PATCH）
-        //
-        // 这里只查格式，不查发布线 —— 换线的那一次发版，发版前的版本必然还在
-        // 旧线上，拿发布线去卡它会把换线堵死。发布线由第 8 步（bump 之后）把关。
         const currentVersion = readPackageVersion();
         const versionErrors = validateFormat(currentVersion);
         if (versionErrors.length > 0) {
@@ -278,7 +189,6 @@ function main() {
         }
         console.log(`✅ 当前版本号: ${currentVersion}`);
 
-        // 3. 校验发版类型与提交内容匹配
         const lastTag = getLastVersionTag();
         console.log(
             lastTag
@@ -290,24 +200,12 @@ function main() {
             process.exit(1);
         }
 
-        // 4. 拉取最新代码
         console.log('📥 拉取最新代码...');
         execFileSync(GIT, ['pull', 'origin', 'master'], { stdio: 'inherit', cwd: ROOT });
 
-        // 5. 安装工作区依赖
         console.log('📦 安装工作区依赖...');
         execFileSync(PNPM, ['install'], { stdio: 'inherit', cwd: ROOT, shell: IS_WIN });
 
-        // 6. 运行测试
-        //
-        // 这里原来是无条件 catch 住所有异常并提示「跳过测试步骤」——
-        // 那在没有测试脚本的年代没问题，但仓库接上 vitest 之后，
-        // 一条红测试会被这条 catch 悄悄吃掉，脚本照样 bump、打 tag、推上去，
-        // 等于测试完全不构成门禁。
-        //
-        // 所以先看根 package.json 里有没有 test 脚本：
-        //   有 → 跑，失败就中止发版
-        //   没有 → 才算跳过
         console.log('🧪 运行测试...');
         if (!hasTestScript()) {
             console.log('ℹ️  没有找到测试脚本，跳过测试步骤');
@@ -325,30 +223,17 @@ function main() {
             }
         }
 
-        // 8. Sonar 质量门禁
-        //
-        // 放在 bump 之前 —— 门禁不过就别改版本号、更别推 tag。
-        // 清单落在 .data/sonar/sonar-issues.md（该目录已 gitignore）。
         runSonarGate();
 
-        // 9. 更新版本号
-        //
-        // 版本号的唯一来源是 package.json —— 不设任何环境变量覆盖
-        // （ELECTRON_BUILDER_VERSION 在 electron-builder 25.x 里并不生效，
-        //   详见 AGENTS.md 第 3 节）。
         console.log(`📈 更新版本号 (${releaseType})...`);
         execFileSync(PNPM, ['version', releaseType, '--no-git-tag-version'], {
             stdio: 'inherit',
             cwd: ROOT,
             shell: IS_WIN,
         });
-        // 版本号以 package.json 为准，不解析 pnpm 的 stdout ——
-        // pnpm 输出的是 "Version bumped successfully:\n<name>: 1.0.19 → 1.0.20"
-        // 这种多行文本，不是纯版本号。
         const newVersion = readPackageVersion();
         console.log(`✅ 新版本: ${newVersion}`);
 
-        // 10. 再次校验新版本号
         const newVersionErrors = validateVersion(newVersion, null);
         if (newVersionErrors.length > 0) {
             console.error('❌ 新版本号不符合规范：');
@@ -356,15 +241,8 @@ function main() {
             process.exit(1);
         }
 
-        // 11. 提交版本更改
-        //
-        // 提交信息走 Angular 规范（type(scope): subject），
-        // 且会被 .githooks/commit-msg 校验
         console.log('💾 提交版本更改...');
         execFileSync(GIT, ['add', 'package.json', 'pnpm-lock.yaml'], { stdio: 'inherit', cwd: ROOT });
-        // 跳过质量门禁时把痕迹写进提交信息 ——
-        // AGENTS.md 说「应急可用 SKIP_SONAR=1 跳过（会留痕在提交历史里）」，
-        // 光打印一行不算留痕：过几个月谁还记得那次发版是跳过的？
         const commitArgs = ['commit', '-m', `chore(release): bump version to ${newVersion}`];
         if (process.env.SKIP_SONAR === '1') {
             commitArgs.push(
@@ -377,16 +255,12 @@ function main() {
             cwd: ROOT,
         });
 
-        // 12. 创建Git标签
-        //
-        // tag 名 = 版本号本身，不加 v 前缀（AGENTS.md 第 3.3 节）
         console.log('🏷️  创建Git标签...');
         execFileSync(GIT, ['tag', '-a', newVersion, '-m', `Release ${newVersion}`], {
             stdio: 'inherit',
             cwd: ROOT,
         });
 
-        // 11. 推送到远程仓库
         console.log('📤 推送到远程仓库...');
         execFileSync(GIT, ['push', 'origin', 'master'], { stdio: 'inherit', cwd: ROOT });
         execFileSync(GIT, ['push', 'origin', newVersion], { stdio: 'inherit', cwd: ROOT });

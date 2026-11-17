@@ -18,22 +18,10 @@ import {
   readRendererSources,
 } from "./ui-guards";
 
-/**
- * UI 守卫：焦点环厚度、隐藏控件、破坏性确认框、品牌色文字
- *
- * 每条守卫都是「基线 + 变异输入」两半：
- *   - 基线：当前已知的违规项都在名单里，名单外新出现的立刻红
- *   - 变异：拿构造出来的坏例子喂给检测器，证明它真会抓（不然守卫是假的安全网）
- *
- * 基线是「已查出来、还没改」的那批。改好之后基线会多出「已修复」条目 ——
- * 那只是提醒（打印出来），不拦构建：仓库要一直是绿的，
- * 否则 auto-build.yml 每次推 master 都会被卡住。
- */
 
 const RENDERER_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sources = readRendererSources(RENDERER_ROOT);
 
-/** 已修复的条目只提醒，不拦构建 */
 function reportFixed(label: string, fixed: string[]): void {
   if (!fixed.length) return;
   console.warn(
@@ -121,16 +109,7 @@ describe("隐藏控件", () => {
     ]);
   });
 
-  /**
-   * 焦点显形判定：focus 变体的实心字色
-   *
-   * 场景取自书签那两颗按钮（components/browser/BookmarkList.tsx）：
-   * 默认字色全透明，悬停显形，聚焦时把字色换成实心色。
-   *
-   * 每条都走 diffViolations(current, {})（空基线），断言进了 added —— 说明这条写法
-   * 确实会被守卫当成违规。
-   */
-  const REL = "components/browser/BookmarkList.tsx";
+  const REL = "pages/browser/BookmarkList.tsx";
 
   function addedSignatures(source: string): string[] {
     const bad = makeSource(REL, source);
@@ -143,7 +122,7 @@ describe("隐藏控件", () => {
       addedSignatures(
         `export function X() { return (<button className="text-muted-foreground/0 group-hover:text-muted-foreground/70">删</button>); }`
       )
-    ).toEqual(["components/browser/BookmarkList.tsx|视觉藏起"]);
+    ).toEqual(["pages/browser/BookmarkList.tsx|视觉藏起"]);
   });
 
   it("变异输入：focus 带透明度档（/70）不算显形", () => {
@@ -151,7 +130,7 @@ describe("隐藏控件", () => {
       addedSignatures(
         `export function X() { return (<button className="text-muted-foreground/0 focus-visible:text-muted-foreground/70">删</button>); }`
       )
-    ).toEqual(["components/browser/BookmarkList.tsx|视觉藏起"]);
+    ).toEqual(["pages/browser/BookmarkList.tsx|视觉藏起"]);
   });
 
   it("变异输入：focus 实心字色算显形，放行", () => {
@@ -175,7 +154,7 @@ describe("隐藏控件", () => {
       addedSignatures(
         `export function X() { return (<button className="text-muted-foreground/0 hover:text-muted-foreground">删</button>); }`
       )
-    ).toEqual(["components/browser/BookmarkList.tsx|视觉藏起"]);
+    ).toEqual(["pages/browser/BookmarkList.tsx|视觉藏起"]);
   });
 
   it("变异输入：整体透明（opacity-0）时 focus 实心字色也救不回来", () => {
@@ -183,7 +162,7 @@ describe("隐藏控件", () => {
       addedSignatures(
         `export function X() { return (<button className="opacity-0 text-muted-foreground/0 focus-visible:text-muted-foreground">删</button>); }`
       )
-    ).toEqual(["components/browser/BookmarkList.tsx|视觉藏起"]);
+    ).toEqual(["pages/browser/BookmarkList.tsx|视觉藏起"]);
   });
 
   it("变异输入：只写 opacity-0 时，focus 实心字色也不算显形", () => {
@@ -191,7 +170,7 @@ describe("隐藏控件", () => {
       addedSignatures(
         `export function X() { return (<button className="opacity-0 focus-visible:text-muted-foreground">删</button>); }`
       )
-    ).toEqual(["components/browser/BookmarkList.tsx|视觉藏起"]);
+    ).toEqual(["pages/browser/BookmarkList.tsx|视觉藏起"]);
   });
 
   it("变异输入：focus 换成 text-transparent 还是全透明", () => {
@@ -199,7 +178,7 @@ describe("隐藏控件", () => {
       addedSignatures(
         `export function X() { return (<button className="text-muted-foreground/0 focus:text-transparent">删</button>); }`
       )
-    ).toEqual(["components/browser/BookmarkList.tsx|视觉藏起"]);
+    ).toEqual(["pages/browser/BookmarkList.tsx|视觉藏起"]);
   });
 
   it("变异输入：focus 实心字色带 important 标记也算显形", () => {

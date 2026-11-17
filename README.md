@@ -1,10 +1,4 @@
-<div align="center">
-  <img src="https://raw.githubusercontent.com/Ruciazyt/qnote-elec/master/src/renderer/public/icon-256.png" width="88" height="88" alt="QNote" />
-  <h1>QNote</h1>
-  <p><b>A quiet productivity tool that sits in the corner of your desktop</b><br />Clipboard · Notes · Todo · AI assistant · Embedded browser — all in one window</p>
-</div>
 
-<div align="center">
 
 [![Release](https://img.shields.io/github/v/release/Ruciazyt/qnote-elec?label=Release&color=1d97a8)](https://github.com/Ruciazyt/qnote-elec/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/Ruciazyt/qnote-elec/total?label=Downloads&color=1d97a8)](https://github.com/Ruciazyt/qnote-elec/releases)
@@ -20,21 +14,14 @@
 [![Tailwind](https://img.shields.io/badge/Tailwind-3-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
 [![SQLite](https://img.shields.io/badge/SQLite-003B57?logo=sqlite&logoColor=white)](https://www.sqlite.org)
 
-</div>
 
 ---
 
-<p align="center">
-  <a href="https://github.com/Ruciazyt/qnote-elec/releases/latest"><img src="https://img.shields.io/badge/%E4%B8%8B%E8%BD%BD-latest-1d97a8?style=for-the-badge&logo=github&logoColor=white" alt="Download the latest release" /></a>
-  <a href="#feature-overview"><img src="https://img.shields.io/badge/%E5%8A%9F%E8%83%BD%E4%B8%80%E8%A7%88-1d97a8?style=for-the-badge&logo=readthedocs&logoColor=white" alt="Feature overview" /></a>
-  <a href="#development"><img src="https://img.shields.io/badge/%E5%BC%80%E5%8F%91-8A94A7?style=for-the-badge&logo=github&logoColor=white" alt="Development" /></a>
-</p>
 
 ---
 
 ## What is this
 
-QNote is a desktop productivity tool for Windows built on **Electron**. It puts the handful of things you reach for every day into a single window:
 
 - Everything you copied is kept for you — **clipboard history** is captured in the background, searchable, and can be pinned.
 - Ideas become files instead of lock-in — **notes** are plain files: Markdown, web pages, drawings, images and PDF all live side by side.
@@ -42,9 +29,7 @@ QNote is a desktop productivity tool for Windows built on **Electron**. It puts 
 - The part you would rather not do by hand goes to the **AI assistant** — it reads your notes, searches your clipboard history and can operate the browser for you.
 - Looking something up should not mean switching to another window — the **embedded browser** keeps bookmarks, and the AI sidebar reads the page you are on.
 
-The design has a single principle: **quiet**. One brand color, restrained motion, a visual density that does not fight for attention, so the tool disappears into muscle memory instead of reminding you that it exists.
 
-The application interface is in Chinese; this document is in English.
 
 ---
 
@@ -99,12 +84,6 @@ The application interface is in Chinese; this document is in English.
 
 ## Screenshots
 
-> Screenshots are pending — drop the images into `docs/images/` and uncomment the lines below.
->
-> - **Home** — clipboard list, search, OCR and formatting toolbar
-> - **Notes** — folder tree plus multi-type editors (text, drawing, web page, image, PDF)
-> - **AI assistant** — a collapsed dot that expands into a card
-> - **Embedded browser** — tab bar, bookmark bar and the AI sidebar
 
 ```markdown
 <!-- <p align="center"><img src="docs/images/home.png" width="880" alt="Home" /></p> -->
@@ -116,7 +95,6 @@ The application interface is in Chinese; this document is in English.
 
 ## Download and install
 
-The current distribution channel is **Windows**. Every release is produced by GitHub Actions in two forms.
 
 ### Installer (recommended)
 
@@ -132,7 +110,6 @@ The current distribution channel is **Windows**. Every release is produced by Gi
 - Handy on a USB stick, for temporary use, or for a green uninstall
 - **No automatic updates** — a portable build has no installer and cannot overwrite itself, so upgrading means downloading the new version and replacing the folder
 
-> Notes are stored in `%APPDATA%\qnote\notes` by default. Use "Change directory" on the Notes page to move them anywhere on your machine.
 
 ---
 
@@ -140,7 +117,6 @@ The current distribution channel is **Windows**. Every release is produced by Gi
 
 ### Clipboard
 
-The window opens on a list — whatever you copied is already there.
 
 - **Captured in the background**: text and images go into the list the moment you copy them, and duplicates are collapsed.
 - **Pinned and important**: pinned entries float to the top; entries marked as important survive a clear.
@@ -152,7 +128,6 @@ The window opens on a list — whatever you copied is already there.
 
 ### Notes
 
-**Notes are plain files** — no proprietary database, no private format, the type is decided by the extension.
 
 | Type | Extension | Notes |
 | --- | --- | --- |
@@ -162,7 +137,6 @@ The window opens on a list — whatever you copied is already there.
 | Image | `.png` `.jpg` `.jpeg` `.gif` `.webp` `.bmp` `.svg` | Screenshots and assets stored as they are |
 | PDF | `.pdf` | Built-in reader with page navigation and zoom |
 
-Around that:
 
 - **Folder tree**: any depth, drag to move, rename, batch import (drop files in and they are indexed).
 - **Asset directory**: images inside a rich text note are written into `assets/`, and the note body stays plain and readable.
@@ -171,13 +145,10 @@ Around that:
 
 ### Todo
 
-Three priority levels, an optional due date and notes, and image attachments — when a to-do is created from the clipboard, the image and the OCR text come along.
 
-To-dos can be created from the clipboard, the notes and the AI assistant.
 
 ### AI assistant
 
-A dot rests in the corner; open it and it becomes a draggable card, with its position and expanded state shared across windows.
 
 - **Streaming output**: the reply comes back word by word and can be interrupted at any time.
 - **Agent mode**: the model runs a tool loop on its own, calling tools until the task is done.
@@ -188,7 +159,6 @@ A dot rests in the corner; open it and it becomes a draggable card, with its pos
 - **Long-term memory**: the assistant can remember your preferences, facts and working agreements. It lives in `<userData>/ai-memory.json`, in plain text you can read and edit.
 - **Usage statistics**: today's, this week's and the total token consumption, broken down by model and by date, visible in the settings.
 
-**Built-in tools**
 
 | Tool | Does | Type |
 | --- | --- | --- |
@@ -202,17 +172,12 @@ A dot rests in the corner; open it and it becomes a draggable card, with its pos
 | `browser_get_snapshot` | Reads the structure of the current page | read |
 | `browser_click` / `browser_fill` / `browser_navigate` | Operates the embedded browser tab | write |
 
-> Browser tools only ever act on **the one tab you are currently looking at**. They never open or close tabs, and every call is written to the application log. When a password, a verification code or a payment is involved, the model is explicitly told to stop and hand the step back to you.
 
-**Connecting a provider**: fill in an API key, a model name and a base URL. Both the OpenAI and the Anthropic protocol are supported, so official endpoints, gateways, Ollama and LM Studio all work.
 
-> Asking with images requires a vision-capable model (GPT-4o, Claude, a MiniMax vision model and similar). If the model does not support it, the upstream error is shown as it is — text-only questions are unaffected.
 
 ### Embedded browser
 
-Multiple tabs, bookmarks, an address bar and back / forward / reload. A collapsible **AI sidebar** on the right lets the model read the current page and operate it.
 
-Pages are hosted by the main process in a `WebContentsView`, and the interface layer only synchronizes the toolbar and the location, so page styles cannot bleed into the app.
 
 ### OCR and voice input
 
@@ -221,13 +186,11 @@ Pages are hosted by the main process in a `WebContentsView`, and the interface l
 
 ### Shortcuts
 
-Home tiles pin your favorite apps and folders so they open with one click, and you can drag to reorder them. Turn on the system context menu and right-clicking any file in Explorer offers "Add to QNote".
 
 ---
 
 ## Configuration
 
-All keys and third-party settings are entered on the **settings page** and injected at runtime. The repository contains no credentials.
 
 | Setting | Purpose | Where |
 | --- | --- | --- |
@@ -238,7 +201,6 @@ All keys and third-party settings are entered on the **settings page** and injec
 | Theme | Light, dark or follow the system | Settings → Interface → Appearance |
 | App updates | Check, download and install new versions | Settings → Data and development → App update |
 
-**Where the data lives**
 
 | Content | Path |
 | --- | --- |
@@ -247,7 +209,6 @@ All keys and third-party settings are entered on the **settings page** and injec
 | Logs | `%APPDATA%\qnote\app.log` / `app-error.log` |
 | AI long-term memory | `%APPDATA%\qnote\ai-memory.json` |
 
-> The database can be exported and imported with one click in the settings, so moving to a new machine is a copy.
 
 ---
 
@@ -318,23 +279,19 @@ pnpm run build-portable
 
 ### Commit convention
 
-The repository enforces a commit message hook (Angular commit convention). Run this once after cloning:
 
 ```bash
 pnpm run setup:hooks
 ```
 
-Messages look like `feat(ocr): 增加百度 OCR 表格识别`. You can validate a single message with:
 
 ```bash
 pnpm run verify:commit "feat(updater): 增加应用更新卡片"
 ```
 
-> If the hook file does not have the right permissions on Windows it is silently skipped, and `setup:hooks` fixes that for you.
 
 ### Versioning and releases
 
-The version number has a single source of truth: the `version` field in the root `package.json`. A release goes through exactly one path — tag the commit, CI builds it and creates the Release:
 
 ```bash
 pnpm run release:patch     # 1.1.0 → 1.1.1
@@ -342,9 +299,7 @@ pnpm run release:minor     # 1.1.0 → 1.2.0
 pnpm run release:major     # 1.1.0 → 2.0.0
 ```
 
-The script checks that the working tree is clean, that the version number is valid and that **the release type matches what the commits since the last release actually contain** (a `feat` commit forces a minor release), then bumps the version, commits it, creates an annotated tag and pushes both. CI produces the installer, the portable build and `latest.yml`, and creates the GitHub Release.
 
-Validate the version number with:
 
 ```bash
 pnpm run verify:version
@@ -354,11 +309,8 @@ pnpm run verify:version
 
 ## Code signing policy
 
-The code signing arrangement for this project: the Windows installer is signed with a certificate issued by [SignPath Foundation](https://signpath.org) under a public CA — the foundation vouches for open source projects that have been reviewed and meet its criteria, so the certificate chain is trusted by Windows and both SmartScreen and enterprise security scanners can see a verified publisher.
 
-> Free code signing provided by [SignPath.io](https://signpath.io), certificate by [SignPath Foundation](https://signpath.org).
 
-**Current status: the release artifacts are not signed.** The self-signed certificate used up to and including 1.4.0 was retired on 2026-10-28 — in practice it was worse than no signature at all, because a signed-but-untrusted publisher is an extra suspicion signal for security products. The free SignPath Foundation signing application has been submitted; once it is approved the installer will be signed with the foundation's certificate, and each release still needs a manual approval. Until then, verify the file with the `SHA256SUMS.txt` published in every Release.
 
 ### What is signed
 
@@ -370,11 +322,9 @@ The code signing arrangement for this project: the Windows installer is signed w
 | `latest.yml` | n/a | Auto-update metadata; not signed, its integrity is checked through the installer hash |
 | `SHA256SUMS.txt` | n/a | Hash manifest for manual verification |
 
-Files *inside* the installer (the main executable `QNote.exe`, third-party native modules such as the SQLite `node_sqlite3.node`) are not signed individually; they are shipped as their upstream projects publish them. This is the normal practice for open source projects: the signature states "this installer was produced by this project's CI from the public source tree", not "every file inside has been audited one by one". The file a security scanner actually inspects is the downloaded installer, and that is the file the signature covers.
 
 ### Build and signing process
 
-Once SignPath is active, the complete flow is:
 
 1. The source is built by GitHub Actions on GitHub-hosted runners.
 2. The build output is uploaded as a workflow artifact. SignPath verifies that the file really originates from this repository's CI build, then signs it.
@@ -382,13 +332,10 @@ Once SignPath is active, the complete flow is:
 4. After approval, SignPath applies an Authenticode signature using a public CA certificate, and the signed artifact is returned to the CI.
 5. The CI recomputes the hashes in `latest.yml` and publishes the signed installer to the GitHub Release.
 
-While SignPath is not active, steps 2 to 4 are skipped and the CI publishes the unsigned installer — the release flow is not blocked by the missing signature.
 
-Private keys are held in SignPath's HSM. The repository holds no private key, and the CI does not need any certificate file. The publisher shown by Windows is **SignPath Foundation**, not the individual maintainer.
 
 ### Team roles
 
-This project is maintained by a single maintainer, who also holds all three signing roles:
 
 | Role | Member | Responsibility |
 | --- | --- | --- |
@@ -398,9 +345,7 @@ This project is maintained by a single maintainer, who also holds all three sign
 
 ### Privacy
 
-**This program will not transfer any information to other networked systems unless specifically requested by the user or the person installing or operating it.**
 
-Every network request in QNote is triggered by the user:
 
 | Feature | Destination | Trigger |
 | --- | --- | --- |
@@ -410,18 +355,15 @@ Every network request in QNote is triggered by the user:
 | Embedded browser | The website the user opens | The user navigates to a page |
 | Check for updates | GitHub Releases | The user clicks "check for updates" |
 
-The user's own data (clipboard history, notes, todos, conversation history) is stored locally in `%APPDATA%\qnote` and is never uploaded for synchronization or analytics. API keys are entered by the user in the settings page and injected at runtime; the repository and the installer contain no credentials. If the user configures no AI or OCR service, QNote makes no network request other than "check for updates". The AI, OCR and speech-to-text services listed above are operated by third parties and are subject to their own privacy policies and terms of service.
 
 ### System changes during installation
 
-The installer performs the following changes, all of which are removed again on uninstall:
 
 - Installs into `%LOCALAPPDATA%\Programs\QNote` for the current user by default. The first page of the wizard lets the user choose "for all users" instead (which installs into `Program Files`), and the next page lets them choose any other directory.
 - Creates a desktop shortcut and a Start menu shortcut.
 - Registers three global hotkeys (system-wide, so they are taken while QNote runs and released when it exits): `Ctrl/⌘ + Shift + V` opens the clipboard popup, `Ctrl/⌘ + Enter` brings up the main window, and `F1` starts voice input. The voice hotkey can be changed to another combination in the settings page.
 - Optional: registers an "Add to QNote" entry in the Windows Explorer context menu (disabled by default, enabled in the settings page). The entry is written under the current user's `HKCU\Software\Classes\*\shell`.
 
-QNote adds no startup entry to the registry, installs no background service and installs no drivers.
 
 ### Uninstalling
 
@@ -431,28 +373,23 @@ QNote adds no startup entry to the registry, installs no background service and 
 
 ### How users verify a download
 
-**For the current unsigned releases, check the SHA256 hash:**
 
 ```powershell
 Get-FileHash .\QNote-Setup-<version>.exe -Algorithm SHA256
 ```
 
-The expected hashes are published with every release in `SHA256SUMS.txt`, which can also be verified directly:
 
 ```bash
 sha256sum -c SHA256SUMS.txt
 ```
 
-Once SignPath is active, the installer additionally carries an Authenticode digital signature. Windows shows the signature information under "Properties → Digital Signatures", and it can be checked from the command line:
 
 ```powershell
 Get-AuthenticodeSignature .\QNote-Setup-<version>.exe |
   Select-Object Status, StatusMessage, SignerCertificate
 ```
 
-`Status` of `Valid` means the signature is intact and the certificate chain is trusted by the system. `SignerCertificate.Issuer` is the public CA that issued the certificate held by SignPath Foundation.
 
-If a corporate security product blocks the download, the hash from `SHA256SUMS.txt` is what the IT team needs in order to allow-list the file.
 
 ---
 

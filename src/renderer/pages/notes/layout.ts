@@ -1,0 +1,22 @@
+
+export const NOTE_SIDEBAR_DEFAULT_WIDTH = 288;
+
+export const NOTE_SIDEBAR_MIN_WIDTH = 220;
+
+export const NOTE_SIDEBAR_MAX_WIDTH = 560;
+
+export const NOTES_EDITOR_MIN_WIDTH = 420;
+
+
+export const NOTES_SPLIT_DEFAULT_RATIO = 0.4;
+
+export const NOTES_SPLIT_MIN_RATIO = 0.15;
+
+export const NOTES_SPLIT_MAX_RATIO = 0.7;
+
+export const NOTES_EXTERNAL_COLLAPSED_HEIGHT = 40;
+
+export const NOTES_EXTERNAL_COLLAPSE_MS = 150;
+export const NOTES_EXTERNAL_EXPAND_MS = 220;
+
+export { PANEL_COLLAPSED_WIDTH as NOTE_SIDEBAR_COLLAPSED_WIDTH } from "@/components/panel/layout";

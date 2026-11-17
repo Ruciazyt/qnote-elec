@@ -18,19 +18,8 @@
   background-color: hsl(var(--muted) / 0.4);
 }
 
-/*
- * Fix: Replaced hardcoded rgba(15, 23, 42, 0.85) with a CSS variable.
- * The base uses --primary with low opacity for a dark tinted surface that works in both
- * light and dark modes (dark enough to provide good contrast in light mode; slightly
- * lighter in dark mode to avoid blending with the dark card bg).
- * Dark mode override uses --foreground at ~15% to maintain the "always dark" code block
- * look while being theme-aware.
- */
 .clipboard-code .code-block--highlight {
   background-color: hsl(var(--primary) / 0.15);
-  /* 前景色改走 --tok-base（见文件末尾的两套配色变量）。
-     原来这里是写死的 #e2e8f0 —— 浅色模式下那是接近白的颜色，
-     落在浅蓝底上几乎看不见。 */
   color: var(--tok-base, #e2e8f0);
 }
 
@@ -44,8 +33,6 @@
   border: 1px solid hsl(var(--border) / 0.5);
 }
 
-/* Plain code: wrap inside the card so clipboard records grow vertically
-   rather than overflowing horizontally. */
 .clipboard-code .code-block--plain code[class*="language-"],
 .clipboard-code .code-block--plain code.language-none {
   white-space: pre-wrap;
@@ -57,11 +44,6 @@
   color: hsl(var(--foreground) / 0.85);
 }
 
-/* 链接正文 —— 整条内容被识别成网址时换色
-   放在上面那条规则之后：两者选择器权重相同（0,3,0），
-   后写的赢，否则链接色会被正文的 foreground 盖掉。
-   只挂在 --plain 上：用户手动开了语法高亮的记录，
-   颜色归 Prism 的 token 管，不跟链接色抢。 */
 .clipboard-code .code-block--plain code.code--link {
   color: hsl(var(--link));
 }
@@ -71,11 +53,6 @@
   width: 6px;
 }
 
-/*
- * Fix: Replaced hardcoded rgba(100, 116, 139, 0.5) with CSS variable.
- * This ensures the scrollbar thumb colour adapts to dark mode, where the muted-foreground
- * is lighter and needs a higher opacity to remain visible.
- */
 .clipboard-code .code-block::-webkit-scrollbar-thumb {
   background-color: hsl(var(--muted-foreground) / 0.5);
   border-radius: 999px;
@@ -104,22 +81,8 @@
   background: transparent;
 }
 
-/*
- * Token 配色 — 浅色 / 深色两套
- *
- * 为什么拆成变量：原先所有 token 颜色都写死成高亮亮度的值
- * （#4ade80 绿、#e2e8f0 浅灰…），那是给**深底**设计的。
- * 而 code-block--highlight 在浅色模式下背景是
- * hsl(primary / 0.15) —— 浅底。浅底配深底配色，对比度互相抵消，
- * 表现为颜色发白发飘、又扎眼又读不清；深色模式下却是正常的。
- *
- * 现在：浅色模式用专为浅底调的深一档柔和色（对比度 4.5:1 以上），
- * 深色模式沿用原来的亮色。两套互不干扰。
- */
 
 .clipboard-code .code-block--highlight {
-  /* 浅底专用色：全部经 WCAG 校验，在 hsl(primary/0.15) 叠白底的
-     #dcedf3 上对比度 >= 4.5:1（AA 正文标准）。 */
   --tok-comment: #4b5563;
   --tok-punct: #475569;
   --tok-key: #0f766e;
@@ -189,7 +152,6 @@
   color: var(--tok-key);
 }
 
-/* CSS-specific tokens */
 .clipboard-code .code-block--highlight .token.selector,
 .clipboard-code .code-block--highlight .token.selector .token.class,
 .clipboard-code .code-block--highlight .token.selector .token.id,

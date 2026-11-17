@@ -19,29 +19,9 @@ import {
 } from "./config";
 import { resolveDefaultEndpoint } from "./defaults";
 
-/**
- * 云端配置与后端切换的回归
- *
- * 配置的解析是这里最需要守的地方：配置是从**本地数据库**里读出来的一串
- * JSON，它可能因为升级、损坏、手改而变得不合法。
- *
- * 解析失败时的行为必须是「退回纯本地」，而不是抛异常 ——
- * 一份坏配置不该让整个应用起不来。
- *
- * ## 「没配过」与「配坏了」是两件事
- *
- * - 没配过（库里没有这条记录）→ 用**内置的公共目录地址**（零配置）
- * - 配坏了（JSON 非法、后端名不认识、D1 三项缺一不可）
- *   → 退回**纯本地**
- *
- * 第二种不能顺带连上公共目录：用户明明写过配置，说明他有明确意图；
- * 拿内置地址替他做决定是越权。测试里这两条要分开断言。
- */
 
-/** 内置的公共目录地址 —— 正式版里非空 */
 const BUILTIN_ENDPOINT = resolveDefaultEndpoint();
 
-/** 「什么都没配」时实际生效的后端 */
 const ZERO_CONFIG_BACKEND = BUILTIN_ENDPOINT ? "public" : "local";
 
 describe("云端配置解析", () => {
@@ -53,7 +33,6 @@ describe("云端配置解析", () => {
   });
 
   it("内置了公共目录地址时，装上就能用，不用填任何东西", () => {
-    // 正式版内置了地址 → 默认就是公共目录
     expect(BUILTIN_ENDPOINT).not.toBe("");
     expect(BUILTIN_ENDPOINT).toMatch(/^https?:\/\//);
     expect(parseCloudConfig(null).backend).toBe("public");
@@ -95,7 +74,6 @@ describe("云端配置解析", () => {
   });
 
   it("后端写着 d1 但配置不全 → 按 local 处理", () => {
-    // 配了一半就切云端，注定连不上 —— 不如老实留在本地
     const config = parseCloudConfig(
       JSON.stringify({ backend: "d1", d1: { accountId: "acct-1" } })
     );

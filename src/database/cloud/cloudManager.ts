@@ -1,5 +1,5 @@
 import type { Knex } from "knex";
-import { log } from "../../main/utils/log";
+import { log } from "../../main/core/system/log";
 import {
   DEFAULT_CLOUD_CONFIG,
   getSharedStore,
@@ -19,30 +19,18 @@ import type {
   PublishedAppInput,
   PublishedAppListResult,
   PublishedAppQuery,
-} from "../../shared/cloudTypes";
+} from "../../shared/cloud/cloudTypes";
 
-/**
- * 云端存储的门面 —— 主进程里所有要用共享存储的地方都走它
- *
- * 它负责三件事：
- * 1. 持有当前的共享存储实例（按配置缓存，不重复建连接）
- * 2. 提供配置读写与后端切换
- * 3. 提供连通性检查（真的发一条查询过去，而不是只看配置齐不齐）
- */
 
-/** 当前生效的共享存储实例 */
 let store: SharedStore | null = null;
 
-/** 本地库引用 —— 设置页里改配置要用 */
 let localDB: Knex | null = null;
 
-/** 记下本地库，共享存储要用它建本地表 */
 export function initCloudStorage(DB: Knex): void {
   localDB = DB;
   store = null;
 }
 
-/** 拿到当前的共享存储 */
 export async function getStore(): Promise<SharedStore> {
   if (!localDB) {
     throw new Error("云端存储尚未初始化");
@@ -53,7 +41,6 @@ export async function getStore(): Promise<SharedStore> {
   return store;
 }
 
-/** 读当前配置 */
 export async function getConfig(): Promise<CloudStorageConfig> {
   if (!localDB) {
     return { ...DEFAULT_CLOUD_CONFIG };
@@ -61,13 +48,6 @@ export async function getConfig(): Promise<CloudStorageConfig> {
   return await loadCloudConfig(localDB);
 }
 
-/**
- * 保存配置并切换后端
- *
- * 切到 d1 / public 之前先做一次真实的连通性检查 ——
- * 配错了就别切，让用户还留在本地后端上，
- * 否则界面会莫名其妙地变成「连不上」的样子。
- */
 export async function updateConfig(input: {
   backend?: CloudBackend;
   d1?: D1Config | null;
@@ -131,23 +111,16 @@ export async function updateConfig(input: {
 
   await saveCloudConfig(localDB, next);
   await resetSharedStore();
-  store = null; // 让下一次 getStore 按新配置重建
+  store = null;
   log.info("[cloud] 配置已更新", { backend: next.backend });
 
   return { ok: true, config: next };
 }
 
-/**
- * 连通性检查 —— 真的发一条查询过去
- *
- * 只看配置齐不齐是不够的：token 过期、库不存在、
- * 网络不通，都得靠真发一次才知道。
- */
 export async function checkD1(config: D1Config): Promise<CloudConnectionStatus> {
   try {
     const { store: d1Store, client } = createD1SharedStore(config);
 
-    // 建表 + 查表 —— 建表顺带验证了写权限
     await d1Store.init();
 
     const rows = await client.query<{ name: string }>(
@@ -168,12 +141,6 @@ export async function checkD1(config: D1Config): Promise<CloudConnectionStatus> 
   }
 }
 
-/**
- * 公共目录（Worker 代理）的连通性检查
- *
- * 跟直连 D1 走的是同一套协议，所以检查方式一样：
- * 建表 + 查表。区别只是没有令牌，所以也不会有鉴权类的错。
- */
 export async function checkEndpoint(
   endpoint: string
 ): Promise<CloudConnectionStatus> {
@@ -197,14 +164,12 @@ export async function checkEndpoint(
   }
 }
 
-/** 切换当前后端（不填 D1 配置，只切前后端） */
 export async function switchBackend(
   backend: CloudBackend
 ): Promise<{ ok: boolean; error?: string; config: CloudStorageConfig }> {
   return await updateConfig({ backend });
 }
 
-/** 列出已发布的 APP */
 export async function listApps(
   query?: PublishedAppQuery
 ): Promise<PublishedAppListResult> {
@@ -212,13 +177,11 @@ export async function listApps(
   return await current.list(query);
 }
 
-/** 取一条 */
 export async function getApp(id: string): Promise<PublishedApp | null> {
   const current = await getStore();
   return await current.get(id);
 }
 
-/** 发布一条 */
 export async function publishApp(
   input: PublishedAppInput,
   existingId?: string
@@ -227,29 +190,20 @@ export async function publishApp(
   return await current.publish(input, existingId);
 }
 
-/** 删除一条 */
 export async function removeApp(id: string): Promise<boolean> {
   const current = await getStore();
   return await current.remove(id);
 }
 
-/** 「获取次数」加一 —— 别的机器导入时调它 */
 export async function markPulled(id: string): Promise<void> {
   const current = await getStore();
   await current.incrementPulls(id);
 }
 
-/**
- * 把 Cloudflare 的报错翻成人看得懂的话
- *
- * 原文全是英文的技术黑话，直接甩到界面上用户既看不懂
- * 也不知道该干什么 —— 跟 `describeDBError` 一个道理。
- */
 export function describeCloudError(error: unknown): string {
   const raw = error instanceof Error ? error.message : String(error ?? "");
   const text = raw.toLowerCase();
 
-  // Worker 代理的拒绝消息 —— 它自己会写清楚为什么拒
   if (text.includes("语句被拒绝")) {
     return `公共目录拒绝了这条请求：${raw.replace(/^.*语句被拒绝：/, "")}`;
   }

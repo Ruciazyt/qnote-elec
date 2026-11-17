@@ -1,15 +1,6 @@
 #!/usr/bin/env node
 'use strict';
 
-/**
- * 版本号校验 —— 统一 MAJOR.MINOR.PATCH，不带 v 前缀
- *
- * 检查 package.json 的 version 是否符合规范，并可顺带核对 git tag
- * 与版本号是否一致（发版时 tag 名必须等于版本号本身）。
- *
- *   node scripts/release/verify-version.js              # 只校验版本号格式
- *   node scripts/release/verify-version.js --tag 1.0.19 # 额外校验 tag 名
- */
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -18,41 +9,18 @@ const { resolveExe } = require('../lib/resolve-exe');
 
 const ROOT = path.resolve(__dirname, '../..');
 
-// 解析成绝对路径再执行 —— 靠 PATH 查找的命令可以被同名可执行文件劫持，
-// SonarCloud 会把这记成 S4036 安全漏洞（质量门禁里 Security Rating 直接掉到 E）
 const GIT = resolveExe('git');
 
-/** 版本号格式：三段纯数字 */
 const VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
 
-/**
- * 当前发布线 —— 1.12.x
- *
- * 1.11.x 这条线发布了云端存储（共享数据走 Cloudflare D1、私有数据留本地）、
- * 应用市场与市场来源应用的运行前确认。1.12.0 在此之上把公共目录地址内置
- * 进安装包 —— 装上就能用同一个公共目录，不需要任何配置。
- * 按 semver 规则它要求 minor 版本，而 minor 落在 1.12.0 —— 所以换到 1.12.x。
- * 换线理由见 AGENTS.md 第 3.1 节。
- */
 const RELEASE_LINE = { major: 1, minor: 12 };
 
-/** 读取根 package.json 的 version */
 function readVersion() {
   const pkgPath = path.join(ROOT, 'package.json');
   const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
   return pkg.version;
 }
 
-/**
- * 校验版本号格式
- *
- * 只看「是不是三段纯数字」，不涉及发布线。发版脚本在 bump 之前会用它 ——
- * 换线的那一次发版，发版前的版本必然还在旧线上，拿发布线去卡它会把换线堵死。
- * 发布线由 bump 之后的完整校验把关。
- *
- * @param {string} version
- * @returns {string[]} 错误列表
- */
 function validateFormat(version) {
   if (!version) {
     return ['package.json 里读不到 version'];
@@ -67,12 +35,6 @@ function validateFormat(version) {
   return [];
 }
 
-/**
- * 校验版本号
- * @param {string} version
- * @param {string|null} tag 期望的 tag 名，传 null 则不校验 tag
- * @returns {string[]} 错误列表
- */
 function validate(version, tag) {
   const errors = validateFormat(version);
 
@@ -99,7 +61,6 @@ function validate(version, tag) {
   return errors;
 }
 
-/** 读取当前 HEAD 上最新的版本号 tag（没有则返回 null） */
 function latestTag() {
   try {
     const out = execFileSync(GIT, ['tag', '--list', '--sort=-v:refname'], {

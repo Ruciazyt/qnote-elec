@@ -16,38 +16,7 @@ import { D1SqlExecutor } from "../../src/database/cloud/d1Store";
 import { SharedStoreOnExecutor } from "../../src/database/cloud/sharedStore";
 import worker from "./index";
 
-/**
- * 公共目录 Worker 的端到端回归
- *
- * 这里的重点是**协议对齐**：Worker 的响应体形状必须跟 Cloudflare 的
- * D1 REST API 一模一样，客户端才能用同一套 D1Client 连两种后端。
- *
- * 所以这个测试做的是：起一个真 HTTP 服务器，把 Worker 的 fetch
- * handler 挂在上面（中间夹一层「D1 绑定」，背后是真的 SQLite，
- * 且按 D1 的语义实现 batch 的原子性），然后让真实的 D1Client
- * 连上去跑完整流程。
- *
- * 形状对不上的症状是「连上了但读不出东西」，最难查 ——
- * 这一层必须钉住。
- */
 
-/**
- * 假 D1 绑定 —— 背后是真 SQLite，batch 按 D1 语义整批回滚
- *
- * ## 这个替身必须忠实还原真实绑定的 API
- *
- * 真实的 `env.DB` 是这样的：
- *   prepare(sql) → 返回一个 prepared statement（可以 .bind() 再 .all()）
- *   batch([stmt, stmt, ...]) → 收的是**prepared statement**，不是 {sql, params}
- *
- * 所以这个替身里 prepared statement 必须同时带着 `sql` 与 `bound`，
- * `batch()` 才能把它们取出来放进 knex 事务里跑。
- *
- * 之前这个替身写成 `batch([{sql, bound}])`，于是 Worker 传进来的
- * prepared statement 上 `sql` 是 undefined —— 报出来的是
- * "Cannot read properties of undefined (reading 'replace')"，
- * 症状跟 Worker 真出问题一模一样，差点查错方向。
- */
 function makeBinding(db: Knex) {
   interface FakeStatement {
     sql: string;
@@ -84,14 +53,12 @@ function makeBinding(db: Knex) {
           return out;
         });
       } catch (error) {
-        // D1 的 batch 语义：一条失败整批回滚，错误指向具体那条
         throw error;
       }
     },
   };
 }
 
-/** knex 的 raw 返回值 → D1 的 D1Result 形状 */
 function toD1Result(rows: unknown): D1ResultLike {
   const list = Array.isArray(rows) ? rows : [];
   return {
@@ -103,7 +70,6 @@ function toD1Result(rows: unknown): D1ResultLike {
   };
 }
 
-/** D1 的 D1Result 形状 */
 interface D1ResultLike {
   success: boolean;
   results: unknown[];
@@ -125,7 +91,6 @@ describe("公共目录 Worker 的端到端", () => {
     const binding = makeBinding(db);
 
     server = http.createServer(async (req, res) => {
-      // 把请求体喂给 Worker 的 fetch handler
       const chunks: Buffer[] = [];
       for await (const chunk of req) chunks.push(chunk as Buffer);
       const body = Buffer.concat(chunks).toString("utf8");
@@ -157,7 +122,6 @@ describe("公共目录 Worker 的端到端", () => {
     await db.destroy();
   });
 
-  /** 造一个连到这个 Worker 的客户端 */
   const makeStore = () => {
     const client = new D1Client({
       endpoint: `http://127.0.0.1:${port}`,
@@ -202,7 +166,6 @@ describe("公共目录 Worker 的端到端", () => {
     await store.publish({ name: "番茄钟", manifest: "{}" });
 
     expect((await store.list({ keyword: "番茄" })).total).toBe(1);
-    // % 在 LIKE 里是通配符 —— 转义了才该是 0
     expect((await store.list({ keyword: "%" })).total).toBe(0);
   });
 
@@ -227,7 +190,6 @@ describe("公共目录 Worker 的端到端", () => {
     const store = makeStore();
     await store.init();
 
-    // 直接打 Worker，绕开客户端的 SQL 生成
     const response = await fetch(`http://127.0.0.1:${port}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -261,7 +223,6 @@ describe("公共目录 Worker 的端到端", () => {
       ])
     ).rejects.toThrow();
 
-    // 第一条也不能留下
     const list = await store.list();
     expect(list.apps.find((a) => a.id === "x1")).toBeUndefined();
   });

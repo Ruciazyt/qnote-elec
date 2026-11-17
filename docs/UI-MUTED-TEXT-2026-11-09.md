@@ -1,7 +1,5 @@
 # 次级文字透明度档全量清单（2026-11-09）
 
-生成器：`scripts/audit-muted-text.mjs`（跑一次就能重出这份清单，别手抄）。
-对比度口径见 `docs/UI-GUIDELINES.md` 第九节，与 `scripts/check-contrast.mjs` 同一套算法。
 
 ## 判定规则（2026-11-09 Chief 裁决）
 
@@ -21,7 +19,6 @@
 
 ## 分文件清单
 
-每行：行号 · 现状档位 · light/dark 对比度 · 类型 · 底色 · 目标。
 
 ### src/renderer/App.tsx
 
@@ -108,21 +105,21 @@
 - 169 · `/70` · light 2.67 / dark 3.46 · 文字 · 底 bg-muted → text-muted-foreground（实心）
 - 195 · `/70` · light 2.67 / dark 3.46 · 文字 · 底 bg-primary → text-muted-foreground（实心）
 
-### src/renderer/components/core/FloatingAiAssistant.tsx
+### src/renderer/components/ai/FloatingAiAssistant.tsx
 
 - 981 · `/70` · light 2.67 / dark 3.46 · 文字 · 底 未写明 → text-muted-foreground（实心）
 
-### src/renderer/components/core/PetSpeechBubble.tsx
+### src/renderer/components/ai/PetSpeechBubble.tsx
 
 - 149 · `/70` · light 2.67 / dark 3.46 · 文字 · 底 未写明 → text-muted-foreground（实心）
 - 159 · `/70` · light 2.67 / dark 3.46 · 文字 · 底 未写明 → text-muted-foreground（实心）
 
-### src/renderer/components/core/settings-card.tsx
+### src/renderer/components/settings/settings-card.tsx
 
 - 44 · `/70` · light 2.67 / dark 3.46 · 文字 · 底 bg-muted → text-muted-foreground（实心）　← 实心压这底只有 4.20，底要挪
 - 122 · `/75` · light 2.91 / dark 3.78 · 文字 · 底 未写明 → text-muted-foreground（实心）
 
-### src/renderer/components/core/settings.tsx
+### src/renderer/components/settings/settings.tsx
 
 - 255 · `/70` · light 2.67 / dark 3.46 · 文字 · 底 未写明 → text-muted-foreground（实心）
 - 337 · `/70` · light 2.67 / dark 3.46 · 文字 · 底 bg-muted → text-muted-foreground（实心）
@@ -150,7 +147,7 @@
 - 2129 · `/50` · light 1.95 / dark 2.41 · 文字 · 底 未写明 → text-muted-foreground（实心）
 - 2194 · `/70` · light 2.67 / dark 3.46 · 文字 · 底 未写明 → text-muted-foreground（实心）
 
-### src/renderer/components/core/UpdateCard.tsx
+### src/renderer/components/update/UpdateCard.tsx
 
 - 288 · `/70` · light 2.67 / dark 3.46 · 文字 · 底 未写明 → text-muted-foreground（实心）
 - 359 · `/70` · light 2.67 / dark 3.46 · 文字 · 底 未写明 → text-muted-foreground（实心）
@@ -224,7 +221,7 @@
 - 2509 · `/75` · light 2.91 / dark 3.78 · 图形 · 装饰图形（复制图标 hover 态） · 底 未写明 → text-muted-foreground/85（现状不过 3:1，必改）
 - 2530 · `/70` · light 2.67 / dark 3.46 · 图形 · 装饰图形（复制图标 hover 态（暗色）） · 底 未写明 → text-muted-foreground/85（现状不过 3:1，必改）
 
-### src/renderer/pages/AppsPage.tsx
+### src/renderer/pages/apps/AppsPage.tsx
 
 - 422 · `/70` · light 2.67 / dark 3.46 · 图形 · 装饰图形 · 底 未写明 → text-muted-foreground/85（现状不过 3:1，必改）
 - 492 · `/25` · light 1.37 / dark 1.5 · 图形 · 装饰图形 · 底 未写明 → text-muted-foreground/85（现状不过 3:1，必改）
@@ -232,19 +229,19 @@
 - 496 · `/50` · light 1.95 / dark 2.41 · 文字 · 底 未写明 → text-muted-foreground（实心）
 - 540 · `/80` · light 3.18 / dark 4.11 · 文字 · 底 未写明 → text-muted-foreground（实心）
 
-### src/renderer/pages/HomePage.tsx
+### src/renderer/pages/home/HomePage.tsx
 
 - 632 · `/70` · light 2.67 / dark 3.46 · 文字 · 底 bg-primary → text-muted-foreground（实心）
 - 637 · `/25` · light 1.37 / dark 1.5 · 文字（「粘贴内容」文字 + currentColor 箭头） · 底 未写明 → text-muted-foreground（实心）
 - 646 · `/40` · light 1.68 / dark 2 · 文字 · 底 未写明 → text-muted-foreground（实心）
 - 648 · `/50` · light 1.95 / dark 2.41 · 文字 · 底 未写明 → text-muted-foreground（实心）
 
-### src/renderer/pages/NotesPage.tsx
+### src/renderer/pages/notes/NotesPage.tsx
 
 - 108 · `/70` · light 2.67 / dark 3.46 · 文字 · 底 bg-primary → text-muted-foreground（实心）
 - 1344 · `/70` · light 2.67 / dark 3.46 · 文字 · 底 bg-card → text-muted-foreground（实心）
 
-### src/renderer/pages/SkillsPage.tsx
+### src/renderer/pages/skills/SkillsPage.tsx
 
 - 245 · `/75` · light 2.91 / dark 3.78 · 文字 · 底 bg-primary → text-muted-foreground（实心）
 - 272 · `/50` · light 1.95 / dark 2.41 · 图形 · 装饰图形 · 底 未写明 → text-muted-foreground/85（现状不过 3:1，必改）

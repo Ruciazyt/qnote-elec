@@ -12,12 +12,6 @@ const DialogPortal = DialogPrimitive.Portal
 
 const DialogClose = DialogPrimitive.Close
 
-/*
- * Enhancement: Softer backdrop — bg-black/40 in light mode,
- * bg-black/70 in dark mode — replacing the harsh bg-black/80.
- * Also applies the modal-backdrop CSS class for the spring fade-in animation
- * defined in index.css (modalBackdropIn keyframe).
- */
 const DialogOverlay = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
@@ -34,12 +28,6 @@ const DialogOverlay = React.forwardRef<
 ))
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 
-/*
- * Enhancement: Apply modal-card spring animation class so that
- * all confirmation dialogs (DeleteAll, ClearChat, etc.) get the spring scale-in
- * effect defined in index.css (modalSpringIn keyframe). The Radix data-state
- * animations are kept alongside it so open/close transitions remain smooth.
- */
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>

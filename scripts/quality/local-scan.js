@@ -1,26 +1,6 @@
 #!/usr/bin/env node
 'use strict';
 
-/**
- * 本地 SonarJS 扫描 —— 没有令牌时的等效手段
- *
- * SonarCloud 对 JS/TS 用的就是 eslint-plugin-sonarjs 这套规则，
- * 所以本地跑一遍等于把 Sonar 的一部分提前搬到本地：
- * 不用等 CI、不用配令牌，改完立刻能复扫。
- *
- * 用法：
- *   node scripts/quality/local-scan.js          # 出清单（不阻断）
- *   node scripts/quality/local-scan.js --gate   # 有 error 就退出码 1
- *   node scripts/quality/local-scan.js --warn   # 把 warning 也当阻断
- *
- * 清单写到 .data/sonar/local-issues.md（该目录已 gitignore）。
- *
- * 与 `pnpm run sonar:issues` 的区别：
- *   · sonar:issues  查 SonarCloud 上**最近一次分析**的结果（要令牌）
- *   · local-scan    在本机用 SonarJS 规则现扫（不要令牌，但不含
- *                    只有服务端才知道的东西：跨文件的数据流、覆盖率、
- *                    安全热点的人工复核结论）
- */
 
 const fs = require('fs');
 const path = require('path');
@@ -29,7 +9,6 @@ const ROOT = path.resolve(__dirname, '../..');
 const REPORT_DIR = path.join(ROOT, '.data', 'sonar');
 const REPORT_FILE = path.join(REPORT_DIR, 'local-issues.md');
 
-/** 规则 → 说明（只列最常撞的几条，其余给原文） */
 const RULE_HINTS = {
     'sonarjs/no-dead-store': '赋值之后没被用过 —— 多半是重构留下的残留',
     'sonarjs/pseudo-random': 'Math.random 当随机源 —— 换成 crypto',
@@ -79,7 +58,6 @@ async function main() {
     const errors = issues.filter((i) => i.severity === 'error');
     const warnings = issues.filter((i) => i.severity === 'warning');
 
-    // 按规则聚合 —— 同一类规则成片出现时通常是同一个根因
     const byRule = new Map();
     for (const issue of issues) {
         if (!byRule.has(issue.rule)) byRule.set(issue.rule, []);
@@ -126,7 +104,6 @@ async function main() {
         fs.mkdirSync(REPORT_DIR, { recursive: true });
         fs.writeFileSync(REPORT_FILE, markdown, 'utf8');
     } catch {
-        // 写不出去不影响判定
     }
 
     console.log(markdown);

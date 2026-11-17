@@ -1,35 +1,6 @@
 #!/usr/bin/env node
 'use strict';
 
-/**
- * SonarCloud issue 清单 + 发版门禁
- *
- * 用法：
- *   node scripts/quality/sonar-issues.js            # 只出清单，不阻断
- *   node scripts/quality/sonar-issues.js --gate     # 有命中级别的问题就退出码 1（发版阻断用）
- *   node scripts/quality/sonar-issues.js --json     # 机器可读，输出 JSON
- *   node scripts/quality/sonar-issues.js --wait     # 等当前 commit 的分析跑完再取清单（CI 用）
- *   node scripts/quality/sonar-issues.js --branch dev
- *
- * 配置（环境变量）：
- *   SONAR_HOST_URL         默认 https://sonarcloud.io
- *   SONAR_PROJECT_KEY      默认 Ruciazyt_qnote-elec
- *   SONAR_TOKEN            访问令牌；也接受 .data/sonar/token 文件（该目录已被 gitignore）
- *   SONAR_BLOCK_SEVERITIES 拦截哪些严重级别，默认 BLOCKER,CRITICAL,MAJOR；写 all 表示全拦
- *   SONAR_REQUIRED=1       没有令牌时直接失败（默认是跳过并提示）
- *
- * 退出码：
- *   0  通过（或按配置跳过）
- *   1  查到了命中拦截级别的问题 —— 挡发版
- *   2  判不了（令牌无效、网络不通、API 报错）—— CI 里只告警，不挡发版
- *
- * 清单写到 .data/sonar/sonar-issues.md 与 .data/sonar/sonar-issues.json，
- * 那个目录在 .gitignore 里，不会进仓库。
- *
- * 注意：这里读的是 SonarCloud 上**最近一次分析**的结果，不是现扫一遍。
- * 现扫需要 JDK 17+ 与 sonar-scanner CLI，见 scripts/quality/sonar-scan.js，
- * 或者直接看 CI 的 SonarCloud 工作流。
- */
 
 const fs = require('fs');
 const path = require('path');
@@ -39,12 +10,6 @@ const { resolveExe } = require('../lib/resolve-exe');
 const ROOT = path.resolve(__dirname, '../..');
 const GIT = resolveExe('git');
 
-/**
- * 去掉结尾的斜杠
- *
- * 不用正则 —— 一条 `/\/+$/` 会被正则规则自己挑出来（超线性回溯），
- * 而这里只是想去掉尾部几个斜杠，手写循环更直白。
- */
 function trimTrailingSlash(url) {
     let end = url.length;
     while (end > 0 && url[end - 1] === '/') end--;
@@ -56,20 +21,8 @@ const PROJECT_KEY = process.env.SONAR_PROJECT_KEY || 'Ruciazyt_qnote-elec';
 const TOKEN_FILE = path.join(ROOT, '.data', 'sonar', 'token');
 const REPORT_DIR = path.join(ROOT, '.data', 'sonar');
 
-/**
- * 默认拦截的问题类型
- *
- * 按**类型**拦，不按严重级别拦 —— 理由很实际：
- * SonarCloud 上一个中等规模的仓库，代码异味（CODE_SMELL）动辄几百条，
- * 而其中绝大多数是"函数太长了""认知复杂度高"这类度量问题。
- * 按严重级别拦（CRITICAL/MAJOR）会把发版永久堵死，门禁就废了。
- *
- * 缺陷（BUG）与漏洞（VULNERABILITY）才是真问题 —— 数量少、修得完、
- * 而且每一条都对应用户能感知的故障或安全风险。
- */
 const DEFAULT_BLOCK_TYPES = ['BUG', 'VULNERABILITY'];
 
-/** 类型的两套叫法 */
 const TYPE_LABEL = {
     BUG: '缺陷',
     VULNERABILITY: '漏洞',
@@ -79,7 +32,6 @@ const TYPE_LABEL = {
     MAINTAINABILITY: '可维护性',
 };
 
-/** 严重级别的两套叫法（Cloud 用新的 impact 模型，老接口用旧模型） */
 const SEVERITIES = [
     'BLOCKER',
     'CRITICAL',
@@ -91,9 +43,6 @@ const SEVERITIES = [
     'INFO',
 ];
 
-/* ------------------------------------------------------------------ */
-/* 参数                                                                */
-/* ------------------------------------------------------------------ */
 
 function parseArgs(argv) {
     const opts = { gate: false, json: false, wait: false, branch: '', showAll: false };
@@ -114,19 +63,7 @@ function parseArgs(argv) {
     return opts;
 }
 
-/* ------------------------------------------------------------------ */
-/* 令牌                                                                */
-/* ------------------------------------------------------------------ */
 
-/**
- * 取令牌：先环境变量，再 .data/sonar/token 文件
- *
- * 文件方式的用意：令牌不该进环境变量历史，也省得每开一个终端都重设。
- * .data/ 整个目录在 .gitignore 里。
- *
- * 文件里允许写 # 开头的注释行 —— 第一条非注释、非空的行才是令牌。
- * 这样文件可以自带说明（怎么生成、怎么粘贴），不用每次粘贴前先把注释删掉。
- */
 function readToken() {
     const fromEnv = (process.env.SONAR_TOKEN || '').trim();
     if (fromEnv) return fromEnv;
@@ -142,12 +79,6 @@ function readToken() {
     }
 }
 
-/**
- * 拦截哪些类型的问题
- *
- * 默认 BUG + VULNERABILITY（真缺陷与漏洞）。
- * 写 all 表示连代码异味一起拦。
- */
 function blockTypes() {
     const raw = (process.env.SONAR_BLOCK_TYPES || '').trim();
     if (!raw) return DEFAULT_BLOCK_TYPES.slice();
@@ -161,12 +92,6 @@ function blockTypes() {
     return list.length ? list : DEFAULT_BLOCK_TYPES.slice();
 }
 
-/**
- * 拦截哪些严重级别
- *
- * 默认**空** = 不按级别再筛（只按类型判）。
- * 想收紧就填 SONAR_BLOCK_SEVERITIES=BLOCKER,CRITICAL,HIGH,MAJOR。
- */
 function blockSeverities() {
     const raw = (process.env.SONAR_BLOCK_SEVERITIES || '').trim();
     if (!raw) return [];
@@ -178,9 +103,6 @@ function blockSeverities() {
     return list;
 }
 
-/* ------------------------------------------------------------------ */
-/* git                                                                 */
-/* ------------------------------------------------------------------ */
 
 function git(...args) {
     try {
@@ -198,9 +120,6 @@ function currentBranch() {
     return git('rev-parse', '--abbrev-ref', 'HEAD');
 }
 
-/* ------------------------------------------------------------------ */
-/* SonarCloud API                                                      */
-/* ------------------------------------------------------------------ */
 
 let TOKEN = '';
 
@@ -223,7 +142,6 @@ async function api(pathname, params = {}) {
     return res.json();
 }
 
-/** 拉全部未解决的 issue（分页） */
 async function fetchIssues(branch) {
     const issues = [];
     const pageSize = 500;
@@ -244,10 +162,7 @@ async function fetchIssues(branch) {
     return issues;
 }
 
-/** 指标概览（violations / bugs / coverage 等） */
 async function fetchMeasures() {
-    // Cloud 上新指标名是 software_quality_*，老指标名（bugs / code_smells）已废弃；
-    // 具体哪个版本认哪个不一样，所以先试全量，失败再退到最小集。
     const lists = [
         [
             'violations',
@@ -276,13 +191,11 @@ async function fetchMeasures() {
             }
             return map;
         } catch {
-            // 指标名不被这个版本认（会返回 400），换下一组
         }
     }
     return {};
 }
 
-/** 最近一次分析（哪次提交、多大规模） */
 async function fetchLastAnalysis() {
     try {
         const data = await api('/api/project_analyses/search', { project: PROJECT_KEY, ps: 1 });
@@ -296,12 +209,6 @@ function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/**
- * 等当前 commit 的分析出现在 SonarCloud 上
- *
- * 扫描器把结果提交上去之后，计算任务还要跑一会儿，
- * 立刻查 API 会拿到上一次的旧结果 —— 门禁就成了假通过。
- */
 async function waitForAnalysis(revision, timeoutMs = 240000) {
     const deadline = Date.now() + timeoutMs;
     let last = null;
@@ -314,11 +221,7 @@ async function waitForAnalysis(revision, timeoutMs = 240000) {
     return last;
 }
 
-/* ------------------------------------------------------------------ */
-/* 报告                                                                */
-/* ------------------------------------------------------------------ */
 
-/** 把 component 字符串 "key:src/main/index.ts" 拆成路径 */
 function componentPath(component) {
     const idx = component.indexOf(':');
     return idx >= 0 ? component.slice(idx + 1) : component;
@@ -350,13 +253,6 @@ function buildSummary(issues) {
     };
 }
 
-/**
- * 问题的「类型」
- *
- * 老模型给的是单个 type（BUG / VULNERABILITY / CODE_SMELL），
- * 新 impact 模型给的是 impactSoftwareQualities 数组
- * （SECURITY / RELIABILITY / MAINTAINABILITY），两套都兼容。
- */
 function issueTypes(issue) {
     if (Array.isArray(issue.impactSoftwareQualities) && issue.impactSoftwareQualities.length) {
         return issue.impactSoftwareQualities;
@@ -474,9 +370,6 @@ function renderMarkdown(issues, summary, meta) {
     return lines.join('\n');
 }
 
-/* ------------------------------------------------------------------ */
-/* 主流程                                                              */
-/* ------------------------------------------------------------------ */
 
 async function main() {
     const opts = parseArgs(process.argv.slice(2));
@@ -523,8 +416,6 @@ async function main() {
         console.error('');
         console.error('   确认 SONAR_TOKEN 有效，且该令牌对项目有分析权限。');
         console.error('');
-        // 退出码 2 = 「判不了」，与退出码 1（「查到了问题」）区分开：
-        // CI 里 1 挡发版，2 只告警 —— SonarCloud 抽风不该拦住一次正常发版。
         process.exit(2);
     }
 
@@ -533,26 +424,6 @@ async function main() {
     const blockTypeList = blockTypes();
     const blockSeverityList = blockSeverities();
 
-    // ------------------------------------------------------------------
-    // 分析结果不是当前提交 → 判不了，别拿旧结果当现状判
-    // ------------------------------------------------------------------
-    //
-    // 为什么必须这么判：SonarCloud 上存的 issue 是**上一次扫描**的结果。
-    // 那次扫描可能针对的是几天前、甚至几天前的提交 —— 期间代码早就改了，
-    // 那些问题可能已经修掉（也可能更糟）。
-    //
-    // 拿旧结果判当前代码，两个方向都会错：
-    //   · 旧结果里有、现在已修 → **误拦**（发版被一件不存在的事卡住）
-    //   · 旧结果里没有、现在有 → **假通过**（带着没扫过的代码发版）
-    //
-    // 后者更危险 —— 它会让门禁在没有实际检查过代码的情况下放行。
-    //
-    // 所以：分析结果的 revision 与 HEAD 对不上时，判不了（退出码 2），
-    // 由调用方决定是「告警继续」还是「中止」。CI 里 2 只告警。
-    //
-    // 什么时候会这样？扫描没跑成（SonarCloud 配额超限、令牌失效、
-    // 扫描器本身报错）—— 这类情况本来就该「判不了」，
-    // 而不是拿一份不知道多旧的清单来当现状。
     const stale = Boolean(analysis && head && analysis.revision !== head);
     if (opts.gate && stale) {
         console.error('');
@@ -573,8 +444,6 @@ async function main() {
         process.exit(2);
     }
 
-    // 命中规则：类型在拦截名单里，且（没设级别过滤 或 级别也在名单里）。
-    // 类型认不出来（接口没给）按拦截处理 —— 判不准的时候宁可保守。
     const blocking = issues.filter((issue) => {
         const types = issueTypes(issue);
         if (!types.length) return true;
@@ -623,7 +492,6 @@ async function main() {
             'utf8'
         );
     } catch {
-        // 报告写不出去不影响判定 —— 清单已经打在控制台上了
     }
 
     if (opts.json) {

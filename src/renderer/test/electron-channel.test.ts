@@ -9,21 +9,6 @@ import {
   parsePreloadChannels,
 } from "./electron-contract";
 
-/**
- * channel 级契约：preload 的通道在主进程有没有接收方
- *
- * API 名级的守卫（electron-contract.test.ts）看的是「渲染层能不能拿到这个函数」。
- * 这一层看的是「这个通道在主进程有没有人接」：
- *   - preload invoke 的通道 → 主进程要有人 ipcMain.handle
- *   - preload send 的通道   → 主进程要有人 ipcMain.on
- *
- * 两者失败方式不同：API 名对得上、通道没人接，一样是静默失效 ——
- * 渲染层调用得到函数，主进程没人接，调用结果一直是 undefined。
- *
- * 扫描范围必须含整个 src/main —— 注册点不只在 handlers/：
- * 窗口那几条在 core/window/，应用级的那几条在 index.ts。
- * 只扫 handlers/ 会漏掉它们，于是凭空多出一批假断链。
- */
 
 const preloadChannels = parsePreloadChannels(fs.readFileSync(PRELOAD_PATH, "utf8"));
 const mainChannels = parseMainChannels(MAIN_ROOT);
@@ -44,18 +29,16 @@ describe("preload 通道在主进程都有接收方", () => {
   });
 
   it("没有非字面量通道（万能 send 不许再回来）", () => {
-    // 万能通道 send(channel, ...args) 会绕过通道校验：谁都能打任意通道。
     expect(preloadChannels.dynamic).toEqual([]);
   });
 });
 
 describe("主进程扫描口径", () => {
   it("扫描范围含 index.ts 与 core/window 下的窗口文件", () => {
-    // 这几个文件不在 handlers/ 里，漏掉就会出现假断链
     expect(mainChannels.files).toContain("index.ts");
     expect(mainChannels.files).toContain("core/window/mainWindow.ts");
-    expect(mainChannels.files).toContain("core/window/clipboardPopup.ts");
-    expect(mainChannels.files).toContain("handlers/noteHandlers.ts");
+    expect(mainChannels.files).toContain("core/window/clipboard/clipboardPopup.ts");
+    expect(mainChannels.files).toContain("handlers/notes/noteHandlers.ts");
   });
 
   it("注册点数量在合理量级（扫描没退化成空）", () => {
@@ -68,7 +51,6 @@ describe("主进程扫描口径", () => {
   });
 
   it("窗口那几条通道确实被扫到了", () => {
-    // 少扫一个文件，这几条会变成「preload 有、主进程没有」的假断链
     for (const channel of [
       "minimize-window",
       "maximize-window",
@@ -110,26 +92,11 @@ describe("守卫本身能抓断链（变异输入）", () => {
   });
 });
 
-/* ============================================================
- * 第五腿：主进程往渲染层发的通道
- *
- * preload 的 ipcRenderer.on(channel) 要有人在主进程往这个通道发东西，
- * 否则渲染层注册了监听却永远收不到 —— 静默失效，跟没注册一样。
- * ============================================================ */
 
-/**
- * 走辅助函数广播的通道白名单
- *
- * 这些通道不是直接 webContents.send 发的，中间隔了一层转发，
- * 静态扫描认不出来，所以显式登记 —— 但每一条都必须在主进程里
- * 追得到发送点（下面那条断言盯着），登记错一条照样红。
- *
- * 新增一条之前先问：主进程是真的在发这个通道吗？发不了就别登记。
- */
 const BROADCAST_WHITELIST: { channel: string; why: string }[] = [
   {
     channel: "update:status",
-    why: "core/updater.ts 走常量 UPDATE_STATUS_CHANNEL，经 broadcast() 转发",
+    why: "core/update/updater.ts 走常量 UPDATE_STATUS_CHANNEL，经 broadcast() 转发",
   },
   {
     channel: "floating-ai:position-updated",
@@ -141,27 +108,27 @@ const BROADCAST_WHITELIST: { channel: string; why: string }[] = [
   },
   {
     channel: "app:projects-changed",
-    why: "handlers/appHandlers.ts 的 broadcast 辅助函数",
+    why: "handlers/apps/appHandlers.ts 的 broadcast 辅助函数",
   },
   {
     channel: "app:runtime-changed",
-    why: "handlers/appHandlers.ts 的 broadcast 辅助函数",
+    why: "handlers/apps/appHandlers.ts 的 broadcast 辅助函数",
   },
   {
     channel: "app:log",
-    why: "handlers/appHandlers.ts 的 broadcast 辅助函数",
+    why: "handlers/apps/appHandlers.ts 的 broadcast 辅助函数",
   },
   {
     channel: "browser:tabs-changed",
-    why: "core/window/browserViewManager.ts 的 send 辅助函数（channel 是参数）",
+    why: "core/window/browser/browserViewManager.ts 的 send 辅助函数（channel 是参数）",
   },
   {
     channel: "browser:tab-updated",
-    why: "core/window/browserViewManager.ts 的 send 辅助函数（channel 是参数）",
+    why: "core/window/browser/browserViewManager.ts 的 send 辅助函数（channel 是参数）",
   },
   {
     channel: "browser:load-error",
-    why: "core/window/browserViewManager.ts 的 send 辅助函数（channel 是参数）",
+    why: "core/window/browser/browserViewManager.ts 的 send 辅助函数（channel 是参数）",
   },
 ];
 
@@ -203,7 +170,7 @@ describe("主进程往渲染层发的通道", () => {
   });
 
   it("变异输入：常量通道名也算直接发（updater 的 UPDATE_STATUS_CHANNEL）", () => {
-    const updater = fs.readFileSync(path.join(MAIN_ROOT, "core/updater.ts"), "utf8");
+    const updater = fs.readFileSync(path.join(MAIN_ROOT, "core/update/updater.ts"), "utf8");
     expect(updater).toContain('const UPDATE_STATUS_CHANNEL = "update:status"');
     expect(mainSends.direct).toContain("update:status");
   });

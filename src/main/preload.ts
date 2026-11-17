@@ -1,6 +1,5 @@
 const { contextBridge, ipcRenderer, webUtils } = require("electron");
 
-/** 内嵌浏览器单个标签页的跨进程状态 — 与主进程 BrowserTabState 严格对应 */
 interface BrowserBridgeTab {
   id: string;
   title: string;
@@ -38,7 +37,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("save-template", template),
   deleteTemplate: (id: string) => ipcRenderer.invoke("delete-template", id),
 
-  // AI 技能（Skill）— 复用 template 表
   getAiSkills: () => ipcRenderer.invoke("get-ai-skills"),
   saveAiSkill: (skill: { id?: string; name: string; content: string }) =>
     ipcRenderer.invoke("save-ai-skill", skill),
@@ -47,32 +45,16 @@ contextBridge.exposeInMainWorld("electron", {
   importAiSkills: (skills: Array<{ name: string; content: string }>) =>
     ipcRenderer.invoke("import-ai-skills", skills),
 
-  // 笔记：所有类型共用一套通道，类型由扩展名决定；定位用 relPath
-  /**
-   * 取拖拽进来的 File 对应的磁盘路径。
-   * Electron 32 起移除了 File.path，只能走 webUtils —— 直接读 file.path 会拿到 undefined。
-   */
   getPathForFile: (file: File) => webUtils.getPathForFile(file),
 
   getNoteTree: (dirPath: string) => ipcRenderer.invoke("notes:tree", dirPath),
-  /**
-   * 外部文件夹（笔记页侧栏下半部分）
-   *
-   * 渲染层只认 id —— 路径由主进程从注册表里查，
-   * 渲染层不能指定「要操作哪个目录」。
-   */
   getExternalFolders: () => ipcRenderer.invoke("notes:external-folders"),
-  /** 弹系统目录选择框并登记选中的文件夹；用户取消时返回 null */
   addExternalFolders: () => ipcRenderer.invoke("notes:add-external-folders"),
-  /** 从清单里移除（不动磁盘上的文件） */
   removeExternalFolder: (id: string) =>
     ipcRenderer.invoke("notes:remove-external-folder", id),
-  /** 列出某个外部文件夹里的目录树 */
   getExternalTree: (id: string) => ipcRenderer.invoke("notes:external-tree", id),
-  /** 在文件管理器里定位外部文件夹里的条目 */
-  revealExternalFile: (id: string, relPath: string) =>
-    ipcRenderer.invoke("notes:external-reveal", id, relPath),
-  /** 外部文件夹的文件管理：删除 / 重命名 / 新建 / 移动 / 拖入文件 */
+  revealExternalFile: (id: string, relPath: string, mode: "reveal" | "open" = "reveal") =>
+    ipcRenderer.invoke("notes:external-reveal", id, relPath, mode),
   deleteExternalFile: (id: string, relPath: string) =>
     ipcRenderer.invoke("notes:external-delete", id, relPath),
   deleteExternalFolder: (id: string, relPath: string) =>
@@ -85,33 +67,25 @@ contextBridge.exposeInMainWorld("electron", {
     id: string,
     parentRel: string,
     name: string,
-    // 类型用字面量写死：preload 不能 import ../shared（tsc 的 rootDir 只含 src/main）
     type: "excalidraw" | "markdown" | "html" | "image" | "pdf"
   ) => ipcRenderer.invoke("notes:external-create-file", id, parentRel, name, type),
   moveExternalEntry: (id: string, fromRel: string, toFolderRel: string) =>
     ipcRenderer.invoke("notes:external-move", id, fromRel, toFolderRel),
   importExternalFiles: (id: string, srcPaths: string[], targetFolderRel = "") =>
     ipcRenderer.invoke("notes:external-import-files", id, srcPaths, targetFolderRel),
-  /** 从系统拖入文件：复制进笔记目录（只收笔记系统认识的类型，同名不覆盖） */
   importNoteFiles: (dirPath: string, srcPaths: string[], targetFolderRel = "") =>
     ipcRenderer.invoke("notes:import-files", dirPath, srcPaths, targetFolderRel),
   readNote: (dirPath: string, relPath: string) => ipcRenderer.invoke("notes:read", dirPath, relPath),
   writeNote: (dirPath: string, relPath: string, text: string) =>
     ipcRenderer.invoke("notes:write-text", dirPath, relPath, text),
-  // 富文本 .md：主进程负责本地图片 ⇄ dataUrl 的转换，渲染层只管编辑
   readMarkdownNote: (dirPath: string, relPath: string) =>
     ipcRenderer.invoke("notes:read-markdown", dirPath, relPath),
   writeMarkdownNote: (dirPath: string, relPath: string, markdown: string) =>
     ipcRenderer.invoke("notes:write-markdown", dirPath, relPath, markdown),
-  // HTML 笔记：同样由主进程处理本地图片 ⇄ dataUrl 转换
   readHtmlNote: (dirPath: string, relPath: string) =>
     ipcRenderer.invoke("notes:read-html", dirPath, relPath),
   writeHtmlNote: (dirPath: string, relPath: string, html: string) =>
     ipcRenderer.invoke("notes:write-html", dirPath, relPath, html),
-  /**
-   * 笔记目录被外部改动时收到通知（AI 写入笔记会触发）。
-   * 回调收到变更的笔记根目录；笔记页据此判断是否需要重新拉取目录树。
-   */
   onNotesChanged: (callback: (root: string) => void) => {
     const listener = (_e: unknown, root: string) => callback(root);
     ipcRenderer.on("notes:changed", listener);
@@ -119,7 +93,6 @@ contextBridge.exposeInMainWorld("electron", {
   },
   saveImageAsset: (dirPath: string, dataUrl: string) =>
     ipcRenderer.invoke("notes:save-asset", dirPath, dataUrl),
-  /** 把剪贴板记录存成笔记（文本→.md，图片→.png），返回新建笔记的元数据 */
   saveClipboardRecordAsNote: (dirPath: string, type: "text" | "image", content: string) =>
     ipcRenderer.invoke("notes:save-from-clipboard", dirPath, type, content),
   pickAndSaveImage: (dirPath: string) => ipcRenderer.invoke("notes:pick-image", dirPath),
@@ -131,26 +104,18 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("notes:rename", dirPath, oldRel, newName),
   createNoteFolder: (dirPath: string, parentRel: string, name: string) =>
     ipcRenderer.invoke("notes:create-folder", dirPath, parentRel, name),
-  /**
-   * 新建一篇空白笔记，返回 { ok: true, relPath } 或 { ok: false, reason }
-   * 后缀按类型决定，同名自动追加 -2 / -3，不会覆盖已有文件。
-   */
   createNoteFile: (
     dirPath: string,
     parentRel: string,
     name: string,
     type: "excalidraw" | "markdown" | "html"
   ) => ipcRenderer.invoke("notes:create-file", dirPath, parentRel, name, type),
-  /** 拖拽移动条目；失败时返回 { ok: false, reason } */
   moveNoteEntry: (dirPath: string, fromRel: string, toFolderRel: string) =>
     ipcRenderer.invoke("notes:move", dirPath, fromRel, toFolderRel),
-  /** 在系统文件管理器中打开目录（relPath 传空串 = 笔记根目录） */
   openInExplorer: (dirPath: string, relPath: string) =>
     ipcRenderer.invoke("notes:open-in-explorer", dirPath, relPath),
-  /** 打开所在目录并高亮选中该条目 */
   revealInFolder: (dirPath: string, relPath: string) =>
     ipcRenderer.invoke("notes:reveal-in-folder", dirPath, relPath),
-  /** 把剪贴板里的图片存成一条图片笔记；剪贴板无图片时返回 null */
   saveClipboardImageNote: (dirPath: string, parentRel: string) =>
     ipcRenderer.invoke("notes:save-clipboard-image", dirPath, parentRel),
 
@@ -158,18 +123,11 @@ contextBridge.exposeInMainWorld("electron", {
   baiduOcrAccurate: (imageBase64: string) => ipcRenderer.invoke("baidu-ocr-accurate", imageBase64),
   baiduOcrWebImage: (imageUrl: string) => ipcRenderer.invoke("baidu-ocr-webimage", imageUrl),
   copyImageToClipboard: (imageDataUrl: string) => ipcRenderer.invoke("copy-image-to-clipboard", imageDataUrl),
-  /**
-   * 写剪贴板**之前**调用：告诉主进程「这条内容是应用自己复制的」。
-   * 监听器据此跳过，不会把这次复制再记成一条新的剪贴板历史。
-   * 顺序不能反，必须 await 之后再调 navigator.clipboard.writeText。
-   */
   markClipboardCopied: (content: string) => ipcRenderer.invoke("mark-clipboard-self-write", content),
 
-  // 配置管理API
   getBaiduKeys: () => ipcRenderer.invoke("get-baidu-keys"),
   setBaiduKeys: (apiKey: string, secretKey: string) => ipcRenderer.invoke("set-baidu-keys", apiKey, secretKey),
 
-  // 监听导入进度
   onImportProgress: (callback: any) => {
     ipcRenderer.on("import-progress", callback);
   },
@@ -177,34 +135,14 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.removeListener("import-progress", callback);
   },
 
-  // 应用信息API
   getAppInfo: () => ipcRenderer.invoke("get-app-info"),
 
-  // ============================================================
-  // 应用更新
-  //
-  // 走主进程的 electron-updater（src/main/core/updater.ts）。
-  // 之前这里只有一个 getLatestRelease —— 只查 GitHub API 拿版本号，
-  // 既下载不了也装不了，而且那个 API 对非公开仓库直接 404。
-  // ============================================================
-  /** 拉取当前更新状态快照 */
   getUpdateStatus: () => ipcRenderer.invoke("update:status"),
-  /** 运行环境信息：是否打包版 / 是否便携版 / 下载地址 */
   getUpdateEnvironment: () => ipcRenderer.invoke("update:environment"),
-  /** 手动检查更新 */
   checkForUpdate: () => ipcRenderer.invoke("update:check"),
-  /** 下载更新包 */
   downloadUpdate: () => ipcRenderer.invoke("update:download"),
-  /** 重启并安装更新（调用后应用退出） */
   installUpdate: () => ipcRenderer.invoke("update:install"),
-  /** 打开 Releases 页面（自动更新不可用时的手动出路） */
   openReleasesPage: () => ipcRenderer.invoke("update:open-releases"),
-  /**
-   * 订阅更新状态变化
-   *
-   * 下载进度这类事件是持续推送的，不能等 IPC 的返回值，所以必须走监听。
-   * 返回一个反注册函数，组件卸载时调用，避免监听器泄漏导致重复 setState。
-   */
   onUpdateStatus: (callback: (status: any) => void) => {
     const listener = (_e: unknown, payload: any) => callback(payload);
     ipcRenderer.on("update:status", listener);
@@ -213,7 +151,6 @@ contextBridge.exposeInMainWorld("electron", {
     };
   },
 
-  // AI相关API
   cancelAiMessage: (sessionId: string) =>
     ipcRenderer.send("cancel-ai-message", sessionId),
   onAiStreamChunk: (
@@ -240,10 +177,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("ai-stream:error", listener);
     return () => ipcRenderer.removeListener("ai-stream:error", listener);
   },
-  /**
-   * 会话压缩进度 —— phase='compressing' 时界面应显示「正在压缩历史…」，
-   * 'done' 时收起。压缩要额外调一次 LLM，不给反馈用户只会觉得界面卡住。
-   */
   onAiCompacting: (
     callback: (
       event: unknown,
@@ -269,14 +202,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("ai-stream:compacting", listener);
     return () => ipcRenderer.removeListener("ai-stream:compacting", listener);
   },
-  // Agent 模式 — 走 send-ai-agent-stream，事件复用 ai-stream:* 通道
-  // skillId：选中的 AI 技能（可选，null = 不使用）
-  // images：本轮带的图片附件（可选）
-  //
-  // 这里没有 import shared/aiImages 的类型：preload 的 tsconfig 把 rootDir
-  // 锁在 src/main，引用 src/shared 下的文件会直接编译失败（TS6059）。
-  // 所以这里复述一份结构 —— 字段与 AiImageAttachment 完全一致，
-  // 渲染层的正式声明在 src/renderer/electron.d.ts。
   sendAiAgentStream: (
     message: string,
     sessionId?: string,
@@ -291,7 +216,6 @@ contextBridge.exposeInMainWorld("electron", {
     skillId,
     images
   ),
-  // 打开系统选图框，返回原始图片（base64 + mime），由渲染层缩图后再发回来
   pickAiImages: () =>
     ipcRenderer.invoke("ai:pick-images") as Promise<
       { mime: string; data: string; name?: string }[]
@@ -334,8 +258,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("ai-stream:tool-result", listener);
     return () => ipcRenderer.removeListener("ai-stream:tool-result", listener);
   },
-  // 轮次上限：主进程问用户「是否继续」。注意这条**不发** end，
-  // 渲染层的 chunk / tool-call 监听要留着等续跑那几轮
   onAiNeedContinue: (
     callback: (
       event: unknown,
@@ -352,21 +274,7 @@ contextBridge.exposeInMainWorld("electron", {
   continueAiAgent: (sessionId: string, decision: "continue" | "stop") =>
     ipcRenderer.invoke("ai-continue-agent", sessionId, decision),
 
-  // ============================================================
-  // 语音输入
-  // ============================================================
-  //
-  // 音频以 base64 字符串过桥，而不是 Uint8Array：
-  // contextBridge 对 TypedArray 的传递并不保证保真（会被拆成普通对象），
-  // 而 base64 是纯字符串，任何情况下都能原样送达主进程。
 
-  /**
-   * 把一段录音送去识别
-   *
-   * @param pcmBase64  Int16 单声道 PCM 的 base64（16 kHz）
-   * @param sampleRate 采样率
-   * @returns 成功时 { ok:true, text, duration }；失败时 { ok:false, error }
-   */
   transcribeVoiceAudio: (pcmBase64: string, sampleRate: number): Promise<{
     ok: boolean;
     text?: string;
@@ -374,29 +282,20 @@ contextBridge.exposeInMainWorld("electron", {
     error?: string;
   }> => ipcRenderer.invoke("asr:transcribe", pcmBase64, sampleRate),
 
-  /** 读取当前配置的语音全局快捷键 */
   getVoiceHotkey: (): Promise<{ ok: boolean; accelerator?: string; error?: string }> =>
     ipcRenderer.invoke("voice:get-hotkey"),
 
-  /**
-   * 保存并注册语音全局快捷键
-   *
-   * 返回值如实反映两件事：语法是否合法、系统热键是否真的注册成功。
-   * 失败时主进程会回滚到默认组合，不会留下"存了但不生效"的配置。
-   */
   setVoiceHotkey: (
     accelerator: string
   ): Promise<{ ok: boolean; error?: string }> =>
     ipcRenderer.invoke("voice:set-hotkey", accelerator),
 
-  /** 监听全局语音快捷键（收起为宠物时由主进程下发） */
   onVoiceHotkeyTriggered: (callback: () => void) => {
     const listener = () => callback();
     ipcRenderer.on("voice-hotkey:triggered", listener);
     return () => ipcRenderer.removeListener("voice-hotkey:triggered", listener);
   },
 
-  // AI 用量统计（设置页可视化）
   getAiUsageStats: () => ipcRenderer.invoke("get-ai-usage-stats"),
   clearAiUsageLog: () => ipcRenderer.invoke("clear-ai-usage-log"),
   getAiChatSessions: () => ipcRenderer.invoke("get-ai-chat-sessions"),
@@ -411,17 +310,13 @@ contextBridge.exposeInMainWorld("electron", {
   validateAiConfig: (provider: string, apiKey: string, model: string, baseUrl: string) => ipcRenderer.invoke("validate-ai-config", provider, apiKey, model, baseUrl),
   saveOcrResult: (noteId: number, ocrResult: string) => ipcRenderer.invoke("save-ocr-result", noteId, ocrResult),
 
-  // 代码格式化API
   updateNoteContent: (noteId: number, content: string) => ipcRenderer.invoke("update-note-content", noteId, content),
 
-  // 置顶 API
   toggleNotePin: (noteId: number, pinned: boolean) => ipcRenderer.invoke("toggle-note-pin", noteId, pinned),
 
-  // 重要标记 API（清空记录时会被跳过）
   toggleNoteImportant: (noteId: number, important: boolean) =>
     ipcRenderer.invoke("toggle-note-important", noteId, important),
 
-  // 待办 API
   todoList: () => ipcRenderer.invoke("todo:list"),
   todoCreate: (input: { title: string; notes?: string; priority?: "high" | "medium" | "low"; due_date?: string | null }) =>
     ipcRenderer.invoke("todo:create", input),
@@ -431,32 +326,20 @@ contextBridge.exposeInMainWorld("electron", {
   todoToggle: (id: number) => ipcRenderer.invoke("todo:toggle", id),
   todoArchive: (id: number) => ipcRenderer.invoke("todo:archive", id),
   todoUnarchive: (id: number) => ipcRenderer.invoke("todo:unarchive", id),
-  /**
-   * 订阅待办列表变更
-   *
-   * 待办页是 keep-alive 的，切走不卸载；待办的增删改除了发生在待办页自身，
-   * 也可能来自剪贴板那边新建。没有这个通知，待办页只能等下次挂载才拿到
-   * 最新数据，表现为"要重启才生效"。
-   */
   onTodosChanged: (callback: () => void) => {
     const listener = () => callback();
     ipcRenderer.on("todo:changed", listener);
     return () => ipcRenderer.removeListener("todo:changed", listener);
   },
 
-  // 本地记忆索引 API
-  // 只保留渲染层真在用的四个（主页加/删记忆、设置页记忆计数与清空）。
-  // 检索 / 批量索引 / 配置读写走主进程内部能力，没有 IPC 通道。
   addToMemory: (noteId: number) => ipcRenderer.invoke("add-to-memory", noteId),
   removeFromMemory: (noteId: number) => ipcRenderer.invoke("remove-from-memory", noteId),
   getMemoryCount: () => ipcRenderer.invoke("get-memory-count"),
   clearMemoryStore: () => ipcRenderer.invoke("clear-memory-store"),
 
-  // 数据迁移
   exportDatabase: () => ipcRenderer.invoke("export-database"),
   importDatabase: () => ipcRenderer.invoke("import-database"),
 
-  // 题单相关API
   getLeetcodeCollections: () => ipcRenderer.invoke("get-leetcode-collections"),
   getLeetcodeCollection: (id: number) => ipcRenderer.invoke("get-leetcode-collection", id),
   saveLeetcodeCollection: (collection: { id?: number; name: string; summary: string; problems?: Array<{ id?: number; link: string; is_completed: boolean; title?: string; difficulty?: string }> }) =>
@@ -469,8 +352,6 @@ contextBridge.exposeInMainWorld("electron", {
 
   openExternal: (url: string) => ipcRenderer.invoke("open-external", url),
 
-  // ==================== 内嵌浏览器 API ====================
-  // 真正的网页内容由主进程的 WebContentsView 承载，渲染进程只负责工具栏 UI + 同步位置
   browserGetState: () => ipcRenderer.invoke("browser:get-state"),
   browserCreateTab: (url?: string) => ipcRenderer.invoke("browser:create-tab", url),
   browserCloseTab: (tabId: string) => ipcRenderer.invoke("browser:close-tab", tabId),
@@ -482,7 +363,6 @@ contextBridge.exposeInMainWorld("electron", {
   browserSetBounds: (bounds: { x: number; y: number; width: number; height: number }) =>
     ipcRenderer.invoke("browser:set-bounds", bounds),
   browserSetVisible: (visible: boolean) => ipcRenderer.invoke("browser:set-visible", visible),
-  // 表层借出：让渲染层浮层能盖在网页之上。归还靠 token，显式调用 release。
   browserBorrowSurface: () => ipcRenderer.invoke("browser:borrow-surface"),
   browserReleaseSurface: (token: number) => ipcRenderer.invoke("browser:release-surface", token),
   browserReleaseAllSurfaces: () => ipcRenderer.invoke("browser:release-all-surfaces"),
@@ -504,7 +384,6 @@ contextBridge.exposeInMainWorld("electron", {
     return () => ipcRenderer.removeListener("browser:load-error", listener);
   },
 
-  // ==================== 浏览器收藏 API ====================
   browserBookmarkList: () => ipcRenderer.invoke("bookmark:list"),
   browserBookmarkIsSaved: (url: string) => ipcRenderer.invoke("bookmark:is-saved", url),
   browserBookmarkAdd: (url: string, title?: string) =>
@@ -513,15 +392,10 @@ contextBridge.exposeInMainWorld("electron", {
   browserBookmarkDelete: (id: number) => ipcRenderer.invoke("bookmark:delete", id),
   browserBookmarkClear: () => ipcRenderer.invoke("bookmark:clear"),
 
-  // ==================== 应用管理 API ====================
-  // 项目 = 用户导入的一个文件夹 + 一份 qnote.json 清单
   appListProjects: () => ipcRenderer.invoke("app:list-projects"),
-  /** 导入一个项目文件夹；不合规时返回失败原因分类 */
   appImportProject: (dirPath: string) => ipcRenderer.invoke("app:import-project", dirPath),
   appRemoveProject: (id: number) => ipcRenderer.invoke("app:remove-project", id),
-  /** 重新读一遍所有已导入项目的清单 */
   appRefreshProjects: () => ipcRenderer.invoke("app:refresh-projects"),
-  /** 写入项目清单 qnote.json（创建与编辑同一条路径） */
   appWriteManifest: (
     projectPath: string,
     payload: {
@@ -535,19 +409,15 @@ contextBridge.exposeInMainWorld("electron", {
     }
   ) => ipcRenderer.invoke("app:write-manifest", projectPath, payload),
   appOpenFolder: (target: string) => ipcRenderer.invoke("app:open-folder", target),
-  /** 系统目录选择器 —— 返回选中的绝对路径，取消则返回 null */
   appPickProjectDir: () => ipcRenderer.invoke("app:pick-project-dir"),
-  /** 启动项目的常驻进程 */
   appStart: (projectId: number, confirmedManifestHash?: string) =>
     ipcRenderer.invoke("app:start", projectId, confirmedManifestHash),
-  /** 从应用市场导入一个项目 —— 目标目录已有 qnote.json 时拒绝覆盖 */
   appImportFromMarket: (dirPath: string, payload: unknown) =>
     ipcRenderer.invoke("app:import-from-market", dirPath, payload),
   appStop: (projectId: number) => ipcRenderer.invoke("app:stop", projectId),
   appRuntimeStates: () => ipcRenderer.invoke("app:runtime-states"),
   appLogs: (projectId: number) => ipcRenderer.invoke("app:logs", projectId),
   appClearLogs: (projectId: number) => ipcRenderer.invoke("app:clear-logs", projectId),
-  /** 载入预览页 —— 预览内容由主进程的原生视图承载；display 是给人看的地址 */
   appPreviewLoad: (projectId: number) =>
     ipcRenderer.invoke("app:preview-load", projectId),
   appPreviewVisible: (visible: boolean) => ipcRenderer.invoke("app:preview-visible", visible),
@@ -568,47 +438,27 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("app:log", listener);
     return () => ipcRenderer.removeListener("app:log", listener);
   },
-  /** 预览页真的加载失败时主进程推过来的事件（导航被取消不算失败，不推） */
   onAppPreviewError: (callback: (payload: any) => void) => {
     const listener = (_event: unknown, payload: any) => callback(payload);
     ipcRenderer.on("app:preview-error", listener);
     return () => ipcRenderer.removeListener("app:preview-error", listener);
   },
 
-  // ==================== 云端存储 API ====================
-  // 只管**共享数据**（发布出去的 APP 目录）。
-  // 用户私有的东西（笔记、剪贴板、待办、AI 对话）不经过这里 ——
-  // 它们永远在本地 SQLite。详见 docs/CLOUD-STORAGE.md。
-  //
-  // 类型就地写，不从 src/shared import —— preload 的 tsconfig 把 rootDir
-  // 钉在 src/main，引用 src/shared 会报 TS6059，还会把共享模块的 .js
-  // 吐在源码旁边。渲染层那侧的声明在 src/renderer/electron.d.ts。
-  /** 读当前配置：共享存储用的是本地还是 D1 */
   cloudGetConfig: () => ipcRenderer.invoke("cloud:get-config"),
-  /** 保存配置；切到 d1 / public 时主进程会先做真实的连通性检查 */
   cloudSaveConfig: (payload: { backend?: string; d1?: unknown; endpoint?: string | null }) =>
     ipcRenderer.invoke("cloud:save-config", payload),
-  /** 只切前后端，不动 D1 配置 */
   cloudSwitchBackend: (backend: string) =>
     ipcRenderer.invoke("cloud:switch-backend", backend),
-  /** 测试连接 —— 只检查，不改配置 */
   cloudTestConnection: (payload: { d1?: unknown; endpoint?: string }) =>
     ipcRenderer.invoke("cloud:test-connection", payload),
-  /** 列出已发布的 APP */
   cloudListApps: (query?: unknown) => ipcRenderer.invoke("cloud:list-apps", query),
-  /** 取一条 */
   cloudGetApp: (id: string) => ipcRenderer.invoke("cloud:get-app", id),
-  /** 发布 / 更新一条；给了 existingId 就是更新 */
   cloudPublishApp: (input: unknown, existingId?: string) =>
     ipcRenderer.invoke("cloud:publish-app", input, existingId),
-  /** 删除一条 */
   cloudRemoveApp: (id: string) => ipcRenderer.invoke("cloud:remove-app", id),
-  /** 「被获取」计数加一 */
   cloudMarkPulled: (id: string) => ipcRenderer.invoke("cloud:mark-pulled", id),
 
-  // ==================== 主页快捷方式 API ====================
   shortcutList: () => ipcRenderer.invoke("shortcut:list"),
-  /** 解析单个图标，返回 data URL；取不到返回 null。逐个调用，慢的那个不拖累快的 */
   shortcutResolveIcon: (kind: string, target: string) =>
     ipcRenderer.invoke("shortcut:resolve-icon", kind, target),
   shortcutAdd: (input: { kind: string; target: string; title?: string }) =>
@@ -619,45 +469,27 @@ contextBridge.exposeInMainWorld("electron", {
   shortcutReorder: (ids: number[]) => ipcRenderer.invoke("shortcut:reorder", ids),
   shortcutOpen: (id: number) => ipcRenderer.invoke("shortcut:open", id),
   shortcutClear: () => ipcRenderer.invoke("shortcut:clear"),
-  /** 打开系统选择器；kind 为 'app' | 'folder'，用户取消返回 null */
   shortcutPick: (kind: string) => ipcRenderer.invoke("shortcut:pick", kind),
-  /** 把裸路径/URL 归一化成快捷方式输入（系统右键菜单唤起时用） */
   shortcutNormalizeTarget: (target: string) =>
     ipcRenderer.invoke("shortcut:normalize-target", target),
 
-  /** 系统右键菜单项 */
   getShellContextMenuStatus: () => ipcRenderer.invoke("shell-menu:status"),
   setShellContextMenuEnabled: (enabled: boolean) =>
     ipcRenderer.invoke("shell-menu:set", enabled),
-  /** 修复失效的右键菜单命令（菜单项在、点了没反应时用） */
   repairShellContextMenu: () => ipcRenderer.invoke("shell-menu:repair"),
 
-  /**
-   * 从系统右键菜单「添加到 QNote 快捷方式」唤起时收到目标路径
-   *
-   * 返回取消函数而不是要求调用方再 removeListener：回调是每次新建的
-   * 包装函数，按引用 removeListener 匹配不上，等于永远解绑不掉。
-   */
   onExternalAddShortcut: (callback: (target: string) => void) => {
     const listener = (_event: any, target: string) => callback(target);
     ipcRenderer.on("shortcut:external-add", listener);
     return () => ipcRenderer.removeListener("shortcut:external-add", listener);
   },
 
-  /**
-   * 快捷方式列表发生变化（新增 / 改名 / 删除 / 排序）
-   *
-   * 改这张表的入口不止快捷方式面板自己 —— 剪贴板面板的「添加到快捷方式」
-   * 就是从面板之外改的。面板收到广播后重新拉一次列表，否则那条快捷方式
-   * 要等下次进主页才看得见。
-   */
   onShortcutsChanged: (callback: () => void) => {
     const listener = () => callback();
     ipcRenderer.on("shortcut:changed", listener);
     return () => ipcRenderer.removeListener("shortcut:changed", listener);
   },
 
-  // 跨窗口 AI 浮框位置 / 展开同步
   getFloatingAiState: () => ipcRenderer.invoke("floating-ai:get-state"),
   setFloatingAiPosition: (position: { right: number; bottom: number }) =>
     ipcRenderer.send("floating-ai:set-position", position),
@@ -677,7 +509,6 @@ contextBridge.exposeInMainWorld("electron", {
     return () => ipcRenderer.removeListener("floating-ai:expanded-updated", listener);
   },
 
-  // 窗口状态监听
   onWindowMaximized: (callback: (isMaximized: boolean) => void) => {
     const listener = (_event: any, isMaximized: boolean) => {
       callback(isMaximized);
@@ -687,48 +518,31 @@ contextBridge.exposeInMainWorld("electron", {
       ipcRenderer.removeListener("window-maximized", listener);
     };
   },
-  // ==================== Popup 专用 API ====================
-  // ClipboardPopup
   popupGetClipboardHistory: (limit?: number) =>
     ipcRenderer.invoke("popup-get-clipboard-history", limit),
   popupCopyClipboardItem: (itemId: number) =>
     ipcRenderer.invoke("popup-copy-clipboard-item", itemId),
 
-  // 窗口控制（现在仅 ClipboardPopup 使用 — AI Popup 已移除）
   closePopup: () => ipcRenderer.send("popup-close"),
   showMainWindow: () => ipcRenderer.send("popup-show-main-window"),
 
-  /**
-   * 主进程通知面板刷新数据
-   *
-   * 面板窗口是复用的：第二次唤出时渲染层手里还是上一次的数据，
-   * 主进程在 show() 里推一条这个指令，渲染层重新拉历史和位置配置。
-   */
   onPopupRefresh: (callback: () => void) => {
     const listener = () => callback();
     ipcRenderer.on("popup:refresh", listener);
     return () => ipcRenderer.removeListener("popup:refresh", listener);
   },
 
-  /** 读取剪贴板面板的展示位置（底部横排 / 侧边竖排） */
   getClipboardPanelPosition: (): Promise<{
     ok: boolean;
     position?: "bottom" | "side";
     error?: string;
   }> => ipcRenderer.invoke("clipboard-panel:get-position"),
 
-  /** 保存剪贴板面板的展示位置 */
   setClipboardPanelPosition: (
     position: "bottom" | "side"
   ): Promise<{ ok: boolean; error?: string }> =>
     ipcRenderer.invoke("clipboard-panel:set-position", position),
 
-  /**
-   * 读取剪贴板面板的全局快捷键
-   *
-   * 返回的是**实际生效**的组合（已注册的那个），以及它是否真的注册上了 ——
-   * 库里存的值和生效值可能不一致（启动时被别的软件占住就没注册上）。
-   */
   getClipboardPanelHotkey: (): Promise<{
     ok: boolean;
     accelerator?: string;
@@ -736,31 +550,15 @@ contextBridge.exposeInMainWorld("electron", {
     error?: string;
   }> => ipcRenderer.invoke("clipboard-panel:get-hotkey"),
 
-  /**
-   * 保存并注册剪贴板面板的全局快捷键
-   *
-   * 返回值如实反映语法校验与系统注册两个环节的结果；
-   * 注册失败时主进程会回滚到默认组合，设置页需要把回滚后的值读回来。
-   */
   setClipboardPanelHotkey: (
     accelerator: string
   ): Promise<{ ok: boolean; error?: string }> =>
     ipcRenderer.invoke("clipboard-panel:set-hotkey", accelerator),
 
-  // ==================== 屏幕便签 API ====================
-  // 把一条剪贴板记录拖出程序窗口 → 变成压在桌面上的小纸条
 
-  /**
-   * 开始一次长按
-   *
-   * 鼠标按下的瞬间就发过来 —— 1.2 秒的计时必须从"按下"起算。
-   * 主进程按住满 1.2 秒就在光标处生成一张便签。
-   */
   stickyHoldBegin: (payload: { type: "text" | "image"; content: string }) =>
     ipcRenderer.send("sticky:hold-begin", payload),
-  /** 结束长按（松手） */
   stickyHoldEnd: () => ipcRenderer.send("sticky:hold-end"),
-  /** 主进程让这张便签进入编辑态（右键菜单 → 编辑内容） */
   onStickyEdit: (callback: () => void) => {
     const listener = () => callback();
     ipcRenderer.on("sticky:edit", listener);
@@ -768,11 +566,6 @@ contextBridge.exposeInMainWorld("electron", {
       ipcRenderer.removeListener("sticky:edit", listener);
     };
   },
-  /**
-   * 主进程切换了尺寸模式（右键菜单 → 自适应大小）
-   *
-   * 参数为 true 时，渲染层要重新量一次正文，把窗口缩到正好包住内容。
-   */
   onStickyAutoSize: (callback: (enabled: boolean) => void) => {
     const listener = (_event: unknown, enabled: boolean) => callback(enabled);
     ipcRenderer.on("sticky:autosize", listener);
@@ -780,18 +573,14 @@ contextBridge.exposeInMainWorld("electron", {
       ipcRenderer.removeListener("sticky:autosize", listener);
     };
   },
-  /** 便签窗口读取自己的初始数据 */
   stickyGetInit: () => ipcRenderer.invoke("sticky:get-init"),
-  /** 修改便签（正文 / 置顶层级 / 尺寸模式） */
   stickyUpdate: (patch: {
     id?: string;
     text?: string;
     alwaysOnTop?: boolean;
     autoSize?: boolean;
   }) => ipcRenderer.invoke("sticky:update", patch),
-  /** 关掉一张便签 */
   stickyClose: (id?: string) => ipcRenderer.invoke("sticky:close", id),
-  /** 设置便签的位置 / 尺寸（自定义缩放手柄用） */
   stickySetBounds: (bounds: {
     id?: string;
     x?: number;
@@ -800,74 +589,37 @@ contextBridge.exposeInMainWorld("electron", {
     height?: number;
     autoSize?: boolean;
   }) => ipcRenderer.invoke("sticky:set-bounds", bounds),
-  /**
-   * 开始移动便签
-   *
-   * 渲染层判别出"用户在拖动"后调用，之后由主进程轮询光标移动窗口。
-   * anchor 是按下鼠标那一点在窗口内的位置 —— 抓住哪儿便签就跟到哪儿。
-   */
   stickyMoveBegin: (id?: string, anchor?: { x: number; y: number }) =>
     ipcRenderer.invoke("sticky:move-begin", id, anchor),
-  /** 结束移动（松手） */
   stickyMoveEnd: () => ipcRenderer.invoke("sticky:move-end"),
-  /** 列出全部便签 */
   stickyList: () => ipcRenderer.invoke("sticky:list"),
-  /** 直接创建一张便签（菜单入口用，不必先学会拖拽） */
   stickyCreate: (payload: { type: "text" | "image"; content: string }) =>
     ipcRenderer.invoke("sticky:create", payload),
-  /** 弹出便签的原生右键菜单（图片便签没有常驻控件，操作走这里） */
   stickyShowMenu: () => ipcRenderer.invoke("sticky:show-menu"),
 
-  // ==================== 灵动岛 API ====================
-  //
-  // 岛是独立 BrowserWindow，跑在自己的渲染层里。它和主窗口共用 preload，
-  // 所以这些接口两边都能调 —— 主窗口用不上，但放在同一处省得维护两份。
 
-  /** 读灵动岛配置 */
   islandGetSettings: () => ipcRenderer.invoke("island:get-settings"),
-  /** 改灵动岛配置（合并式更新），返回落库后的完整配置 */
   islandSetSettings: (patch: Record<string, unknown>) =>
     ipcRenderer.invoke("island:set-settings", patch),
-  /** 读岛的当前状态快照 */
   islandGetState: () => ipcRenderer.invoke("island:get-state"),
-  /** 展开 / 收起 / 切换 */
   islandExpand: () => ipcRenderer.send("island:expand"),
   islandCollapse: () => ipcRenderer.send("island:collapse"),
   islandToggle: () => ipcRenderer.send("island:toggle"),
-  /** 切页签 */
   islandSetPage: (page: string) => ipcRenderer.send("island:set-page", page),
-  /** 报上收起态该有多宽（渲染层量好摘要文字后调用） */
   islandSetCollapsedWidth: (width: number) =>
     ipcRenderer.send("island:set-collapsed-width", width),
-  /** 把岛放回默认位置（贴顶居中） */
   islandResetPosition: () => ipcRenderer.send("island:reset-position"),
-  /**
-   * 窗口要不要接收鼠标事件
-   *
-   * 窗口比卡片大一圈（给阴影留地方），鼠标不在卡片上时
-   * 主进程把窗口设成穿透，别让那圈透明区域吃掉底下应用的点击。
-   */
   islandSetInteractive: (interactive: boolean) =>
     ipcRenderer.send("island:set-interactive", interactive),
-  /**
-   * 拖动
-   *
-   * 屏幕坐标由渲染层给 —— DOM 的 MouseEvent 带 screenX/screenY，
-   * 主进程据此算窗口该跟到哪儿。
-   */
   islandDragStart: (screenX: number, screenY: number) =>
     ipcRenderer.send("island:drag-start", { screenX, screenY }),
   islandDragMove: (screenX: number, screenY: number) =>
     ipcRenderer.send("island:drag-move", { screenX, screenY }),
   islandDragEnd: () => ipcRenderer.send("island:drag-end"),
-  /** 从岛跳回主窗口；relPath 非空表示还要打开某一篇具体笔记 */
   islandOpenMain: (payload: { page?: string; relPath?: string | null }) =>
     ipcRenderer.invoke("island:open-main", payload),
-  /** 最近编辑的笔记 */
   islandGetRecentNotes: () => ipcRenderer.invoke("island:get-recent-notes"),
-  /** AI 任务状态快照 */
   islandGetAiActivity: () => ipcRenderer.invoke("island:get-ai-activity"),
-  /** 订阅岛的状态变化（展开/收起/切页） */
   onIslandState: (callback: (state: any) => void) => {
     const listener = (_e: unknown, state: any) => callback(state);
     ipcRenderer.on("island:state", listener);
@@ -875,7 +627,6 @@ contextBridge.exposeInMainWorld("electron", {
       ipcRenderer.removeListener("island:state", listener);
     };
   },
-  /** 订阅 AI 任务状态变化 */
   onIslandAiActivity: (callback: (activity: any) => void) => {
     const listener = (_e: unknown, activity: any) => callback(activity);
     ipcRenderer.on("island:ai-activity", listener);
@@ -883,12 +634,6 @@ contextBridge.exposeInMainWorld("electron", {
       ipcRenderer.removeListener("island:ai-activity", listener);
     };
   },
-  /**
-   * 灵动岛让主窗口跳到某个页面
-   *
-   * relPath 非空表示还要打开某一篇具体笔记 —— 笔记页通过
-   * islandBridge 领取这个请求（keep-alive 页面可能还没挂载）。
-   */
   onIslandNavigate: (callback: (payload: { route: string; relPath: string | null }) => void) => {
     const listener = (_e: unknown, payload: { route: string; relPath: string | null }) =>
       callback(payload);

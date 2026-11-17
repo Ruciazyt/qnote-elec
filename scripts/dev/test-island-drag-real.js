@@ -1,26 +1,13 @@
-/**
- * 灵动岛拖拽探针 · 真实鼠标版（临时）
- *
- * sendInputEvent 造出来的鼠标事件 screenX 恒为 0 —— 岛的拖动判定
- * 正是按 screenX 的位移算阈值，探针自己就把门关了。
- * 所以这一版让 PowerShell 用真实的系统鼠标去拖，窗口才收得到真事件。
- *
- * 用法：
- *   electron scripts/dev/test-island-drag-real.js   （先起，等 40 秒）
- *   另开一个 PowerShell 跑 scripts/dev/drive-mouse.ps1
- */
 const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("node:path");
 
 const repoRoot = path.resolve(__dirname, "..", "..");
 
-/** 探针窗口的位置 —— 驱动脚本按这个坐标找胶囊 */
 const WIN_X = 300;
 const WIN_Y = 200;
 const WIN_W = 330;
 const WIN_H = 44;
 
-/** 胶囊摘要区在窗口内的位置（胶囊宽 216，居中 → 左起 57） */
 const TARGET_X = WIN_X + 208;
 const TARGET_Y = WIN_Y + 22;
 
@@ -96,7 +83,6 @@ app.whenReady().then(async () => {
   await win.loadFile(path.join(repoRoot, "dist", "renderer", "island.html"));
   await wait(1500);
 
-  // 记录渲染层真的收到了什么
   await win.webContents.executeJavaScript(`
     (() => {
       window.__trace = [];
@@ -109,7 +95,6 @@ app.whenReady().then(async () => {
 
   console.log(`[ready] target=(${TARGET_X},${TARGET_Y}) bounds=${JSON.stringify(win.getBounds())}`);
 
-  // 等外部脚本把鼠标拖完
   for (let i = 0; i < 40; i += 1) {
     await wait(1000);
     if (dragCalls.length > 0 && dragCalls[dragCalls.length - 1][0] === "end") break;

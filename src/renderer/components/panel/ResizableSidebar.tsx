@@ -8,80 +8,23 @@ import {
   PANEL_HEADER_PADDING_X,
   PANEL_RESIZER_WIDTH,
 } from "@/components/panel/layout";
-import { useCollapsedState } from "@/hooks/useCollapsedState";
-import { usePanelWidth } from "@/hooks/usePanelWidth";
+import { useCollapsedState } from "@/hooks/panel/useCollapsedState";
+import { usePanelWidth } from "@/hooks/panel/usePanelWidth";
 import { cn } from "@/lib/utils";
 
-/**
- * 可收起、可伸缩的侧栏
- *
- * 「折叠 + 拖拽调宽」是几个页面共用的能力：笔记页的文件树、浏览器页的
- * 收藏夹/AI 侧栏、应用管理页的项目列表都要。这里把它收成一个组件，
- * 页面只管把自己的内容塞进来。
- *
- * ## 用法
- *
- * 父容器必须是 **flex 行**，侧栏与分割线是它的两个直接子节点：
- *
- * ```tsx
- * <div className="flex-1 min-h-0 flex">
- *   <ResizableSidebar storageKey="qnote-apps-list" title="项目" defaultWidth={320}>
- *     <MyList />
- *   </ResizableSidebar>
- *   <section className="flex-1 min-w-0">…</section>
- * </div>
- * ```
- *
- * 组件返回的是**片段**（侧栏 + 分割线），所以它自己占不了 flex 的一格 ——
- * 真正占位的是里面那个 aside。
- *
- * ## 动画
- *
- * 只有**宽度**参与过渡，内容自己淡出。为什么不整块淡：
- * 宽度变化时内容会被拉长/压扁，整块淡入淡出会让文字在拉伸中糊掉，
- * 而"侧栏正在收窄"这件事由宽度本身就说清楚了。
- *
- * 退场（收起）比入场（展开）快一档：收起是用户明确不要这块内容了，
- * 慢吞吞地缩回去会让人等；展开是用户要看到东西，值得铺开。
- *
- * `motion-reduce:transition-none` 给出系统级"减少动态效果"的退路：
- * 宽度直接跳到位，不做空间位移；内容淡出保留 —— 淡出是状态反馈，不是空间位移。
- */
 
-/**
- * 收起后的轨道宽度 —— 里面只放折叠按钮
- *
- * 取值与折叠按钮的尺寸、锚点一起放在 panel/layout.ts，
- * 四个页面（笔记 / 题单 / 快捷方式 / 应用管理）共用同一套几何。
- */
 
 export interface ResizableSidebarProps {
-  /**
-   * localStorage key 前缀
-   *
-   * 折叠态存 `${storageKey}-collapsed`，宽度存 `${storageKey}-width`。
-   * 带上页面语义，不同页面的偏好才不会串。
-   */
   storageKey: string;
-  /** 面板标题（收起时隐藏） */
   title?: ReactNode;
-  /** 标题右侧的操作区（收起时隐藏） */
   actions?: ReactNode;
-  /** 展开时的默认宽度 */
   defaultWidth?: number;
-  /** 允许的最小宽度 */
   minWidth?: number;
-  /** 允许的最大宽度（静态上限） */
   maxWidth?: number;
-  /** 主内容区至少要留多宽 —— 拖到上限时用它给主内容让路 */
   minContentWidth?: number;
-  /** 侧栏在分栏的哪一侧 */
   side?: "left" | "right";
-  /** 默认是否收起 */
   defaultCollapsed?: boolean;
-  /** 外层 className */
   className?: string;
-  /** 折叠态变化通知（父组件偶尔需要知道，比如据此收起别的面板） */
   onCollapsedChange?: (collapsed: boolean) => void;
   children: ReactNode;
 }
@@ -105,9 +48,7 @@ export function ResizableSidebar({
     `${storageKey}-collapsed`,
     defaultCollapsed
   );
-  /** 正在收起（而不是展开）—— 决定过渡时长：退场比入场快 */
   const [collapsing, setCollapsing] = useState(false);
-  /** 拖拽中：临时关掉宽度的 CSS 过渡，否则侧栏会慢半拍地追着指针跑 */
   const [resizing, setResizing] = useState(false);
 
   const { width, setWidth, resetWidth } = usePanelWidth({
@@ -117,18 +58,12 @@ export function ResizableSidebar({
     maxWidth,
   });
 
-  /**
-   * 侧栏所在那一行（父级 flex 容器）的宽度
-   *
-   * 宽度上限要随窗口缩放重算，所以得量父级 —— 侧栏自己的宽度是结果，不是输入。
-   */
   const [rowWidth, setRowWidth] = useState(0);
   useEffect(() => {
     const row = asideRef.current?.parentElement;
     if (!row) return;
     const sync = () => {
       const next = row.clientWidth;
-      // 数字没变时 setState 是 no-op，不会白白触发一次渲染
       setRowWidth((prev) => (prev === next ? prev : next));
     };
     sync();
@@ -137,24 +72,12 @@ export function ResizableSidebar({
     return () => observer.disconnect();
   }, []);
 
-  /**
-   * 宽度上限 —— 窗口变窄时要跟着降，给主内容区留够位置。
-   *
-   * 减去的两项：分割线自身占的 7px，以及主内容区的最小宽度。
-   * 首次渲染 rowWidth 还是 0（ResizeObserver 还没回调），此时不设限，
-   * 否则刚挂载就会拿 min 去钳出一个错误的上限。
-   */
   const maxAllowedWidth = useMemo(() => {
     if (rowWidth <= 0) return maxWidth;
     const available = rowWidth - PANEL_RESIZER_WIDTH - minContentWidth;
     return Math.max(minWidth, Math.min(maxWidth, available));
   }, [rowWidth, maxWidth, minWidth, minContentWidth]);
 
-  /**
-   * 实际渲染宽度再钳一次。
-   * 窗口缩小后上限会跟着变小，但持久化的宽度还停在大值上；
-   * 不在这里收一下，主内容区就会被挤到 minContentWidth 以下。
-   */
   const effectiveWidth = Math.min(width, maxAllowedWidth);
 
   const handleResize = useCallback(
@@ -169,19 +92,16 @@ export function ResizableSidebar({
 
   const toggleCollapsed = useCallback(() => {
     const next = !collapsed;
-    // next === true 表示正在收起 —— 退场用更短的时长
     setCollapsing(next);
     setCollapsed(next);
   }, [collapsed, setCollapsed]);
 
-  // 折叠态变化通知 —— 回调走 ref，避免父组件每次渲染新建函数导致重复触发
   const onCollapsedChangeRef = useRef(onCollapsedChange);
   onCollapsedChangeRef.current = onCollapsedChange;
   useEffect(() => {
     onCollapsedChangeRef.current?.(collapsed);
   }, [collapsed]);
 
-  /** 折叠按钮上的箭头：指向「展开的方向」，而不是「当前在哪」 */
   const chevron =
     side === "left"
       ? collapsed
@@ -191,33 +111,7 @@ export function ResizableSidebar({
         ? <ChevronLeft className="h-4 w-4" />
         : <ChevronRight className="h-4 w-4" />;
 
-  /**
-   * 收起时标题与操作区整体退场（宽度归零 + 淡出）
-   *
-   * `invisible`（visibility: hidden）是这里的关键一项：
-   * 光靠 opacity-0 + pointer-events-none 挡不住键盘 ——
-   * pointer-events-none 只管鼠标，里面的按钮仍然留在 Tab 序里，
-   * 键盘用户会 Tab 到一个看不见的按钮上，焦点框消失、
-   * 读屏却念出按钮名。visibility:hidden 才会把它移出焦点序。
-   *
-   * ## 退场动效为什么走行内 style
-   *
-   * 要的是「opacity 立刻开始淡、visibility 等淡完再切」：
-   *   transition: opacity 150ms, visibility 0s 150ms
-   * 这**必须**是 transition shorthand —— 两个属性各自的时长和延迟不同，
-   * shorthand 一次说清；写成 transition-property 列表做不到。
-   *
-   * Tailwind 的任意值填的是 transition-property（不是 shorthand）：
-   *   transition-[opacity_150ms,visibility_0s_150ms]
-   *   → transition-property: opacity 150ms,visibility 0s 150ms;  ← 非法
-   * 「opacity 150ms」不是合法属性名，整条声明被浏览器丢弃，
-   * visibility 就没有过渡、立即跳变 —— 实测 getAnimations() 里
-   * 只有一个 opacity 动画，没有 visibility 动画。
-   *
-   * 所以这里用行内 style 写真 shorthand（和几何一样：能用行内就不靠类名）。
-   */
   const collapseTransition = "opacity 150ms, visibility 0s 150ms";
-  /** 展开：visibility 立即可见，opacity 淡入（不需要延迟） */
   const expandTransition = "opacity 150ms, visibility 0s 0ms";
 
   const hiddenWhenCollapsed =
@@ -230,14 +124,7 @@ export function ResizableSidebar({
         ref={asideRef}
         style={{
           width: collapsed ? PANEL_COLLAPSED_WIDTH : effectiveWidth,
-          // 拖拽期间关掉过渡：宽度过渡会让侧栏慢半拍地追着指针跑。
-          // 用行内样式而不是再加一个 class：类之间谁赢取决于样式表里的先后，
-          // 行内样式优先级最高，不会被 transition-[width] 之类的类盖掉。
           ...(resizing ? { transitionProperty: "none" } : null),
-          // 折叠态的分隔线用等色 inset 阴影画，不占内容盒：
-          // 边框会让内容盒少 1px（48 - 1 = 47），按钮就不左右对称
-          //（左边留白 8px、右边只剩 7px）。inset 阴影画在盒内、不占布局，
-          // 颜色与展开态的 border-border/60 完全等价，两态切换时线的位置也不动。
           ...(collapsed
             ? {
                 boxShadow:
@@ -249,39 +136,17 @@ export function ResizableSidebar({
         }}
         className={cn(
           "flex h-full min-h-0 flex-col flex-shrink-0 overflow-hidden",
-          // 展开态的边界线是 1px 语义边框（border-border/60，不分强度档）；
-          // 折叠态改用上面那条 inset 阴影 —— 两者不能同时存在，
-          // 边框会占掉内容盒，破坏折叠轨按钮的左右对称。
           collapsed
             ? null
             : side === "left"
               ? "border-r border-border/60"
               : "border-l border-border/60",
           "transition-[width] ease-out motion-reduce:transition-none",
-          collapsing ? "duration-150" : "duration-[220ms]",
+          collapsing ? "duration-150" : "duration-panel",
           className
         )}>
-        {/* 面板头：折叠按钮 + 标题 + 操作区
-
-            横向内边距走行内样式（PANEL_COLLAPSED_BUTTON_INSET / PANEL_HEADER_PADDING_X），
-            不用 Tailwind 的 px-/pl- 类：类名里的数字是写死的，
-            跟共享常量各走各的，改了常量类名不会跟着变。
-
-            行高用 h-12 + pt-2 + pb-2 —— 内容盒正好 32px，折叠按钮 32px 填满它，
-            于是按钮落在轨道顶端往下 8px 处，上下各留 8px。
-            笔记页、快捷方式面板、题单页的折叠按钮都是距顶 8px；
-            这里原来用固定 h-10 居中，只有 4px，跨页面切换时按钮会上下跳 4px。
-            两态共用同一行高与同一内边距，折叠↔展开时按钮的纵向位置也不变。
-
-            折叠态两条硬规则（都在 panel/layout.ts 里写明了原因）：
-            1. gap 必须是 0 —— 标题与操作区虽然宽度归零（w-0），gap 照样占位，
-               会把按钮整体往左挤：按钮贴住轨道左缘，focus 描边左侧被轨道裁掉。
-            2. 不能用 justify-center 居中 —— 折叠态的分隔线是 inset 阴影、
-               不占内容盒（内容盒 48px），居中恰好也是 8px、看着等价，
-               但它把按钮位置绑在「分隔线不占内容盒」这个前提上；
-               分隔线一旦换回真边框（内容盒 47px），居中就变成 7.5px 的小数偏移，
-               左右留白不相等。改用固定左内边距把按钮锚在 8px，
-               8+32+8=48，正好轨道正中。 */}
+        {
+}
         <div
           style={{
             paddingLeft: collapsed ? PANEL_COLLAPSED_BUTTON_INSET : PANEL_HEADER_PADDING_X,
@@ -291,9 +156,8 @@ export function ResizableSidebar({
             "flex items-center h-12 pt-2 pb-2 flex-shrink-0",
             collapsed ? "gap-0" : "gap-2"
           )}>
-          {/* 折叠按钮：32×32（PANEL_COLLAPSED_BUTTON_SIZE）。
-              两态用同一个尺寸、同一行位置 —— 切换时只有面板宽度在动，
-              按钮自己的盒子和 x 都不变。 */}
+          {
+}
           <Button
             type="button"
             variant="ghost"
@@ -327,13 +191,11 @@ export function ResizableSidebar({
           )}
         </div>
 
-        {/* 内容 */}
+        {}
         <div
           style={{ transition: collapsed ? collapseTransition : expandTransition }}
           className={cn(
             "flex-1 min-h-0",
-            // 折叠态同样要移出焦点序 —— children 里可能有按钮和链接，
-            // opacity-0 + pointer-events-none 只挡鼠标，键盘仍能 Tab 进去。
             collapsed
               ? "opacity-0 pointer-events-none invisible"
               : "opacity-100 visible"
@@ -342,8 +204,8 @@ export function ResizableSidebar({
         </div>
       </aside>
 
-      {/* 分割线：收起时不渲染 —— 侧栏已经退化成一条按钮轨，
-          再留个 7px 热区既没意义，也会挡住侧栏边缘的点击。 */}
+      {
+}
       {!collapsed && (
         <PanelResizer
           width={effectiveWidth}

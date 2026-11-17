@@ -8,16 +8,6 @@ import {
   PANEL_HEADER_PADDING_X,
 } from "./layout";
 
-/**
- * 可折叠侧栏的几何回归
- *
- * 这批锁的是「折叠轨道」这一轮修复：折叠态按钮 32×32、固定锚在轨道左起 8px、
- * 折叠态头部 gap 归零、不用 justify-center 居中。
- *
- * 关键：这里的几何是**行内样式**（style={{ width }} / style={{ paddingLeft }}），
- * 不是 Tailwind 类名 —— jsdom 读得到行内样式，读不到类名算出来的盒模型。
- * 所以几何断言直接读 element.style，类名只用来断「gap-0 / h-8 w-8」这类开关。
- */
 
 const STORAGE_KEY = "qnote-test-panel";
 
@@ -46,17 +36,14 @@ function renderSidebar(props: Partial<ResizableSidebarProps> = {}) {
   return { ...utils, onCollapsedChange };
 }
 
-/** 侧栏本体 */
 function getAside(): HTMLElement {
   return document.querySelector("aside") as HTMLElement;
 }
 
-/** 面板头部行 —— aside 的第一个子元素 */
 function getHeaderRow(): HTMLElement {
   return getAside().firstElementChild as HTMLElement;
 }
 
-/** 折叠 / 收起按钮 */
 function getToggle(): HTMLButtonElement {
   return screen.getByRole("button", { name: /^(展开侧栏|收起侧栏)$/ }) as HTMLButtonElement;
 }
@@ -109,15 +96,11 @@ describe("可折叠侧栏（ResizableSidebar）", () => {
       const collapsedPadding = getHeaderRow().style.paddingLeft;
       unmount();
 
-      // 上一次渲染把折叠状态写进了 localStorage —— 不清掉的话第二次渲染
-      // 读到的还是「折叠」，这条就变成同态对比、白跑一趟。
       window.localStorage.clear();
 
       renderSidebar();
       const expandedPadding = getHeaderRow().style.paddingLeft;
 
-      // 按钮是头部行的第一个子元素，它相对 aside 左缘的偏移就等于头部左内边距。
-      // 两态相等 → 折叠↔展开时按钮原地不动，只有面板宽度在变。
       expect(collapsedPadding).toBe(expandedPadding);
     });
   });
@@ -151,7 +134,6 @@ describe("可折叠侧栏（ResizableSidebar）", () => {
       expect(tokens).not.toContain("w-9");
       unmount();
 
-      // 清掉上一次渲染写下的折叠状态，第二次才是真的展开态
       window.localStorage.clear();
 
       renderSidebar();
@@ -208,7 +190,6 @@ describe("可折叠侧栏（ResizableSidebar）", () => {
       renderSidebar({ defaultCollapsed: true });
 
       const header = getHeaderRow();
-      // 标题容器：w-0 归零、opacity-0 淡出、pointer-events-none 不可点
       const titleWrapper = header.children[1] as HTMLElement;
       const tokens = classTokens(titleWrapper);
       expect(tokens).toContain("w-0");
@@ -230,9 +211,6 @@ describe("可折叠侧栏（ResizableSidebar）", () => {
       renderSidebar({ defaultCollapsed: true });
       const header = getHeaderRow();
 
-      // pointer-events-none 只挡鼠标，挡不住键盘：
-      // 里面的按钮仍在 Tab 序里，键盘用户会聚焦到一个看不见的东西上，
-      // 焦点框消失、读屏却念出按钮名。必须靠 invisible（visibility:hidden）。
       const titleWrapper = header.children[1] as HTMLElement;
       expect(classTokens(titleWrapper)).toContain("invisible");
 
@@ -242,7 +220,6 @@ describe("可折叠侧栏（ResizableSidebar）", () => {
 
     it("折叠态内容区同样移出焦点序", () => {
       renderSidebar({ defaultCollapsed: true });
-      // 内容容器是 aside 的最后一个子元素
       const content = getAside().lastElementChild as HTMLElement;
       expect(classTokens(content)).toContain("invisible");
     });
@@ -268,20 +245,12 @@ describe("可折叠侧栏（ResizableSidebar）", () => {
       renderSidebar({ defaultCollapsed: true });
       const header = getHeaderRow();
 
-      // 必须用 shorthand：两个属性的时长与延迟不同（opacity 150ms/0ms，
-      // visibility 0s/150ms），只有 shorthand 能一次说清。
-      // 写成 transition-property 列表做不到 —— Tailwind 的任意值填的
-      // 正是 transition-property，编译出来是
-      //   transition-property: opacity 150ms,visibility 0s 150ms;  ← 非法
-      // 浏览器会丢弃整条声明，visibility 立即跳变、没有淡出。
       const titleWrapper = header.children[1] as HTMLElement;
       expect(titleWrapper.style.transition).toBe("opacity 150ms, visibility 0s 150ms");
 
       const actionsWrapper = header.children[2] as HTMLElement;
       expect(actionsWrapper.style.transition).toBe("opacity 150ms, visibility 0s 150ms");
 
-      // 内容区也要一致 —— 此前它只过渡 opacity，visibility 立即跳变，
-      // 表现为「标题和操作淡出 300ms、内容瞬间消失」，三块表现不一致。
       const content = getAside().lastElementChild as HTMLElement;
       expect(content.style.transition).toBe("opacity 150ms, visibility 0s 150ms");
     });
@@ -303,18 +272,11 @@ describe("可折叠侧栏（ResizableSidebar）", () => {
     it("退场态不再由类名带 transition-opacity（会和行内 shorthand 打架）", () => {
       renderSidebar({ defaultCollapsed: true });
       const titleWrapper = getHeaderRow().children[1] as HTMLElement;
-      // 行内 style 优先级最高，但类名里的 transition-opacity 仍会留下误导：
-      // 它只过渡 opacity，和 shorthand 的语义重叠。类名里不该再有它。
       expect(classTokens(titleWrapper)).not.toContain("transition-opacity");
     });
   });
 
   describe("头部形态：只有标题占位（应用管理页的真实 DOM）", () => {
-    // 应用管理页不传 actions，头部行里只有标题占位；
-    // 题单页头部还有导入、新建两个按钮，是另一种形态。
-    // 旧实现里零宽占位节点照样吃 gap，把整行撑到超过内容盒，
-    // 再叠上 justify-center 居中，溢出平分到两侧 —— 按钮探出轨道左缘。
-    // 现在折叠态 gap 归零 + 固定左内边距锚定，两种形态必须是同一套几何。
 
     it("折叠态头部行 gap 归零，左内边距 8px、右 0px", () => {
       renderSidebar({ defaultCollapsed: true, actions: undefined });
@@ -350,8 +312,6 @@ describe("可折叠侧栏（ResizableSidebar）", () => {
       const collapsedPadding = getHeaderRow().style.paddingLeft;
       first.unmount();
 
-      // 上一次渲染把折叠状态写进了 localStorage —— 不清掉的话第二次渲染
-      // 读到的还是「折叠」，这条就变成同态对比、白跑一趟。
       window.localStorage.clear();
 
       renderSidebar({ actions: undefined });

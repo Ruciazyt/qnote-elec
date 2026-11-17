@@ -1,8 +1,8 @@
-import { log } from "../../main/utils/log";
+import { log } from "../../main/core/system/log";
 import { getDB } from "../index";
-import { DEFAULT_AI_CHAT_SESSION_ID } from "../../shared/constants/aiChat";
-import { buildSessionPreview } from "../../shared/aiSessionPreview";
-import { contentHash } from "../../shared/noteHash";
+import { DEFAULT_AI_CHAT_SESSION_ID } from "../../shared/ai/constants/aiChat";
+import { buildSessionPreview } from "../../shared/ai/aiSessionPreview";
+import { contentHash } from "../../shared/notes/noteHash";
 import type { Knex } from "knex";
 
 async function createNotesTable(DB: Knex): Promise<void> {
@@ -75,10 +75,8 @@ async function createAiChatTable(DB: Knex): Promise<void> {
   try {
     await DB.schema.createTable("ai_chat", (table: Knex.TableBuilder) => {
       table.increments("id").primary();
-      table.string("role").notNullable(); // 'user' | 'assistant' | 'system'
+      table.string("role").notNullable();
       table.text("content").notNullable();
-      // 软删除标记（被压缩进摘要的原始消息，0=未压缩 1=已压缩）
-      // 新表默认全部为 0；老库由 addAiChatSessionIdColumn 里的 ALTER 补列
       table.integer("compressed").notNullable().defaultTo(0);
       table.timestamp("created_at").defaultTo(DB.fn.now());
     });
@@ -109,16 +107,11 @@ async function createAiChatSummaryTable(DB: Knex): Promise<void> {
   try {
     await DB.schema.createTable("ai_chat_summary", (table: Knex.TableBuilder) => {
       table.increments("id").primary();
-      // 所属会话（对应 ai_chat_session.id）
       table.string("session_id").notNullable();
-      // 这一轮压缩覆盖的原始消息范围（闭区间，按 ai_chat.id 计）
       table.integer("from_message_id").notNullable();
       table.integer("to_message_id").notNullable();
-      // 压缩后的摘要正文
       table.text("summary").notNullable();
-      // 被压缩掉的原始消息条数（用于统计/调试）
       table.integer("compressed_count").notNullable().defaultTo(0);
-      // 被压缩掉的原始消息总字符数
       table.integer("compressed_chars").notNullable().defaultTo(0);
       table.timestamp("created_at").defaultTo(DB.fn.now());
 
@@ -135,26 +128,18 @@ async function createAiUsageLogTable(DB: Knex): Promise<void> {
   try {
     await DB.schema.createTable("ai_usage_log", (table: Knex.TableBuilder) => {
       table.increments("id").primary();
-      // provider: openai / claude（含兼容 provider 归一化前的原始值）
       table.string("provider").notNullable();
       table.string("model").notNullable().defaultTo("");
-      // 对话会话（关联 ai_chat_session.id），压缩/流式等无会话的调用为 NULL
       table.string("session_id");
-      // 这次调用在 agent 循环里的第几轮（0 = 单次调用）
       table.integer("agent_iteration").notNullable().defaultTo(0);
-      // token 用量
       table.integer("prompt_tokens").notNullable().defaultTo(0);
       table.integer("completion_tokens").notNullable().defaultTo(0);
       table.integer("total_tokens").notNullable().defaultTo(0);
-      // 延迟（毫秒）
       table.integer("latency_ms").notNullable().defaultTo(0);
-      // 成功/失败
       table.boolean("success").notNullable().defaultTo(true);
-      // 错误分类（见 src/main/utils/ai/observability/usageRecorder.ts）
       table.string("error_type").notNullable().defaultTo("");
       table.text("error_message").notNullable().defaultTo("");
-      // 是否是工具调用相关的记录
-      table.string("kind").notNullable().defaultTo("llm"); // llm | tool
+      table.string("kind").notNullable().defaultTo("llm");
       table.timestamp("created_at").defaultTo(DB.fn.now());
 
       table.index(["session_id", "id"], "ai_usage_log_session_idx");
@@ -174,8 +159,6 @@ async function addAiChatSessionIdColumn(DB: Knex): Promise<void> {
       await DB.raw("ALTER TABLE ai_chat ADD COLUMN session_id TEXT");
     }
 
-    // 软删除标记 —— 被压缩进摘要的原始消息不删，只标记
-    // 热记忆（getHotState）只读 compressed=0；前端历史列表读全部
     if (!columns.some((column: any) => column.name === "compressed")) {
       await DB.raw("ALTER TABLE ai_chat ADD COLUMN compressed INTEGER NOT NULL DEFAULT 0");
       log.info("已为 ai_chat 表添加 compressed 字段（会话压缩软删除标记）");
@@ -196,7 +179,6 @@ async function addAiChatSessionIdColumn(DB: Knex): Promise<void> {
         .slice(0, 48) || "历史对话";
       const createdAt = new Date(unassignedMessages[0].created_at || Date.now());
       const updatedAt = new Date(lastMessage.created_at || Date.now());
-      // 历史消息优先取用户输入作为预览（与新会话的规则保持一致）
       const lastUserMessage = [...unassignedMessages]
         .reverse()
         .find((message: any) => message.role === "user");
@@ -235,22 +217,6 @@ async function addAiChatSessionIdColumn(DB: Knex): Promise<void> {
   }
 }
 
-/**
- * 给 ai_chat 补 blocks 列 —— 存这一条 AI 回复的有序分块
- *
- * 内容是 JSON 数组，按真实发生顺序排着 思考 / 工具调用 / 输出：
- *   [{kind:'thinking'},{kind:'tool'},{kind:'text'}, …]
- *
- * 为什么不用「content 字符串 + 工具数组」两个字段拼 —— 那样只能把工具统一塞到
- * 正文前或后，交错顺序丢了，而交错顺序在重启后无法重建。
- *
- * 为什么不另起 role='tool' 的行：rowToMessage 会把非 assistant/system 的 role
- * 一律映射成 HumanMessage，于是工具记录会被当成「用户说的话」重新喂回模型，
- * 而且没有 tool_call_id 配对，OpenAI/Anthropic 都会拒绝这个序列。
- *
- * 这一列不会泄漏进 prompt —— rebuildHotState 是显式 .select('id','role','content')，
- * 新列根本进不了热内存。
- */
 async function addAiChatBlocksColumn(DB: Knex): Promise<void> {
   try {
     const columns = await DB.raw("PRAGMA table_info(ai_chat)");
@@ -263,18 +229,6 @@ async function addAiChatBlocksColumn(DB: Knex): Promise<void> {
   }
 }
 
-/**
- * 给 ai_chat 补 images 列 —— 存这一条消息带上的图片附件
- *
- * 内容是 JSON 数组：[{"mime":"image/png","data":"<base64>","name":"a.png"}, …]
- *
- * 为什么不塞进 content：content 是纯文本列，历史列表、压缩器、
- * 会话预览都按纯文本读它。图片走独立的一列，读历史时按需还原成
- * content 块（见 hotMemory.rowToMessage），互不干扰。
- *
- * 体积换来的代价很直白：一张 1568px 的图约几百 KB。一条消息最多 4 张，
- * 一轮问答 4MB 出头。SQLite 扛得住，代价是磁盘占用比纯文本对话高一个量级。
- */
 async function addAiChatImagesColumn(DB: Knex): Promise<void> {
   try {
     const columns = await DB.raw("PRAGMA table_info(ai_chat)");
@@ -299,9 +253,7 @@ async function createTodosTable(DB: Knex): Promise<void> {
       table.timestamp("completed_at");
       table.timestamp("created_at").defaultTo(DB.fn.now());
       table.timestamp("updated_at").defaultTo(DB.fn.now());
-      // 附件列表 — 存储为 JSON 字符串，包含 image 等类型附件的 dataUrl
       table.text("attachments").defaultTo("[]");
-      // 归档时间 — NULL 表示未归档。归档后只在「归档」页签里出现
       table.timestamp("archived_at");
     });
     log.info("Todo表创建成功");
@@ -311,7 +263,6 @@ async function createTodosTable(DB: Knex): Promise<void> {
   }
 }
 
-// 为已存在的 todo 表添加 attachments 字段（兼容旧版本数据库）
 async function addTodoAttachmentsColumn(DB: Knex): Promise<void> {
   try {
     const columns = await DB.raw("PRAGMA table_info(todo)");
@@ -327,13 +278,11 @@ async function addTodoAttachmentsColumn(DB: Knex): Promise<void> {
   }
 }
 
-// 为已存在的 todo 表添加 archived_at 字段（兼容旧版本数据库）
 async function addTodoArchivedAtColumn(DB: Knex): Promise<void> {
   try {
     const columns = await DB.raw("PRAGMA table_info(todo)");
     const hasArchivedAtColumn = columns.some((col: any) => col.name === "archived_at");
     if (!hasArchivedAtColumn) {
-      // 旧数据一律视为未归档
       await DB.raw("ALTER TABLE todo ADD COLUMN archived_at TIMESTAMP DEFAULT NULL");
       log.info("已为 todo 表添加 archived_at 字段");
     } else {
@@ -352,7 +301,7 @@ async function createVectorStoreTable(DB: Knex): Promise<void> {
       table.text("content").notNullable();
       table.string("type").notNullable();
       table.text("ocr_result");
-      table.text("embedding").notNullable(); // 存储为JSON字符串
+      table.text("embedding").notNullable();
       table.timestamp("created_at").defaultTo(DB.fn.now());
 
       table.foreign("note_id").references("id").inTable("note").onDelete("CASCADE");
@@ -424,7 +373,6 @@ async function createLeetcodeProblemTable(DB: Knex): Promise<void> {
   }
 }
 
-// 为 leetcode_problem 表添加 title 字段
 async function addLeetcodeProblemTitleColumn(DB: Knex): Promise<void> {
   try {
     const columns = await DB.raw("PRAGMA table_info(leetcode_problem)");
@@ -438,11 +386,9 @@ async function addLeetcodeProblemTitleColumn(DB: Knex): Promise<void> {
     }
   } catch (err) {
     log.error("添加leetcode_problem表字段时出错:", err);
-    // 不抛出错误，允许继续执行
   }
 }
 
-// 为 leetcode_problem 表添加 difficulty 字段
 async function addLeetcodeProblemDifficultyColumn(DB: Knex): Promise<void> {
   try {
     const columns = await DB.raw("PRAGMA table_info(leetcode_problem)");
@@ -456,7 +402,6 @@ async function addLeetcodeProblemDifficultyColumn(DB: Knex): Promise<void> {
     }
   } catch (err) {
     log.error("添加leetcode_problem表difficulty字段时出错:", err);
-    // 不抛出错误，允许继续执行
   }
 }
 
@@ -464,10 +409,8 @@ async function createBookmarksTable(DB: Knex): Promise<void> {
   try {
     await DB.schema.createTable("browser_bookmark", (table: Knex.TableBuilder) => {
       table.increments("id").primary();
-      /** 页面标题 —— 允许为空（部分站点取不到 title） */
       table.text("title");
       table.text("url").notNullable();
-      /** 同一 URL 只收藏一次，用唯一索引兜住重复收藏 */
       table.unique(["url"]);
       table.timestamp("created_at").defaultTo(DB.fn.now());
       table.timestamp("updated_at").defaultTo(DB.fn.now());
@@ -479,28 +422,13 @@ async function createBookmarksTable(DB: Knex): Promise<void> {
   }
 }
 
-/**
- * 主页快捷方式表
- *
- * 三种类型共用一张表，用 kind 区分：网页链接 / 本地程序 / 本地文件夹。
- * target 存的是绝对路径或完整 URL —— 快捷方式的语义就是"指向一个具体的东西"，
- * 存相对路径会在用户移动目录后集体失效。
- */
 async function createShortcutTable(DB: Knex): Promise<void> {
   try {
     await DB.schema.createTable("shortcut", (table: Knex.TableBuilder) => {
       table.increments("id").primary();
-      /** 'url' | 'app' | 'folder' */
       table.string("kind").notNullable();
-      /** URL 或绝对路径 */
       table.text("target").notNullable();
-      /** 展示名，用户没填时主进程按 target 推导一个 */
       table.text("title").notNullable();
-      /**
-       * 排序位。拖拽结束时主进程按新顺序整体重排为 0..n-1，
-       * 而不是做两两交换 —— 后者会在并发重排或中途失败时留下重复的 sort_order，
-       * 让列表顺序变得不确定且无法自愈。
-       */
       table.integer("sort_order").notNullable().defaultTo(0);
       table.timestamp("created_at").defaultTo(DB.fn.now());
       table.timestamp("updated_at").defaultTo(DB.fn.now());
@@ -512,7 +440,6 @@ async function createShortcutTable(DB: Knex): Promise<void> {
   }
 }
 
-// 检查并创建单个表，附带错误处理
 async function ensureTable(DB: Knex, tableName: string, creator: (DB: Knex) => Promise<void>): Promise<void> {
   try {
     const hasTable = await DB.schema.hasTable(tableName);
@@ -524,50 +451,22 @@ async function ensureTable(DB: Knex, tableName: string, creator: (DB: Knex) => P
     }
   } catch (err) {
     log.error(`创建${tableName}表时出错:`, err);
-    // 不抛出错误，允许其他表继续创建
   }
 }
 
-/**
- * 应用管理 —— 项目表
- *
- * 一个项目 = 用户导入的一个文件夹 + 一份 qnote.json 清单。
- * 清单解析结果直接落在表里（command / preview / status / error），
- * 界面不必为了显示一个列表再去读一遍磁盘。
- *
- * path 唯一：同一个文件夹只登记一次，且它是"这个项目在哪"的唯一依据。
- */
 async function createAppProjectTable(DB: Knex): Promise<void> {
   try {
     await DB.schema.createTable("app_project", (table: Knex.TableBuilder) => {
       table.increments("id").primary();
-      /** 展示名；清单里写了 name 就用它，否则用文件夹名 */
       table.text("name").notNullable();
-      /** 项目根目录绝对路径 */
       table.text("path").notNullable().unique();
-      /** 'ready' | 'missing-manifest' | 'invalid-manifest' */
       table.string("status").notNullable().defaultTo("missing-manifest");
-      /** 清单原文，出错时展示给用户看 */
       table.text("manifest_text");
-      /** 规范化后的启动命令 */
       table.text("command");
-      /** 预览入口：相对路径或 http(s) 网址 */
       table.text("preview");
-      /** 项目简介 */
       table.text("description");
-      /** 不可用原因 */
       table.text("error");
-      /**
-       * 来源 —— 'local'（用户自己导入）/ 'market'（从应用市场获取）
-       *
-       * 市场来的清单是别人写的，运行前要用户确认；本机导入的不用。
-       */
       table.string("origin").notNullable().defaultTo("local");
-      /**
-       * 用户已确认过的清单指纹
-       *
-       * 存哈希而不是布尔值 —— 清单改了哈希就对不上，确认框会再弹一次。
-       */
       table.string("confirmed_manifest_hash").notNullable().defaultTo("");
       table.integer("sort_order").notNullable().defaultTo(0);
       table.timestamp("created_at").defaultTo(DB.fn.now());
@@ -580,20 +479,6 @@ async function createAppProjectTable(DB: Knex): Promise<void> {
   }
 }
 
-/**
- * 应用管理 —— 表结构迁移
- *
- * ## 为什么需要这一步
- *
- * 早期版本用的是「工作区 + 工作区下的项目」两层结构：
- * app_workspace 存根目录，app_project 挂 workspace_id 外键。
- * 现在改成「直接导入项目文件夹」，工作区这层没了，app_project 也就不需要外键。
- *
- * 这套结构还没发过版，但开发库里可能已经建过旧表 ——
- * 直接 ensureTable 不会改已有表的结构，旧表会带着 workspace_id 留下来，
- * 而新代码不再写这个列，于是插入时报 NOT NULL 约束失败。
- * 所以这里显式检查列结构，是旧形状就重建。
- */
 async function migrateAppProjectSchema(DB: Knex): Promise<void> {
   try {
     const hasTable = await DB.schema.hasTable("app_project");
@@ -608,27 +493,14 @@ async function migrateAppProjectSchema(DB: Knex): Promise<void> {
 
     await ensureTable(DB, "app_project", createAppProjectTable);
 
-    // 来源标记与确认指纹（2026-11-13）
-    //
-    // origin 区分「用户自己导入的」与「从应用市场拉来的」——
-    // 后者的清单是别人写的，运行前必须让用户确认一次。
-    // confirmed_manifest_hash 存的是**清单内容的哈希**而不是布尔值：
-    // 清单改了哈希就对不上，确认框会再弹一次。
     await addAppProjectOriginColumns(DB);
 
-    // 工作区概念已废弃 —— 表留着只会让人误以为还有这回事
     await DB.raw("DROP TABLE IF EXISTS app_workspace");
   } catch (err) {
     log.error("迁移应用项目表结构失败:", err);
   }
 }
 
-/**
- * 给 app_project 补上 origin / confirmed_manifest_hash 两列
- *
- * 老库的 app_project 没有这两列 —— 补上，默认 origin='local'
- * （老项目全是用户自己导入的）。
- */
 async function addAppProjectOriginColumns(DB: Knex): Promise<void> {
   try {
     const columns = await DB.raw("PRAGMA table_info(app_project)");
@@ -652,10 +524,8 @@ async function addAppProjectOriginColumns(DB: Knex): Promise<void> {
   }
 }
 
-// 为note表添加新字段
 async function addNoteTableColumns(DB: Knex): Promise<void> {
   try {
-    // 检查各字段是否存在
     const columns = await DB.raw("PRAGMA table_info(note)");
     const hasPinnedColumn = columns.some((col: any) => col.name === 'is_pinned_to_ai');
     const hasOcrResultColumn = columns.some((col: any) => col.name === 'ocr_result');
@@ -692,8 +562,6 @@ async function addNoteTableColumns(DB: Knex): Promise<void> {
       log.info("note表的vector_id字段已存在");
     }
 
-    // 置顶时间（毫秒时间戳），NULL 表示未置顶。
-    // 存时间而不是布尔位：多条置顶之间要按置顶先后排序，一个 0/1 排不出顺序。
     if (!hasPinnedAtColumn) {
       await DB.raw("ALTER TABLE note ADD COLUMN pinned_at INTEGER DEFAULT NULL");
       log.info("已为note表添加pinned_at字段");
@@ -701,8 +569,6 @@ async function addNoteTableColumns(DB: Knex): Promise<void> {
       log.info("note表的pinned_at字段已存在");
     }
 
-    // 重要标记。与 pinned_at 的区别：置顶管的是「排在最前」，
-    // 重要管的是「清空时别删我」—— 两者都参与 delete-all-notes 的保留判定。
     if (!hasImportantColumn) {
       await DB.raw("ALTER TABLE note ADD COLUMN is_important INTEGER NOT NULL DEFAULT 0");
       log.info("已为note表添加is_important字段");
@@ -711,20 +577,9 @@ async function addNoteTableColumns(DB: Knex): Promise<void> {
     }
   } catch (err) {
     log.error("添加note表字段时出错:", err);
-    // 不抛出错误，允许继续执行
   }
 }
 
-/**
- * 一次性回填 AI 会话预览
- *
- * 历史版本的 preview 取自助手回复，会话列表里因此塞满了模型推理
- * （<think>…</think> 直接可见）和客套话。preview 是派生字段，真正的
- * 来源在 ai_chat 里存着的用户消息 —— 这里按会话用"最近一条用户消息"
- * 重算一次。
- *
- * 用 settings 里的一行做标记，保证只跑一次，不在每次启动时重扫全表。
- */
 const PREVIEW_BACKFILL_FLAG = "ai_session_preview_backfilled_v2";
 
 async function backfillAiSessionPreviews(DB: Knex): Promise<void> {
@@ -755,24 +610,10 @@ async function backfillAiSessionPreviews(DB: Knex): Promise<void> {
     });
     log.info(`AI 会话预览已按用户消息回填，共 ${updated} 条`);
   } catch (err) {
-    // 回填失败不该挡住启动 —— 只是预览不好看，功能不受影响
     log.error("回填 AI 会话预览失败:", err);
   }
 }
 
-/**
- * 给 note 表补上 content_hash 列并建索引
- *
- * ## 为什么
- *
- * note 是全应用最热的表：剪贴板每 2 秒去重一次、列表按 created_at 倒序翻页。
- * 而它原本一个索引都没有 —— content 是 TEXT 且存着图片 base64（单条几百 KB 起），
- * SQLite 对 TEXT 等值比较用不上索引，于是每次剪贴板事件都是一次全表扫描，
- * 把所有历史图片的字节读一遍再丢掉。
- *
- * 加一列定长哈希并索引后，等值查找走索引，只回读命中的那一行。
- * created_at 索引则让列表的 ORDER BY 不再触发排序。
- */
 async function addNotePerformanceIndexes(DB: Knex): Promise<void> {
   try {
     const columns = await DB.raw("PRAGMA table_info(note)");
@@ -783,7 +624,6 @@ async function addNotePerformanceIndexes(DB: Knex): Promise<void> {
       log.info("已为note表添加content_hash字段");
     }
 
-    // 回填历史数据。分批提交，避免大库一次性把事务撑爆。
     const pending = await DB("note")
       .where("content_hash", "")
       .orWhereNull("content_hash")
@@ -804,24 +644,20 @@ async function addNotePerformanceIndexes(DB: Knex): Promise<void> {
       log.info("content_hash 回填完成");
     }
 
-    // 去重查询：where content_hash = ? and type = ?
     await DB.raw(
       "CREATE INDEX IF NOT EXISTS note_content_hash_idx ON note(content_hash, type)"
     );
-    // 列表查询：order by created_at desc limit 100
     await DB.raw(
       "CREATE INDEX IF NOT EXISTS note_created_at_idx ON note(created_at DESC)"
     );
     log.info("note表索引已就绪");
   } catch (err) {
     log.error("添加note表性能索引时出错:", err);
-    // 不抛出错误，允许继续执行
   }
 }
 
 export async function migrateRun(path?: string): Promise<void> {
   try {
-    // 获取数据库连接
     let DB: Knex;
     if (path) {
       DB = getDB(path);
@@ -829,20 +665,14 @@ export async function migrateRun(path?: string): Promise<void> {
       DB = getDB();
     }
 
-    // 执行预检查
     try {
       await DB.raw("PRAGMA journal_mode = WAL;");
-      // WAL 的标准搭档。默认 synchronous=FULL 会在每次提交时 fsync，
-      // 而剪贴板每 2 秒就可能插一条几百 KB 的图片，等于不停刷盘。
-      // NORMAL 在 WAL 下只在 checkpoint 边界丢数据，进程崩溃不丢，
-      // 操作系统崩溃理论上丢最后一次提交 —— 对剪贴板历史可以接受。
       await DB.raw("PRAGMA synchronous = NORMAL;");
       log.info("设置数据库模式为WAL + synchronous=NORMAL，提高性能");
     } catch (pragmaErr) {
       log.warn("设置数据库模式失败，继续使用默认模式:", pragmaErr);
     }
 
-    // 以更健壮的方式创建表
     await ensureTable(DB, "note", createNotesTable);
     await ensureTable(DB, "settings", createSettingsTable);
     await ensureTable(DB, "document", createDocumentsTable);
@@ -853,58 +683,41 @@ export async function migrateRun(path?: string): Promise<void> {
     await ensureTable(DB, "ai_usage_log", createAiUsageLogTable);
     await addAiChatSessionIdColumn(DB);
 
-    // AI 回复的有序分块（思考/工具/输出，重启后还要按原顺序渲染）
     await addAiChatBlocksColumn(DB);
 
-    // 用户消息带的图片附件（多模态对话）
     await addAiChatImagesColumn(DB);
 
-    // 一次性回填会话预览（历史数据里的 preview 存的是助手回复）
     await backfillAiSessionPreviews(DB);
 
-    // 创建Todo表
     await ensureTable(DB, "todo", createTodosTable);
 
-    // 检查并添加 todo 表的 attachments 字段（兼容旧版本数据库）
     await addTodoAttachmentsColumn(DB);
 
-    // 检查并添加 todo 表的 archived_at 字段（兼容旧版本数据库）
     await addTodoArchivedAtColumn(DB);
 
-    // 检查并添加note表的is_pinned_to_ai字段
     await addNoteTableColumns(DB);
 
-    // 补content_hash并建索引（剪贴板去重和列表排序都依赖它）
     await addNotePerformanceIndexes(DB);
 
-    // 创建向量存储表
     await ensureTable(DB, "vector_store", createVectorStoreTable);
 
-    // 创建记忆存储表
     await ensureTable(DB, "memory_store", createMemoryStoreTable);
 
-    // 创建题单相关表
     await ensureTable(DB, "leetcode_collection", createLeetcodeCollectionTable);
     await ensureTable(DB, "leetcode_problem", createLeetcodeProblemTable);
 
-    // 浏览器书签表
     await ensureTable(DB, "browser_bookmark", createBookmarksTable);
 
-    // 主页快捷方式表
     await ensureTable(DB, "shortcut", createShortcutTable);
 
-    // 应用管理：项目表（结构随「导入文件夹」模型调整过，带迁移）
     await migrateAppProjectSchema(DB);
-    // 检查并添加leetcode_problem表的title字段
     await addLeetcodeProblemTitleColumn(DB);
 
-    // 检查并添加leetcode_problem表的difficulty字段
     await addLeetcodeProblemDifficultyColumn(DB);
 
     log.info("数据库迁移成功完成");
   } catch (err) {
     log.info("数据库迁移过程中发生错误:", err);
-    // 继续执行而不抛出错误，让应用程序可以继续运行
   }
 }
 

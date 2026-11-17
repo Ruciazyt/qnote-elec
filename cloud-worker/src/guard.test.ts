@@ -1,28 +1,15 @@
 import { describe, it, expect } from "vitest";
 import { checkStatement, normalizeParams, MAX_SQL_LENGTH } from "./guard";
 
-/**
- * 公共目录 Worker 的 SQL 白名单
- *
- * 这个 Worker 的地址是**公开的**（内置在客户端里），谁都能往里 POST。
- * 所以「哪些语句能过」这件事必须有测试守着 ——
- * 白名单一松，数据库的全权就暴露在公网上了。
- *
- * 这里的每一条都对应一种真实的用法；改白名单时，
- * 先确认客户端（src/database/cloud/sharedStore.ts）还会发那种语句。
- */
 
 describe("SQL 白名单", () => {
   it("放行客户端实际会发的那些语句", () => {
     const statements = [
-      // 建表与建索引 —— init() 发的
       "CREATE TABLE IF NOT EXISTS published_app (id TEXT PRIMARY KEY, name TEXT NOT NULL)",
       "CREATE INDEX IF NOT EXISTS published_app_updated_at_idx ON published_app(updated_at DESC)",
-      // 查询
       "SELECT * FROM published_app WHERE id = ? LIMIT 1",
       "SELECT COUNT(*) AS n FROM published_app WHERE name LIKE ? ESCAPE '\\'",
       "SELECT * FROM published_app ORDER BY updated_at DESC LIMIT ? OFFSET ?",
-      // 写入
       "INSERT INTO published_app (id, name, description) VALUES (?, ?, ?)",
       "INSERT INTO published_app (id, name) VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET name = excluded.name",
       "UPDATE published_app SET pulls = pulls + 1 WHERE id = ?",
@@ -100,7 +87,6 @@ describe("SQL 白名单", () => {
   });
 
   it("以别的表名开头的 SELECT 会被拒", () => {
-    // FROM 后面必须紧跟 published_app —— 不能先查别的表再 JOIN 过来
     const result = checkStatement("SELECT * FROM other_table JOIN published_app");
     expect(result.ok).toBe(false);
   });

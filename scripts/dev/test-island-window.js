@@ -1,18 +1,9 @@
-/**
- * 灵动岛主进程窗口探针（临时）
- *
- * 渲染层那侧已经证明没问题（drag-start / drag-move / drag-end 都发出来了），
- * 这一版直接把**真的** IslandWindow 拉起来，看看 dragTo 到底有没有把窗口挪走。
- *
- * 用法：electron scripts/dev/test-island-window.js
- */
 const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("node:path");
 
 const repoRoot = path.resolve(__dirname, "..", "..");
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// IslandWindow 在开发模式下会去连 vite dev server —— 这里改成本地构建产物
 const origLoadURL = BrowserWindow.prototype.loadURL;
 BrowserWindow.prototype.loadURL = function (url) {
   const local = "file:///" + path.join(repoRoot, "dist", "renderer", "island.html").replace(/\\/g, "/");
@@ -63,7 +54,6 @@ app.whenReady().then(async () => {
 
   console.log("[1] show 之后", JSON.stringify(island.getSnapshot()));
 
-  // 模拟渲染层发来的三个动作
   island.beginDrag(508, 222);
   console.log("[2] beginDrag 之后", JSON.stringify(island.getSnapshot()));
 

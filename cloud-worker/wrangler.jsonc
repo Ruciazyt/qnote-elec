@@ -5,10 +5,6 @@
   "observability": {
     "enabled": true
   },
-  // D1 绑定 —— Worker 用它直连数据库，根本不需要 API Token
-  //
-  // database_id 填 `npx wrangler d1 create qnote-apps` 输出里的那串 UUID。
-  // 这个文件里不含任何密钥 —— Worker 的 D1 绑定凭据由 Cloudflare 自己管。
   "d1_databases": [
     {
       "binding": "DB",

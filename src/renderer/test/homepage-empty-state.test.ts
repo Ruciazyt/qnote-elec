@@ -10,25 +10,12 @@ import {
   readPrimaryStrong,
 } from "./homepage-empty-state";
 
-/**
- * 首页空状态的品牌色口径回归
- *
- * 1.9.0 发出去的是被叫停的那版：图标用了 text-primary-strong、按钮带了冗余的
- * dark:text-primary-strong、装饰光晕用了 bg-primary/12（Tailwind 不生成这个档位）。
- * 这里把修正版的口径写成断言，改回错版就会红。
- *
- * 两条写用例的约束：
- *   1. 不遍历基线条目 —— 基线清空后循环体不执行，恰好在最需要时失效
- *   2. 底纹类名与文字类名分开存、运行时拼接 —— 否则品牌色守卫会扫到
- *      本文件自己的字面量，把这里判成新增违规
- */
 
 const RENDERER_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const sources = readRendererSources(RENDERER_ROOT);
 const homepage = sources.find((s) => s.rel === HOMEPAGE_REL);
 const css = fs.readFileSync(path.resolve(RENDERER_ROOT, "index.css"), "utf8");
 
-/* 底纹与文字分开存，运行时再拼 —— 见文件头第 2 条约束 */
 const BG = "bg-primary/10";
 const BG_HOVER = "bg-primary/15";
 const FG_STRONG = "text-primary-strong";
@@ -42,17 +29,6 @@ const ICON_STRONG = "text-primary-strong";
 const ICON_TINT = "text-primary/70";
 const HALO_BAD = "bg-primary/12";
 
-/**
- * 用真实文件名造一个首页空状态场景
- *
- * 类名以「常量 + 模板插值」的形式写：
- *   - 底纹与文字分开存（文件头第 2 条约束）
- *   - 检测器能求值出拼好的类名（见 homepage-empty-state.ts 的 evalExpression）
- *   - 常量必须带引号 —— 裸写（const ICON = text-primary-strong）会被解析成
- *     减法表达式，evalExpression 取不到值，用例会静默地一条都抓不到
- *   - className 要用表达式容器（className={`…`}）—— JSX 属性里的双引号
- *     字符串不插值，写成 className="… ${ICON}" 拿到的是字面文本
- */
 function emptyState(icon: string, button: string, halo: string): string {
   return `const ICON = "${icon}";
 const BTN = "${button}";
@@ -71,7 +47,6 @@ export function HomePage() {
 }`;
 }
 
-/** 对一个场景跑口径检查，返回命中的规则代号 */
 function rulesOf(source: string): string[] {
   return findHomepageBrandIssues([makeSource(HOMEPAGE_REL, source)]).map(
     (i) => i.rule

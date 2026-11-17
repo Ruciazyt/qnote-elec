@@ -4,50 +4,16 @@ globs: *.tsx,*.js,*.ts,*.tsx
 alwaysApply: false
 ---
 ---
-description: Comprehensive guide to React best practices, covering code organization, performance, security, testing, and common pitfalls. Adhering to these guidelines helps developers build maintainable, scalable, and high-performing React applications.
-globs: *.js,*.jsx,*.ts,*.tsx
 ---
 # React Best Practices: A Comprehensive Guide
 
-This document outlines the best practices for developing React applications, covering various aspects from code organization to security and testing. Following these guidelines leads to more maintainable, scalable, and performant applications.
 
 ## 1. Code Organization and Structure
 
 ### 1.1 Directory Structure
 
-A well-defined directory structure is crucial for maintainability. Here's a recommended structure:
 
 
-src/
-  ├── components/
-  │   ├── Button/
-  │   │   ├── Button.jsx
-  │   │   ├── Button.module.css
-  │   │   └── Button.test.jsx
-  │   ├── Input/
-  │   │   ├── Input.jsx
-  │   │   ├── Input.module.css
-  │   │   └── Input.test.jsx
-  │   └── ...
-  ├── contexts/
-  │   ├── AuthContext.jsx
-  │   └── ThemeContext.jsx
-  ├── hooks/
-  │   ├── useAuth.js
-  │   └── useTheme.js
-  ├── pages/
-  │   ├── Home.jsx
-  │   ├── About.jsx
-  │   └── ...
-  ├── services/
-  │   ├── api.js
-  │   └── auth.js
-  ├── utils/
-  │   ├── helpers.js
-  │   └── validators.js
-  ├── App.jsx
-  ├── index.jsx
-  └── ...
 
 
 -   **`components/`**: Reusable UI components.
@@ -286,5 +252,4 @@ src/
 -   **Automated Testing**: Run automated tests on every commit or pull request.
 -   **Automated Deployment**: Automatically deploy code to production after successful tests.
 
-
-By following these best practices, React developers can build high-quality, maintainable, and scalable applications that meet the demands of modern web development. Continual education and adaptation to emerging trends in the React ecosystem are crucial for sustained success.
+

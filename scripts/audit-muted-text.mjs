@@ -1,29 +1,3 @@
-/**
- * 次级文字（--muted-foreground）透明度档全量清单生成器
- *
- * 2026-11-09 · QDesign
- *
- * 为什么要有这个脚本：上一轮的分类脚本只扫 .tsx/.ts、只认 /70 /80 /85 三档，
- * 漏了 52 处（其中 /50 有 20 处、/55 有 7 处是最暗的一批），还完全没扫 CSS
- * 里的 hsl(var(--muted-foreground)/X) 手写写法 —— 数字对不上是因为口径没覆盖全，
- * 不是数算错了。这个脚本按全口径重扫。
- *
- * 口径（docs/UI-GUIDELINES.md 第九节，与 scripts/check-contrast.mjs 同一套）：
- *   - WCAG 2.x 相对亮度公式，sRGB 线性化阈值 0.03928 / 0.055
- *   - HSL 转 sRGB 保留浮点不取整
- *   - 透明档先与实际底色 alpha 合成再算
- *   - 底色只有 --card（100%）与 --background（98%），结论取更差的那个
- *   - 文字色与底色都是 token 现值，不带任何人工修饰
- *
- * 扫的范围：
- *   1. src/renderer/**\/*.{tsx,ts} —— Tailwind 类 text-muted-foreground/N（含变体前缀）
- *      排除 test/ 目录与 *.test.* ；bg-muted-foreground/N 是底纹，不进文字清单
- *   2. src/renderer/**\/*.css —— 手写的 color: hsl(var(--muted-foreground)/X)
- *      只收 color 属性，background / border / box-shadow / fill / stroke 不算文字色
- *
- * 用法：node scripts/audit-muted-text.mjs [--json]
- *   默认打一份人读的对齐表；--json 出机器可读的结果，供守卫脚本复用。
- */
 
 import fs from "node:fs";
 import path from "node:path";
@@ -33,9 +7,6 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "..");
 const rendererRoot = path.join(repoRoot, "src", "renderer");
 
-/* ============================================================
- * 1. 读 token（从 index.css 的 :root 与 .dark 两个块）
- * ============================================================ */
 
 function readTokens(cssPath) {
   const css = fs.readFileSync(cssPath, "utf8");
@@ -68,9 +39,6 @@ function readTokens(cssPath) {
   };
 }
 
-/* ============================================================
- * 2. 对比度算法（与 check-contrast.mjs 同一套）
- * ============================================================ */
 
 function hslToRgb(h, s, l) {
   s /= 100;
@@ -117,7 +85,6 @@ function composite(fg, alpha, bg) {
 const AA = 4.5;
 const AA_LARGE = 3;
 
-/** 文字色 token 在两个底上的对比度，结论取更差者 */
 function contrastFor(tokens, fgName, alpha, baseNames) {
   const fg = parseToken(tokens, fgName);
   if (!fg) return null;
@@ -134,9 +101,6 @@ function contrastFor(tokens, fgName, alpha, baseNames) {
   return { perBase: out, worst: Number(worst.toFixed(2)) };
 }
 
-/* ============================================================
- * 3. 扫文件
- * ============================================================ */
 
 function walk(dir, out = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -157,14 +121,11 @@ const cssFiles = allFiles.filter((f) => f.endsWith(".css"));
 
 const rel = (f) => path.relative(repoRoot, f).replace(/\\/g, "/");
 
-/** Tailwind 侧：text-muted-foreground/N（含 hover: / group-hover: 等变体前缀） */
 const TW_RE = /(?<![\w-])((?:[a-z-]+:)*)text-muted-foreground\/(\d{1,3})\b/g;
-/** CSS 侧：手写 color: hsl(var(--muted-foreground)/X) */
 const CSS_RE = /(?<![\w-])(color)\s*:\s*hsl\(\s*var\(\s*--muted-foreground\s*\)\s*\/\s*([\d.]+)\s*\)/g;
 
 const hits = [];
 
-/* --- Tailwind --- */
 for (const file of codeFiles) {
   const lines = fs.readFileSync(file, "utf8").split(/\r?\n/);
   lines.forEach((line, idx) => {
@@ -185,7 +146,6 @@ for (const file of codeFiles) {
   });
 }
 
-/* --- CSS --- */
 for (const file of cssFiles) {
   const lines = fs.readFileSync(file, "utf8").split(/\r?\n/);
   lines.forEach((line, idx) => {
@@ -204,18 +164,13 @@ for (const file of cssFiles) {
   });
 }
 
-/* ============================================================
- * 4. 给每处补：元素类型 / aria-hidden / 底色线索 / 对比度
- * ============================================================ */
 
-/** 从命中位置往前找最近的 JSX 开标签 */
 function nearestTag(line, index) {
   const before = line.slice(0, index);
   const m = before.match(/<([A-Za-z][A-Za-z0-9.]*)[^>]*$/);
   return m ? m[1] : "";
 }
 
-/** 底色线索：同一行与往上 8 行里最近的一个底色类 */
 const BG_HINTS = ["bg-muted", "bg-card", "bg-background", "bg-popover", "bg-accent", "bg-secondary", "bg-primary"];
 function backgroundHint(lines, lineIdx) {
   const from = Math.max(0, lineIdx - 8);
@@ -269,46 +224,27 @@ for (const h of hits) {
   h.passesText = h.worst !== null && h.worst >= AA;
 }
 
-/* ============================================================
- * 4.5 类型判定（文字 / 图形）与目标改法
- *
- * 规则（Chief 2026-11-09 裁决）：
- *   - 承载信息的文字 → 实心 text-muted-foreground（light 4.61 / dark 5.65）
- *   - 图形（图标）  → 至少 /85（light 3.47 / dark 4.46，图形 3:1 线两边都过）
- *   - 现状低于 3:1 的（/25 /30 /40 /45 /50 /55 /60 /65 /70 /75）→ 必改，没有例外
- *   - 纯装饰图形 → 可留，但要登记例外并核实 aria-hidden
- *   - 悬停显形（/0 → hover 档）→ 文字改实心，箭头/图标改 /85
- *
- * 默认按「元素是不是图标」判定：HTML 原生标签（p/span/div/kbd…）承载文字，
- * 组件标签（lucide 图标）承载图形。判不动的走下面的例外表。
- * ============================================================ */
 
 const HTML_TEXT_TAGS = new Set([
   "p", "span", "div", "kbd", "label", "li", "td", "th", "button", "a",
   "strong", "em", "small", "b", "code", "h1", "h2", "h3", "h4",
 ]);
 
-/** 例外表：file:line → [类型, 备注] */
 const TYPE_OVERRIDES = {
-  // —— 只包裹图标的容器：颜色作用在里面的图标上，不承载文字 ——
-  "src/renderer/components/Note/editors/HtmlViewer.tsx:110": ["图形", "空态容器，只包图标"],
-  "src/renderer/components/Note/editors/ImageViewer.tsx:64": ["图形", "空态容器，只包图标"],
-  "src/renderer/components/Note/editors/PdfViewer.tsx:74": ["图形", "空态容器，只包图标"],
-  "src/renderer/components/shortcut/ShortcutTile.tsx:82": ["图形", "应用图标"],
-  // —— 悬停才显形：起点透明，hover 才有色 ——
-  "src/renderer/components/browser/BookmarkList.tsx:149": ["图形", "悬停显形按钮图标"],
-  "src/renderer/components/browser/BookmarkList.tsx:157": ["图形", "悬停显形按钮图标"],
-  "src/renderer/components/apps/AppProjectHeader.tsx:213": ["图形", "复制地址按钮，内含图标"],
-  // —— 容器里既有文字也有 currentColor 图形：按文字算 ——
-  "src/renderer/pages/HomePage.tsx:637": ["文字", "「粘贴内容」文字 + currentColor 箭头"],
-  // —— CSS 手写文字色 ——
+  "src/renderer/pages/notes/editors/HtmlViewer.tsx:110": ["图形", "空态容器，只包图标"],
+  "src/renderer/pages/notes/editors/ImageViewer.tsx:64": ["图形", "空态容器，只包图标"],
+  "src/renderer/pages/notes/editors/PdfViewer.tsx:74": ["图形", "空态容器，只包图标"],
+  "src/renderer/pages/home/shortcut/ShortcutTile.tsx:82": ["图形", "应用图标"],
+  "src/renderer/pages/browser/BookmarkList.tsx:149": ["图形", "悬停显形按钮图标"],
+  "src/renderer/pages/browser/BookmarkList.tsx:157": ["图形", "悬停显形按钮图标"],
+  "src/renderer/pages/apps/AppProjectHeader.tsx:213": ["图形", "复制地址按钮，内含图标"],
+  "src/renderer/pages/home/HomePage.tsx:637": ["文字", "「粘贴内容」文字 + currentColor 箭头"],
   "src/renderer/index.css:2260": ["图形", "快捷键之间的分隔点，纯装饰"],
   "src/renderer/index.css:2494": ["图形", "复制图标，hover 显形"],
   "src/renderer/index.css:2509": ["图形", "复制图标 hover 态"],
   "src/renderer/index.css:2530": ["图形", "复制图标 hover 态（暗色）"],
 };
 
-/** 图标尺寸类：h-N w-N（N ≤ 12，且两个数字相同）→ 这段 class 是图标 */
 function looksLikeIcon(line, index) {
   const win = line.slice(Math.max(0, index - 320), index + 120);
   const m = win.match(/\bh-(\d+(?:\.\d+)?)\b[\s\S]{0,120}?\bw-\1\b/);
@@ -329,13 +265,11 @@ for (const h of hits) {
     h.type = "文字";
     h.note = "";
   }
-  // 目标改法
   if (h.type === "文字") {
     h.target = "text-muted-foreground（实心）";
   } else {
     h.target = h.step >= 80 ? "text-muted-foreground/85" : "text-muted-foreground/85（现状不过 3:1，必改）";
   }
-  // 图形再分两类：可交互控件的图标（要过 3:1 图形线）/ 装饰图形（旁边有等价文字，可登记为例外）
   if (h.type === "图形") {
     const win = h.source.slice(Math.max(0, h.index - 320), h.index + 200);
     const interactive =
@@ -346,23 +280,18 @@ for (const h of hits) {
       /role="button"/.test(win) ||
       /group-hover:/.test(win);
     h.graphicKind = interactive ? "交互图标" : "装饰图形";
-    h.ariaHidden = false; // 逐处核过：这批图标没有一处带 aria-hidden
+    h.ariaHidden = false;
   }
-  // 压 bg-muted 底的实心值只有 4.20（light，不过 AA）→ 底色要一起挪开
   h.needsBgMove =
     h.type === "文字" && /bg-muted(\/|["'\s])/.test(h.source) && !/bg-muted\/\d+/.test(h.source);
 }
 
-/* ============================================================
- * 4.6 CSS 侧的实际底色（从规则块的 background-color 解析）
- * ============================================================ */
 
 const CSS_BG_RE = /background(?:-color)?\s*:\s*hsl\(\s*var\(\s*--([a-z0-9-]+)\s*\)\s*(?:\/\s*([\d.]+))?\s*\)/i;
 
 for (const h of hits) {
   if (h.kind !== "css") continue;
   const lines = linesOf(h.file);
-  // 往上找选择器（最近一个以 { 结尾的行）
   let sel = "";
   let bgToken = "";
   let bgAlpha = 1;
@@ -380,7 +309,6 @@ for (const h of hits) {
   }
   h.selector = sel;
   h.cssBg = bgToken ? `${bgToken}${bgAlpha !== 1 ? " / " + bgAlpha : ""}` : "";
-  // 改实心后压这个底还剩多少
   if (bgToken) {
     const eff = [];
     for (const theme of ["light", "dark"]) {
@@ -395,9 +323,6 @@ for (const h of hits) {
   }
 }
 
-/* ============================================================
- * 5. 输出
- * ============================================================ */
 
 hits.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line);
 
@@ -488,7 +413,6 @@ if (process.argv.includes("--json")) {
   const text = hits.filter((h) => h.type === "文字").length;
   const graphic = hits.filter((h) => h.type === "图形").length;
   const bgMove = hits.filter((h) => h.needsBgMove).length;
-  // 悬停才露出的：类名带 hover 变体前缀的命中（元素数按 file:line 去重）
   const hoverHits = hits.filter((h) => h.variant && h.variant.includes(":"));
   const hoverEls = new Set(hoverHits.map((h) => `${h.file}:${h.line}`)).size;
   const graphicBelow = hits.filter((h) => h.type === "图形" && !h.passesLarge).length;

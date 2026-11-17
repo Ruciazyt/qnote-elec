@@ -1,13 +1,3 @@
-/**
- * 灵动岛拖拽探针（临时）
- *
- * jsdom 里跑不出真实浏览器的手感 —— 指针捕获、screenX、事件冒泡
- * 在真 Chromium 里才作数。所以另起一个最小 Electron 应用：
- * 加载岛的真实产物，用 sendInputEvent 模拟一次拖拽，
- * 打印渲染层到底发了哪些 IPC。
- *
- * 用法：electron scripts/dev/test-island-drag.js
- */
 const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("node:path");
 
@@ -15,7 +5,6 @@ const repoRoot = path.resolve(__dirname, "..", "..");
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-/** 渲染层发来的拖拽动作 */
 const dragCalls = [];
 
 function registerMocks() {
@@ -76,7 +65,6 @@ app.whenReady().then(async () => {
   await win.loadFile(htmlPath);
   await wait(1200);
 
-  // 渲染层的报错 —— 拖拽没反应时，多半是这里抛了异常
   win.webContents.on("console-message", (_e, level, message, line, source) => {
     console.log(`[console:${level}] ${message} (${source}:${line})`);
   });
@@ -84,7 +72,6 @@ app.whenReady().then(async () => {
     console.log("[render-process-gone]", JSON.stringify(details));
   });
 
-  // 胶囊摘要区的大致位置（避开四个模块按钮与右侧箭头）
   const probe = await win.webContents.executeJavaScript(`
     (() => {
       const pill = document.querySelector('.island-pill');
@@ -106,7 +93,6 @@ app.whenReady().then(async () => {
   const before = win.getBounds();
   console.log("[before]", before);
 
-  // 模拟一次拖拽：按下 → 移动 120px → 移动 240px → 松手
   const trace = await win.webContents.executeJavaScript(`
     (() => {
       window.__trace = [];

@@ -1,6 +1,3 @@
-# Drive a real OS mouse drag for the island probe (temporary).
-# NOTE: ASCII only on purpose - PowerShell 5.1 reads BOM-less UTF-8 as ANSI
-# and non-ASCII chars break parsing.
 param(
   [int]$FromX = 508,
   [int]$FromY = 222,
