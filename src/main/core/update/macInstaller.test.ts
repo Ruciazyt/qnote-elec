@@ -73,6 +73,8 @@ describe("mac 安装脚本", () => {
 
     expect(script).not.toMatch(/[A-Za-z]:\\\\/);
     expect(script).toContain("/Users/test/AppData/Roaming/QNote");
+    expect(script).toContain("STAGE='C:/Users/test/AppData/Roaming/QNote/staged'");
+    expect(script).toContain("LOG='C:/Users/test/AppData/Roaming/QNote/install.log'");
   });
 
   it("脚本使用绝对路径调用系统命令，不依赖 PATH", () => {

@@ -98,19 +98,19 @@ export function resolveMacInstallTarget(): MacInstallTarget | null {
 }
 
 function toShellPath(value: string): string {
-  return value.split(path.sep).join("/");
+  return value.split(BACKSLASH).join("/");
 }
 
 export function buildInstallScript(options: MacInstallScriptOptions): string {
   const { archivePath, bundlePath, appName, logPath, pid, waitSeconds } = options;
-  const stageDir = path.posix.join(toShellPath(path.dirname(logPath)), "staged");
+  const stageDir = path.posix.join(path.posix.dirname(toShellPath(logPath)), "staged");
   return `#!/bin/sh
 set -e
 export LC_ALL=en_US.UTF-8
-ARCHIVE=${shellQuote(archivePath)}
-BUNDLE=${shellQuote(bundlePath)}
+ARCHIVE=${shellQuote(toShellPath(archivePath))}
+BUNDLE=${shellQuote(toShellPath(bundlePath))}
 STAGE=${shellQuote(stageDir)}
-LOG=${shellQuote(logPath)}
+LOG=${shellQuote(toShellPath(logPath))}
 APP_NAME=${shellQuote(appName)}
 WAIT_LIMIT=${waitSeconds}
 APP_PID=${pid}
