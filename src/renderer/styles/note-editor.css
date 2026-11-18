@@ -198,10 +198,10 @@
 .note-editor-scroll::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.5);
 }
-.is-scrolling .note-editor-scroll::-webkit-scrollbar-thumb {
+.note-editor-scroll.is-scrolling::-webkit-scrollbar-thumb {
   background: hsl(var(--muted-foreground) / 0.45);
 }
-.is-scrolling .note-editor-scroll::-webkit-scrollbar-thumb:hover {
+.note-editor-scroll.is-scrolling::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.6);
 }
 .note-editor-scroll::-webkit-scrollbar-button {

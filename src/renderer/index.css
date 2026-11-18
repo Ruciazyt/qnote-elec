@@ -125,10 +125,10 @@
   *::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground) / 0.45);
   }
-  .is-scrolling *::-webkit-scrollbar-thumb {
+  .is-scrolling::-webkit-scrollbar-thumb {
     background: hsl(var(--muted-foreground) / 0.35);
   }
-  .is-scrolling *::-webkit-scrollbar-thumb:hover {
+  .is-scrolling::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground) / 0.55);
   }
 
@@ -916,8 +916,6 @@ kbd.kbd-key:active {
   border-color: hsl(var(--muted-foreground) / 0.4);
   box-shadow: 0 2px 8px hsl(var(--foreground) / 0.1);
   transform: scale(1.08);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
 }
 
 .ai-msg-copy-btn:active {
@@ -1130,11 +1128,6 @@ kbd.kbd-key:active {
   margin-top: 4px;
   letter-spacing: 0.02em;
   animation: fadeIn 0.3s ease both;
-}
-
-.ai-message-scroll {
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
 }
 
 @keyframes thinkingAvatarGlow {
@@ -2010,11 +2003,14 @@ kbd.kbd-key:active {
 
 .glass-frame {
   background-color: hsl(var(--app-frame) / 0.78);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
 }
 .dark .glass-frame {
   background-color: hsl(var(--app-frame) / 0.72);
+}
+
+.clipboard-card-virtual {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 132px;
 }
 
 

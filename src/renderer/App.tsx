@@ -1,10 +1,11 @@
-import { Suspense, lazy, useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useLayoutEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import "./index.css";
 import Layout from "./components/shell/layout";
 import { Toaster } from "./components/ui/toaster";
 import { FloatingAiAssistant } from "./components/ai/FloatingAiAssistant";
 import { useScrollIndicator } from "./hooks/shell/useScrollIndicator";
+import { publishRoutePath } from "./hooks/system/routeStore";
 import { pushExternalAdd } from "./pages/home/shortcut/externalAdd";
 import { pushIslandOpenNote } from "./pages/island/islandBridge";
 import { cn } from "./lib/utils";
@@ -18,6 +19,9 @@ import SkillsPage from "./pages/skills/SkillsPage";
 import AppsPage from "./pages/apps/AppsPage";
 
 const LeetcodeCollection = lazy(() => import("./pages/leetcode/LeetcodePage"));
+
+const FLOATING_AI_ASSISTANT = <FloatingAiAssistant />;
+const TOASTER = <Toaster />;
 
 const PAGES = [
   { path: "/", node: <HomePage /> },
@@ -35,6 +39,10 @@ function App() {
 
   const { pathname } = useLocation();
   const navigate = useNavigate();
+
+  useLayoutEffect(() => {
+    publishRoutePath(pathname);
+  }, [pathname]);
 
   useEffect(() => {
     return window.electron.onExternalAddShortcut((target) => {
@@ -83,8 +91,8 @@ function App() {
         ))}
       </Suspense>
       {}
-      <FloatingAiAssistant />
-      <Toaster />
+      {FLOATING_AI_ASSISTANT}
+      {TOASTER}
     </Layout>
   );
 }

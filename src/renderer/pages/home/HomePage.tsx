@@ -1,13 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import Prism from "prismjs";
-import "prismjs/components/prism-javascript";
-import "prismjs/components/prism-typescript";
-import "prismjs/components/prism-json";
-import "prismjs/components/prism-markup";
-import "prismjs/components/prism-css";
 import "@/styles/prism-clipboard.css";
 import { useToast } from "@/hooks/ui/use-toast";
 import { formatCode, type SupportedLanguage } from "@/utils/ai/codeFormatter";
+import { highlightClipboardCodes } from "@/utils/clipboard/prismHighlight";
 import { randomHex } from "@/utils/system/randomId";
 import { ClipboardToolbar } from "@/pages/home/clipboard/ClipboardToolbar";
 import { ClipboardList } from "@/pages/home/clipboard/ClipboardList";
@@ -38,6 +33,7 @@ export default function HomePage() {
   const [ocrType, setOcrType] = useState<"standard" | "accurate" | "webimage">("standard");
 
   const codeContainerRef = useRef<HTMLDivElement>(null);
+  const codeVisibleRef = useRef(false);
   const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.userAgent);
 
   const [formattingRecordId, setFormattingRecordId] = useState<number | undefined>(undefined);
@@ -206,7 +202,7 @@ export default function HomePage() {
     } catch (error) {
       console.error("加载格式化语言缓存失败:", error);
     }
-  }, []);
+  }, [setFormattedLanguages]);
 
   useEffect(() => {
     void loadHistory();
@@ -230,9 +226,26 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    if (codeContainerRef.current) {
-      Prism.highlightAllUnder(codeContainerRef.current);
+    const container = codeContainerRef.current;
+    if (!container) return;
+
+    if (typeof IntersectionObserver === "undefined") {
+      highlightClipboardCodes(container);
+      return;
     }
+
+    const observer = new IntersectionObserver((entries) => {
+      codeVisibleRef.current = entries.some((entry) => entry.isIntersecting);
+      if (codeVisibleRef.current) highlightClipboardCodes(container);
+    });
+    observer.observe(container);
+
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!codeVisibleRef.current) return;
+    highlightClipboardCodes(codeContainerRef.current);
   }, [clipboardHistory, formattedLanguages]);
 
   const handleImageClick = (img: string) => {

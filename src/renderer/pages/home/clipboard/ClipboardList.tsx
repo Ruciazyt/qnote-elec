@@ -342,6 +342,7 @@ export function ClipboardList({
         }
 
         const { record, recordId, index } = item;
+        const deferred = index >= 10;
         const highlightLanguage =
           typeof record.id === "number" ? formattedLanguages[record.id] : undefined;
         const codeClassName = highlightLanguage
@@ -634,13 +635,15 @@ export function ClipboardList({
         return (
           <Card
             key={recordId}
-            className={`relative p-4 border-0 transition-all duration-200 animate-fade-in group card-accent-border ${
+            className={`relative p-4 border-0 transition-all duration-200 group card-accent-border ${
+              deferred ? "clipboard-card-virtual" : "animate-fade-in"
+            } ${
               isEditing
                 ? "z-50 neu-raised neu-raised-open"
                 : "neu-raised neu-raised-hover hover:-translate-y-1 hover:scale-[1.004]"
             } ${holding ? "opacity-60" : ""}`}
             style={{
-              animationDelay: `${Math.min(index, 40) * 50}ms`,
+              animationDelay: deferred ? undefined : `${Math.min(index, 40) * 50}ms`,
               animationFillMode: "both",
             }}
             title="按住 1.2 秒即可变成屏幕便签"
@@ -880,7 +883,11 @@ export function ClipboardList({
                           ? "code-block--highlight"
                           : "code-block--plain rounded-md bg-muted/30 pl-3 pr-2 py-2 border border-border/40"
                       }`}>
-                      <code className={`${codeClassName} block${recordUrl ? " code--link" : ""}`}>{record.content}</code>
+                      <code
+                        className={`${codeClassName} block${recordUrl ? " code--link" : ""}`}
+                        data-prism-lang={highlightLanguage}>
+                        {record.content}
+                      </code>
                     </pre>
                   </button>
                 )

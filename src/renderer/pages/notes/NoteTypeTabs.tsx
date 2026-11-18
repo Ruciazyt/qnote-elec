@@ -39,7 +39,7 @@ export default function NoteTypeTabs({ active, onChange, counts, className }: No
             onClick={() => onChange(type)}
             className={cn(
               "flex items-center gap-1.5 px-3 h-8 rounded-md text-sm font-medium",
-              "transition-all duration-150 active:scale-95",
+              "transition-[color,background-color,box-shadow,transform] duration-150 active:scale-95",
               isActive
                 ? "bg-card text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground hover:bg-card/60"

@@ -1,8 +1,6 @@
 .title-drag {
   -webkit-app-region: drag;
   background-color: hsl(var(--app-frame) / 0.78);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
 }
 
 .dark .title-drag {
