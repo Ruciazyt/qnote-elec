@@ -148,13 +148,15 @@ export async function checkEndpoint(
     const { store, client } = createEndpointSharedStore(endpoint);
     await store.init();
 
-    const rows = await client.query<{ name: string }>(
-      "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name"
+    const rows = await client.query<{ n: number }>(
+      "SELECT COUNT(*) AS n FROM published_app"
     );
+    const appCount = Number(rows[0]?.n ?? 0);
+
     return {
       ok: true,
-      tableCount: rows.length,
-      detail: `已连接公共目录，共 ${rows.length} 张表`,
+      tableCount: 1,
+      detail: `已连接公共目录，现有 ${appCount} 个应用`,
     };
   } catch (error) {
     return {
