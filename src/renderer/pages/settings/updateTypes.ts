@@ -28,4 +28,6 @@ export interface UpdateEnvironment {
   packaged: boolean;
   portable: boolean;
   releasesUrl: string;
+  platform: string;
+  macBuiltinInstaller: boolean;
 }

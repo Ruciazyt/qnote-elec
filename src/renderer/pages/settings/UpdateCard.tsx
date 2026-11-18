@@ -108,6 +108,7 @@ export function UpdateCard() {
   });
   const [busy, setBusy] = useState(false);
   const [supported, setSupported] = useState(true);
+  const [macBuiltinInstaller, setMacBuiltinInstaller] = useState(false);
 
   useEffect(() => {
     let dispose: (() => void) | undefined;
@@ -132,6 +133,7 @@ export function UpdateCard() {
         if (cancelled) return;
         setStatus(current);
         setSupported(env.packaged && !env.portable);
+        setMacBuiltinInstaller(env.macBuiltinInstaller);
       } catch (err) {
         console.error("读取更新状态失败:", err);
       }
@@ -293,7 +295,7 @@ export function UpdateCard() {
                 disabled={busy}
                 className="w-full h-9 btn-hover sm:w-auto">
                 <RotateCcw className="h-4 w-4 mr-1.5" />
-                重启并安装
+                {macBuiltinInstaller ? "重启并更新" : "重启并安装"}
               </Button>
             ) : status.phase === "available" ? (
               <Button

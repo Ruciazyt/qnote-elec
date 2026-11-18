@@ -3,7 +3,12 @@ import { autoUpdater } from "electron-updater";
 import { log } from "../system/log";
 import * as fs from "node:fs";
 import * as path from "node:path";
-
+import {
+  getMacInstallerDir,
+  launchMacInstaller,
+  MAC_INSTALL_WAIT_SECONDS,
+  resolveMacInstallTarget,
+} from "./macInstaller";
 
 const PORTABLE_MARKER = "portable.marker";
 
@@ -43,6 +48,8 @@ let status: UpdateStatus = {
   phase: "idle",
   currentVersion: safeAppVersion(),
 };
+
+let downloadedArchivePath: string | undefined;
 
 function safeAppVersion(): string {
   try {
@@ -117,6 +124,9 @@ function humanizeError(err: unknown): string {
   if (/404|Not Found/i.test(raw)) {
     return "更新源不可访问（发布仓库可能不是公开的，或尚未创建 Release）";
   }
+  if (/Code signature .* did not pass validation/i.test(raw)) {
+    return "macOS 签名校验失败，产物未签名，请改用手动下载";
+  }
   return raw || "检查更新失败";
 }
 
@@ -182,6 +192,7 @@ export function initUpdater(): void {
 
   autoUpdater.on("update-downloaded", (event) => {
     log.info("[update] 更新包下载完成", event?.version);
+    downloadedArchivePath = event?.downloadedFile;
     patch({
       phase: "downloaded",
       percent: 100,
@@ -258,6 +269,9 @@ export function installUpdate(): { ok: boolean; error?: string } {
   if (status.phase !== "downloaded") {
     return { ok: false, error: "更新包尚未下载完成" };
   }
+  if (process.platform === "darwin") {
+    return installMacUpdate();
+  }
   try {
     log.info("[update] 触发重启安装");
     autoUpdater.quitAndInstall(false, true);
@@ -270,6 +284,45 @@ export function installUpdate(): { ok: boolean; error?: string } {
   }
 }
 
+function installMacUpdate(): { ok: boolean; error?: string } {
+  const archivePath = downloadedArchivePath;
+  if (!archivePath || !fs.existsSync(archivePath)) {
+    const message = "未找到已下载的更新包，请重新下载后再试";
+    patch({ phase: "error", error: message });
+    return { ok: false, error: message };
+  }
+
+  const target = resolveMacInstallTarget();
+  if (!target) {
+    const message = "未找到可写入的应用程序目录，请手动下载后替换";
+    patch({ phase: "error", error: message });
+    return { ok: false, error: message };
+  }
+
+  const dir = getMacInstallerDir();
+  const scriptPath = path.join(dir, "install.sh");
+  const logPath = path.join(dir, "install.log");
+
+  launchMacInstaller({
+    archivePath,
+    bundlePath: target.bundlePath,
+    appName: target.appName,
+    logPath,
+    scriptPath,
+    pid: process.pid,
+    waitSeconds: MAC_INSTALL_WAIT_SECONDS,
+  }).catch((err: unknown) => {
+    log.error("[update] 启动 mac 安装脚本失败:", err);
+    const message = humanizeError(err);
+    patch({ phase: "error", error: message });
+  });
+
+  log.info("[update] mac 安装脚本已接管", target.bundlePath);
+  patch({ phase: "downloaded" });
+  setTimeout(() => app.quit(), 500);
+  return { ok: true };
+}
+
 export function getUpdateStatus(): UpdateStatus {
   return status;
 }
@@ -278,10 +331,14 @@ export function getUpdateEnvironment(): {
   packaged: boolean;
   portable: boolean;
   releasesUrl: string;
+  platform: string;
+  macBuiltinInstaller: boolean;
 } {
   return {
     packaged: app.isPackaged,
     portable: isPortableBuild(),
     releasesUrl: RELEASES_PAGE_URL,
+    platform: process.platform,
+    macBuiltinInstaller: process.platform === "darwin",
   };
 }
