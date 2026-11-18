@@ -263,7 +263,7 @@ export const AiChatPanel = memo(function AiChatPanel({
                 {pendingContinuation && (
                   <div className="mt-3 rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-2.5 animate-fade-in">
                     <p className="text-xs text-foreground/80">
-                      本轮已达上限（{pendingContinuation.rounds} 轮）
+                      达到单次运行的安全上限（{pendingContinuation.rounds} 轮）
                       {pendingContinuation.totalRounds > pendingContinuation.rounds &&
                         `，本次提问累计已跑 ${pendingContinuation.totalRounds} 轮`}
                       ，是否继续？
