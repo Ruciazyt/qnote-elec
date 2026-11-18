@@ -16,6 +16,7 @@ import { AI_IMAGE_MAX_COUNT, aiImageDataUrl, type AiImageAttachment } from "@sha
 import { filesToAttachments, normalizeImageAttachment } from "@/utils/ai/imageAttachments";
 
 export const AI_INPUT_MAX = 2000;
+const COMPOSER_MAX_HEIGHT = 200;
 
 interface AiComposerProps {
   value: string;
@@ -50,7 +51,7 @@ export function AiComposer({
   onAddImages,
   onRemoveImage,
 }: AiComposerProps) {
-  const inputRef = useAutoGrowTextarea(value);
+  const inputRef = useAutoGrowTextarea(value, COMPOSER_MAX_HEIGHT);
 
   const voice = useVoiceInput({
     onTranscribed: (text) => {
@@ -251,7 +252,7 @@ export function AiComposer({
           disabled={disabled}
           maxLength={AI_INPUT_MAX}
           className={cn(
-            "max-h-[200px] min-h-[84px] w-full resize-none border-0 bg-transparent",
+            "max-h-[200px] min-h-[40px] w-full resize-none border-0 bg-transparent",
             "px-3 py-2 text-sm leading-5",
             "shadow-none outline-none focus-visible:ring-0 disabled:cursor-not-allowed"
           )}
