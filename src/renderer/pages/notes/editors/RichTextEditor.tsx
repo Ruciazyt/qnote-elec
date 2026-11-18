@@ -41,9 +41,11 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { toast } from "@/hooks/ui/use-toast";
 import "@/styles/note-editor.css";
 import { NoteFileEntry } from "../../../../shared/notes/noteTypes";
 import type { NoteEditorHandle } from "../editorHandle";
+import { findHeadingAnchor } from "./anchorLinks";
 import { cn } from "@/lib/utils";
 
 interface RichTextEditorProps {
@@ -152,6 +154,14 @@ function TableOpButton({
   );
 }
 
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
+
 const RichTextEditor = forwardRef<NoteEditorHandle, RichTextEditorProps>(function RichTextEditor(
   { file, dirPath, onSaved, onRequestSaveAs },
   ref
@@ -166,6 +176,48 @@ const RichTextEditor = forwardRef<NoteEditorHandle, RichTextEditorProps>(functio
   dirPathRef.current = dirPath;
 
   const editorRef = useRef<Editor | null>(null);
+
+  const jumpToAnchor = useCallback((href: string) => {
+    const current = editorRef.current;
+    if (!current) return;
+    const anchor = findHeadingAnchor(current.state.doc, href);
+    if (!anchor) {
+      toast({
+        title: "未找到跳转目标",
+        description: "这篇笔记里没有对应的标题",
+        variant: "destructive",
+      });
+      return;
+    }
+    current.commands.setTextSelection(anchor.pos + 1);
+    window.setTimeout(() => {
+      const dom = current.view.domAtPos(anchor.pos + 1).node;
+      const element = dom instanceof HTMLElement ? dom : dom.parentElement;
+      if (!element) return;
+      element.scrollIntoView({
+        behavior: prefersReducedMotion() ? "auto" : "smooth",
+        block: "center",
+      });
+    }, 0);
+  }, []);
+
+  const handleLinkClick = useCallback(
+    (href: string) => {
+      if (href.startsWith("#")) {
+        jumpToAnchor(href);
+        return;
+      }
+      void window.electron.openExternal(href).then((ok) => {
+        if (ok) return;
+        toast({
+          title: "无法打开链接",
+          description: "只支持 http、https 与 mailto 链接",
+          variant: "destructive",
+        });
+      });
+    },
+    [jumpToAnchor]
+  );
 
   const insertImage = useCallback((dataUrl: string) => {
     editorRef.current?.chain().focus().setImage({ src: dataUrl, alt: "" }).run();
@@ -223,6 +275,18 @@ const RichTextEditor = forwardRef<NoteEditorHandle, RichTextEditorProps>(functio
     onUpdate: () => setDirty(true),
     editorProps: {
       attributes: { spellcheck: "false" },
+      handleClick: (_view, _pos, event) => {
+        if (event.button !== 0) return false;
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) return false;
+        const anchor = target.closest("a");
+        if (!anchor) return false;
+        const href = anchor.getAttribute("href");
+        if (!href) return false;
+        event.preventDefault();
+        handleLinkClick(href);
+        return false;
+      },
       handlePaste: (_view, event) => {
         const files = Array.from(event.clipboardData?.files ?? []);
         return handleImageFiles(files);

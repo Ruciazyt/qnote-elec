@@ -21,6 +21,10 @@ if (typeof window !== "undefined" && typeof Element !== "undefined" && !Element.
   };
 }
 
+if (typeof document !== "undefined" && typeof document.elementFromPoint !== "function") {
+  document.elementFromPoint = () => null;
+}
+
 if (typeof window !== "undefined") {
   beforeEach(() => {
     window.electron = createElectronStub();
