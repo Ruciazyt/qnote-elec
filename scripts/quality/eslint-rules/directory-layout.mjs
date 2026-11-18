@@ -7,7 +7,7 @@ const ROLE_DIRS = [
     },
     {
         dir: "src/main/core",
-        features: ["ai", "apps", "clipboard", "notes", "shortcut", "system", "update", "window"],
+        features: ["ai", "apps", "clipboard", "notes", "shortcut", "system", "todo", "update", "window"],
     },
     {
         dir: "src/main/core/window",
@@ -36,7 +36,7 @@ const ROLE_DIRS = [
     },
     {
         dir: "src/shared",
-        features: ["ai", "apps", "clipboard", "cloud", "island", "notes", "sticky"],
+        features: ["ai", "apps", "clipboard", "cloud", "island", "notes", "sticky", "todo"],
     },
     {
         dir: "scripts",
