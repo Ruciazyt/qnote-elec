@@ -674,7 +674,7 @@ export default function NotesPage() {
       });
       void loadTree();
     },
-    [renameValue, tree, filePath, currentFolder, activeRelPath, loadTree, toast]
+    [renameValue, tree, filePath, currentFolder, loadTree, toast]
   );
 
   const handleChangePath = useCallback(async () => {
@@ -1243,6 +1243,7 @@ export default function NotesPage() {
     handleSaveAs,
     handleSaveActive,
     handleRenameStart,
+    toast,
   ]);
 
   useEffect(() => {
