@@ -86,6 +86,7 @@ export default function TodoPage() {
     notes?: string;
     priority: TodoPriority;
     due_date: string | null;
+    remind_at?: string | null;
     attachments?: TodoAttachment[];
   }) => {
     try {

@@ -268,6 +268,7 @@ interface ElectronAPI {
   todoToggle: (id: number) => Promise<import("./pages/todo/types").Todo>;
   todoArchive: (id: number) => Promise<import("./pages/todo/types").Todo>;
   todoUnarchive: (id: number) => Promise<import("./pages/todo/types").Todo>;
+  onTodoReminder: (callback: (payload: import("./pages/todo/types").TodoReminderPayload) => void) => () => void;
   onTodosChanged: (callback: () => void) => () => void;
 
   addToMemory: (noteId: number) => Promise<{ success: boolean; error?: string }>;

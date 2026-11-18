@@ -5,6 +5,7 @@ import Layout from "./components/shell/layout";
 import { Toaster } from "./components/ui/toaster";
 import { FloatingAiAssistant } from "./pages/ai/FloatingAiAssistant";
 import { useScrollIndicator } from "./hooks/shell/useScrollIndicator";
+import { toast } from "./hooks/ui/use-toast";
 import { publishRoutePath } from "./hooks/system/routeStore";
 import { pushExternalAdd } from "./pages/home/shortcut/externalAdd";
 import { pushIslandOpenNote } from "./pages/island/islandBridge";
@@ -48,6 +49,16 @@ function App() {
     return window.electron.onExternalAddShortcut((target) => {
       pushExternalAdd(target);
       if (pathname !== "/") void navigate("/");
+    });
+  }, [pathname, navigate]);
+
+  useEffect(() => {
+    return window.electron.onTodoReminder((payload) => {
+      if (pathname !== "/todos") void navigate("/todos");
+      toast({
+        title: `提醒：${payload.title}`,
+        description: payload.notes?.trim() || undefined,
+      });
     });
   }, [pathname, navigate]);
 

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Check } from "lucide-react";
+import { formatReminderLabel } from "@shared/todo/reminderTime";
 import type { Todo } from "@/pages/todo/types";
 import { dueDateLabel } from "../format";
 
@@ -37,7 +38,17 @@ export function TodoPanel({ todos, onOpenMain }: TodoPanelProps) {
       {active.length > 0 ? (
         <>
           <div className="island-section-title">进行中 · {active.length}</div>
-          {active.map((todo) => (
+          {active.map((todo) => {
+            const segments: string[] = [];
+            if (todo.due_date) segments.push(`截止 ${dueDateLabel(todo.due_date)}`);
+            if (todo.remind_at) {
+              const at = new Date(todo.remind_at);
+              if (!Number.isNaN(at.getTime())) segments.push(`提醒 ${formatReminderLabel(at)}`);
+            }
+            if (todo.priority === "high") segments.push("高优先级");
+            else if (todo.priority === "low") segments.push("低优先级");
+
+            return (
             <div key={todo.id} className="island-row">
               <button
                 type="button"
@@ -59,12 +70,8 @@ export function TodoPanel({ todos, onOpenMain }: TodoPanelProps) {
                 title={todo.title}
               >
                 <div className="island-row-title">{todo.title}</div>
-                {(todo.due_date || todo.priority !== "medium") && (
-                  <div className="island-row-meta">
-                    {todo.due_date ? `截止 ${dueDateLabel(todo.due_date)}` : ""}
-                    {todo.due_date && todo.priority !== "medium" ? " · " : ""}
-                    {todo.priority === "high" ? "高优先级" : todo.priority === "low" ? "低优先级" : ""}
-                  </div>
+                {segments.length > 0 && (
+                  <div className="island-row-meta">{segments.join(" · ")}</div>
                 )}
               </button>
               <span
@@ -72,7 +79,8 @@ export function TodoPanel({ todos, onOpenMain }: TodoPanelProps) {
                 aria-hidden="true"
               />
             </div>
-          ))}
+            );
+          })}
         </>
       ) : null}
 

@@ -293,6 +293,26 @@ async function addTodoArchivedAtColumn(DB: Knex): Promise<void> {
   }
 }
 
+async function addTodoReminderColumns(DB: Knex): Promise<void> {
+  try {
+    const columns = await DB.raw("PRAGMA table_info(todo)");
+    const names = columns.map((col: any) => col.name);
+    if (!names.includes("remind_at")) {
+      await DB.raw("ALTER TABLE todo ADD COLUMN remind_at TIMESTAMP DEFAULT NULL");
+      log.info("已为 todo 表添加 remind_at 字段（提醒时间）");
+    }
+    if (!names.includes("reminded_at")) {
+      await DB.raw("ALTER TABLE todo ADD COLUMN reminded_at TIMESTAMP DEFAULT NULL");
+      log.info("已为 todo 表添加 reminded_at 字段（提醒已触发时间）");
+    }
+    await DB.raw(
+      "CREATE INDEX IF NOT EXISTS todo_remind_at_idx ON todo(remind_at)"
+    );
+  } catch (err) {
+    log.error("添加 todo 提醒时间字段失败", err);
+  }
+}
+
 async function createVectorStoreTable(DB: Knex): Promise<void> {
   try {
     await DB.schema.createTable("vector_store", (table: Knex.TableBuilder) => {
@@ -694,6 +714,8 @@ export async function migrateRun(path?: string): Promise<void> {
     await addTodoAttachmentsColumn(DB);
 
     await addTodoArchivedAtColumn(DB);
+
+    await addTodoReminderColumns(DB);
 
     await addNoteTableColumns(DB);
 

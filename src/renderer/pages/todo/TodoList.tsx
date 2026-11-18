@@ -1,6 +1,7 @@
-import { Pencil, Trash2, ListChecks, Paperclip, Archive, ArchiveRestore } from "lucide-react";
+import { Pencil, Trash2, ListChecks, Paperclip, Archive, ArchiveRestore, Bell } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { zhCN } from "date-fns/locale";
+import { formatReminderLabel } from "@shared/todo/reminderTime";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Todo, TodoPriority, TodoAttachment } from "./types";
@@ -47,6 +48,27 @@ function formatDueDate(dueDate: string | null, completed: 0 | 1): { text: string
   return { text, className };
 }
 
+function formatReminder(
+  remindAt: string | null,
+  remindedAt: string | null,
+  completed: 0 | 1
+): { text: string; className: string } | null {
+  if (!remindAt) return null;
+  const at = new Date(remindAt);
+  if (Number.isNaN(at.getTime())) return null;
+  const label = formatReminderLabel(at);
+  let className = "bg-primary/5 text-primary-strong border-primary/20";
+  if (completed === 1) {
+    className = "bg-muted text-muted-foreground border-border";
+  } else if (at.getTime() < Date.now()) {
+    className = "bg-destructive/10 text-destructive border-destructive/30";
+  } else if (at.getTime() - Date.now() < 60 * 60 * 1000) {
+    className = "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30";
+  }
+  const text = remindedAt ? `${label}（已提醒）` : label;
+  return { text, className };
+}
+
 function formatCreated(date: string): string {
   try {
     return formatDistanceToNow(new Date(date), { addSuffix: true, locale: zhCN });
@@ -85,6 +107,7 @@ export function TodoList({
       {todos.map((todo) => {
         const priority = PRIORITY_META[todo.priority];
         const due = formatDueDate(todo.due_date, todo.completed);
+        const reminder = formatReminder(todo.remind_at, todo.reminded_at, todo.completed);
         const completed = todo.completed === 1;
         const archived = Boolean(todo.archived_at);
         const attachments = todo.attachments || [];
@@ -101,6 +124,14 @@ export function TodoList({
               {due && (
                 <span className={`px-1.5 py-0.5 rounded border font-medium ${due.className}`}>
                   {due.text}
+                </span>
+              )}
+              {reminder && (
+                <span
+                  className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border font-medium ${reminder.className}`}
+                >
+                  <Bell className="h-3 w-3" />
+                  {reminder.text}
                 </span>
               )}
               {attachmentCount > 0 && (

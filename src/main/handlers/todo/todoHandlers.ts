@@ -19,6 +19,8 @@ export interface TodoRow {
   completed: 0 | 1;
   completed_at: string | null;
   archived_at: string | null;
+  remind_at: string | null;
+  reminded_at: string | null;
   created_at: string;
   updated_at: string;
   attachments: TodoAttachment[];
@@ -29,6 +31,7 @@ export interface TodoInput {
   notes?: string;
   priority?: "high" | "medium" | "low";
   due_date?: string | null;
+  remind_at?: string | null;
   attachments?: TodoAttachment[];
 }
 
@@ -37,6 +40,7 @@ export interface TodoUpdateInput {
   notes?: string | null;
   priority?: "high" | "medium" | "low";
   due_date?: string | null;
+  remind_at?: string | null;
   attachments?: TodoAttachment[];
 }
 
@@ -74,6 +78,20 @@ function serializeAttachments(items: TodoAttachment[] | undefined): string {
   return JSON.stringify(safe);
 }
 
+function toIsoString(value: unknown): string | null {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = new Date(value as string | number);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toISOString();
+}
+
+function normalizeRemindAt(value: string | null | undefined): Date | null {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
+}
+
 function serializeTodo(row: any): TodoRow {
   return {
     id: row.id,
@@ -84,6 +102,8 @@ function serializeTodo(row: any): TodoRow {
     completed: row.completed ? 1 : 0,
     completed_at: row.completed_at ?? null,
     archived_at: row.archived_at ?? null,
+    remind_at: toIsoString(row.remind_at),
+    reminded_at: toIsoString(row.reminded_at),
     created_at: row.created_at,
     updated_at: row.updated_at,
     attachments: parseAttachments(row.attachments),
@@ -92,7 +112,7 @@ function serializeTodo(row: any): TodoRow {
 
 const PRIORITY_RANK: Record<string, number> = { high: 0, medium: 1, low: 2 };
 
-function broadcastTodosChanged() {
+export function broadcastTodosChanged() {
   for (const win of BrowserWindow.getAllWindows()) {
     if (win.isDestroyed()) continue;
     try {
@@ -148,9 +168,11 @@ export function registerTodoHandlers(DB: any) {
         notes: input.notes ?? null,
         priority: input.priority ?? "medium",
         due_date: input.due_date ?? null,
+        remind_at: normalizeRemindAt(input.remind_at),
         completed: 0,
         completed_at: null,
         archived_at: null,
+        reminded_at: null,
         created_at: now,
         updated_at: now,
         attachments: serializeAttachments(input.attachments),
@@ -171,6 +193,10 @@ export function registerTodoHandlers(DB: any) {
       if (patch.notes !== undefined) update.notes = patch.notes;
       if (patch.priority !== undefined) update.priority = patch.priority;
       if (patch.due_date !== undefined) update.due_date = patch.due_date;
+      if (patch.remind_at !== undefined) {
+        update.remind_at = normalizeRemindAt(patch.remind_at);
+        update.reminded_at = null;
+      }
       if (patch.attachments !== undefined) update.attachments = serializeAttachments(patch.attachments);
       const [row] = await DB.from("todo").where("id", id).update(update).returning("*");
       broadcastTodosChanged();

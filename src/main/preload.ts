@@ -14,6 +14,14 @@ interface BrowserBridgeState {
   activeTabId: string | null;
 }
 
+interface TodoReminderEvent {
+  id: number;
+  title: string;
+  notes: string | null;
+  priority: string;
+  remind_at: string;
+}
+
 contextBridge.exposeInMainWorld("electron", {
   minimizeWindow: () => ipcRenderer.send("minimize-window"),
   maximizeWindow: () => ipcRenderer.send("maximize-window"),
@@ -343,14 +351,19 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("toggle-note-important", noteId, important),
 
   todoList: () => ipcRenderer.invoke("todo:list"),
-  todoCreate: (input: { title: string; notes?: string; priority?: "high" | "medium" | "low"; due_date?: string | null }) =>
+  todoCreate: (input: { title: string; notes?: string; priority?: "high" | "medium" | "low"; due_date?: string | null; remind_at?: string | null }) =>
     ipcRenderer.invoke("todo:create", input),
-  todoUpdate: (id: number, patch: { title?: string; notes?: string | null; priority?: "high" | "medium" | "low"; due_date?: string | null }) =>
+  todoUpdate: (id: number, patch: { title?: string; notes?: string | null; priority?: "high" | "medium" | "low"; due_date?: string | null; remind_at?: string | null }) =>
     ipcRenderer.invoke("todo:update", id, patch),
   todoDelete: (id: number) => ipcRenderer.invoke("todo:delete", id),
   todoToggle: (id: number) => ipcRenderer.invoke("todo:toggle", id),
   todoArchive: (id: number) => ipcRenderer.invoke("todo:archive", id),
   todoUnarchive: (id: number) => ipcRenderer.invoke("todo:unarchive", id),
+  onTodoReminder: (callback: (payload: TodoReminderEvent) => void) => {
+    const listener = (_event: unknown, payload: TodoReminderEvent) => callback(payload);
+    ipcRenderer.on("todo:reminder", listener);
+    return () => ipcRenderer.removeListener("todo:reminder", listener);
+  },
   onTodosChanged: (callback: () => void) => {
     const listener = () => callback();
     ipcRenderer.on("todo:changed", listener);

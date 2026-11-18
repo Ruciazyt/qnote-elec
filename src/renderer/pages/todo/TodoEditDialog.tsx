@@ -24,7 +24,30 @@ import {
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { CalendarIcon, ImagePlus, X } from 'lucide-react'
+import { fromDateTimeLocalValue, toDateTimeLocalValue } from '@shared/todo/reminderTime'
 import type { Todo, TodoPriority, TodoAttachment } from './types'
+
+const REMIND_PRESETS: { label: string; compute: () => Date }[] = [
+  { label: '30 分钟后', compute: () => new Date(Date.now() + 30 * 60 * 1000) },
+  { label: '1 小时后', compute: () => new Date(Date.now() + 60 * 60 * 1000) },
+  {
+    label: '今晚 20:00',
+    compute: () => {
+      const d = new Date()
+      d.setHours(20, 0, 0, 0)
+      return d
+    },
+  },
+  {
+    label: '明早 9:00',
+    compute: () => {
+      const d = new Date()
+      d.setDate(d.getDate() + 1)
+      d.setHours(9, 0, 0, 0)
+      return d
+    },
+  },
+]
 
 interface TodoEditDialogProps {
   open: boolean
@@ -38,6 +61,7 @@ interface TodoEditDialogProps {
     notes?: string
     priority: TodoPriority
     due_date: string | null
+    remind_at?: string | null
     attachments?: TodoAttachment[]
   }) => Promise<void>
 }
@@ -55,6 +79,7 @@ export function TodoEditDialog({
   const [notes, setNotes] = useState('')
   const [priority, setPriority] = useState<TodoPriority>('medium')
   const [dueDate, setDueDate] = useState('')
+  const [remindAt, setRemindAt] = useState('')
   const [datePickerOpen, setDatePickerOpen] = useState(false)
   const [calendarMonth, setCalendarMonth] = useState(() => new Date())
   const [attachments, setAttachments] = useState<TodoAttachment[]>([])
@@ -73,6 +98,7 @@ export function TodoEditDialog({
       const parsedDueDate = nextDueDate ? parseISO(nextDueDate) : undefined
       setDueDate(nextDueDate)
       setCalendarMonth(parsedDueDate && isValid(parsedDueDate) ? parsedDueDate : new Date())
+      setRemindAt(todo.remind_at ? toDateTimeLocalValue(new Date(todo.remind_at)) : '')
       setAttachments(todo.attachments ?? [])
     } else {
       setTitle(initialTitle ?? '')
@@ -80,6 +106,7 @@ export function TodoEditDialog({
       setPriority('medium')
       setDueDate('')
       setCalendarMonth(new Date())
+      setRemindAt('')
       setAttachments(initialAttachments ?? [])
     }
   }, [open, todo, initialTitle, initialNotes, initialAttachments])
@@ -123,6 +150,7 @@ export function TodoEditDialog({
         notes: notes.trim() || undefined,
         priority,
         due_date: dueDate || null,
+        remind_at: remindAt ? fromDateTimeLocalValue(remindAt)?.toISOString() ?? null : null,
         attachments: attachments.length > 0 ? attachments : undefined,
       })
       onClose()
@@ -242,6 +270,47 @@ export function TodoEditDialog({
           </div>
 
           {}
+          <div className="space-y-1.5">
+            <Label htmlFor="todo-remind-at">提醒时间</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="todo-remind-at"
+                type="datetime-local"
+                value={remindAt}
+                onChange={(e) => setRemindAt(e.target.value)}
+                className="h-9"
+              />
+              {remindAt && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2 text-xs btn-hover"
+                  onClick={() => setRemindAt('')}
+                >
+                  清除
+                </Button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {REMIND_PRESETS.map((preset) => (
+                <Button
+                  key={preset.label}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 px-2 text-xs btn-hover"
+                  onClick={() => setRemindAt(toDateTimeLocalValue(preset.compute()))}
+                >
+                  {preset.label}
+                </Button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground/70">
+              到点会弹系统通知，提醒这件事该做了。
+            </p>
+          </div>
+
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <Label>

@@ -41,6 +41,10 @@ import { registerIslandHandlers, disposeIsland } from "./handlers/island/islandH
 import { stickyNoteManager } from "./core/window/sticky/stickyNote";
 import { registerNotesProtocol } from "./handlers/notes/notesProtocol";
 import { registerTodoHandlers } from "./handlers/todo/todoHandlers";
+import {
+  startReminderScheduler,
+  stopReminderScheduler,
+} from "./core/todo/reminderScheduler";
 import { registerBrowserHandlers, teardownBrowserHandlers } from "./handlers/browser/browserHandlers";
 import { registerBookmarkHandlers } from "./handlers/browser/bookmarkHandlers";
 import { registerShortcutHandlers } from "./handlers/shortcut/shortcutHandlers";
@@ -364,6 +368,7 @@ app.on("before-quit", () => {
 });
 
 app.on("will-quit", () => {
+  stopReminderScheduler();
   unregisterAllShortcuts();
   stopClipboardListener();
   closeDB();
@@ -509,6 +514,8 @@ void app
       log.info("注册IPC处理程序...");
       registerIpcHandlers();
       log.info("IPC处理程序已注册");
+
+      startReminderScheduler(DB);
 
       initUpdater();
 
