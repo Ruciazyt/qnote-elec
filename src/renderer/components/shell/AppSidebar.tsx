@@ -61,7 +61,7 @@ const items: SidebarItem[] = [
     tabKey: "apps",
   },
   {
-    title: "AI 技能",
+    title: "技能 / MCP",
     url: "/skills",
     icon: Sparkles,
     tabKey: "always",

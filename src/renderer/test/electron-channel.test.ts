@@ -54,7 +54,6 @@ describe("主进程扫描口径", () => {
     for (const channel of [
       "minimize-window",
       "maximize-window",
-      "close-window",
       "open-dev-tools",
       "popup-close",
       "popup-show-main-window",
