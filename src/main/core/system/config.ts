@@ -13,6 +13,7 @@ import {
   DEFAULT_ISLAND_SETTINGS,
   ISLAND_HOVER_DELAY_MAX,
   ISLAND_HOVER_DELAY_MIN,
+  type IslandDockEdge,
   type IslandExpandTrigger,
   type IslandSettings,
 } from "../../../shared/island/island";
@@ -80,6 +81,11 @@ function sanitizeIslandSettings(input: Partial<IslandSettings>): IslandSettings 
 
   const attachMode = input.attachMode === "floating" ? "floating" : "attached";
 
+  const dockEdge: IslandDockEdge =
+    input.dockEdge === "left" || input.dockEdge === "right"
+      ? input.dockEdge
+      : DEFAULT_ISLAND_SETTINGS.dockEdge;
+
   const position =
     input.position && Number.isFinite(input.position.x) && Number.isFinite(input.position.y)
       ? { x: Math.round(input.position.x), y: Math.round(input.position.y) }
@@ -95,6 +101,7 @@ function sanitizeIslandSettings(input: Partial<IslandSettings>): IslandSettings 
     expandTrigger: trigger,
     hoverDelayMs,
     attachMode,
+    dockEdge,
     position,
     displayId,
   };

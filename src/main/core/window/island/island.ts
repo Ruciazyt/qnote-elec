@@ -4,16 +4,14 @@ import { log } from "../../system/log";
 import { getPreloadPath } from "../../../utils/paths";
 import {
   ISLAND_COLLAPSED_HEIGHT,
-  ISLAND_COLLAPSED_MAX_WIDTH,
-  ISLAND_COLLAPSED_MIN_WIDTH,
   ISLAND_COLLAPSE_DURATION,
   ISLAND_EXPAND_DURATION,
   ISLAND_EXPANDED_HEIGHT,
   ISLAND_EXPANDED_WIDTH,
-  ISLAND_SHADOW_PAD_X,
-  ISLAND_SHADOW_PAD_Y,
-  ISLAND_SNAP_TOP_DISTANCE,
+  ISLAND_SNAP_EDGE_DISTANCE,
+  ISLAND_STRIP_WIDTH,
   type IslandAttachMode,
+  type IslandDockEdge,
   type IslandPage,
   type IslandPosition,
   type IslandSize,
@@ -48,20 +46,20 @@ export class IslandWindow {
   private ready = false;
 
   private currentSize: IslandSize = {
-    width: ISLAND_COLLAPSED_MIN_WIDTH,
+    width: ISLAND_EXPANDED_WIDTH,
     height: ISLAND_COLLAPSED_HEIGHT,
   };
 
-  private collapsedWidth = ISLAND_COLLAPSED_MIN_WIDTH;
-
   private expanded = false;
-  private page: IslandPage = "todo";
+  private page: IslandPage = "clipboard";
   private attachMode: IslandAttachMode = "attached";
+  private dockEdge: IslandDockEdge = "top";
   private cardPos: IslandPosition | null = null;
   private displayId: number | null = null;
 
   private dragging = false;
   private dragAnchor: { cardX: number; cardY: number; screenX: number; screenY: number } | null = null;
+  private lastPointer: { x: number; y: number } | null = null;
 
   private animTimer: NodeJS.Timeout | null = null;
   private interactive = true;
@@ -86,6 +84,12 @@ export class IslandWindow {
     return IslandWindow.instance;
   }
 
+  private collapsedSize(): IslandSize {
+    if (this.dockEdge === "top") {
+      return { width: ISLAND_EXPANDED_WIDTH, height: ISLAND_COLLAPSED_HEIGHT };
+    }
+    return { width: ISLAND_STRIP_WIDTH, height: ISLAND_EXPANDED_HEIGHT };
+  }
 
   show(): void {
     if (!this.win || this.win.isDestroyed()) {
@@ -127,8 +131,8 @@ export class IslandWindow {
 
   private create(): BrowserWindow {
     const win = new BrowserWindow({
-      width: ISLAND_COLLAPSED_MIN_WIDTH + ISLAND_SHADOW_PAD_X * 2,
-      height: ISLAND_COLLAPSED_HEIGHT + ISLAND_SHADOW_PAD_Y,
+      width: ISLAND_EXPANDED_WIDTH,
+      height: ISLAND_COLLAPSED_HEIGHT,
       show: false,
       frame: false,
       resizable: false,
@@ -185,12 +189,12 @@ export class IslandWindow {
     return win;
   }
 
-
   getSnapshot(): IslandSnapshot {
     return {
       expanded: this.expanded,
       page: this.page,
       attachMode: this.attachMode,
+      dockEdge: this.dockEdge,
       size: { ...this.currentSize },
       position: this.getCardPos(),
     };
@@ -199,26 +203,13 @@ export class IslandWindow {
   private getCardPos(): IslandPosition {
     const bounds = this.win?.getBounds();
     if (!bounds) return this.cardPos ? { ...this.cardPos } : { x: 0, y: 0 };
-    return { x: bounds.x + ISLAND_SHADOW_PAD_X, y: bounds.y };
+    return { x: bounds.x, y: bounds.y };
   }
 
   setPage(page: IslandPage): void {
     if (this.page === page) return;
     this.page = page;
     this.pushState();
-  }
-
-  setCollapsedWidth(width: number): void {
-    if (!Number.isFinite(width) || width <= 0) return;
-    const clamped = Math.round(
-      Math.min(ISLAND_COLLAPSED_MAX_WIDTH, Math.max(ISLAND_COLLAPSED_MIN_WIDTH, width))
-    );
-    if (clamped === this.collapsedWidth) return;
-    this.collapsedWidth = clamped;
-    if (!this.expanded && !this.animTimer) {
-      this.currentSize = { width: clamped, height: ISLAND_COLLAPSED_HEIGHT };
-      this.applyBounds();
-    }
   }
 
   expand(): void {
@@ -236,11 +227,7 @@ export class IslandWindow {
     if (!this.expanded) return;
     this.expanded = false;
     this.pushState();
-    this.animateTo(
-      { width: this.collapsedWidth, height: ISLAND_COLLAPSED_HEIGHT },
-      ISLAND_COLLAPSE_DURATION,
-      easeOutCubic
-    );
+    this.animateTo(this.collapsedSize(), ISLAND_COLLAPSE_DURATION, easeOutCubic);
   }
 
   toggle(): void {
@@ -253,7 +240,6 @@ export class IslandWindow {
     this.win.webContents.send("island:state", this.getSnapshot());
   }
 
-
   private getDisplay() {
     return findDisplay(this.displayId);
   }
@@ -265,29 +251,43 @@ export class IslandWindow {
     const clamp = (value: number, min: number, max: number) =>
       Math.round(Math.min(Math.max(value, min), Math.max(min, max)));
 
-    if (this.attachMode === "attached") {
-      const x = this.cardPos
-        ? clamp(this.cardPos.x, area.x, maxX)
-        : clamp(area.x + (area.width - size.width) / 2, area.x, maxX);
-      return { x, y: area.y };
+    if (this.attachMode === "floating") {
+      const base = this.cardPos ?? {
+        x: area.x + (area.width - size.width) / 2,
+        y: area.y,
+      };
+      return {
+        x: clamp(base.x, area.x, maxX),
+        y: clamp(base.y, area.y, maxY),
+      };
     }
 
-    const base = this.cardPos ?? {
-      x: area.x + (area.width - size.width) / 2,
-      y: area.y,
-    };
-    return {
-      x: clamp(base.x, area.x, maxX),
-      y: clamp(base.y, area.y, maxY),
-    };
+    if (this.dockEdge === "left") {
+      const y = this.cardPos
+        ? clamp(this.cardPos.y, area.y, maxY)
+        : clamp(area.y + (area.height - size.height) / 2, area.y, maxY);
+      return { x: area.x, y };
+    }
+
+    if (this.dockEdge === "right") {
+      const y = this.cardPos
+        ? clamp(this.cardPos.y, area.y, maxY)
+        : clamp(area.y + (area.height - size.height) / 2, area.y, maxY);
+      return { x: area.x + area.width - size.width, y };
+    }
+
+    const x = this.cardPos
+      ? clamp(this.cardPos.x, area.x, maxX)
+      : clamp(area.x + (area.width - size.width) / 2, area.x, maxX);
+    return { x, y: area.y };
   }
 
   private windowBounds(card: IslandPosition, size: IslandSize): Electron.Rectangle {
     return {
-      x: card.x - ISLAND_SHADOW_PAD_X,
+      x: card.x,
       y: card.y,
-      width: size.width + ISLAND_SHADOW_PAD_X * 2,
-      height: size.height + ISLAND_SHADOW_PAD_Y,
+      width: size.width,
+      height: size.height,
     };
   }
 
@@ -340,13 +340,13 @@ export class IslandWindow {
     }
   }
 
-
   beginDrag(screenX: number, screenY: number): void {
     if (!this.win || this.win.isDestroyed()) return;
     const bounds = this.win.getBounds();
     this.dragging = true;
+    this.lastPointer = { x: screenX, y: screenY };
     this.dragAnchor = {
-      cardX: bounds.x + ISLAND_SHADOW_PAD_X,
+      cardX: bounds.x,
       cardY: bounds.y,
       screenX,
       screenY,
@@ -360,11 +360,17 @@ export class IslandWindow {
     const dy = screenY - this.dragAnchor.screenY;
     const cardX = this.dragAnchor.cardX + dx;
     const cardY = this.dragAnchor.cardY + dy;
+    this.lastPointer = { x: screenX, y: screenY };
     this.cardPos = { x: cardX, y: cardY };
-    this.win.setPosition(Math.round(cardX - ISLAND_SHADOW_PAD_X), Math.round(cardY), false);
+    this.win.setPosition(Math.round(cardX), Math.round(cardY), false);
   }
 
-  endDrag(): { attachMode: IslandAttachMode; position: IslandPosition | null; displayId: number } {
+  endDrag(): {
+    attachMode: IslandAttachMode;
+    dockEdge: IslandDockEdge;
+    position: IslandPosition | null;
+    displayId: number;
+  } {
     this.dragging = false;
     if (this.pendingInteractive !== null) {
       const pending = this.pendingInteractive;
@@ -374,52 +380,84 @@ export class IslandWindow {
     if (!this.win || this.win.isDestroyed()) {
       return {
         attachMode: this.attachMode,
+        dockEdge: this.dockEdge,
         position: this.cardPos ? { ...this.cardPos } : null,
         displayId: this.displayId ?? screen.getPrimaryDisplay().id,
       };
     }
     const bounds = this.win.getBounds();
-    const cardX = bounds.x + ISLAND_SHADOW_PAD_X;
+    const cardX = bounds.x;
     const cardY = bounds.y;
 
-    const display = screen.getDisplayNearestPoint({
+    const pointer = this.lastPointer ?? {
       x: cardX + this.currentSize.width / 2,
       y: cardY + this.currentSize.height / 2,
-    });
+    };
+    const display = screen.getDisplayNearestPoint(pointer);
     this.displayId = display.id;
 
-    const distanceToTop = cardY - display.workArea.y;
-    this.attachMode = distanceToTop <= ISLAND_SNAP_TOP_DISTANCE ? "attached" : "floating";
-    this.cardPos = { x: cardX, y: cardY };
+    const area = display.workArea;
+    const candidates: Array<{ edge: IslandDockEdge; distance: number }> = [
+      { edge: "left", distance: cardX - area.x },
+      { edge: "right", distance: area.x + area.width - (cardX + this.currentSize.width) },
+      { edge: "top", distance: cardY - area.y },
+    ];
+    const snapped = candidates
+      .filter((candidate) => candidate.distance <= ISLAND_SNAP_EDGE_DISTANCE)
+      .sort((a, b) => a.distance - b.distance)[0];
 
+    if (snapped) {
+      this.attachMode = "attached";
+      this.dockEdge = snapped.edge;
+    } else {
+      this.attachMode = "floating";
+    }
+
+    if (!this.expanded && !this.animTimer) {
+      this.currentSize = this.collapsedSize();
+    }
+
+    this.cardPos = { x: cardX, y: cardY };
     this.applyBounds();
     const settled = this.getCardPos();
     this.cardPos = settled;
     this.pushState();
-    return { attachMode: this.attachMode, position: { ...settled }, displayId: this.displayId };
+    return {
+      attachMode: this.attachMode,
+      dockEdge: this.dockEdge,
+      position: { ...settled },
+      displayId: this.displayId,
+    };
   }
 
   isDragging(): boolean {
     return this.dragging;
   }
 
-
-
   resetPosition(): void {
     this.attachMode = "attached";
+    this.dockEdge = "top";
     this.cardPos = null;
     this.displayId = null;
+    if (!this.expanded && !this.animTimer) {
+      this.currentSize = this.collapsedSize();
+    }
     this.applyBounds();
   }
 
-  applyAttachMode(
+  applyDock(
     mode: IslandAttachMode,
+    edge: IslandDockEdge,
     position: IslandPosition | null,
     displayId: number | null
   ): void {
     this.attachMode = mode;
+    this.dockEdge = edge;
     this.cardPos = position ? { ...position } : null;
     if (displayId != null) this.displayId = displayId;
+    if (!this.expanded && !this.animTimer) {
+      this.currentSize = this.collapsedSize();
+    }
     this.applyBounds();
   }
 

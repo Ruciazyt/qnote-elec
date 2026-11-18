@@ -82,19 +82,17 @@ vi.mock("electron", () => ({
 }));
 
 import { IslandWindow } from "./island";
-import { ISLAND_SHADOW_PAD_X, ISLAND_SHADOW_PAD_Y } from "../../../../shared/island/island";
+import {
+  ISLAND_EXPANDED_HEIGHT,
+  ISLAND_EXPANDED_WIDTH,
+  ISLAND_STRIP_WIDTH,
+} from "../../../../shared/island/island";
 
-const CARD_W = 220;
+const CARD_W = ISLAND_EXPANDED_WIDTH;
 const CARD_H = 44;
 
 function cardBounds(): { x: number; y: number; width: number; height: number } {
-  const b = h.state.bounds;
-  return {
-    x: b.x + ISLAND_SHADOW_PAD_X,
-    y: b.y,
-    width: b.width - ISLAND_SHADOW_PAD_X * 2,
-    height: b.height - ISLAND_SHADOW_PAD_Y,
-  };
+  return { ...h.state.bounds };
 }
 
 function bootIsland() {
@@ -106,13 +104,14 @@ function bootIsland() {
 
 describe("灵动岛窗口的几何", () => {
   beforeEach(() => {
-    h.state.bounds = { x: 0, y: 0, width: CARD_W + ISLAND_SHADOW_PAD_X * 2, height: CARD_H + ISLAND_SHADOW_PAD_Y };
+    h.state.bounds = { x: 0, y: 0, width: CARD_W, height: CARD_H };
     h.state.destroyed = false;
     h.state.visible = false;
     h.state.sent = [];
     h.state.ignoreCalls = [];
     h.state.topCalls = [];
     h.state.listeners.clear();
+    IslandWindow.getInstance().resetPosition();
   });
 
   it("贴顶态水平居中在屏幕顶边", () => {
@@ -120,16 +119,16 @@ describe("灵动岛窗口的几何", () => {
 
     const card = cardBounds();
     expect(card.y).toBe(0);
-    expect(card.x).toBe(850);
+    expect(card.x).toBe(760);
     expect(island.getSnapshot().attachMode).toBe("attached");
+    expect(island.getSnapshot().dockEdge).toBe("top");
   });
 
-  it("窗口比卡片大一圈 —— 阴影要有地方画，不然底角会被裁成直角", () => {
+  it("窗口就是卡片本身 —— 去掉阴影后不留那一圈空白", () => {
     bootIsland();
 
-    expect(h.state.bounds.width).toBe(CARD_W + ISLAND_SHADOW_PAD_X * 2);
-    expect(h.state.bounds.height).toBe(CARD_H + ISLAND_SHADOW_PAD_Y);
-    expect(cardBounds().x).toBe(h.state.bounds.x + ISLAND_SHADOW_PAD_X);
+    expect(h.state.bounds.width).toBe(CARD_W);
+    expect(h.state.bounds.height).toBe(CARD_H);
   });
 
   it("拖动时卡片跟着指针走", () => {
@@ -160,7 +159,76 @@ describe("灵动岛窗口的几何", () => {
     const attached = island.endDrag();
 
     expect(attached.attachMode).toBe("attached");
+    expect(attached.dockEdge).toBe("top");
     expect(cardBounds().y).toBe(0);
+  });
+
+  it("拖到左边缘吸成竖条，贴着屏幕左边", () => {
+    const island = bootIsland();
+
+    island.beginDrag(900, 40);
+    island.dragTo(5, 300);
+    const result = island.endDrag();
+
+    expect(result.attachMode).toBe("attached");
+    expect(result.dockEdge).toBe("left");
+    expect(h.state.bounds.width).toBe(ISLAND_STRIP_WIDTH);
+    expect(h.state.bounds.height).toBe(ISLAND_EXPANDED_HEIGHT);
+    expect(h.state.bounds.x).toBe(0);
+    expect(h.state.bounds.y).toBe(260);
+  });
+
+  it("拖到右边缘时按指针所在那块屏吸附 —— 卡片中心越过边界也不跳到隔壁屏", () => {
+    const island = bootIsland();
+
+    island.beginDrag(900, 40);
+    island.dragTo(1900, 300);
+    const result = island.endDrag();
+
+    expect(result.dockEdge).toBe("right");
+    expect(result.displayId).toBe(1);
+    expect(h.state.bounds.width).toBe(ISLAND_STRIP_WIDTH);
+    expect(h.state.bounds.x).toBe(1920 - ISLAND_STRIP_WIDTH);
+  });
+
+  it("拖到右边缘吸成竖条，贴着屏幕右边", () => {
+    const island = bootIsland();
+
+    island.beginDrag(900, 40);
+    island.dragTo(1750, 300);
+    const result = island.endDrag();
+
+    expect(result.attachMode).toBe("attached");
+    expect(result.dockEdge).toBe("right");
+    expect(h.state.bounds.width).toBe(ISLAND_STRIP_WIDTH);
+    expect(h.state.bounds.x).toBe(1920 - ISLAND_STRIP_WIDTH);
+  });
+
+  it("侧边展开只变宽，高度保持不变", () => {
+    vi.useFakeTimers();
+    try {
+      const island = bootIsland();
+
+      island.beginDrag(900, 40);
+      island.dragTo(5, 300);
+      island.endDrag();
+
+      expect(h.state.bounds.width).toBe(ISLAND_STRIP_WIDTH);
+      expect(h.state.bounds.height).toBe(ISLAND_EXPANDED_HEIGHT);
+
+      island.expand();
+      vi.advanceTimersByTime(600);
+
+      expect(h.state.bounds.width).toBe(ISLAND_EXPANDED_WIDTH);
+      expect(h.state.bounds.height).toBe(ISLAND_EXPANDED_HEIGHT);
+      expect(h.state.bounds.x).toBe(0);
+
+      island.collapse();
+      vi.advanceTimersByTime(400);
+      expect(h.state.bounds.width).toBe(ISLAND_STRIP_WIDTH);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("吸回顶边时横向停在用户放的地方，不弹回正中", () => {
@@ -248,7 +316,8 @@ describe("灵动岛窗口的几何", () => {
 
     island.resetPosition();
 
-    expect(cardBounds().x).toBe(850);
+    expect(cardBounds().x).toBe(760);
     expect(cardBounds().y).toBe(0);
+    expect(island.getSnapshot().dockEdge).toBe("top");
   });
 });

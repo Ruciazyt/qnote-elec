@@ -1,11 +1,12 @@
-import { ChevronDown } from "lucide-react";
-import type { IslandPage } from "@shared/island/island";
+import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import type { IslandDockEdge, IslandPage } from "@shared/island/island";
 import { ISLAND_MODULES } from "./IslandCollapsedBar";
 
 interface IslandPanelProps {
   panelRef: React.Ref<HTMLDivElement>;
   hidden: boolean;
   page: IslandPage;
+  dockEdge: IslandDockEdge;
   counts: Partial<Record<IslandPage, number>>;
   onSelectPage: (page: IslandPage) => void;
   onCollapse: () => void;
@@ -16,11 +17,15 @@ export function IslandPanel({
   panelRef,
   hidden,
   page,
+  dockEdge,
   counts,
   onSelectPage,
   onCollapse,
   children,
 }: IslandPanelProps) {
+  const CollapseIcon =
+    dockEdge === "left" ? ChevronRight : dockEdge === "right" ? ChevronLeft : ChevronDown;
+
   return (
     <div
       className="island-panel"
@@ -57,7 +62,7 @@ export function IslandPanel({
           aria-label="收起灵动岛"
           onClick={onCollapse}
         >
-          <ChevronDown size={15} strokeWidth={1.75} />
+          <CollapseIcon size={15} strokeWidth={1.75} />
         </button>
       </div>
       <div className="island-panel-body">{children}</div>

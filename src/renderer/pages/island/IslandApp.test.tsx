@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { IslandApp } from "./IslandApp";
 import { createElectronStub } from "@/test/electron-stub";
@@ -53,6 +53,7 @@ function installStub(overrides: Record<string, unknown> = {}): void {
       expandTrigger: "click",
       hoverDelayMs: 300,
       attachMode: "attached",
+      dockEdge: "top",
       position: null,
       displayId: null,
     })),
@@ -60,6 +61,7 @@ function installStub(overrides: Record<string, unknown> = {}): void {
       expanded: false,
       page: "todo",
       attachMode: "attached",
+      dockEdge: "top",
       size: { width: 260, height: 44 },
       position: { x: 0, y: 0 },
     })),
@@ -120,24 +122,43 @@ describe("灵动岛", () => {
   it("收起时显示一行摘要，展开面板藏在 DOM 里", async () => {
     render(<IslandApp />);
 
-    await waitForSummary("把灵动岛做完");
+    await waitForSummary("复制过来的一段文字");
 
     expect(screen.getByTestId("island-pill")).toHaveAttribute("data-hidden", "false");
+    expect(screen.getByTestId("island-panel")).toHaveAttribute("data-hidden", "true");
+  });
+
+  it("点收起条上的剪切板文字就能复制回系统剪贴板", async () => {
+    const user = userEvent.setup();
+    const copy = vi.fn(async () => ({ success: true }));
+    installStub({ popupCopyClipboardItem: copy });
+
+    render(<IslandApp />);
+    await waitForSummary("复制过来的一段文字");
+
+    await user.click(screen.getByRole("button", { name: "复制剪贴板内容" }));
+
+    await waitFor(() => {
+      expect(copy).toHaveBeenCalledWith(3);
+    });
+    await waitForSummary("已复制");
     expect(screen.getByTestId("island-panel")).toHaveAttribute("data-hidden", "true");
   });
 
   it("点胶囊上的模块图标会切页并展开", async () => {
     const user = userEvent.setup();
     render(<IslandApp />);
-    await waitForSummary("把灵动岛做完");
+    await waitForSummary("复制过来的一段文字");
 
     await user.click(screen.getByLabelText("剪贴板"));
 
     await waitFor(() => {
       expect(screen.getByTestId("island-panel")).toHaveAttribute("data-hidden", "false");
     });
-    expect(screen.getByText("复制过来的一段文字")).toBeInTheDocument();
-    expect(summary()).toBe("把灵动岛做完");
+    expect(
+      within(screen.getByTestId("island-panel")).getByText("复制过来的一段文字")
+    ).toBeInTheDocument();
+    expect(summary()).toBe("复制过来的一段文字");
   });
 
   it("AI 在跑时摘要让位给 AI 任务", async () => {
@@ -154,10 +175,10 @@ describe("灵动岛", () => {
     await waitForSummary("正在整理周报");
   });
 
-  it("没有待办时摘要退到最近一条剪贴板", async () => {
-    installStub({ todoList: vi.fn(async () => []) });
+  it("没有剪切板记录时摘要退到最近一条待办", async () => {
+    installStub({ popupGetClipboardHistory: vi.fn(async () => []) });
     render(<IslandApp />);
-    await waitForSummary("复制过来的一段文字");
+    await waitForSummary("把灵动岛做完");
   });
 
   it("展开后可以在面板里直接勾选待办", async () => {
@@ -166,9 +187,9 @@ describe("灵动岛", () => {
     installStub({ todoToggle: toggle });
 
     render(<IslandApp />);
-    await waitForSummary("把灵动岛做完");
+    await waitForSummary("复制过来的一段文字");
 
-    await user.click(screen.getByLabelText("展开灵动岛"));
+    await user.click(screen.getByLabelText("待办"));
     await waitFor(() => {
       expect(screen.getByTestId("island-panel")).toHaveAttribute("data-hidden", "false");
     });
@@ -182,7 +203,7 @@ describe("灵动岛", () => {
   it("Esc 收起展开的面板", async () => {
     const user = userEvent.setup();
     render(<IslandApp />);
-    await waitForSummary("把灵动岛做完");
+    await waitForSummary("复制过来的一段文字");
 
     await user.click(screen.getByLabelText("展开灵动岛"));
     await waitFor(() => {
@@ -206,7 +227,7 @@ describe("灵动岛", () => {
     });
 
     render(<IslandApp />);
-    await waitForSummary("把灵动岛做完");
+    await waitForSummary("复制过来的一段文字");
 
     const pill = screen.getByTestId("island-pill");
     firePointer(pill, "pointerdown", { button: 0, screenX: 100, screenY: 100 });
@@ -231,7 +252,7 @@ describe("灵动岛", () => {
     installStub({ islandDragStart: dragStart });
 
     render(<IslandApp />);
-    await waitForSummary("把灵动岛做完");
+    await waitForSummary("复制过来的一段文字");
 
     await user.click(screen.getByLabelText("展开灵动岛"));
     await waitFor(() => {
@@ -254,7 +275,7 @@ describe("灵动岛", () => {
     installStub({ islandSetInteractive: setInteractive });
 
     render(<IslandApp />);
-    await waitForSummary("把灵动岛做完");
+    await waitForSummary("复制过来的一段文字");
 
     fireEvent.mouseMove(window, { clientX: 0, clientY: 0 });
     expect(setInteractive).toHaveBeenCalledWith(true);
@@ -268,7 +289,7 @@ describe("灵动岛", () => {
     installStub({ islandSetInteractive: setInteractive, islandDragStart: vi.fn() });
 
     render(<IslandApp />);
-    await waitForSummary("把灵动岛做完");
+    await waitForSummary("复制过来的一段文字");
 
     const pill = screen.getByTestId("island-pill");
     firePointer(pill, "pointerdown", { button: 0, screenX: 100, screenY: 100 });
@@ -287,7 +308,7 @@ describe("灵动岛", () => {
     });
 
     render(<IslandApp />);
-    await waitForSummary("把灵动岛做完");
+    await waitForSummary("复制过来的一段文字");
 
     await user.click(screen.getByLabelText("AI"));
 
@@ -317,7 +338,7 @@ describe("灵动岛", () => {
     });
 
     render(<IslandApp />);
-    await waitForSummary("把灵动岛做完");
+    await waitForSummary("复制过来的一段文字");
 
     await user.click(screen.getByLabelText("AI"));
 
@@ -352,7 +373,7 @@ describe("灵动岛", () => {
     });
 
     render(<IslandApp />);
-    await waitForSummary("把灵动岛做完");
+    await waitForSummary("复制过来的一段文字");
 
     await user.click(screen.getByLabelText("AI"));
     await user.click(await screen.findByLabelText("打开对话：整理周报"));
@@ -374,7 +395,7 @@ describe("灵动岛", () => {
     });
 
     render(<IslandApp />);
-    await waitForSummary("把灵动岛做完");
+    await waitForSummary("复制过来的一段文字");
 
     await user.click(screen.getByLabelText("AI"));
     await user.click(await screen.findByLabelText("删除对话：整理周报"));

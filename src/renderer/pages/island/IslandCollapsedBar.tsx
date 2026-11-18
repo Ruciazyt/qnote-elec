@@ -1,5 +1,13 @@
-import { CheckSquare, Clipboard, FileText, Sparkles, ChevronUp } from "lucide-react";
-import type { IslandPage } from "@shared/island/island";
+import {
+  CheckSquare,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  Clipboard,
+  FileText,
+  Sparkles,
+} from "lucide-react";
+import type { IslandDockEdge, IslandPage } from "@shared/island/island";
 
 export const ISLAND_MODULES: Array<{
   page: IslandPage;
@@ -16,9 +24,12 @@ export interface IslandCollapsedBarProps {
   pillRef: React.Ref<HTMLDivElement>;
   hidden: boolean;
   page: IslandPage;
+  dockEdge: IslandDockEdge;
   hasContent: Record<IslandPage, boolean>;
   summary: string;
   summaryMuted: boolean;
+  summaryCopyable: boolean;
+  onCopySummary: () => void;
   onSelectPage: (page: IslandPage) => void;
   onToggle: () => void;
 }
@@ -27,12 +38,18 @@ export function IslandCollapsedBar({
   pillRef,
   hidden,
   page,
+  dockEdge,
   hasContent,
   summary,
   summaryMuted,
+  summaryCopyable,
+  onCopySummary,
   onSelectPage,
   onToggle,
 }: IslandCollapsedBarProps) {
+  const ToggleIcon =
+    dockEdge === "left" ? ChevronLeft : dockEdge === "right" ? ChevronRight : ChevronUp;
+
   return (
     <div
       className="island-pill"
@@ -65,9 +82,27 @@ export function IslandCollapsedBar({
         })}
       </div>
 
-      <div className="island-pill-summary" data-muted={summaryMuted} title={summary}>
-        {summary}
-      </div>
+      {summaryCopyable ? (
+        <button
+          type="button"
+          className="island-pill-summary"
+          data-muted={summaryMuted}
+          data-copyable="true"
+          title={`${summary}（点击复制）`}
+          aria-label="复制剪贴板内容"
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation();
+            onCopySummary();
+          }}
+        >
+          {summary}
+        </button>
+      ) : (
+        <div className="island-pill-summary" data-muted={summaryMuted} title={summary}>
+          {summary}
+        </div>
+      )}
 
       <button
         type="button"
@@ -80,7 +115,7 @@ export function IslandCollapsedBar({
           onToggle();
         }}
       >
-        <ChevronUp size={16} strokeWidth={1.75} />
+        <ToggleIcon size={16} strokeWidth={1.75} />
       </button>
     </div>
   );

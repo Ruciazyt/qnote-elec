@@ -1,10 +1,10 @@
 import { toast } from "@/hooks/ui/use-toast";
 import { useCallback, useEffect, useState, useRef } from "react";
-import { useSidebarTabs, type SidebarTabsConfig } from "@/hooks/shell/useSidebarTabs";
+import { useSidebarTabs } from "@/hooks/shell/useSidebarTabs";
 import { useTheme, type Theme } from "@/hooks/shell/useTheme";
 import { Button } from "../../components/ui/button";
 import { Switch } from "../../components/ui/switch";
-import { Card, CardContent } from "../../components/ui/card";
+import { CardContent } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import {
   Download,
@@ -27,18 +27,12 @@ import {
   AppWindow,
   Binary,
   Sparkles,
-  AlertCircle,
-  ArrowUpCircle,
-  ExternalLink,
   Home,
   BookOpen,
   ListChecks,
   PenTool,
   Sliders,
-  ToggleLeft,
-  ToggleRight,
   Mic,
-  X,
   Globe,
   Sun,
   Moon,
@@ -1985,6 +1979,7 @@ export default function Settings() {
                       window.electron.islandResetPosition();
                       void saveIslandSettings({
                         attachMode: "attached",
+                        dockEdge: "top",
                         position: null,
                         displayId: null,
                       });

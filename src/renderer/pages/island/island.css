@@ -7,10 +7,9 @@
   --island-radius-collapsed: 22px;
   --island-radius-expanded: 26px;
   --island-collapsed-height: 44px;
+  --island-strip-width: 44px;
   --island-expanded-width: 400px;
   --island-expanded-height: 480px;
-
-  --island-shadow-pad-x: 10px;
 
   --island-primary: 195 80% 34%;
   --island-primary-strong: 195 80% 30%;
@@ -30,7 +29,6 @@
   --island-text-muted: 215 12% 44%;
   --island-stroke: 214 22% 88%;
   --island-hover: 214 20% 92%;
-  --island-shadow: 0 16px 36px -14px rgb(15 23 42 / 0.32);
 }
 
 .dark {
@@ -52,7 +50,6 @@
   --island-text-muted: 215 12% 62%;
   --island-stroke: 220 12% 22%;
   --island-hover: 220 14% 17%;
-  --island-shadow: 0 16px 36px -12px rgb(0 0 0 / 0.55);
 }
 
 html,
@@ -85,7 +82,7 @@ body {
   top: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: max-content;
+  width: 100%;
   height: var(--island-collapsed-height);
   display: flex;
   align-items: center;
@@ -94,18 +91,12 @@ body {
   border-radius: var(--island-radius-collapsed);
   background: hsl(var(--island-surface));
   border: 1px solid hsl(var(--island-stroke));
-  box-shadow: var(--island-shadow);
   transition: opacity 160ms ease;
 }
 
 .island-root[data-attach="floating"] .island-pill {
-  left: var(--island-shadow-pad-x);
+  left: 0;
   transform: none;
-}
-
-.island-root[data-attach="attached"] .island-pill {
-  border-radius: 0 0 var(--island-radius-collapsed) var(--island-radius-collapsed);
-  border-top-color: transparent;
 }
 
 .island-panel {
@@ -125,23 +116,76 @@ body {
 }
 
 .island-root[data-attach="floating"] .island-panel {
-  left: var(--island-shadow-pad-x);
+  left: 0;
   transform: none;
 }
 
-.island-root[data-attach="attached"] .island-panel {
+.island-root[data-edge="left"] .island-pill,
+.island-root[data-edge="left"] .island-panel {
+  left: 0;
+  right: auto;
+  transform: none;
+}
+
+.island-root[data-edge="right"] .island-pill,
+.island-root[data-edge="right"] .island-panel {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+.island-root[data-attach="attached"][data-edge="top"] .island-pill {
+  border-radius: 0 0 var(--island-radius-collapsed) var(--island-radius-collapsed);
+  border-top-color: transparent;
+}
+
+.island-root[data-attach="attached"][data-edge="top"] .island-panel {
   border-radius: 0 0 var(--island-radius-expanded) var(--island-radius-expanded);
   border-top-color: transparent;
 }
 
-.island-root[data-attach="attached"] .island-pill {
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
+.island-root[data-attach="attached"][data-edge="left"] .island-pill {
+  border-radius: 0 var(--island-radius-collapsed) var(--island-radius-collapsed) 0;
+  border-left-color: transparent;
 }
 
-.island-root[data-attach="attached"] .island-panel {
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
+.island-root[data-attach="attached"][data-edge="left"] .island-panel {
+  border-radius: 0 var(--island-radius-expanded) var(--island-radius-expanded) 0;
+  border-left-color: transparent;
+}
+
+.island-root[data-attach="attached"][data-edge="right"] .island-pill {
+  border-radius: var(--island-radius-collapsed) 0 0 var(--island-radius-collapsed);
+  border-right-color: transparent;
+}
+
+.island-root[data-attach="attached"][data-edge="right"] .island-panel {
+  border-radius: var(--island-radius-expanded) 0 0 var(--island-radius-expanded);
+  border-right-color: transparent;
+}
+
+.island-root[data-edge="left"] .island-pill,
+.island-root[data-edge="right"] .island-pill {
+  flex-direction: column;
+  align-items: center;
+  width: var(--island-strip-width);
+  height: var(--island-expanded-height);
+  padding: 10px 0;
+  gap: 6px;
+}
+
+.island-root[data-edge="left"] .island-pill-modules,
+.island-root[data-edge="right"] .island-pill-modules {
+  flex-direction: column;
+}
+
+.island-root[data-edge="left"] .island-pill-summary,
+.island-root[data-edge="right"] .island-pill-summary {
+  order: 1;
+  writing-mode: vertical-rl;
+  flex: 1;
+  min-height: 0;
+  text-align: start;
 }
 
 .island-pill[data-hidden="true"],
@@ -204,13 +248,22 @@ body {
 .island-pill-summary {
   flex: 1;
   min-width: 0;
-  max-width: 240px;
   font-size: 12.5px;
   line-height: 1.4;
   color: hsl(var(--island-text));
+  text-align: start;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.island-pill-summary[data-copyable="true"] {
+  cursor: pointer;
+  transition: color 140ms ease;
+}
+
+.island-pill-summary[data-copyable="true"]:hover {
+  color: hsl(var(--island-primary-strong));
 }
 
 .island-pill-summary[data-muted="true"] {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ISLAND_SHADOW_PAD_X, type IslandPage } from "@shared/island/island";
+import type { IslandPage } from "@shared/island/island";
 import { IslandCollapsedBar } from "./IslandCollapsedBar";
 import { IslandPanel } from "./IslandPanel";
 import { useIslandData } from "./useIslandData";
@@ -13,7 +13,7 @@ const HOVER_LEAVE_DELAY = 400;
 const TOAST_DURATION = 1600;
 
 export function IslandApp() {
-  const { expanded, page, attachMode, settings, setPage, expand, collapse, toggle } =
+  const { expanded, page, attachMode, dockEdge, settings, setPage, expand, collapse, toggle } =
     useIslandState();
   const data = useIslandData();
   const [toast, setToast] = useState<string | null>(null);
@@ -31,46 +31,27 @@ export function IslandApp() {
     );
   }, []);
 
-  useEffect(() => {
-    const element = pillRef.current;
-    if (!element) return;
-    const report = () => {
-      const width = Math.ceil(element.getBoundingClientRect().width);
-      if (width > 0) window.electron.islandSetCollapsedWidth(width);
-    };
-    report();
-    const observer = new ResizeObserver(report);
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    document.documentElement.style.setProperty(
-      "--island-shadow-pad-x",
-      `${ISLAND_SHADOW_PAD_X}px`
-    );
-  }, []);
-
   const summary = useMemo(() => {
     if (data.ai.running) {
-      return { text: data.ai.title || "AI 正在处理…", muted: false };
-    }
-    const activeTodo = data.todos.find((todo) => !todo.completed && !todo.archived_at);
-    if (activeTodo) {
-      return { text: activeTodo.title, muted: false };
+      return { text: data.ai.title || "AI 正在处理…", muted: false, copyItemId: null };
     }
     const lastClipboard = data.clipboard[0];
     if (lastClipboard) {
       return {
         text: lastClipboard.type === "image" ? "复制了一张图片" : lastClipboard.content,
         muted: false,
+        copyItemId: lastClipboard.id,
       };
+    }
+    const activeTodo = data.todos.find((todo) => !todo.completed && !todo.archived_at);
+    if (activeTodo) {
+      return { text: activeTodo.title, muted: false, copyItemId: null };
     }
     const lastNote = data.notes[0];
     if (lastNote) {
-      return { text: lastNote.name, muted: false };
+      return { text: lastNote.name, muted: false, copyItemId: null };
     }
-    return { text: "QNote", muted: true };
+    return { text: "QNote", muted: true, copyItemId: null };
   }, [data.ai, data.todos, data.clipboard, data.notes]);
 
   const hasContent = useMemo(
@@ -97,6 +78,31 @@ export function IslandApp() {
     toggle();
   });
   const pressingRef = dragHandlers.pressingRef;
+
+  const [copiedFlash, setCopiedFlash] = useState<string | null>(null);
+  const flashTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (flashTimerRef.current !== null) window.clearTimeout(flashTimerRef.current);
+    };
+  }, []);
+
+  const handleCopySummary = useCallback(async () => {
+    const itemId = summary.copyItemId;
+    if (itemId === null) return;
+    let ok = false;
+    try {
+      const result = await window.electron.popupCopyClipboardItem(itemId);
+      ok = Boolean(result?.success);
+    } catch {
+      ok = false;
+    }
+    if (!ok) return;
+    setCopiedFlash("已复制");
+    if (flashTimerRef.current !== null) window.clearTimeout(flashTimerRef.current);
+    flashTimerRef.current = window.setTimeout(() => setCopiedFlash(null), 1200);
+  }, [summary.copyItemId]);
 
   const handlePillPointerDown = useCallback(
     (event: React.PointerEvent<HTMLElement>) => {
@@ -192,6 +198,7 @@ export function IslandApp() {
     <div
       className="island-root"
       data-attach={attachMode}
+      data-edge={dockEdge}
       onPointerMove={dragHandlers.onPointerMove}
       onPointerUp={dragHandlers.onPointerUp}
       onPointerCancel={dragHandlers.endDrag}
@@ -202,9 +209,12 @@ export function IslandApp() {
           pillRef={pillRef}
           hidden={expanded}
           page={page}
+          dockEdge={dockEdge}
           hasContent={hasContent}
-          summary={summary.text}
+          summary={copiedFlash ?? summary.text}
           summaryMuted={summary.muted}
+          summaryCopyable={summary.copyItemId !== null}
+          onCopySummary={() => void handleCopySummary()}
           onSelectPage={handleSelectPage}
           onToggle={toggle}
         />
@@ -215,6 +225,7 @@ export function IslandApp() {
           panelRef={panelRef}
           hidden={!expanded}
           page={page}
+          dockEdge={dockEdge}
           counts={counts}
           onSelectPage={handleSelectPage}
           onCollapse={collapse}

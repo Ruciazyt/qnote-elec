@@ -3,6 +3,7 @@ import {
   DEFAULT_ISLAND_SETTINGS,
   ISLAND_DRAG_THRESHOLD,
   type IslandAttachMode,
+  type IslandDockEdge,
   type IslandPage,
   type IslandSettings,
 } from "@shared/island/island";
@@ -11,6 +12,7 @@ export interface IslandController {
   expanded: boolean;
   page: IslandPage;
   attachMode: IslandAttachMode;
+  dockEdge: IslandDockEdge;
   settings: IslandSettings;
   setPage: (page: IslandPage) => void;
   expand: () => void;
@@ -21,8 +23,9 @@ export interface IslandController {
 
 export function useIslandState(): IslandController {
   const [expanded, setExpanded] = useState(false);
-  const [page, setPageState] = useState<IslandPage>("todo");
+  const [page, setPageState] = useState<IslandPage>("clipboard");
   const [attachMode, setAttachMode] = useState<IslandAttachMode>("attached");
+  const [dockEdge, setDockEdge] = useState<IslandDockEdge>("top");
   const [settings, setSettings] = useState<IslandSettings>(DEFAULT_ISLAND_SETTINGS);
 
   useEffect(() => {
@@ -30,7 +33,9 @@ export function useIslandState(): IslandController {
     void window.electron
       .islandGetSettings()
       .then((value) => {
-        if (!cancelled) setSettings(value);
+        if (cancelled) return;
+        setSettings(value);
+        setDockEdge(value.dockEdge);
       })
       .catch(() => {
       });
@@ -44,6 +49,7 @@ export function useIslandState(): IslandController {
       setExpanded(state.expanded);
       setPageState(state.page);
       setAttachMode(state.attachMode);
+      setDockEdge(state.dockEdge);
     });
   }, []);
 
@@ -72,7 +78,18 @@ export function useIslandState(): IslandController {
     setSettings(next);
   }, []);
 
-  return { expanded, page, attachMode, settings, setPage, expand, collapse, toggle, updateSettings };
+  return {
+    expanded,
+    page,
+    attachMode,
+    dockEdge,
+    settings,
+    setPage,
+    expand,
+    collapse,
+    toggle,
+    updateSettings,
+  };
 }
 
 const MIN_SEND_INTERVAL = 8;

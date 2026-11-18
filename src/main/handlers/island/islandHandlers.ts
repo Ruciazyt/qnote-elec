@@ -53,6 +53,7 @@ export function registerIslandHandlers(fileWriter: FileWriter): void {
         expandTrigger: "click",
         hoverDelayMs: 300,
         attachMode: "attached",
+        dockEdge: "top",
         position: null,
         displayId: null,
       };
@@ -65,7 +66,7 @@ export function registerIslandHandlers(fileWriter: FileWriter): void {
       try {
         const next = await configManager.setIslandSettings(patch ?? {});
         island.setEnabled(next.enabled);
-        island.applyAttachMode(next.attachMode, next.position, next.displayId);
+        island.applyDock(next.attachMode, next.dockEdge, next.position, next.displayId);
         if (!next.enabled) {
           island.hide();
         } else if (isMainWindowHidden()) {
@@ -89,11 +90,6 @@ export function registerIslandHandlers(fileWriter: FileWriter): void {
   ipcMain.on("island:set-page", (_event, page: unknown) => {
     if (!isIslandPage(page)) return;
     island.setPage(page);
-  });
-
-  ipcMain.on("island:set-collapsed-width", (_event, width: unknown) => {
-    if (typeof width !== "number") return;
-    island.setCollapsedWidth(width);
   });
 
   ipcMain.on("island:reset-position", () => {
@@ -120,6 +116,7 @@ export function registerIslandHandlers(fileWriter: FileWriter): void {
     try {
       await configManager.setIslandSettings({
         attachMode: result.attachMode,
+        dockEdge: result.dockEdge,
         position: result.position,
         displayId: result.displayId,
       });
