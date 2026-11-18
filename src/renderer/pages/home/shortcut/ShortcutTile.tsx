@@ -1,6 +1,4 @@
 import { memo, useCallback } from "react";
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import { Folder, AppWindow, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ShortcutRow } from "./types";
@@ -87,29 +85,15 @@ export interface ShortcutTileProps {
 }
 
 function ShortcutTileImpl({ item, icon, onOpen, onEdit, onDelete }: ShortcutTileProps) {
-  const { setNodeRef, setActivatorNodeRef, transform, transition, isDragging, isOver, listeners } =
-    useSortable({ id: item.id });
-
-  const setRefs = useCallback(
-    (node: HTMLDivElement | null) => {
-      setNodeRef(node);
-      setActivatorNodeRef(node);
-    },
-    [setNodeRef, setActivatorNodeRef]
-  );
+  const handleEdit = useCallback(() => onEdit(item), [item, onEdit]);
+  const handleDelete = useCallback(() => onDelete(item), [item, onDelete]);
 
   return (
     <div
-      ref={setRefs}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
-        "group relative flex flex-col items-center gap-1.5 rounded-xl p-2 pt-2.5 select-none",
-        "border border-transparent cursor-grab transition-colors duration-150",
-        "hover:bg-primary/[0.07] hover:border-primary/25",
-        isOver && !isDragging && "bg-primary/[0.10] border-primary/40",
-        isDragging && "opacity-40"
-      )}
-      {...listeners}>
+        "drag-reorder-lift group relative flex flex-col items-center gap-1.5 rounded-xl p-2 pt-2.5 select-none",
+        "border border-transparent"
+      )}>
       {
 }
       <div
@@ -124,9 +108,9 @@ function ShortcutTileImpl({ item, icon, onOpen, onEdit, onDelete }: ShortcutTile
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.stopPropagation();
-            onEdit(item);
+            handleEdit();
           }}
-          className="rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-colors">
+          className="rounded p-0.5 cursor-pointer text-muted-foreground hover:text-foreground hover:bg-foreground/10 transition-colors">
           <Pencil className="h-3 w-3" />
         </button>
         <button
@@ -136,9 +120,9 @@ function ShortcutTileImpl({ item, icon, onOpen, onEdit, onDelete }: ShortcutTile
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.stopPropagation();
-            onDelete(item);
+            handleDelete();
           }}
-          className="rounded p-0.5 text-muted-foreground hover:!text-destructive hover:bg-foreground/10 transition-colors">
+          className="rounded p-0.5 cursor-pointer text-muted-foreground hover:!text-destructive hover:bg-foreground/10 transition-colors">
           <Trash2 className="h-3 w-3" />
         </button>
       </div>
@@ -147,7 +131,7 @@ function ShortcutTileImpl({ item, icon, onOpen, onEdit, onDelete }: ShortcutTile
         type="button"
         onClick={() => onOpen(item.id)}
         title={item.target}
-        className="w-full flex flex-col items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 rounded-lg">
+        className="w-full flex flex-col items-center gap-1.5 cursor-grab focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 rounded-lg">
         <TileBody item={item} icon={icon} />
       </button>
     </div>
@@ -155,21 +139,3 @@ function ShortcutTileImpl({ item, icon, onOpen, onEdit, onDelete }: ShortcutTile
 }
 
 export const ShortcutTile = memo(ShortcutTileImpl);
-
-export function ShortcutTilePreview({
-  item,
-  icon,
-  width,
-}: {
-  item: ShortcutRow;
-  icon?: string | null;
-  width: number;
-}) {
-  return (
-    <div
-      style={{ width }}
-      className="flex flex-col items-center gap-1.5 rounded-xl p-2 pt-2.5 border border-primary/30 bg-card shadow-xl cursor-grabbing">
-      <TileBody item={item} icon={icon} />
-    </div>
-  );
-}

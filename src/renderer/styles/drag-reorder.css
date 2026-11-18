@@ -1,0 +1,140 @@
+:root {
+  --drag-ease-hand: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --drag-ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --drag-ease-spring: cubic-bezier(0.25, 1.12, 0.35, 1);
+  --drag-settle-ms: 250ms;
+  --drag-follow-ms: 90ms;
+  --drag-pop-ms: 180ms;
+}
+
+.drag-reorder-item {
+  --drag-x: 0px;
+  --drag-y: 0px;
+  --lift-x: 0px;
+  --lift-y: 0px;
+  --lift-scale: 1;
+  position: relative;
+  cursor: grab;
+  touch-action: none;
+  transform: translate3d(
+    calc(var(--drag-x) + var(--lift-x)),
+    calc(var(--drag-y) + var(--lift-y)),
+    0
+  );
+  transition-property: transform;
+  transition-duration: var(--drag-settle-ms);
+  transition-timing-function: var(--drag-ease-spring);
+  transition-delay: var(--drag-delay, 0ms);
+}
+
+.drag-reorder-item[data-drag-state="dragged"] {
+  position: absolute;
+  left: var(--lift-left, 0px);
+  top: var(--lift-top, 0px);
+  width: var(--lift-width, auto);
+  height: var(--lift-height, auto);
+  z-index: 30;
+  pointer-events: none;
+  cursor: grabbing;
+  will-change: transform;
+  transition-duration: var(--drag-follow-ms);
+  transition-timing-function: var(--drag-ease-hand);
+  transition-delay: 0ms;
+}
+
+.drag-reorder-item[data-drag-state="grabbed"] {
+  z-index: 20;
+  --lift-y: -4px;
+}
+
+.drag-reorder-lift {
+  transform: scale(var(--lift-scale, 1));
+  transition-property: transform, color, background-color, border-color;
+  transition-duration: var(--drag-pop-ms), 150ms, 150ms, 150ms;
+  transition-timing-function: var(--drag-ease-pop), ease, ease, ease;
+}
+
+.drag-reorder-hint {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  z-index: 25;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate3d(var(--hint-x, 0px), var(--hint-y, 0px), 0);
+  transition-property: transform, opacity;
+  transition-duration: 200ms, 120ms;
+  transition-timing-function: var(--drag-ease-hand), linear;
+}
+
+.drag-reorder-hint[data-active="true"] {
+  opacity: 1;
+}
+
+.drag-reorder-hint-inner {
+  position: absolute;
+  background-color: hsl(var(--foreground) / 0.15);
+  border-radius: 1px;
+  transform-origin: center;
+}
+
+.drag-reorder-hint[data-active="true"][data-orientation="vertical"] .drag-reorder-hint-inner {
+  width: 2px;
+  height: var(--hint-length, 0px);
+  left: -1px;
+  top: 0;
+  animation: drag-hint-grow-y 160ms var(--drag-ease-pop);
+}
+
+.drag-reorder-hint[data-active="true"][data-orientation="horizontal"] .drag-reorder-hint-inner {
+  width: var(--hint-length, 0px);
+  height: 2px;
+  left: 0;
+  top: -1px;
+  animation: drag-hint-grow-x 160ms var(--drag-ease-pop);
+}
+
+.drag-reorder-container[data-drag-active="true"],
+.drag-reorder-container[data-drag-active="true"] * {
+  cursor: grabbing !important;
+}
+
+@keyframes drag-hint-grow-y {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes drag-hint-grow-x {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drag-reorder-item {
+    transition-duration: 0ms !important;
+    transition-delay: 0ms !important;
+  }
+
+  .drag-reorder-lift {
+    transition-duration: 0ms !important;
+    transform: none !important;
+  }
+
+  .drag-reorder-hint {
+    transition-duration: 0ms !important;
+  }
+
+  .drag-reorder-hint[data-active="true"] .drag-reorder-hint-inner {
+    animation: none !important;
+  }
+}

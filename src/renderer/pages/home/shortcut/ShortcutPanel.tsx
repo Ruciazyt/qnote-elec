@@ -9,19 +9,6 @@ import {
   Trash2,
   Wrench,
 } from "lucide-react";
-import {
-  DndContext,
-  DragOverlay,
-  PointerSensor,
-  closestCenter,
-  pointerWithin,
-  useSensor,
-  useSensors,
-  type CollisionDetection,
-  type DragEndEvent,
-  type DragStartEvent,
-} from "@dnd-kit/core";
-import { SortableContext, arrayMove, rectSortingStrategy } from "@dnd-kit/sortable";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -29,10 +16,11 @@ import {
   PANEL_HEADER_PADDING_X,
   PANEL_RAIL_LABEL_INSET,
 } from "@/components/panel/layout";
+import { useDragReorder } from "@/hooks/ui/useDragReorder";
 import { useToast } from "@/hooks/ui/use-toast";
 import { useCollapsedState } from "@/hooks/panel/useCollapsedState";
 import { cn } from "@/lib/utils";
-import { ShortcutTile, ShortcutTilePreview } from "./ShortcutTile";
+import { ShortcutTile } from "./ShortcutTile";
 import { AddShortcutDialog } from "./AddShortcutDialog";
 import { useExternalAddShortcut } from "./externalAdd";
 import {
@@ -44,14 +32,6 @@ import {
 } from "./types";
 
 const COLLAPSED_KEY = "qnote-shortcut-collapsed";
-
-const TILE_WIDTH = (SHORTCUT_PANEL_WIDTH - 16 - 4) / 2;
-
-const collisionDetection: CollisionDetection = (args) => {
-  const pointerHits = pointerWithin(args);
-  if (pointerHits.length > 0) return pointerHits;
-  return closestCenter(args);
-};
 
 export function ShortcutPanel() {
   const [collapsed, setCollapsed] = useCollapsedState(COLLAPSED_KEY, false);
@@ -65,21 +45,8 @@ export function ShortcutPanel() {
   const [shellBusy, setShellBusy] = useState(false);
   const shellBroken = !!shellStatus?.enabled && shellStatus?.valid === false;
   const [showShellRow, setShowShellRow] = useState(false);
-  const [activeId, setActiveId] = useState<number | null>(null);
-  const [activeWidth, setActiveWidth] = useState<number | null>(null);
   const [osDropActive, setOsDropActive] = useState(false);
   const { toast } = useToast();
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 4 },
-    })
-  );
-
-  const activeItem = useMemo(
-    () => (activeId === null ? null : (items.find((item) => item.id === activeId) ?? null)),
-    [activeId, items]
-  );
 
   const load = useCallback(async () => {
     try {
@@ -233,25 +200,25 @@ export function ShortcutPanel() {
     });
   }
 
-  function handleDragStart(event: DragStartEvent) {
-    setActiveId(Number(event.active.id));
-    const rect = event.active.rect.current.initial;
-    setActiveWidth(rect && rect.width > 0 ? rect.width : null);
-  }
+  const itemsById = useMemo(
+    () => new Map(items.map((item) => [String(item.id), item])),
+    [items]
+  );
 
-  function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-    setActiveId(null);
-    setActiveWidth(null);
-    if (!over || active.id === over.id) return;
-
-    const from = items.findIndex((item) => item.id === active.id);
-    const to = items.findIndex((item) => item.id === over.id);
-    if (from < 0 || to < 0) return;
-
-    const previous = items;
-    persistOrder(arrayMove(items, from, to), previous);
-  }
+  const drag = useDragReorder({
+    ids: items.map((item) => String(item.id)),
+    onReorder: (next) => {
+      const nextItems = next
+        .map((id) => itemsById.get(id))
+        .filter((item): item is ShortcutRow => item !== undefined);
+      if (nextItems.length !== items.length) return;
+      persistOrder(nextItems, items);
+    },
+    mode: "grid",
+    columns: 2,
+    amplitude: 10,
+    labelOf: (id) => itemsById.get(id)?.title ?? "",
+  });
 
   const hasOsFiles = (e: React.DragEvent) => Array.from(e.dataTransfer.types ?? []).includes("Files");
 
@@ -259,7 +226,6 @@ export function ShortcutPanel() {
     if (!hasOsFiles(e)) return;
     e.preventDefault();
     setOsDropActive(false);
-    setActiveId(null);
 
     const paths = Array.from(e.dataTransfer.files ?? [])
       .map((file) => {
@@ -545,20 +511,27 @@ export function ShortcutPanel() {
             </Button>
           </div>
         ) : (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={collisionDetection}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            onDragCancel={() => {
-              setActiveId(null);
-              setActiveWidth(null);
-            }}>
-            <SortableContext items={items.map((item) => item.id)} strategy={rectSortingStrategy}>
-              <div className="grid grid-cols-2 gap-1">
-                {items.map((item) => (
+          <div
+            ref={drag.containerRef}
+            onPointerDown={drag.handlePointerDown}
+            role="list"
+            data-drag-active={drag.isDragging ? "true" : "false"}
+            className="drag-reorder-container relative grid grid-cols-2 gap-1">
+            {items.map((item) => {
+              const id = String(item.id);
+              return (
+                <div
+                  key={item.id}
+                  ref={drag.registerItem(id)}
+                  data-drag-item=""
+                  data-drag-item-id={id}
+                  data-drag-state={drag.stateOf(id)}
+                  role="listitem"
+                  aria-roledescription="可拖动排序项"
+                  tabIndex={0}
+                  onKeyDown={(event) => drag.handleKeyDown(id, event)}
+                  className="drag-reorder-item rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60">
                   <ShortcutTile
-                    key={item.id}
                     item={item}
                     icon={item.id in icons ? icons[item.id] : undefined}
                     onOpen={handleOpen}
@@ -569,22 +542,23 @@ export function ShortcutPanel() {
                     }}
                     onDelete={handleDelete}
                   />
-                ))}
-              </div>
-            </SortableContext>
-
-            {}
-            <DragOverlay dropAnimation={{ duration: 180, easing: "cubic-bezier(0.2, 0, 0, 1)" }}>
-              {activeItem ? (
-                <ShortcutTilePreview
-                  item={activeItem}
-                  icon={activeItem.id in icons ? icons[activeItem.id] : undefined}
-                  width={activeWidth ?? TILE_WIDTH}
-                />
-              ) : null}
-            </DragOverlay>
-          </DndContext>
+                </div>
+              );
+            })}
+            <div
+              ref={drag.hintRef}
+              className="drag-reorder-hint"
+              data-active="false"
+              data-orientation="vertical"
+              aria-hidden="true">
+              <div className="drag-reorder-hint-inner" />
+            </div>
+          </div>
         )}
+      </div>
+
+      <div className="sr-only" aria-live="polite">
+        {drag.announcement}
       </div>
 
       <AddShortcutDialog
