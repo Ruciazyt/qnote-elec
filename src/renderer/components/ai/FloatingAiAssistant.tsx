@@ -210,6 +210,8 @@ export function FloatingAiAssistant() {
 
   const [expanded, setExpanded] = useState<boolean>(true);
   const [panelSize, setPanelSize] = useState({ width: PANEL_WIDTH, height: PANEL_HEIGHT });
+  const panelSizeRef = useRef(panelSize);
+  panelSizeRef.current = panelSize;
   const [position, setPosition] = useState<PanelPosition>({ right: 20, bottom: 20 });
   const [openSide, setOpenSide] = useState<OpenSide>("left");
   const [stateReady, setStateReady] = useState(false);
@@ -247,7 +249,11 @@ export function FloatingAiAssistant() {
         if (state.position) {
           if (state.expanded) {
             setPosition(
-              clampPosition(state.position, panelSize.width, panelSize.height)
+              clampPosition(
+                state.position,
+                panelSizeRef.current.width,
+                panelSizeRef.current.height
+              )
             );
           } else {
             setPosition(state.position);
@@ -405,7 +411,7 @@ export function FloatingAiAssistant() {
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onUp);
     };
-  }, [isDragging, expanded, panelSize]);
+  }, [isDragging, expanded, panelSize, syncPositionToMain]);
 
   useEffect(() => {
     if (!isResizing) return;
@@ -529,7 +535,7 @@ export function FloatingAiAssistant() {
       setPanelSizeAndPosition(fitPanel(ballRight, position.bottom, panelSize, side));
     }
     setExpanded(true);
-  }, [expanded, position.right, panelSize]);
+  }, [expanded, position.right, position.bottom, panelSize, setPanelSizeAndPosition]);
 
   const handleCollapse = useCallback(() => {
     if (openSide === "right") {
