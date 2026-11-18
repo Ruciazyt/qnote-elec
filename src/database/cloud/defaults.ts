@@ -8,5 +8,8 @@ export function resolveDefaultEndpoint(): string {
 }
 
 export function normalizeEndpoint(endpoint: string): string {
-  return endpoint.trim().replace(/\/+$/, "");
+  const trimmed = endpoint.trim();
+  let end = trimmed.length;
+  while (end > 0 && trimmed[end - 1] === "/") end -= 1;
+  return trimmed.slice(0, end);
 }

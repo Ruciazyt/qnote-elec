@@ -60,7 +60,7 @@ const RULES: RiskRule[] = [
   {
     rule: "destructive-delete",
     pattern:
-      /\brm\s+-[a-zA-Z]*[rf][a-zA-Z]*\s|\brmdir\s+\/s|Remove-Item\b[^\n]*-Recurse|\bdel\s+\/[sS]\b/i,
+      /\brm\s+-[a-zA-Z]{0,40}[rf][a-zA-Z]{0,40}\s|\brmdir\s+\/s|Remove-Item\b[^\n]{0,400}-Recurse|\bdel\s+\/[sS]\b/i,
     reason: "递归删除 —— 可能删掉不该删的东西",
     severity: "danger",
   },

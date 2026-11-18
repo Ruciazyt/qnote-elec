@@ -1,5 +1,6 @@
+import { randomInt } from "node:crypto";
 import { log } from "../../main/core/system/log";
-import type { D1Config } from "../../shared/cloud/cloudTypes";
+import { normalizeEndpoint } from "./defaults";
 
 
 interface D1QueryResult {
@@ -68,7 +69,7 @@ export class D1Client {
   constructor(options: D1ClientOptions) {
     const custom = options.endpoint?.trim();
     this.endpoint = custom
-      ? custom.replace(/\/+$/, "")
+      ? normalizeEndpoint(custom)
       : `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(
           options.accountId ?? ""
         )}/d1/database/${encodeURIComponent(options.databaseId ?? "")}/query`;
@@ -103,7 +104,7 @@ export class D1Client {
         lastError = error;
         const retryable = allowRetry && attempt < attempts - 1 && this.isRetryable(error);
         if (!retryable) throw error;
-        const delay = 400 * 2 ** attempt + Math.random() * 250;
+        const delay = 400 * 2 ** attempt + randomInt(0, 250);
         log.warn(
           `[d1] 查询失败，第 ${attempt + 1}/${attempts} 次重试（${delay}ms 后）：`,
           error instanceof Error ? error.message : error

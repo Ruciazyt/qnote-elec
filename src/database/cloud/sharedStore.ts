@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import type { Knex } from "knex";
 import { log } from "../../main/core/system/log";
 import type {
@@ -70,7 +71,7 @@ function rowToApp(row: Record<string, unknown>): PublishedApp {
 }
 
 export function generateAppId(): string {
-  const random = Math.random().toString(36).slice(2, 8);
+  const random = randomBytes(4).toString("hex");
   return `app_${Date.now().toString(36)}_${random}`;
 }
 

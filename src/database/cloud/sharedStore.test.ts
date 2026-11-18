@@ -1,9 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import knexFactory, { type Knex } from "knex";
-import * as os from "node:os";
-import * as path from "node:path";
-import * as fs from "node:fs";
 
 vi.mock("electron", () => ({
   app: {
