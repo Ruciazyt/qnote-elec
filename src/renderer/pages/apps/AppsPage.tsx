@@ -356,8 +356,6 @@ export default function AppsPage() {
 
 
   const selectedRuntime = selectedId !== null ? runtime[selectedId] : undefined;
-  const isRunning =
-    selectedRuntime?.status === "running" || selectedRuntime?.status === "starting";
   const selectedLogs = selectedId !== null ? (logs[selectedId] ?? []) : [];
 
   const previewAddress = useMemo(() => {
