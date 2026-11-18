@@ -16,6 +16,11 @@ if (typeof window !== "undefined" && !("ResizeObserver" in window)) {
   window.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver;
 }
 
+if (typeof window !== "undefined" && typeof Element !== "undefined" && !Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = function scrollIntoView() {
+  };
+}
+
 if (typeof window !== "undefined") {
   beforeEach(() => {
     window.electron = createElectronStub();
