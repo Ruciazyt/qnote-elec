@@ -14,6 +14,7 @@ const h = vi.hoisted(() => {
   };
 
   const win = {
+    setVisibleOnAllWorkspaces: vi.fn(),
     loadURL: vi.fn(() => Promise.resolve()),
     loadFile: vi.fn(() => Promise.resolve()),
     once: (event: string, cb: (...args: unknown[]) => void) => {

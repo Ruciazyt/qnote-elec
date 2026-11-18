@@ -145,6 +145,10 @@ export class IslandWindow {
       },
     });
 
+    if (process.platform === "darwin") {
+      win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+    }
+
     this.win = win;
 
     if (!app.isPackaged) {
