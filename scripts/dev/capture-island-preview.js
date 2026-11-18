@@ -4,8 +4,10 @@ const fs = require("node:fs");
 
 const repoRoot = path.resolve(__dirname, "..", "..");
 
-const PAD_X = 10;
-const PAD_Y = 32;
+const STRIP_WIDTH = 44;
+const PANEL_WIDTH = 400;
+const PANEL_HEIGHT = 480;
+const BAR_HEIGHT = 44;
 
 const SAMPLE_TODOS = [
   {
@@ -103,6 +105,7 @@ function registerMocks() {
     expandTrigger: "click",
     hoverDelayMs: 300,
     attachMode: "attached",
+    dockEdge: "top",
     position: null,
     displayId: null,
   }));
@@ -110,7 +113,8 @@ function registerMocks() {
     expanded: false,
     page: "todo",
     attachMode: "attached",
-    size: { width: 330, height: 44 },
+    dockEdge: "top",
+    size: { width: PANEL_WIDTH, height: BAR_HEIGHT },
     position: { x: 0, y: 0 },
   }));
   ipcMain.handle("island:get-recent-notes", () => SAMPLE_NOTES);
@@ -140,7 +144,6 @@ function registerMocks() {
   ipcMain.handle("delete-ai-chat-session", () => true);
   ipcMain.handle("get-ai-skills", () => []);
   ipcMain.handle("send-ai-agent-stream", () => ({ sessionId: "preview-session" }));
-  ipcMain.on("island:set-collapsed-width", () => {});
   ipcMain.on("island:set-interactive", () => {});
   ipcMain.on("island:set-page", () => {});
   ipcMain.on("island:expand", () => {});
@@ -178,8 +181,8 @@ app.whenReady().then(async () => {
   const htmlPath = path.join(repoRoot, "dist", "renderer", "island.html");
 
   const win = new BrowserWindow({
-    width: 330 + PAD_X * 2,
-    height: 44 + PAD_Y,
+    width: PANEL_WIDTH,
+    height: BAR_HEIGHT,
     show: false,
     frame: false,
     transparent: true,
@@ -207,17 +210,55 @@ app.whenReady().then(async () => {
     expanded: false,
     page: "todo",
     attachMode: "floating",
-    size: { width: 330, height: 44 },
+    dockEdge: "top",
+    size: { width: PANEL_WIDTH, height: BAR_HEIGHT },
     position: { x: 0, y: 0 },
   });
   await wait(600);
   await capture(win, path.join(repoRoot, "dist", "island-preview-collapsed-floating.png"));
 
-  win.setSize(400 + PAD_X * 2, 480 + PAD_Y);
+  win.setSize(STRIP_WIDTH, PANEL_HEIGHT);
+  win.webContents.send("island:state", {
+    expanded: false,
+    page: "todo",
+    attachMode: "attached",
+    dockEdge: "left",
+    size: { width: STRIP_WIDTH, height: PANEL_HEIGHT },
+    position: { x: 0, y: 0 },
+  });
+  await wait(600);
+  await capture(win, path.join(repoRoot, "dist", "island-preview-strip-left.png"));
+
+  win.setSize(PANEL_WIDTH, PANEL_HEIGHT);
   win.webContents.send("island:state", {
     expanded: true,
     page: "todo",
     attachMode: "attached",
+    dockEdge: "left",
+    size: { width: PANEL_WIDTH, height: PANEL_HEIGHT },
+    position: { x: 0, y: 0 },
+  });
+  await wait(900);
+  await capture(win, path.join(repoRoot, "dist", "island-preview-expanded-left.png"));
+
+  win.setSize(STRIP_WIDTH, PANEL_HEIGHT);
+  win.webContents.send("island:state", {
+    expanded: false,
+    page: "todo",
+    attachMode: "attached",
+    dockEdge: "right",
+    size: { width: STRIP_WIDTH, height: PANEL_HEIGHT },
+    position: { x: 0, y: 0 },
+  });
+  await wait(600);
+  await capture(win, path.join(repoRoot, "dist", "island-preview-strip-right.png"));
+
+  win.setSize(PANEL_WIDTH, PANEL_HEIGHT);
+  win.webContents.send("island:state", {
+    expanded: true,
+    page: "todo",
+    attachMode: "attached",
+    dockEdge: "top",
     size: { width: 400, height: 480 },
     position: { x: 0, y: 0 },
   });
@@ -275,7 +316,7 @@ app.whenReady().then(async () => {
   await dumpState(win, "[ai]");
 
   const header = await win.webContents.capturePage({
-    clip: { x: PAD_X, y: 0, width: 400, height: 56 },
+    clip: { x: 0, y: 0, width: 400, height: 56 },
   });
   fs.writeFileSync(
     path.join(repoRoot, "dist", "island-preview-tabs-zoom.png"),
