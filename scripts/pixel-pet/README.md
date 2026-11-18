@@ -32,7 +32,7 @@ node scripts/pixel-pet/src/from-image.mjs path/to/output
 
 1. 把新图放进 `assets/`，改 `from-image.mjs` 顶部的 `SRC`
 2. 跑一次，**先看控制台输出的包围盒和调色板，再看 preview.png**
-3. 同步改 `src/renderer/components/ai/PixelPet.tsx` 的 `ANIM_LABEL`（读屏文案）
+3. 同步改 `src/renderer/pages/ai/PixelPet.tsx` 的 `ANIM_LABEL`（读屏文案）
 
 ### 这条路上必须知道的三件事
 
@@ -84,7 +84,7 @@ node scripts/pixel-pet/src/from-image.mjs path/to/output
 
 1. 在 `src/pet.mjs` 的 `ANIMATIONS` 里加一项（帧数与 fps）
 2. 在两个生成器的 `RECIPES` 里加对应的帧数组
-3. 在 `src/renderer/components/ai/PixelPet.tsx` 的 `ANIM_META` 里加同名的 `start` / `frames` / `fps`
+3. 在 `src/renderer/pages/ai/PixelPet.tsx` 的 `ANIM_META` 里加同名的 `start` / `frames` / `fps`
 
 
 ## 改色

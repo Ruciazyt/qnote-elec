@@ -21,9 +21,9 @@ import {
   X,
 } from "lucide-react";
 import { format } from "date-fns";
-import { Button } from "../ui/button";
-import { TooltipProvider } from "../ui/tooltip";
-import { ChatMessage } from "@/components/ai/types";
+import { Button } from "@/components/ui/button";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { ChatMessage } from "./types";
 import type { AssistantBlock, ToolCallRecord } from "@shared/ai/aiBlocks";
 import { aiImageDataUrl, type AiImageAttachment } from "@shared/ai/aiImages";
 import type { StreamingMessage, AiSkill } from "@/hooks/ai/useAiAssistant";

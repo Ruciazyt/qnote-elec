@@ -251,9 +251,9 @@ interface ElectronAPI {
     recent: import("../main/core/ai/observability/usageStats").UsageRecordRow[];
   }>;
   clearAiUsageLog: () => Promise<{ success: boolean; deleted?: number; error?: string }>;
-  getAiChatSessions: () => Promise<import("./components/ai/types").AiChatSession[]>;
-  createAiChatSession: () => Promise<import("./components/ai/types").AiChatSession>;
-  getAiChatSessionHistory: (chatSessionId: string) => Promise<Array<Omit<import("./components/ai/types").ChatMessage, "toolCalls"> & { tool_calls: import("./pages/home/clipboard/types").ToolCallRecord[] }>>;
+  getAiChatSessions: () => Promise<import("./pages/ai/types").AiChatSession[]>;
+  createAiChatSession: () => Promise<import("./pages/ai/types").AiChatSession>;
+  getAiChatSessionHistory: (chatSessionId: string) => Promise<Array<Omit<import("./pages/ai/types").ChatMessage, "toolCalls"> & { tool_calls: import("./pages/home/clipboard/types").ToolCallRecord[] }>>;
   deleteAiChatSession: (chatSessionId: string) => Promise<boolean>;
   clearAiChat: () => Promise<boolean>;
   getAiConfig: () => Promise<{ provider: string; apiKey: string; model: string; baseUrl: string }>;

@@ -382,7 +382,7 @@ components:
 - `components/ui/` —— shadcn/ui 基础件（button、dialog、popover、tooltip、toast、
 - `components/panel/` —— 通用面板件：`ResizableSidebar`（可折叠侧栏）、
 - `components/shell/` —— 应用外壳（标题栏、侧栏导航）、
-- `components/ai/` —— 跨页面复用的 AI 悬浮层（浮窗助手、桌宠）、
+- `pages/ai/` —— AI 悬浮层与对话面板（浮窗助手、桌宠）、
 - `hooks/panel/usePanelWidth.ts` / `hooks/panel/useCollapsedState.ts` —— 宽度与折叠态的持久化
 - 其余 `pages/<域>/` —— 业务件（笔记、题单、应用、剪贴板、快捷方式、待办…），
 

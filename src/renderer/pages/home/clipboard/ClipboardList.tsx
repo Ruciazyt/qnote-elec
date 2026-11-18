@@ -12,7 +12,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../../../components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "../../../components/ui/popover";
 import { ClipboardRecord } from "./types";
-import { getSupportedLanguages, SupportedLanguage } from "@/utils/ai/codeFormatter";
+import { getSupportedLanguages, SupportedLanguage } from "./codeFormatter";
 import { detectUrl } from "@/utils/clipboard/urlDetect";
 import { useAutoGrowTextarea } from "@/hooks/ui/useAutoGrowTextarea";
 import { useStickyHold } from "@/hooks/sticky/useStickyHold";

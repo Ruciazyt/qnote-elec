@@ -1,19 +1,19 @@
 import { useEffect, useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent } from "react";
 import { ArrowUp, ImagePlus, Loader2, Mic, Square, X } from "lucide-react";
-import { Button } from "../ui/button";
-import { Textarea } from "../ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "../ui/tooltip";
+} from "@/components/ui/tooltip";
 import { useAutoGrowTextarea } from "@/hooks/ui/useAutoGrowTextarea";
 import { useVoiceInput } from "@/hooks/ai/useVoiceInput";
 import { toast } from "@/hooks/ui/use-toast";
 import { cn } from "@/lib/utils";
 import { AI_IMAGE_MAX_COUNT, aiImageDataUrl, type AiImageAttachment } from "@shared/ai/aiImages";
-import { filesToAttachments, normalizeImageAttachment } from "@/utils/ai/imageAttachments";
+import { filesToAttachments, normalizeImageAttachment } from "./imageAttachments";
 
 export const AI_INPUT_MAX = 2000;
 const COMPOSER_MAX_HEIGHT = 200;

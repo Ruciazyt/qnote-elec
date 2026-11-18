@@ -20,7 +20,7 @@ const ROLE_DIRS = [
     },
     {
         dir: "src/renderer/components",
-        features: ["ai", "panel", "shell", "ui"],
+        features: ["panel", "shell", "ui"],
     },
     {
         dir: "src/renderer/hooks",
@@ -28,11 +28,11 @@ const ROLE_DIRS = [
     },
     {
         dir: "src/renderer/utils",
-        features: ["ai", "clipboard", "system"],
+        features: ["clipboard", "system"],
     },
     {
         dir: "src/renderer/pages",
-        features: ["apps", "browser", "clipboard-popup", "home", "island", "leetcode", "notes", "settings", "skills", "sticky", "todo"],
+        features: ["ai", "apps", "browser", "clipboard-popup", "home", "island", "leetcode", "notes", "settings", "skills", "sticky", "todo"],
     },
     {
         dir: "src/shared",

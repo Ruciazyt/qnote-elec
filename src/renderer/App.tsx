@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router";
 import "./index.css";
 import Layout from "./components/shell/layout";
 import { Toaster } from "./components/ui/toaster";
-import { FloatingAiAssistant } from "./components/ai/FloatingAiAssistant";
+import { FloatingAiAssistant } from "./pages/ai/FloatingAiAssistant";
 import { useScrollIndicator } from "./hooks/shell/useScrollIndicator";
 import { publishRoutePath } from "./hooks/system/routeStore";
 import { pushExternalAdd } from "./pages/home/shortcut/externalAdd";

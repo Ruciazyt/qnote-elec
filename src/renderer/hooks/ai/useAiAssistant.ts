@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AiChatSession, ChatMessage } from "@/components/ai/types";
+import { AiChatSession, ChatMessage } from "@/pages/ai/types";
 import { BlockBuilder, type AssistantBlock } from "@shared/ai/aiBlocks";
 import {
   AI_IMAGE_MAX_COUNT,

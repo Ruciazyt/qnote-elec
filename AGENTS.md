@@ -250,11 +250,11 @@ src/main/core/ai/<模块>/      ← AI 功能域：agents/ memory/ observability
 src/main/utils/              ← 扁平，无子目录：只放纯工具
 src/shared/notes/            src/shared/ai/           src/shared/apps/
 src/shared/clipboard/        src/shared/cloud/        src/shared/island/  src/shared/sticky/
-src/renderer/components/<公共件>/  ← ui/ panel/ shell/ ai/（只放跨页面复用的公共件）
-src/renderer/pages/<功能>/        ← apps/ browser/ clipboard-popup/ home/ island/
+src/renderer/components/<公共件>/  ← ui/ panel/ shell/（只放跨页面复用的公共件，功能级界面归到 pages/<功能>/）
+src/renderer/pages/<功能>/        ← ai/ apps/ browser/ clipboard-popup/ home/ island/
                                      leetcode/ notes/ settings/ skills/ sticky/ todo/
 src/renderer/hooks/<功能>/       ← ai/ browser/ panel/ sticky/ apps/ shell/ system/ ui/
-src/renderer/utils/<功能>/       ← ai/ clipboard/ system/
+src/renderer/utils/<功能>/       ← clipboard/ system/（只放跨页面复用的公共工具，功能级工具归到 pages/<功能>/）
 src/renderer/pages/<功能>/       ← home/ notes/ settings/ todo/ browser/ skills/ apps/
 ```
 
@@ -268,7 +268,7 @@ src/renderer/pages/<功能>/       ← home/ notes/ settings/ todo/ browser/ ski
 | 跨端共享类型 | `src/shared/<功能>/` |
 | 数据表与迁移 | `src/database/` |
 | 应用管理（项目清单、进程启停、HTML 预览） | `src/main/core/apps/appManager.ts`、`src/main/core/window/apps/appPreview.ts`、`src/main/utils/appManifest.ts`、`src/renderer/pages/apps/` |
-| AI 功能域（对话、Agent、记忆、提示词、工具调用、向量库） | `src/main/core/ai/`（平铺的 `aiService.ts` / `providers.ts` / `streaming.ts` / `toolContext.ts` 等 + `agents/` `memory/` `observability/` `prompts/` `skills/` `tools/` 六个子目录）、`src/main/handlers/ai/`、`src/shared/ai/` |
+| AI 功能域（对话、Agent、记忆、提示词、工具调用、向量库） | `src/main/core/ai/`（平铺的 `aiService.ts` / `providers.ts` / `streaming.ts` / `toolContext.ts` 等 + `agents/` `memory/` `observability/` `prompts/` `skills/` `tools/` 六个子目录）、`src/main/handlers/ai/`、`src/shared/ai/`、`src/renderer/pages/ai/`（渲染层 AI 界面：浮窗助手、桌宠、对话面板） |
 | 清单命令的风险分析（市场来源项目的启动确认） | `src/shared/apps/appRisk.ts`（纯函数）、`src/main/core/apps/appManager.ts`（`checkStartConfirmation` / `confirmStart`）、`src/renderer/pages/apps/StartConfirmDialog.tsx` |
 | 通用面板件（可折叠侧栏、拖拽分割线、宽度偏好） | `src/renderer/components/panel/`、`src/renderer/hooks/panel/usePanelWidth.ts`、`src/renderer/hooks/panel/useCoalescedStorage.ts`（合并写盘：拖拽时别每帧同步写 localStorage） |
 | 拖拽重排（列表 / 行 / dock 换序的手感） | `src/renderer/hooks/ui/useDragReorder.ts`（引擎）、`src/renderer/hooks/ui/dragReorderGeometry.ts`（几何纯函数）、`src/renderer/styles/drag-reorder.css`（动效）—— 自研，别再引 dnd-kit（已移除） |

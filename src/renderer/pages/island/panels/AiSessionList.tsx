@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { MessageSquareText, Plus, Search, Trash2 } from "lucide-react";
-import type { AiChatSession } from "@/components/ai/types";
+import type { AiChatSession } from "@/pages/ai/types";
 import { buildSessionPreview } from "@shared/ai/aiSessionPreview";
 import { sessionDateLabel } from "../format";
 

@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import "@/styles/prism-clipboard.css";
 import { useToast } from "@/hooks/ui/use-toast";
-import { formatCode, type SupportedLanguage } from "@/utils/ai/codeFormatter";
-import { highlightClipboardCodes } from "@/utils/clipboard/prismHighlight";
+import { formatCode, type SupportedLanguage } from "@/pages/home/clipboard/codeFormatter";
+import { highlightClipboardCodes } from "@/pages/home/clipboard/prismHighlight";
 import { randomHex } from "@/utils/system/randomId";
 import { ClipboardToolbar } from "@/pages/home/clipboard/ClipboardToolbar";
 import { ClipboardList } from "@/pages/home/clipboard/ClipboardList";

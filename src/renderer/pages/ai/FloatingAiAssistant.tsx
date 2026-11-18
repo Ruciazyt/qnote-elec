@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Bot, Minus, Plus } from "lucide-react";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "../ui/tooltip";
+} from "@/components/ui/tooltip";
 import { useAiAssistant } from "@/hooks/ai/useAiAssistant";
 import { useNativeViewCover } from "@/hooks/apps/useNativeViewCover";
 import { useVoiceInput } from "@/hooks/ai/useVoiceInput";

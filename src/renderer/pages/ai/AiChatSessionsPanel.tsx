@@ -1,7 +1,7 @@
 import { useState, useEffect, type KeyboardEvent } from "react";
 import { format } from "date-fns";
 import { MessageSquareText, Plus, Search, Trash2 } from "lucide-react";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -9,13 +9,13 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "../ui/dialog";
-import { Input } from "../ui/input";
-import { useBrowserSurface } from "../../hooks/browser/useBrowserSurface";
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { useBrowserSurface } from "@/hooks/browser/useBrowserSurface";
 import { AiComposer } from "./AiComposer";
-import type { AiChatSession } from "@/components/ai/types";
+import type { AiChatSession } from "./types";
 import type { AiImageAttachment } from "@shared/ai/aiImages";
-import { buildSessionPreview } from "../../../shared/ai/aiSessionPreview";
+import { buildSessionPreview } from "@shared/ai/aiSessionPreview";
 
 interface AiChatSessionsPanelProps {
   sessions: AiChatSession[];

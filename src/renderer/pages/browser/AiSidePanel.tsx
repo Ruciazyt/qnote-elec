@@ -1,8 +1,8 @@
 import { MessageSquarePlus, History, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAiAssistant } from "@/hooks/ai/useAiAssistant";
-import { AiChatPanel } from "../../components/ai/AiChatPanel";
-import { AiChatSessionsPanel } from "../../components/ai/AiChatSessionsPanel";
+import { AiChatPanel } from "@/pages/ai/AiChatPanel";
+import { AiChatSessionsPanel } from "@/pages/ai/AiChatSessionsPanel";
 import { cn } from "@/lib/utils";
 
 export function AiSidePanel() {
