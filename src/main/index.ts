@@ -2,12 +2,9 @@ import {
   app,
   BrowserWindow,
   Tray,
-  Menu,
   globalShortcut,
   ipcMain,
-  screen,
   shell,
-  nativeImage,
 } from "electron";
 import * as path from "node:path";
 import { migrateRun } from "../database/migrations/index";
@@ -34,6 +31,8 @@ import { registerOcrHandlers } from "./handlers/ai/ocrHandlers";
 import { registerConfigHandlers } from "./handlers/system/configHandlers";
 import { registerAiHandlers } from "./handlers/ai/aiHandlers";
 import { registerVectorHandlers } from "./handlers/ai/vectorHandlers";
+import { registerMcpHandlers } from "./handlers/ai/mcpHandlers";
+import { mcpManager } from "./core/ai/mcp/manager";
 import { registerLeetcodeHandlers } from "./handlers/leetcode/leetcodeHandlers";
 import { registerDatabaseTransferHandlers } from "./handlers/system/databaseTransferHandlers";
 import { registerClipboardPopupHandlers } from "./handlers/clipboard/clipboardPopupHandlers";
@@ -176,6 +175,7 @@ function registerIpcHandlers() {
   registerFileHandlers(fileWriter, externalFolderStore);
   registerNoteHandlers(DB);
   registerTemplateHandlers(DB);
+  registerMcpHandlers();
   registerOcrHandlers(DB);
   registerConfigHandlers();
   registerAiHandlers(DB, fileWriter);
@@ -461,11 +461,18 @@ void app
         initCloudStorage(DB);
 
         try {
+          await mcpManager.init(DB);
+        } catch (mcpErr) {
+          log.error("[mcp] 初始化失败", mcpErr);
+        }
+
+        try {
           const islandSettings = await configManager.getIslandSettings();
           const island = IslandWindow.getInstance();
           island.setEnabled(islandSettings.enabled);
-          island.applyAttachMode(
+          island.applyDock(
             islandSettings.attachMode,
+            islandSettings.dockEdge,
             islandSettings.position,
             islandSettings.displayId
           );

@@ -3,7 +3,6 @@
 interface ElectronAPI {
   minimizeWindow: () => void;
   maximizeWindow: () => void;
-  closeWindow: () => void;
   openDevTools: () => void;
 
   onClipboardChanged: (callback: (event: unknown, data: import("./pages/home/clipboard/types").ClipboardRecord) => void) => void;
@@ -134,6 +133,53 @@ interface ElectronAPI {
     imported?: string[];
     updated?: string[];
     skipped?: Array<{ name: string; reason: string }>;
+    error?: string;
+  }>;
+
+  listMcpServers: () => Promise<import("../shared/ai/mcp").McpServerState[]>;
+  saveMcpServer: (server: import("../shared/ai/mcp").McpServerInput) => Promise<{
+    success: boolean;
+    server?: import("../shared/ai/mcp").McpServerState;
+    error?: string;
+  }>;
+  deleteMcpServer: (id: string) => Promise<{ success: boolean; error?: string }>;
+  connectMcpServer: (id: string) => Promise<{
+    success: boolean;
+    server?: import("../shared/ai/mcp").McpServerState;
+    error?: string;
+  }>;
+  disconnectMcpServer: (id: string) => Promise<{
+    success: boolean;
+    server?: import("../shared/ai/mcp").McpServerState;
+    error?: string;
+  }>;
+  listMcpTools: (id: string) => Promise<import("../shared/ai/mcp").McpToolInfo[]>;
+  setMcpServerEnabled: (
+    id: string,
+    enabled: boolean
+  ) => Promise<{
+    success: boolean;
+    server?: import("../shared/ai/mcp").McpServerState;
+    error?: string;
+  }>;
+  getMcpProject: () => Promise<import("../shared/ai/mcp").McpProjectState>;
+  pickMcpProjectDir: () => Promise<{
+    success: boolean;
+    canceled?: boolean;
+    project?: import("../shared/ai/mcp").McpProjectState;
+    error?: string;
+  }>;
+  setMcpProjectDir: (
+    dir: string | null
+  ) => Promise<{
+    success: boolean;
+    project?: import("../shared/ai/mcp").McpProjectState;
+    error?: string;
+  }>;
+  reloadMcp: () => Promise<{
+    success: boolean;
+    servers?: import("../shared/ai/mcp").McpServerState[];
+    project?: import("../shared/ai/mcp").McpProjectState;
     error?: string;
   }>;
 
@@ -562,7 +608,6 @@ interface ElectronAPI {
   islandCollapse: () => void;
   islandToggle: () => void;
   islandSetPage: (page: import("../shared/island/island").IslandPage) => void;
-  islandSetCollapsedWidth: (width: number) => void;
   islandResetPosition: () => void;
   islandSetInteractive: (interactive: boolean) => void;
   islandDragStart: (screenX: number, screenY: number) => void;

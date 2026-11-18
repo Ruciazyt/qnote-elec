@@ -144,8 +144,21 @@ function lastAiText(messages: BaseMessage[]): string {
   return '';
 }
 
+export const AGENT_SAFETY_MAX_ITERATIONS = 40;
+export const AGENT_DEADLINE_MS = 10 * 60 * 1000;
+
+const REPEAT_WARN_LIMIT = 3;
+const REPEAT_STOP_LIMIT = 6;
+
+function callSignature(calls: ToolDecision['calls']): string {
+  return calls
+    .map((tc) => `${tc.name}:${JSON.stringify(tc.args ?? {})}`)
+    .join('|');
+}
+
 export async function runAgent(opts: RunAgentOptions): Promise<AgentResult> {
-  const maxIter = opts.maxIterations ?? 8;
+  const maxIter = opts.maxIterations ?? AGENT_SAFETY_MAX_ITERATIONS;
+  const deadline = Date.now() + (opts.deadlineMs ?? AGENT_DEADLINE_MS);
   const messages = [...opts.messages];
   const toolCalls: AgentResult['toolCalls'] = [];
   const toolMap = new Map<string, StructuredToolInterface>();
@@ -156,10 +169,20 @@ export async function runAgent(opts: RunAgentOptions): Promise<AgentResult> {
   let finalContent = '';
   let converged = false;
   let truncated = false;
+  let rounds = 0;
+  let safetyReason = '';
+  let lastSignature = '';
+  let repeatCount = 0;
 
   for (let iter = 0; iter < maxIter; iter++) {
     opts.signal?.throwIfAborted();
 
+    if (Date.now() > deadline) {
+      safetyReason = `单次运行超过 ${Math.round((opts.deadlineMs ?? AGENT_DEADLINE_MS) / 60000)} 分钟`;
+      break;
+    }
+
+    rounds = iter + 1;
     const roundCallbacks = opts.callbacksFactory ? opts.callbacksFactory(iter) : opts.callbacks;
 
     const response = await callModelOnce(opts, messages, roundCallbacks);
@@ -196,6 +219,45 @@ export async function runAgent(opts: RunAgentOptions): Promise<AgentResult> {
       continue;
     }
 
+    const signature = callSignature(calls);
+    if (signature === lastSignature) {
+      repeatCount += 1;
+    } else {
+      lastSignature = signature;
+      repeatCount = 0;
+    }
+
+    if (repeatCount >= REPEAT_STOP_LIMIT) {
+      safetyReason = '连续多次用相同参数调用同一个工具';
+      for (const tc of calls) {
+        messages.push(
+          new ToolMessage({
+            content:
+              '[重复调用已中断] 你连续多次用相同参数调用同一个工具，没有拿到新信息。请换一种做法，或者直接给出结论。',
+            tool_call_id: tc.id ?? '',
+            name: tc.name ?? '',
+          })
+        );
+      }
+      break;
+    }
+
+    if (repeatCount === REPEAT_WARN_LIMIT) {
+      const names = calls.map((tc) => tc?.name ?? '?').join(', ');
+      log.warn(`[agent] 工具调用重复 ${repeatCount} 次：${names}`);
+      for (const tc of calls) {
+        messages.push(
+          new ToolMessage({
+            content:
+              '[提醒] 你刚才用完全相同的参数重复调用了同一个工具，结果不会变化。请换参数、换工具，或者直接给出结论。',
+            tool_call_id: tc.id ?? '',
+            name: tc.name ?? '',
+          })
+        );
+      }
+      continue;
+    }
+
     announceToolCalls(calls, opts.onEvent);
 
     const executions = await executeTools(calls, opts, toolMap, roundCallbacks);
@@ -203,13 +265,17 @@ export async function runAgent(opts: RunAgentOptions): Promise<AgentResult> {
   }
 
   const content = converged ? finalContent : finalContent || lastAiText(messages);
+  if (!converged && !safetyReason) {
+    safetyReason = `达到单次运行的熔断上限（${maxIter} 轮）`;
+  }
 
   return {
     content,
     messages,
     toolCalls,
-    hitIterationLimit: !converged,
-    maxIterations: maxIter,
+    rounds,
+    hitSafetyLimit: !converged,
+    safetyReason: safetyReason || undefined,
     truncated,
   };
 }

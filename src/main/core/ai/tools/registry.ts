@@ -11,6 +11,9 @@ import { browserGetSnapshotTool } from './browser/browserSnapshot';
 import { browserClickTool } from './browser/browserClick';
 import { browserFillTool } from './browser/browserFill';
 import { browserNavigateTool } from './browser/browserNavigate';
+import { webSearchTool } from './web/webSearch';
+import { webFetchTool } from './web/webFetch';
+import { mcpManager } from '../mcp/manager';
 
 export const READ_TOOLS: StructuredToolInterface[] = [
   getClipboardHistoryTool,
@@ -20,6 +23,8 @@ export const READ_TOOLS: StructuredToolInterface[] = [
   readNoteTool,
   recallTool,
   browserGetSnapshotTool,
+  webSearchTool,
+  webFetchTool,
 ];
 
 export const WRITE_TOOLS: StructuredToolInterface[] = [
@@ -32,7 +37,14 @@ export const WRITE_TOOLS: StructuredToolInterface[] = [
 ];
 
 export function getEnabledTools(): StructuredToolInterface[] {
-  return [...READ_TOOLS, ...WRITE_TOOLS];
+  return [...READ_TOOLS, ...WRITE_TOOLS, ...mcpManager.getTools()];
 }
 
-export const ALL_TOOL_NAMES = getEnabledTools().map((t) => t.name);
+export async function prepareEnabledTools(): Promise<StructuredToolInterface[]> {
+  await mcpManager.ensureToolsReady();
+  return getEnabledTools();
+}
+
+export function getAllToolNames(): string[] {
+  return getEnabledTools().map((t) => t.name);
+}

@@ -27,8 +27,9 @@ export interface AgentResult {
   content: string;
   messages: BaseMessage[];
   toolCalls: Array<{ name: string; args: any; result: string; isError?: boolean }>;
-  hitIterationLimit: boolean;
-  maxIterations: number;
+  rounds: number;
+  hitSafetyLimit: boolean;
+  safetyReason?: string;
   truncated: boolean;
 }
 
@@ -37,6 +38,7 @@ export interface RunAgentOptions {
   messages: BaseMessage[];
   tools: StructuredToolInterface[];
   maxIterations?: number;
+  deadlineMs?: number;
   signal?: AbortSignal;
   callbacks?: unknown[];
   callbacksFactory?: (agentIteration: number) => unknown[];

@@ -38,9 +38,10 @@ import {
 } from "../../core/ai/providers";
 import {
   runAgent,
+  AGENT_SAFETY_MAX_ITERATIONS,
 } from "../../core/ai/agents/runAgent";
 import {
-  getEnabledTools,
+  prepareEnabledTools,
   composeMemoryBlock,
 } from "../../core/ai/tools/index";
 import { setToolContext } from "../../core/ai/toolContext";
@@ -451,7 +452,7 @@ export function registerAiHandlers(DB: any, fileWriter: FileWriter) {
             return;
           }
 
-          const tools = getEnabledTools();
+          const tools = await prepareEnabledTools();
           log.info(`[ai-agent] session ${sessionId} tools=${tools.map(t => t.name).join(",")}`);
 
           const model = createChatModel({
@@ -555,7 +556,6 @@ export function registerAiHandlers(DB: any, fileWriter: FileWriter) {
             messages: lcMessages,
             tools,
             signal: controller.signal,
-            maxIterations: 6,
             callbacksFactory: (agentIteration: number) => [
               new ObservabilityCallback({
                 provider: aiConfig.provider,
@@ -610,7 +610,7 @@ export function registerAiHandlers(DB: any, fileWriter: FileWriter) {
           const blocks = blockBuilder.blocks();
           const finalText = accumulatedText || result.content;
 
-          if (result.hitIterationLimit) {
+          if (result.hitSafetyLimit) {
             let rowIds: number[] = [];
             try {
               const persisted = await persistAiChatExchange(
@@ -633,16 +633,16 @@ export function registerAiHandlers(DB: any, fileWriter: FileWriter) {
               accumulatedText,
               blocks,
               rowIds,
-              totalRounds: result.maxIterations,
-              maxIterations: result.maxIterations,
+              totalRounds: result.rounds,
+              maxIterations: AGENT_SAFETY_MAX_ITERATIONS,
             });
             log.info(
-              `[ai-agent] session ${sessionId} 撞上轮次上限(${result.maxIterations})，已落库并等待用户决定`
+              `[ai-agent] session ${sessionId} 触发熔断(${result.safetyReason ?? '未知原因'})，已落库并等待用户决定`
             );
             sender.send("ai-stream:need_continue", {
               sessionId,
-              rounds: result.maxIterations,
-              totalRounds: result.maxIterations,
+              rounds: result.rounds,
+              totalRounds: result.rounds,
             });
             return;
           }
@@ -700,7 +700,7 @@ export function registerAiHandlers(DB: any, fileWriter: FileWriter) {
 
       try {
         const aiConfig = await configManager.getAiConfig();
-        const tools = getEnabledTools();
+        const tools = await prepareEnabledTools();
         setToolContext({ DB, aiConfig });
         const model = createChatModel({
           provider: aiConfig.provider as any,
@@ -758,11 +758,11 @@ export function registerAiHandlers(DB: any, fileWriter: FileWriter) {
           },
         });
 
-        const totalRounds = record.totalRounds + record.maxIterations;
+        const totalRounds = record.totalRounds + result.rounds;
         const finalText = accumulatedText || result.content;
         const blocks = [...priorBlocks, ...blockBuilder.blocks()];
 
-        if (result.hitIterationLimit) {
+        if (result.hitSafetyLimit) {
           record.messages = result.messages;
           record.accumulatedText = accumulatedText;
           record.blocks = blocks;
@@ -778,7 +778,7 @@ export function registerAiHandlers(DB: any, fileWriter: FileWriter) {
           if (!sender.isDestroyed()) {
             sender.send("ai-stream:need_continue", {
               sessionId,
-              rounds: result.maxIterations,
+              rounds: result.rounds,
               totalRounds,
             });
           }

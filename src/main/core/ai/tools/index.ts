@@ -11,3 +11,5 @@ export { browserGetSnapshotTool } from './browser/browserSnapshot';
 export { browserClickTool } from './browser/browserClick';
 export { browserFillTool } from './browser/browserFill';
 export { browserNavigateTool } from './browser/browserNavigate';
+export { webSearchTool } from './web/webSearch';
+export { webFetchTool } from './web/webFetch';

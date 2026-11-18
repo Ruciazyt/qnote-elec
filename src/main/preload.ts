@@ -17,7 +17,6 @@ interface BrowserBridgeState {
 contextBridge.exposeInMainWorld("electron", {
   minimizeWindow: () => ipcRenderer.send("minimize-window"),
   maximizeWindow: () => ipcRenderer.send("maximize-window"),
-  closeWindow: () => ipcRenderer.send("close-window"),
   openDevTools: () => ipcRenderer.send("open-dev-tools"),
   onClipboardChanged: (callback: any) => {
     ipcRenderer.on("clipboard-changed", callback);
@@ -44,6 +43,32 @@ contextBridge.exposeInMainWorld("electron", {
   previewAiSkillUrl: (url: string) => ipcRenderer.invoke("preview-ai-skill-url", url),
   importAiSkills: (skills: Array<{ name: string; content: string }>) =>
     ipcRenderer.invoke("import-ai-skills", skills),
+
+  listMcpServers: () => ipcRenderer.invoke("mcp-list-servers"),
+  saveMcpServer: (server: {
+    id?: string;
+    name: string;
+    transport: "stdio" | "http" | "sse";
+    enabled?: boolean;
+    command?: string;
+    args?: string[];
+    env?: Record<string, string>;
+    cwd?: string;
+    url?: string;
+    headers?: Record<string, string>;
+    timeout?: number;
+  }) => ipcRenderer.invoke("mcp-save-server", server),
+  deleteMcpServer: (id: string) => ipcRenderer.invoke("mcp-delete-server", id),
+  connectMcpServer: (id: string) => ipcRenderer.invoke("mcp-connect-server", id),
+  disconnectMcpServer: (id: string) => ipcRenderer.invoke("mcp-disconnect-server", id),
+  listMcpTools: (id: string) => ipcRenderer.invoke("mcp-list-tools", id),
+  setMcpServerEnabled: (id: string, enabled: boolean) =>
+    ipcRenderer.invoke("mcp-set-server-enabled", id, enabled),
+  getMcpProject: () => ipcRenderer.invoke("mcp-get-project"),
+  pickMcpProjectDir: () => ipcRenderer.invoke("mcp-pick-project-dir"),
+  setMcpProjectDir: (dir: string | null) =>
+    ipcRenderer.invoke("mcp-set-project-dir", dir),
+  reloadMcp: () => ipcRenderer.invoke("mcp-reload"),
 
   getPathForFile: (file: File) => webUtils.getPathForFile(file),
 
@@ -606,8 +631,6 @@ contextBridge.exposeInMainWorld("electron", {
   islandCollapse: () => ipcRenderer.send("island:collapse"),
   islandToggle: () => ipcRenderer.send("island:toggle"),
   islandSetPage: (page: string) => ipcRenderer.send("island:set-page", page),
-  islandSetCollapsedWidth: (width: number) =>
-    ipcRenderer.send("island:set-collapsed-width", width),
   islandResetPosition: () => ipcRenderer.send("island:reset-position"),
   islandSetInteractive: (interactive: boolean) =>
     ipcRenderer.send("island:set-interactive", interactive),
