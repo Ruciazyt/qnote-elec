@@ -25,8 +25,8 @@ export default function TitleBar() {
     window.electron.maximizeWindow();
   };
 
-  const handleClose = () => {
-    window.electron.closeWindow();
+  const handleHide = () => {
+    window.electron.minimizeWindow();
   };
 
   return (
@@ -62,9 +62,9 @@ export default function TitleBar() {
         <button
           type="button"
           className="h-10 w-10 flex items-center justify-center no-drag"
-          onClick={handleClose}
-          title="关闭"
-          aria-label="关闭">
+          onClick={handleHide}
+          title="最小化"
+          aria-label="最小化">
           <X className="h-4 w-4" />
         </button>
       </div>

@@ -3,7 +3,7 @@ import * as path from "node:path";
 import * as fs from "node:fs";
 import { log } from "../system/log";
 import { getPreloadPath } from "../../utils/paths";
-import { markQuitting, shouldHideToTray } from "../system/appState";
+import { shouldHideToTray } from "../system/appState";
 import { resolveAppIcon } from "../../utils/assets";
 import { IslandWindow } from "./island/island";
 
@@ -225,10 +225,6 @@ export function createMainWindow(): BrowserWindow {
       win.maximize();
     }
   };
-  const closeWindowHandler = () => {
-    markQuitting();
-    app.quit();
-  };
   const openDevToolsHandler = () => {
     log.info("收到打开开发者工具请求");
     if (win) {
@@ -241,13 +237,11 @@ export function createMainWindow(): BrowserWindow {
 
   ipcMain.on("minimize-window", minimizeHandler);
   ipcMain.on("maximize-window", maximizeWindowHandler);
-  ipcMain.on("close-window", closeWindowHandler);
   ipcMain.on("open-dev-tools", openDevToolsHandler);
 
   ipcListenerRefs.push(
     { channel: "minimize-window", handler: minimizeHandler as any },
     { channel: "maximize-window", handler: maximizeWindowHandler as any },
-    { channel: "close-window", handler: closeWindowHandler as any },
     { channel: "open-dev-tools", handler: openDevToolsHandler as any }
   );
 
