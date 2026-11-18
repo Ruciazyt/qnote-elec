@@ -104,7 +104,31 @@ mac 应用图标是满幅方形（圆角由系统遮罩加），窗口图标保�
 输出 `resources/trayTemplate.png`（16px）与 `trayTemplate@2x.png`（32px），
 系统根据菜单栏背景自动调整颜色。
 
-## 七、已知限制
+## 七、自动更新在 macOS 上走自研通道
+
+Windows 用 electron-updater 的原生安装器（NSIS），macOS 不走这条路。
+
+原因是 Squirrel.Mac 的校验语义：它用**当前运行中 app 的 designated requirement**
+去校验新下载的 `.app`（`SQRLCodeSignature.verifyBundleAtURL` 调
+`SecStaticCodeCheckValidityWithErrors`）。对没有 Developer ID 签名的 app，这个
+requirement 会退化成 `cdhash` 比对 —— 新旧版本字节不同就必然不成立，
+报错形如 `code has no resources but signature indicates they must be present`。
+这不是打包配置能调好的，`identity` / `hardenedRuntime` 怎么改都没用。
+
+所以 macOS 上由应用自己完成安装（`src/main/core/update/macInstaller.ts`）：
+
+1. 等应用进程退出（覆盖正在运行的 Mach-O 会 ETXTBSY）；
+2. `ditto -x -k` 解包更新包；
+3. `xattr -dr com.apple.quarantine` 清隔离属性，否则首次启动会被 Gatekeeper 拦；
+4. `codesign --force --deep --sign -` 做 ad-hoc 重签，重新生成 `_CodeSignature/CodeResources`；
+5. 旧 bundle 改名 `.old` 备份，新 bundle 换上去，失败就回滚；
+6. `open` 重新启动。
+
+日志落在 `~/Library/Application Support/QNote/qnote-mac-updater/install.log`。
+
+拿到 Apple Developer ID 证书并公证后，这条通道可以撤掉，macOS 改回原生安装器。
+
+## 八、已知限制
 
 - **`qnote-note://` 协议没有在系统层注册**。应用内部的预览走
 - **屏幕录制权限不涉及**。OCR 走的是渲染层的画布抓取，不是系统级截屏，

@@ -271,6 +271,7 @@ src/renderer/pages/<功能>/       ← home/ notes/ settings/ todo/ browser/ ski
 | AI 功能域（对话、Agent、记忆、提示词、工具调用、向量库） | `src/main/core/ai/`（平铺的 `aiService.ts` / `providers.ts` / `streaming.ts` / `toolContext.ts` 等 + `agents/` `memory/` `observability/` `prompts/` `skills/` `tools/` 六个子目录）、`src/main/handlers/ai/`、`src/shared/ai/` |
 | 清单命令的风险分析（市场来源项目的启动确认） | `src/shared/apps/appRisk.ts`（纯函数）、`src/main/core/apps/appManager.ts`（`checkStartConfirmation` / `confirmStart`）、`src/renderer/pages/apps/StartConfirmDialog.tsx` |
 | 通用面板件（可折叠侧栏、拖拽分割线、宽度偏好） | `src/renderer/components/panel/`、`src/renderer/hooks/panel/usePanelWidth.ts`、`src/renderer/hooks/panel/useCoalescedStorage.ts`（合并写盘：拖拽时别每帧同步写 localStorage） |
+| 拖拽重排（列表 / 行 / dock 换序的手感） | `src/renderer/hooks/ui/useDragReorder.ts`（引擎）、`src/renderer/hooks/ui/dragReorderGeometry.ts`（几何纯函数）、`src/renderer/styles/drag-reorder.css`（动效）—— 自研，别再引 dnd-kit（已移除） |
 | 上下分栏（笔记树 / 外部文件夹，默认 6:4，可拖动） | `src/renderer/components/panel/PanelHeightResizer.tsx`（纵向分割线）、`src/renderer/hooks/panel/useSplitRatio.ts`（比例持久化）、`src/renderer/pages/notes/layout.ts`（比例与收起态高度常量） |
 | 灵动岛（最小化后顶在屏幕顶边的浮层） | `src/shared/island/island.ts`（契约）、`src/main/core/window/island/island.ts`（窗口与几何）、`src/main/handlers/island/islandHandlers.ts`（IPC）、`src/renderer/pages/island/`（界面） |
 | 云端存储（共享数据放 D1，私有数据留本地） | `src/database/cloud/`（存储层）、`src/main/handlers/cloud/cloudHandlers.ts`（IPC）、`src/renderer/pages/settings/CloudStorageCard.tsx`、`src/renderer/pages/apps/PublishedAppMarket.tsx` |
@@ -349,15 +350,26 @@ The string is missing the terminator: ".
 
 
 - **尺寸动画由主进程逐帧 `setBounds` 驱动**。Electron 的 `setBounds(bounds, animate)`
-- **胶囊宽度由渲染层量出来报给主进程**（`ResizeObserver` → `island:set-collapsed-width`），
-- **贴顶时顶端两角是直角，浮着时四角一样圆**（`data-attach="attached" | "floating"`）。
-- **展开态的面板不画阴影**：面板这么大，一层厚阴影压下去像块黑砖，
-- **窗口比卡片大一圈，专门留给阴影**（`ISLAND_SHADOW_PAD_X / ISLAND_SHADOW_PAD_Y`）。
+- **收起横条的宽度是定死的 400**（等于展开宽度），不再由渲染层量出来报给主进程
+  —— `island:set-collapsed-width` 整条链路已删。展开时只变高度，没有横向抖动；
+  侧边竖条的宽度是定死的 44。
+- **收起条上的剪切板文字点一下就复制**：走 `popup-copy-clipboard-item` 把那条写回系统剪贴板，
+  摘要短暂显示「已复制」。点它**不能**顺手把岛展开 —— 摘要按钮的 `onPointerDown`
+  必须 `stopPropagation`，否则胶囊的拖拽逻辑会把它当成点击胶囊。
+- **摘要优先级**：AI 运行中 > 剪切板第一条 > 未完成待办 > 最近笔记；只有剪切板来源可点复制。
+- **停靠边有三条**：`top`（横条）/ `left` / `right`（竖条），记在配置里的 `dockEdge`。
+  拖动松手时取离得最近的那条边吸附（三条都够远就浮着）。
+- **吸附目标屏按指针位置判，不按卡片中心**：卡片比指针宽，拖到屏幕边缘时中心会越过
+  边界落进隔壁屏 —— 按中心判会把岛吸到隔壁屏的左边缘，看着就像「消失了」。
+- **贴着屏幕的那一侧是直角**，浮着时四角一样圆（`data-attach` + `data-edge`）。
+- **整块岛不画阴影**：阴影太重；窗口也不再比卡片大一圈 —— 窗口就是卡片本身。
 - **鼠标不在卡片上时，窗口要放成穿透**（`island:set-interactive` →
 - **拖动期间不能改穿透状态**：窗口一放行鼠标，渲染层的指针捕获就丢了，
 - **拖动位置直接发 IPC，别攒到下一帧**：攒一帧就是白白多等 16ms（60Hz），
 - **岛不跟着鼠标换屏**：放在哪块屏就留在哪块屏，显示器 id 记在配置里
-- **横向位置要记住**：吸回顶边只改纵向，横向停在用户放的地方 ——
+- **吸回边缘只改垂直于那条边的坐标**：吸回顶边只改纵向，横向停在用户放的地方；
+- **侧边竖条和展开面板等高**（都是 480），所以侧边打开时只有宽度在变 ——
+  贴着停靠边横向铺开，不是从上往下掉。
 - **展开动画不回弹**（`easeOutQuint`，约等于 DESIGN.md 那条
 - **面板内容一直挂着**，不跟着展开收起卸载 —— 展开那一刻才 mount 一大棵列表，
 - **岛的配色要单独钉**。`--island-*` 是私有 token，CSS 文字对比度守卫不认
@@ -453,6 +465,25 @@ pnpm run lint:fix            # 能自动修的机械问题（未用 import、pre
 | `qnote/no-direct-database-import` | 渲染层与共享层不得直接引数据层，数据访问走主进程 IPC | error |
 | `qnote/no-arbitrary-duration` | 禁止 `duration-[...]` 任意值时长（判歧义后规则根本不生成），改用 `tailwind.config.js` 登记的命名档位 | error |
 | `qnote/no-module-state-in-utils` | `src/main/utils/` 里不许有模块级可变状态（模块级 `let`、导出的共享实例、会被改的 Map/Set）—— 那是 `core/` 的活 | error |
+
+### 6.9 拖拽重排：自研引擎，别用 dnd-kit
+
+排序类交互（列表换序、行重排、dock 重排）统一走 `src/renderer/hooks/ui/useDragReorder.ts`，
+动效样式在 `src/renderer/styles/drag-reorder.css`，几何算在 `dragReorderGeometry.ts`（纯函数，可单测）。
+**dnd-kit 已移除** —— 它的「transform + 单一 transition」模型表达不了「落点细线从中间生长」、
+「A x 0.7^n 的波纹 + 24ms x n 延迟」和「每段动效各自的曲线」，所以重写了引擎。
+
+- **只用 transform 移动，不改 layout**：被拖的项 `position: absolute` 脱离文档流（原位闭合），
+  其余项靠 `--drag-x` / `--drag-y` 摆位；拖动过程不再读 DOM 尺寸。
+- **三条曲线各归各**：`--drag-ease-hand`（跟手 90ms）/ `--drag-ease-pop`（抬起 180ms）/
+  `--drag-ease-spring`（落位 250ms，几乎不过冲）。别拿一个 ease-out 走天下。
+- **落点细线是 15% 文字色**（`hsl(var(--foreground) / 0.15)`），画在空隙里，从中间生长、换空隙滑行；
+  落点就是它自己的原位时不画线。
+- **波纹振幅 A x 0.7^n，延迟 24ms x n**：离线近的先动、动得多（图标 A≈10px、卡片 A≈8px）。
+- **落下用 FLIP**：记下落下瞬间的视觉位置，换序后用 transform 倒推回去再弹回 0。
+- **键盘也能排**：空格/回车拾起、方向键移动、空格放下、Esc 取消，用 `aria-live` 播报位置。
+- **reduced-motion 只留那条线**：项不位移、不缩放。
+- **拖拽引擎自带样式**：`useDragReorder.ts` 里 import 了 CSS，别在页面里重复引。
 
 ---
 
