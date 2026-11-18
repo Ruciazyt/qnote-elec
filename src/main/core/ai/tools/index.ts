@@ -2,6 +2,7 @@ export type { ToolContext } from "../toolContext";
 export * from './registry';
 export { getClipboardHistoryTool } from './getClipboard';
 export { getTodosTool } from './getTodos';
+export { createTodoTool, updateTodoTool } from './todoTools';
 export { getAppInfoTool } from './getAppInfo';
 export { saveNoteTool } from './saveNote';
 export { listNotesTool } from './listNotes';

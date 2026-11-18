@@ -2,6 +2,7 @@
 import type { StructuredToolInterface } from '@langchain/core/tools';
 import { getClipboardHistoryTool } from './getClipboard';
 import { getTodosTool } from './getTodos';
+import { createTodoTool, updateTodoTool } from './todoTools';
 import { getAppInfoTool } from './getAppInfo';
 import { saveNoteTool } from './saveNote';
 import { listNotesTool } from './listNotes';
@@ -29,6 +30,8 @@ export const READ_TOOLS: StructuredToolInterface[] = [
 
 export const WRITE_TOOLS: StructuredToolInterface[] = [
   saveNoteTool,
+  createTodoTool,
+  updateTodoTool,
   rememberTool,
   forgetTool,
   browserClickTool,
