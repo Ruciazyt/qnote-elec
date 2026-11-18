@@ -203,7 +203,7 @@ export default function BrowserPage() {
     }
 
     window.addEventListener("resize", handleResize);
-    syncBounds();
+    syncBoundsRef.current();
 
     return () => {
       observer.disconnect();
