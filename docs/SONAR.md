@@ -132,7 +132,7 @@ ERROR Fail to load the list of plugins installed on the server: Not authorized o
 项目 key 是 `Ruciazyt_qnote-elec`（大写 R），`sonar-project.properties` 与
 `scripts/quality/sonar-issues.js` 两处一致，不用动。
 
-### 4.4 ⚠️ 组织开着「自动分析」，CI 扫描会被挡
+### 4.4 ⚠️ 项目开着「自动分析」，CI 扫描会被挡
 
 ```
 ERROR You are running CI analysis while Automatic Analysis is enabled.
@@ -144,20 +144,39 @@ POST /api/settings/set  key=sonar.autoscan.enabled  component=<项目>   → Set
 POST /api/settings/set  key=sonar.autoscan.enabled  component=ruciazyt → Component key 'ruciazyt' not found
 ```
 
-自动分析要在 SonarCloud 控制台里关（组织 → Administration → Automatic Analysis），
-API 改不动。
+### 4.4.1 ⚠️ 在哪关：项目级，不是组织级
 
-现在的 CI 表现：`SonarCloud scan` 那步的 exit 3 被 `continue-on-error` 兜住，
+开关在**项目**上，不在组织菜单里：
+
+`
+Projects → Ruciazyt_qnote-elec → Administration → Analysis Method
+                                          → 关掉 Automatic Analysis
+`
+
+- 组织级的那个（Administration → Organization Settings → Analysis → Analysis Method）
+  **只有 Enterprise plan 才有**，Free plan 的组织菜单里根本没有这一项 —— 找不到是正常的。
+- 需要**项目管理员**权限。**只有组织管理员不行**，得用对这个项目有管理员权限的账号
+  登录才看得到并能改。
+- Web API 改不动：`sonar.autoscan.enabled` 报 `Setting cannot be set on a Project`，
+  组织级那个 key 又找不到对应组件。
+
+官方文档：
+<https://docs.sonarsource.com/sonarqube-cloud/advanced-setup/automatic-analysis>
+
+### 4.4.2 关掉之后的变化
+
+关之前 CI 的表现：`SonarCloud scan` 那步的 exit 3 被 `continue-on-error` 兜住，
 job 不再红；扫描诊断里 `Automatic Analysis is enabled` 这条记成 warning
 （不再刷一屏红色 error），`Collect issue list` 仍会照常跑 —— 自动分析已经分析了
 同一个提交，清单和门禁判定拿到的就是那次的分析结果。只有跟自动分析无关的
 扫描失败（网络、令牌失效等）才会让 job 变红。
 
-**还是要在控制台把它关掉**，理由是覆盖率：自动分析不会跑你的测试，
-`sonar.javascript.lcov.reportPaths` 指的那个 lcov 文件在自动分析里不存在，
-SonarCloud 上的覆盖率会掉。CI 扫描跑起来时覆盖率才有值。
-关掉之后分析结果来自 CI 扫描（装依赖 + 跑覆盖率测试 + 扫描），
-比自动分析慢，所以 `--wait` 的等待窗口从 4 分钟放宽到了 10 分钟。
+关掉之后，CI 扫描会真正跑起来并上传结果，**覆盖率也回来了** ——
+自动分析不支持覆盖率（官方明确列了 "Code coverage information is not supported"），
+`sonar.javascript.lcov.reportPaths` 指的那个 lcov 文件在自动分析里根本不存在。
+代价是分析结果来自 CI 扫描（装依赖 + 跑覆盖率测试 + 扫描），比自动分析慢，
+所以 `--wait` 的等待窗口从 4 分钟放宽到了 10 分钟，
+发版门禁那个 job 的超时也从 15 分钟放宽到 30 分钟。
 
 ### 4.4.1 本地扫描漏掉过的安全规则
 
