@@ -121,6 +121,10 @@ export class ClipboardPopupWindow {
       },
     });
 
+    if (process.platform === "darwin") {
+      win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+    }
+
     if (!app.isPackaged) {
       win.loadURL(`${DEV_SERVER_URL}/popup-clipboard.html`).catch((error) => {
         log.error("[clipboardPopup] 加载开发服务器页面失败:", error);
@@ -146,6 +150,7 @@ export class ClipboardPopupWindow {
     });
 
     win.on("blur", () => {
+      if (process.platform === "darwin") return;
       if (stickyNoteManager.isDragActive()) return;
       this.hide();
     });
