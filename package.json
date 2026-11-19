@@ -16,6 +16,7 @@
     "build:preload": "tsc -p build/tsconfig.preload.json",
     "build:electron": "pnpm run build:main && pnpm run build:preload",
     "build:react": "pnpm --dir src/renderer run build",
+    "build:rust": "node scripts/build/build-rust.js",
     "build:all": "pnpm run build:electron && pnpm run build:react",
     "build:app": "node scripts/build/build-app.js",
     "generate:icons": "node scripts/build/generate-icons.js",

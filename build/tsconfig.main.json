@@ -19,6 +19,9 @@
   "exclude": [
     "../dist",
     "../node_modules",
+    // 功能目录里的 Rust crate（<功能>-rs/）带 .ts 的对拍脚本，
+    // 它们是 rust-anything 的产物，不属于主进程编译范围。
+    "../src/**/*-rs/**",
     // 测试文件不进主进程的编译产物。
     //
     // src/main 与 src/shared 里有一批 .test.ts（2026-11-05 起由测试范围扩展引入），

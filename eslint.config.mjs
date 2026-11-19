@@ -154,6 +154,7 @@ export default [
             '.data/**',
             'build/**',
             'src/renderer/src/**/*.css',
+            '**/*-rs/**',
         ],
     },
     {

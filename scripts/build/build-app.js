@@ -135,10 +135,25 @@ function runElectronBuilder(args, label) {
   return result.status === 0;
 }
 
+function buildRust() {
+  console.log("\n▶ 编译 Rust 原生模块");
+  const result = spawnSync(
+    process.execPath,
+    [path.join(projectRoot, "scripts", "build", "build-rust.js")],
+    { cwd: projectRoot, stdio: "inherit" }
+  );
+  return result.status === 0;
+}
+
 function main() {
   clearErrorLog();
 
   if (!generateIcons()) {
+    process.exit(1);
+  }
+
+  if (!buildRust()) {
+    console.error("\n❌ Rust 原生模块编译失败，打包中止。");
     process.exit(1);
   }
 

@@ -6,12 +6,17 @@
   "asar": true,
   "npmRebuild": false,
   "files": [
-    "dist/**/*"
+    "dist/**/*",
+    "!dist/native/**"
   ],
   "extraResources": [
     {
       "from": "dist/renderer",
       "to": "renderer/dist"
+    },
+    {
+      "from": "dist/native",
+      "to": "native"
     },
     {
       "from": "src/renderer/public/icon.ico",

@@ -28,6 +28,7 @@ renderer/node_modules/
 electron/node_modules/
 dist_electron/
 dist_electron_*/
+dist_*/
 npm-debug.log
 yarn-error.log
 
