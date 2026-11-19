@@ -43,7 +43,9 @@ function main() {
     const failed = (gate.conditions || []).filter((condition) => condition.status === 'ERROR');
     console.log(
       '::error title=SonarCloud quality gate ' + escapeAnnotation(gate.status) +
-      '::' + escapeAnnotation(failed.length + ' condition(s) failed')
+      '::' + escapeAnnotation(
+        failed.length + ' condition(s) failed; new code period=' + (gate.newCodePeriod || 'unknown')
+      )
     );
     for (const condition of failed) {
       const title = escapeAnnotation('gate: ' + condition.metricKey);

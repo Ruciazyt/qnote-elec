@@ -37,6 +37,16 @@ jobs:
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Setup Rust
+        run: |
+          curl --proto '=only' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
+      - name: Build native modules
+        run: pnpm run build:rust
+        env:
+          RUST_REQUIRED: "1"
+
       - name: Run unit tests with coverage
         run: pnpm --dir src/renderer run test:coverage
 
@@ -52,15 +62,25 @@ jobs:
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Stamp analysis version
+        if: steps.sonar-token.outputs.enabled == 'true'
+        run: node scripts/quality/stamp-sonar-version.js
+
       - name: "Diagnostics: analysis scope"
         run: |
           {
             echo "### 分析范围"
             echo ""
             echo '```'
-            grep -E '^sonar\.(sources|tests|exclusions|css\.exclusions)=' sonar-project.properties
+            grep -E '^sonar\.(sources|tests|exclusions|css\.exclusions|coverage\.exclusions|projectVersion)=' sonar-project.properties
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Set new code definition
+        if: steps.sonar-token.outputs.enabled == 'true'
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: node scripts/quality/sonar-new-code.js
 
       - name: SonarCloud scan
         id: scan
@@ -73,10 +93,6 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           CI: ""
-        with:
-          args: >
-            -Dsonar.sources=src/main,src/renderer,src/shared,src/database
-            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/dist_electron/**,**/build/**,**/.data/**,**/out-tsc/**,**/coverage/**,**/*.d.ts,**/*.min.js,**/public/**,**/*.svg,**/*.png,**/*.ico,**/*.icns,**/*.css,**/*.html
 
       - name: "Diagnostics: scanner output"
         id: scanner-diagnostics
@@ -100,8 +116,6 @@ jobs:
             -Dsonar.sourceEncoding=UTF-8 \
             -Dsonar.scm.provider=git \
             -Dsonar.scm.disabled=false \
-            -Dsonar.sources=src/main,src/renderer,src/shared,src/database \
-            -Dsonar.exclusions='**/node_modules/**,**/dist/**,**/dist_electron/**,**/build/**,**/.data/**,**/out-tsc/**,**/coverage/**,**/*.d.ts,**/*.min.js,**/public/**,**/*.svg,**/*.png,**/*.ico,**/*.icns,**/*.css,**/*.html' \
             > scanner-output.log 2>&1
           code=$?
           matched=$(grep -Ei 'project root|load properties|sonar\.(sources|tests|exclusions)|module|skipping|indexed|lines of code|excluded|warning|error' scanner-output.log | head -60)
