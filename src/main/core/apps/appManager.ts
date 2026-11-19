@@ -437,7 +437,8 @@ export class AppManager {
 
       const env = { ...process.env, ...(manifest.env ?? {}) };
 
-      const child = spawn(commandLine, {
+      // eslint-disable-next-line sonarjs/os-command -- command 取自项目自己的 qnote.json，市场来源另有风险分析与启动确认
+      const child = spawn(commandLine, { // NOSONAR
         cwd,
         env,
         shell: true,
