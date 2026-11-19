@@ -12,6 +12,7 @@
 | 渲染层 | `src/renderer`（React 18 + Vite 6 + Tailwind 3 + shadcn/ui，new-york 风格）；`components/` `hooks/` `utils/` **按功能分子目录** |
 | 共享层 | `src/shared`（主进程与渲染层共用的类型），按功能分子目录 |
 | 数据层 | `src/database`（Knex + SQLite，笔记、剪贴板、待办等） |
+| Rust 原生模块 | 各功能目录内的 `*-rs/` crate（纯逻辑单元的 Rust 移植，napi 绑定），主进程按需加载 |
 | 构建配置 | `build/electron-builder.json`（打包）、`build/tsconfig.*.json`（编译）、`build/entitlements.mac.plist`（macOS 权限声明） |
 | 脚本 | `scripts/`（按用途分目录：`build/` 构建后处理、`release/` 发版、`git-hooks/` 提交规范、`dev/` 开发期辅助） |
 | CI | `.github/workflows/`（`build-and-release.yml` 正式发布 / `auto-build.yml` 提交验证） |
@@ -22,9 +23,10 @@
 ```bash
 pnpm dev                # 主进程 + 渲染层热更新一起起
 pnpm test               # 跑单元测试（vitest run，非 watch，跑完自己退出）
-pnpm run build          # 完整构建（clean → 编译 → 打包 → 便携版后处理）
+pnpm run build          # 完整构建（clean → 编译 → Rust 原生模块 → 打包 → 便携版后处理）
 pnpm run build:electron # 只编译主进程与 preload
 pnpm run build:react    # 只构建渲染层
+pnpm run build:rust     # 只编译 src/ 下各功能目录里的 Rust crate（没装 cargo 时只警告）
 pnpm run build:app      # 只跑 electron-builder（打包前会自动生成图标）
 pnpm run generate:icons # 只生成图标（macOS 的 .icns + 运行时 PNG）
 pnpm run release:patch  # 发补丁版本（1.13.0 → 1.13.1）
@@ -266,6 +268,7 @@ src/renderer/pages/<功能>/       ← home/ notes/ settings/ todo/ browser/ ski
 | --- | --- |
 | 主进程能力、IPC、窗口、原生能力 | `src/main/`（handler 放 `src/main/handlers/<功能>/`，常驻能力与功能域放 `src/main/core/<功能>/`，纯工具放 `src/main/utils/`（扁平，不分子目录）） |
 | 渲染层界面 | 公共件放 `src/renderer/components/<公共件>/`（跨页面复用才留这儿）；业务件放 `src/renderer/pages/<功能>/` |
+| Rust 原生模块（纯逻辑单元的 Rust 移植） | crate 放在服务它的功能目录内（`src/shared/<功能>/<功能>-rs/`、`src/main/core/ai/tools/web/web-rs/`），主进程入口 `src/main/core/<功能>/native*.ts`，加载器 `src/main/core/system/nativeModules.ts`，编译 `scripts/build/build-rust.js`，见 6.10 |
 | 渲染层页面（路由级） | `src/renderer/pages/<功能>/`（页面与它的测试文件放同一个功能目录，如 `pages/notes/NotesPage.tsx` + `pages/notes/NotesPage.test.tsx`） |
 | 跨端共享类型 | `src/shared/<功能>/` |
 | 数据表与迁移 | `src/database/` |
@@ -486,6 +489,50 @@ pnpm run lint:fix            # 能自动修的机械问题（未用 import、pre
 - **键盘也能排**：空格/回车拾起、方向键移动、空格放下、Esc 取消，用 `aria-live` 播报位置。
 - **reduced-motion 只留那条线**：项不位移、不缩放。
 - **拖拽引擎自带样式**：`useDragReorder.ts` 里 import 了 CSS，别在页面里重复引。
+
+### 6.10 Rust 原生模块：纯逻辑单元的 Rust 移植
+
+用 rust-anything 把 TypeScript 里的「纯逻辑」单元逐块移植成 Rust crate。
+**不是重写整个应用** —— 只给「纯逻辑」单元换实现，Electron 外壳、IPC、React 界面都留在 TS。
+
+**crate 跟着功能目录走**：不建顶层 `rust/` 目录，crate 放在服务它的功能目录内，目录名统一 `*-rs` 后缀。
+
+| crate | 移植的 TS 单元 | 主进程入口 |
+| --- | --- | --- |
+| `src/shared/notes/notes-rs/` | 笔记内容处理 | `src/main/core/notes/nativeNotes.ts` |
+| `src/shared/apps/apps-rs/` | 清单命令风险分析 | `src/main/core/apps/nativeApps.ts` |
+| `src/shared/todo/todo-rs/` | 待办时间解析与提醒判定 | `src/main/core/todo/nativeTodo.ts` |
+| `src/shared/ai/ai-rs/` | 会话摘要与块序列化 | `src/main/core/ai/nativeAi.ts` |
+| `src/main/core/ai/tools/web/web-rs/` | 网页解析与搜索结果提取 | `src/main/core/ai/tools/web/searchEngine.ts`（同文件内原地分派，避免循环依赖） |
+
+| 项 | 说明 |
+| --- | --- |
+| crate 内部 | `src/port.rs` 是移植实现，`src/lib.rs` 与 `index.cjs` 是生成的绑定，`src/utf16.rs` 处理 UTF-16 码元 |
+| 行为基线 | `cases.jsonl` —— TS 原实现跑出来的真实返回值 |
+| 编译产物 | `dist/native/`（`.node` + 桥接层 `.cjs`），**不进 git** |
+| 加载器 | `src/main/core/system/nativeModules.ts` —— 通用加载与模式切换，所有 crate 共用一份 |
+| 打包 | `build/electron-builder.json` 的 extraResources 把 `dist/native` 放到 `resources/native`，**必须在 asar 之外** |
+| 构建 | `pnpm run build:rust`（`scripts/build/build-rust.js` 扫 `src/**/Cargo.toml`），打包前自动跑 |
+| CI | 两个工作流装好 rustup 后跑 `pnpm run build:rust`；`RUST_REQUIRED=1` 表示编不出来就中止 |
+| 运行模式 | `RUST_ANYTHING_MODE=auto|old|shadow|new` —— auto 原生优先、加载失败回退 TS；old 只走 TS；shadow 两边都跑、不一致就 `log.warn`；new 缺原生模块直接报错 |
+
+- **移植循环**：`analyze` → `bridge` → `record` → 写 `port.rs` → `build` → `diff` → `shadow` → `gate`，
+  `gate` 全绿这个单元才算搬完。`diff` 必须 100% 一致才接进生产链路。
+- **改签名后必须 `rust-anything refresh`** 重新生成绑定。
+- **JS 返回 `null` 时别用 `Option<T>`** —— napi 会把它变成 `undefined`。
+  返回 `serde_json::Value` 走 JSON 通道，`null` 才是 `null`。
+- **JS 字符串按 UTF-16 码元索引**，用脚手架给的 `src/utf16.rs`，别按字节算。
+  `Math.imul`、`toLowerCase` 的 final sigma、JS 的 `trim` 空白集都要自己还原。
+- **TS 里会抛的地方，Rust 侧返回 `Err("TypeError: ...")`**，否则行为不一致。
+- **JS 正则和 Rust regex 不等价**：Rust 的 `(?i)` 走 Unicode 折叠（ſ→s、U+212A→k），
+  `\b` / `\d` / `\s` 的集合也与 JS 不同。移植时用占位符 `~s~` / `~k~` / `~az~` 展开成显式字符类，
+  `\b` 写成 `(?-u:\b)`，`\d` 写成 `[0-9]`，`\s` 写成 JS 的空白集。
+- **渲染层用不了原生模块**（浏览器里没有 `.node`）。`src/shared/` 下被渲染层 import 的值
+  必须保留 TS 版本，只在主进程换成原生实现。
+- **crate 相互独立**，不做 Cargo workspace，各自带 `Cargo.lock`；
+  `*-rs` 目录要从 `build/tsconfig.main.json`、`tsconfig.lint.json`、`eslint.config.mjs` 三处排除。
+- **没装 cargo 也能构建**：本地缺 Rust 时只警告，应用回退到 TS 实现。
+
 
 ---
 

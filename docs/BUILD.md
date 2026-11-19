@@ -37,7 +37,69 @@ pnpm run build-portable
 | `pnpm run build:app`     | 只跑 electron-builder，产出安装版              |
 | `pnpm run build:electron`| 只编译主进程与 preload                         |
 | `pnpm run build:react`   | 只构建渲染层                                   |
+| `pnpm run build:rust`    | 只编译 Rust 原生模块，产物在 `dist/native/`    |
 | `pnpm run clean`         | 清理构建文件                                   |
+
+## 🦀 Rust 原生模块
+
+用 `rust-anything` 把 `src/` 里的纯逻辑 TS 单元迁移成 Rust crate。**crate 跟着功能目录走** —— 不建顶层 `rust/` 目录，每个 crate 放在服务它的功能目录内，目录名统一 `*-rs` 后缀。
+
+当前已迁移：
+
+| crate | 移植的 TS 单元 | 主进程入口 |
+| --- | --- | --- |
+| `src/shared/notes/notes-rs/` | 笔记内容处理 | `src/main/core/notes/nativeNotes.ts` |
+| `src/shared/apps/apps-rs/` | 清单命令风险分析 | `src/main/core/apps/nativeApps.ts` |
+| `src/shared/todo/todo-rs/` | 待办时间解析与提醒判定 | `src/main/core/todo/nativeTodo.ts` |
+| `src/shared/ai/ai-rs/` | 会话摘要与块序列化 | `src/main/core/ai/nativeAi.ts` |
+| `src/main/core/ai/tools/web/web-rs/` | 网页解析与搜索结果提取 | `src/main/core/ai/tools/web/searchEngine.ts` |
+
+### 编译
+
+```bash
+# 只编译原生模块，产物在 dist/native/
+pnpm run build:rust
+```
+
+`scripts/build/build-rust.js` 递归扫 `src/**/Cargo.toml`，逐个 `cargo build --release`，把 `.node` 与桥接层 `.cjs` 复制到 `dist/native/`。macOS 上会分别编 x64 与 arm64，再用 `lipo` 合成一份通用二进制。
+
+`pnpm run build:app` 会在 electron-builder 之前自动调用它，编译失败直接中止打包。CI 里设 `RUST_REQUIRED=1` 强制要求 Rust 工具链可用；本地开发缺 cargo 时只打印警告，应用回退到 TypeScript 实现继续跑。
+
+### 产物布局
+
+| 路径 | 内容 |
+| --- | --- |
+| `dist/native/<crate>_rs.node` | napi 原生二进制 |
+| `dist/native/<crate>-rs.cjs` | 桥接层（JSON 通道 + TypeError 转换） |
+
+打包时 `.node` 经 electron-builder 的 `extraResources` 落到 `resources/native/`，在 asar 之外 —— 原生二进制不能塞进 asar。
+
+### 运行时加载
+
+加载逻辑统一收在 `src/main/core/system/nativeModules.ts`：优先原生实现，找不到就回退 TS 实现。候选目录依次是仓库根的 `dist/native`（开发态）、编译产物同级的 `native/`、`process.resourcesPath/native`（打包态）。
+
+切换模式用环境变量 `RUST_ANYTHING_MODE`：
+
+| 模式 | 行为 |
+| --- | --- |
+| `auto`（默认） | 有原生模块就用原生实现，否则回退 TS |
+| `old` | 强制走 TypeScript 实现 |
+| `shadow` | 两边都跑，比对结果并记不一致日志，实际返回 TS 结果 |
+| `new` | 强制用原生实现，找不到就报错 |
+
+### 迁移新单元
+
+```bash
+rust-anything analyze . --lang ts -o .data/qnote-analyze.md
+rust-anything bridge . src/shared/xxx/ --kind napi -o src/shared/xxx/xxx-rs --name xxx_rs
+rust-anything record src/shared/xxx/xxx-rs
+rust-anything build src/shared/xxx/xxx-rs
+rust-anything diff src/shared/xxx/xxx-rs
+rust-anything shadow src/shared/xxx/xxx-rs
+rust-anything gate src/shared/xxx/xxx-rs
+```
+
+改了导出签名后必须 `rust-anything refresh src/shared/xxx/xxx-rs`。`diff` 必须 100% 一致才接进生产链路。
 
 ## 🚀 自动发布流程
 
