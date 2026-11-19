@@ -8,7 +8,7 @@
 
 | 类别 | 数量 | 处置 |
 | --- | ---: | --- |
-| 漏洞（VULNERABILITY） | 8 | **全修**（含 4 个 BLOCKER） |
+| 漏洞（VULNERABILITY） | 10 | **全修**（含 4 个 BLOCKER） |
 | 缺陷（BUG） | 2 | **全修** |
 | 代码异味（CODE_SMELL） | 695 | 按规则分档处置，见下 |
 
@@ -22,6 +22,7 @@
 | tssecurity:S2076 | `appHandlers.ts` | 命令注入：`shell.openPath` 直接收渲染层传来的路径 | 改成**只允许已登记的项目目录**，显式 NOSONAR（污点分析认不出白名单校验） |
 | tssecurity:S2083 | `appManager.ts` ×2 | 路径穿越 | `path.join(dir, "qnote.json")` —— 拼接段是常量、目录是用户挑的，NOSONAR + 理由 |
 | tssecurity:S2083 | `appManifest.ts` | 路径穿越 | 同上 |
+| typescript:S2083 | `projectConfig.ts` ×2 | 路径穿越 | `path.join(dir, ".mcp.json")` —— 拼接段是常量、目录是用户挑的项目目录，NOSONAR |
 | typescript:S4036 | `appManager.ts` ×2 | 命令从 PATH 解析 | `taskkill` 改用 `SystemRoot\System32\taskkill.exe` 绝对路径 |
 | typescript:S6438 | `SideBar.tsx` | JSX 里的 `/* */` 被当**纯文本渲染**出来 | 改成 `{/* */}` |
 | typescript:S2871 | `ui-guards.ts` | 排序没带 localeCompare | 补上 |
