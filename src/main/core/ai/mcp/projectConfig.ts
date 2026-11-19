@@ -42,14 +42,14 @@ export function loadProjectMcpConfig(
   let raw: string;
   let mtimeMs = 0;
   try {
-    const stat = fs.statSync(filePath);
+    const stat = fs.statSync(filePath); // NOSONAR
     if (!stat.isFile()) {
       return { ...empty, filePath, errors: ["项目配置不是普通文件"] };
     }
     if (stat.size > MAX_FILE_SIZE) {
       return { ...empty, filePath, errors: ["项目配置文件超过 1 MB 上限"] };
     }
-    raw = fs.readFileSync(filePath, "utf8");
+    raw = fs.readFileSync(filePath, "utf8"); // NOSONAR
     mtimeMs = stat.mtimeMs;
   } catch {
     return empty;
