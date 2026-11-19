@@ -1,8 +1,79 @@
 const { spawnSync } = require("node:child_process");
+const fs = require("node:fs");
 const path = require("node:path");
 
 const projectRoot = path.resolve(__dirname, "..", "..");
 const configPath = path.join(projectRoot, "build", "electron-builder.json");
+const errorLogPath = path.join(projectRoot, ".data", "build", "build-error.log");
+
+function clearErrorLog() {
+  try {
+    fs.rmSync(errorLogPath, { force: true });
+  } catch {
+  }
+}
+
+function writeErrorLog(chunk) {
+  if (!chunk) return;
+  try {
+    fs.mkdirSync(path.dirname(errorLogPath), { recursive: true });
+    fs.appendFileSync(errorLogPath, chunk, "utf8");
+  } catch {
+  }
+}
+
+function sleepSync(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+function outputDir() {
+  const arg = extraArgs.find((a) => a.startsWith("--config.directories.output="));
+  return arg
+    ? path.join(projectRoot, arg.split("=")[1])
+    : path.join(projectRoot, "dist_electron");
+}
+
+function cleanStaleOutput() {
+  const dir = outputDir();
+  for (const name of ["win-unpacked.tmp", "win-unpacked"]) {
+    try {
+      fs.rmSync(path.join(dir, name), {
+        recursive: true,
+        force: true,
+        maxRetries: 10,
+        retryDelay: 500,
+      });
+    } catch {
+    }
+  }
+}
+
+function runBuilder(args) {
+  return spawnSync(
+    process.execPath,
+    [electronBuilderCli(), "--config", configPath, ...args],
+    { cwd: projectRoot, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }
+  );
+}
+
+function runBuilderWithRetry(args) {
+  let result = runBuilder(args);
+  let attempt = 0;
+  while (
+    result.status !== 0 &&
+    attempt < MOVE_DIR_RETRIES &&
+    MOVE_DIR_ERROR.test(`${result.stdout || ""}\n${result.stderr || ""}`)
+  ) {
+    attempt += 1;
+    console.warn(
+      `\n⚠️  产物目录被占用（EBUSY/EPERM），清理后重试（第 ${attempt}/${MOVE_DIR_RETRIES} 次）…`
+    );
+    cleanStaleOutput();
+    sleepSync(2000);
+    result = runBuilder(args);
+  }
+  return result;
+}
 
 function electronBuilderCli() {
   try {
@@ -21,7 +92,9 @@ const extraArgs = process.argv.slice(2).filter((arg, index) => !(index === 0 && 
 
 const hasSigning = !!(process.env.CSC_LINK || process.env.WIN_CSC_LINK);
 
-const SYMLINK_ERROR = /cannot create symbolic link|symbolic link/i;
+const SYMLINK_ERROR = /cannot create symbolic link|symbolic link|symlink/i;
+const MOVE_DIR_ERROR = /Failed to move directory|EBUSY|resource busy or locked/i;
+const MOVE_DIR_RETRIES = 3;
 
 function isMacBuild() {
   return (
@@ -53,28 +126,23 @@ function generateIcons() {
 
 function runElectronBuilder(args, label) {
   console.log(`\n▶ ${label}`);
-  const result = spawnSync(
-    process.execPath,
-    [electronBuilderCli(), "--config", configPath, ...args],
-    { cwd: projectRoot, stdio: "inherit" }
-  );
+  const result = runBuilderWithRetry(args);
+  if (result.stdout) process.stdout.write(result.stdout);
+  if (result.stderr) process.stderr.write(result.stderr);
+  if (result.status !== 0) {
+    writeErrorLog(`${result.stdout || ""}\n${result.stderr || ""}`);
+  }
   return result.status === 0;
 }
 
 function main() {
+  clearErrorLog();
+
   if (!generateIcons()) {
     process.exit(1);
   }
 
-  const first = spawnSync(
-    process.execPath,
-    [electronBuilderCli(), "--config", configPath, ...extraArgs],
-    {
-      cwd: projectRoot,
-      encoding: "utf8",
-      maxBuffer: 64 * 1024 * 1024,
-    }
-  );
+  const first = runBuilderWithRetry(extraArgs);
 
   if (first.status === 0) {
     process.exit(0);
@@ -82,6 +150,7 @@ function main() {
 
   const output = `${first.stdout || ""}\n${first.stderr || ""}`;
   if (!SYMLINK_ERROR.test(output)) {
+    writeErrorLog(output);
     if (first.stdout) process.stdout.write(first.stdout);
     if (first.stderr) process.stderr.write(first.stderr);
     console.error("\n❌ 打包失败（原因见上方输出）");
@@ -89,6 +158,7 @@ function main() {
   }
 
   if (hasSigning) {
+    writeErrorLog(output);
     console.error(
       "\n❌ 打包失败：解压 winCodeSign 需要创建符号链接的权限，" +
         "而当前配置了代码签名证书，不能降级构建（降级会丢签名）。\n" +
