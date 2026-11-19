@@ -209,7 +209,9 @@ function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function waitForAnalysis(revision, timeoutMs = 240000) {
+// 关掉 Automatic Analysis 之后，分析结果来自 CI 扫描（装依赖 + 跑覆盖率测试 + 扫描）
+// ，比自动分析慢得多，4 分钟等不到。留 10 分钟，够 CI 扫描把结果传上来并算完。
+async function waitForAnalysis(revision, timeoutMs = 600000) {
     const deadline = Date.now() + timeoutMs;
     let last = null;
     while (Date.now() < deadline) {

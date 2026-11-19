@@ -63,6 +63,11 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: SonarCloud scan
+        id: scan
+        # 组织开着 Automatic Analysis 时，SonarCloud 会拒掉这次 CI 分析（exit 3）。
+        # 这不是扫描失败 —— 自动分析已经扫了同一个提交，后面的清单与门禁拿到的就是那次结果，
+        # 所以别让它把整个 job 拖红；诊断步骤照旧把原因记成 warning。
+        continue-on-error: true
         if: steps.sonar-token.outputs.enabled == 'true'
         uses: SonarSource/sonarqube-scan-action@e805d875275f728fac1885b413934be6d7c63f65
         env:
@@ -74,7 +79,8 @@ jobs:
             -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/dist_electron/**,**/build/**,**/.data/**,**/out-tsc/**,**/coverage/**,**/*.d.ts,**/*.min.js,**/public/**,**/*.svg,**/*.png,**/*.ico,**/*.icns,**/*.css,**/*.html
 
       - name: "Diagnostics: scanner output"
-        if: failure()
+        id: scanner-diagnostics
+        if: always() && steps.sonar-token.outputs.enabled == 'true' && (failure() || steps.scan.outcome == 'failure')
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           CI: ""
@@ -110,6 +116,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           if grep -q "Automatic Analysis is enabled" scanner-output.log; then
             echo "::warning title=scanner::组织开了 Automatic Analysis，CI 扫描被拒（exit ${code}）；关掉自动分析后 CI 才能上传分析结果"
+            echo "automatic-analysis=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           if [ -n "$matched" ]; then
@@ -120,6 +127,12 @@ jobs:
           fi
           echo "::error title=scanner::scanner exit code ${code}"
           exit 0
+
+      - name: Fail on scanner errors unrelated to Automatic Analysis
+        if: always() && steps.sonar-token.outputs.enabled == 'true' && steps.scan.outcome == 'failure' && steps.scanner-diagnostics.outputs.automatic-analysis != 'true'
+        run: |
+          echo "::error title=scanner::SonarCloud 扫描失败（与 Automatic Analysis 无关），原因见上面的扫描输出"
+          exit 1
 
       - name: Collect issue list
         if: always() && steps.sonar-token.outputs.enabled == 'true'

@@ -10,7 +10,8 @@ jobs:
   sonar-gate:
     name: SonarCloud gate
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # 等待分析结果最长 10 分钟，加上拉清单的时间，15 分钟不够用
+    timeout-minutes: 30
     permissions:
       contents: read
 

@@ -147,10 +147,17 @@ POST /api/settings/set  key=sonar.autoscan.enabled  component=ruciazyt → Compo
 自动分析要在 SonarCloud 控制台里关（组织 → Administration → Automatic Analysis），
 API 改不动。
 
-关掉之前 CI 的表现：`SonarCloud scan` 那步会以 exit 3 失败；扫描诊断里
-`Automatic Analysis is enabled` 这条现在记成 warning（不再刷一屏红色 error），
-`Collect issue list` 仍会照常跑 —— 自动分析已经分析了同一个提交，
-清单和门禁判定拿到的就是那次的分析结果。
+现在的 CI 表现：`SonarCloud scan` 那步的 exit 3 被 `continue-on-error` 兜住，
+job 不再红；扫描诊断里 `Automatic Analysis is enabled` 这条记成 warning
+（不再刷一屏红色 error），`Collect issue list` 仍会照常跑 —— 自动分析已经分析了
+同一个提交，清单和门禁判定拿到的就是那次的分析结果。只有跟自动分析无关的
+扫描失败（网络、令牌失效等）才会让 job 变红。
+
+**还是要在控制台把它关掉**，理由是覆盖率：自动分析不会跑你的测试，
+`sonar.javascript.lcov.reportPaths` 指的那个 lcov 文件在自动分析里不存在，
+SonarCloud 上的覆盖率会掉。CI 扫描跑起来时覆盖率才有值。
+关掉之后分析结果来自 CI 扫描（装依赖 + 跑覆盖率测试 + 扫描），
+比自动分析慢，所以 `--wait` 的等待窗口从 4 分钟放宽到了 10 分钟。
 
 ### 4.4.1 本地扫描漏掉过的安全规则
 
