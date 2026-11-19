@@ -29,6 +29,7 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text-summary", "lcov"],
       reportsDirectory: "./coverage",
+      allowExternal: true,
       include: ["**/*.{ts,tsx}"],
       exclude: [
         "**/node_modules/**",
