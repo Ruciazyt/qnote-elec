@@ -16,12 +16,12 @@ export interface Todo {
   priority: TodoPriority;
   due_date: string | null;
   completed: 0 | 1;
-  completed_at: string | null;
-  archived_at: string | null;
+  completed_at: string | number | null;
+  archived_at: string | number | null;
   remind_at: string | null;
   reminded_at: string | null;
-  created_at: string;
-  updated_at: string;
+  created_at: string | number;
+  updated_at: string | number;
   attachments: TodoAttachment[];
 }
 
