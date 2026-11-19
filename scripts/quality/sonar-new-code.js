@@ -75,6 +75,35 @@ function desiredSettings() {
     };
 }
 
+async function readSettings() {
+    const keys = ['sonar.leak.period', 'sonar.leak.period.type'];
+    const data = await api('/api/settings/values', {
+        component: PROJECT_KEY,
+        keys: keys.join(','),
+    });
+    const settings = data.settings || {};
+    if (keys.every((key) => settings[key] !== undefined)) return settings;
+    const single = {};
+    for (const key of keys) {
+        try {
+            const one = await api('/api/settings/values', { component: PROJECT_KEY, keys: key });
+            const values = one.settings || {};
+            if (values[key] !== undefined) single[key] = values[key];
+        } catch {
+        }
+    }
+    return { ...settings, ...single };
+}
+
+async function readProjectVersion() {
+    try {
+        const data = await api('/api/components/show', { component: PROJECT_KEY });
+        return data.component && data.component.version ? data.component.version : '';
+    } catch {
+        return '';
+    }
+}
+
 async function main() {
     const token = readToken();
     if (!token) {
@@ -84,11 +113,7 @@ async function main() {
 
     let current;
     try {
-        const data = await api('/api/settings/values', {
-            component: PROJECT_KEY,
-            keys: 'sonar.leak.period,sonar.leak.period.type',
-        });
-        current = data.settings || {};
+        current = await readSettings();
     } catch (error) {
         note('error', 'SonarCloud new code', '读取当前新代码周期失败：' + error.message);
         return;
@@ -97,6 +122,8 @@ async function main() {
     const currentType = current['sonar.leak.period.type'] || 'unknown';
     const currentValue = current['sonar.leak.period'] || 'unknown';
     note('notice', 'SonarCloud new code', '当前新代码周期：type=' + currentType + ' value=' + currentValue);
+    const projectVersion = await readProjectVersion();
+    note('notice', 'SonarCloud new code', '项目当前版本：' + (projectVersion || 'none'));
 
     const wanted = desiredSettings();
     if (currentType === wanted['sonar.leak.period.type'] && currentValue === wanted['sonar.leak.period']) {

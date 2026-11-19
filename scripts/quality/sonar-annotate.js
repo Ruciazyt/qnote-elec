@@ -39,6 +39,15 @@ function main() {
   }
 
   const gate = data.gate;
+  if (gate && gate.status) {
+    const conditions = (gate.conditions || [])
+      .map((condition) => condition.metricKey + '=' + condition.actualValue + '/' + condition.comparator + condition.errorThreshold + ':' + condition.status)
+      .join(' ');
+    console.log(
+      '::notice title=SonarCloud gate::' +
+        escapeAnnotation('status=' + gate.status + (conditions ? ' ' + conditions : ''))
+    );
+  }
   if (gate && gate.status && gate.status !== 'OK') {
     const failed = (gate.conditions || []).filter((condition) => condition.status === 'ERROR');
     console.log(

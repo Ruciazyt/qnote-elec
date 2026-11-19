@@ -256,17 +256,29 @@ async function fetchNewCodeMeasures(branch) {
         'new_code_smells',
         'new_security_hotspots_reviewed',
     ];
+    const params = {
+        component: PROJECT_KEY,
+        branch: branch || undefined,
+    };
     try {
         const data = await api('/api/measures/component', {
-            component: PROJECT_KEY,
+            ...params,
             metricKeys: metricKeys.join(','),
-            branch: branch || undefined,
         });
         const measures = (data.component && data.component.measures) || [];
         return Object.fromEntries(measures.map((measure) => [measure.metric, measure.value]));
     } catch {
-        return null;
     }
+    const result = {};
+    for (const metricKey of metricKeys) {
+        try {
+            const data = await api('/api/measures/component', { ...params, metricKeys: metricKey });
+            const measures = (data.component && data.component.measures) || [];
+            if (measures.length) result[metricKey] = measures[0].value;
+        } catch {
+        }
+    }
+    return Object.keys(result).length ? result : null;
 }
 
 function renderGateSection(gate, newCode, analyses) {

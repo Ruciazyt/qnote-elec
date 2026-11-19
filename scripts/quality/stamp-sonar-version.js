@@ -18,3 +18,4 @@ const next = kept.join(eol) + eol + 'sonar.projectVersion=' + version + eol;
 
 fs.writeFileSync(PROPERTIES, next, 'utf8');
 console.log('sonar.projectVersion=' + version);
+console.log('::notice title=SonarCloud version::sonar.projectVersion=' + version);
