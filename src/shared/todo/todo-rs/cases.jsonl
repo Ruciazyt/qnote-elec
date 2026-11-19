@@ -1,0 +1,1652 @@
+{"fn":"pickDueReminders","args":[[{"id":1000000,"title":"İstanbul","notes":"ΣΊΣΥΦΟΣ","priority":"trailing.src/a/b.ts","remind_at":"a:b:c"},{"id":-1,"title":"helloΣΊΣΥΦΟΣ","notes":":hello world","priority":"é","remind_at":"emoji 👍🏽 mix"}],0,0],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":10,"title":"日本語のテキスト","notes":null,"priority":"ΣΊΣΥΦΟΣ","remind_at":"日本語のテキスト"}],"x",0],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[true,null,0],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"pickDueReminders","args":[[{"id":2147483648,"title":"Hello World","notes":null,"priority":"ab","remind_at":null},{"id":42,"title":"a.b.c","notes":"straßeΣΊΣΥΦΟΣ","priority":"a","remind_at":"é"},{"id":{"$num":"-Infinity"},"title":"ns:key.path./x/**/*.json","notes":"a😀b😀c","priority":".leading","remind_at":null}],[],3],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":10,"title":"ΣΊΣΥΦΟΣ","notes":"ns:key.patha..b","priority":"İstanbul","remind_at":"abc"}],{},2147483648],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":2147483648,"title":"{name} has {count} items","notes":"a..bline1\nline2","priority":"a.b.c","remind_at":null},{"id":1,"title":"ab","notes":null,"priority":"Hello World","remind_at":null}],{"a":{"b":"c"}},3],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[],0,100],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"-0"},"title":"./x/**/*.json","notes":"Hello World","priority":"line1\nline2","remind_at":"ab"},{"id":2147483648,"title":"trailing.","notes":"İstanbul","priority":"a","remind_at":null}],{"a":{"b":"c"}},{"$num":"-Infinity"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":1,"title":"tab\tseparated","notes":"a:b:c","priority":"Hello World","remind_at":null},{"id":42,"title":"日本語のテキスト","notes":null,"priority":"","remind_at":null},{"id":1,"title":"ns:key.path","notes":"key_name-1","priority":"hello world","remind_at":null}],{},10],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":0,"title":":","notes":null,"priority":"src/a/b.ts","remind_at":"日本語のテキスト"}],{"a":"b"},2],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":42,"title":"é","notes":null,"priority":"src/a/b.ts","remind_at":"Hello World"},{"id":-1,"title":"aba..b","notes":"src/a/b.tsΣΊΣΥΦΟΣ","priority":"","remind_at":":"}],{},100],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":2147483648,"title":"  padded  ","notes":null,"priority":"  padded  ","remind_at":"hello"}],{"a":"b"},-1],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"Infinity"},"title":"tab\tseparated","notes":"İstanbul","priority":"a:b:ca😀b😀c","remind_at":"HELLO"}],{},10],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[true,{"a":"b"},1000000],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":2,"title":"src/a/b.ts","notes":":","priority":"a","remind_at":null},{"id":1,"title":"ab","notes":null,"priority":"a😀b😀c","remind_at":".leading"},{"id":2147483648,"title":".leading","notes":null,"priority":"  padded  ","remind_at":null}],0,3],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[{},{},10],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[],[],1],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"-Infinity"},"title":"HELLOtab\tseparated","notes":null,"priority":"straße","remind_at":null},{"id":2,"title":"a..b","notes":null,"priority":"  padded  ","remind_at":null}],"x",100],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[{"a":{"b":"c"}},null,{"$num":"Infinity"}],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"pickDueReminders","args":[[{"id":3,"title":"😀","notes":"abc","priority":"line1\nline2","remind_at":null},{"id":100,"title":"a","notes":"tab\tseparated","priority":"éa..b","remind_at":"éa"}],0,3],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":9007199254740992,"title":"ünïcödé","notes":null,"priority":"key_name-1","remind_at":"ünïcödéHELLO"},{"id":9007199254740992,"title":"ns:key.path","notes":null,"priority":":","remind_at":"﻿bom"}],"x",1000],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":2147483648,"title":"tab\tseparateda.b.c","notes":"a.b.c","priority":"a😀b😀c","remind_at":"İstanbul"},{"id":-1,"title":"ns:key.path","notes":"emoji 👍🏽 mix","priority":"straße","remind_at":"hello world"}],true,100],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[0,true,-1],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":2,"title":".leading","notes":"straße","priority":"emoji 👍🏽 mix","remind_at":"ΣΊΣΥΦΟΣ😀"},{"id":{"$num":"Infinity"},"title":"  padded  ","notes":"trailing.ΣΊΣΥΦΟΣ","priority":"tab\tseparated","remind_at":null}],0,-2.5],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"NaN"},"title":"line1\nline2","notes":null,"priority":"a..b","remind_at":null},{"id":{"$num":"NaN"},"title":"","notes":null,"priority":"é","remind_at":"emoji 👍🏽 mix"}],0,{"$num":"-0"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":2147483648,"title":"éünïcödé","notes":"é","priority":"straße","remind_at":null}],[],{"$num":"-Infinity"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":10,"title":"é","notes":null,"priority":"straße","remind_at":"emoji 👍🏽 mixhello world"},{"id":-1,"title":"aba.b.c","notes":"line1\nline2","priority":"tab\tseparated","remind_at":"src/a/b.tsa.b.c"},{"id":{"$num":"Infinity"},"title":"emoji 👍🏽 mix日本語のテキスト","notes":null,"priority":"HELLO","remind_at":"src/a/b.ts﻿bom"}],0,10],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":-2.5,"title":"hello world","notes":null,"priority":"a..b","remind_at":null}],true,0],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":10,"title":":","notes":null,"priority":"key_name-1","remind_at":"key_name-1"}],{"a":"b"},1000000],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":100,"title":"a.b.c","notes":null,"priority":"tab\tseparated","remind_at":null},{"id":-2.5,"title":"hello","notes":"./x/**/*.json","priority":"./x/**/*.json","remind_at":null}],[],2147483648],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[true,"x",-2.5],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":-1,"title":".leading","notes":null,"priority":"  padded  ﻿bom","remind_at":"tab\tseparated"}],null,-2.5],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"pickDueReminders","args":[[{"id":2147483648,"title":"ΣΊΣΥΦΟΣa😀b😀c","notes":"﻿bom","priority":"hellons:key.path","remind_at":null},{"id":1,"title":"Hello World","notes":null,"priority":"straßesrc/a/b.ts","remind_at":null}],0,3],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[],{"a":"b"},10],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"-0"},"title":"a:b:c","notes":"ΣΊΣΥΦΟΣ","priority":":","remind_at":null},{"id":1000,"title":"a..b","notes":"./x/**/*.json","priority":".leading","remind_at":"ünïcödéa.b.c"},{"id":2147483648,"title":"a.b.c","notes":null,"priority":"﻿bom","remind_at":"./x/**/*.json"}],{},10],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":2,"title":"a.b.ca😀b😀c","notes":null,"priority":"key_name-1","remind_at":"é"}],{"a":{"b":"c"}},3],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"Infinity"},"title":":","notes":null,"priority":"abc{name} has {count} items","remind_at":null}],"x",{"$num":"-Infinity"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":0.5,"title":"hello","notes":"ünïcödéHello World","priority":".leading","remind_at":"﻿bom"},{"id":{"$num":"-Infinity"},"title":"straße","notes":".leading日本語のテキスト","priority":"ünïcödé","remind_at":"﻿bom"}],{"a":"b"},-2.5],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[],{},1000],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":1000,"title":"Hello World","notes":"trailing.","priority":"trailing.abc","remind_at":null},{"id":0.5,"title":"{name} has {count} itemsline1\nline2","notes":"a😀b😀c","priority":"tab\tseparated","remind_at":"line1\nline2"}],{"a":"b"},3],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":["x","x",100],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[null,"x",9007199254740992],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":2147483648,"title":"./x/**/*.json","notes":":","priority":"hello","remind_at":null}],["a",1],9007199254740992],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"-Infinity"},"title":"İstanbul","notes":"日本語のテキスト","priority":"ΣΊΣΥΦΟΣ","remind_at":null},{"id":{"$num":"-Infinity"},"title":"ΣΊΣΥΦΟΣkey_name-1","notes":null,"priority":"./x/**/*.json","remind_at":"trailing."}],"x",2],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":["x",null,-2.5],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"-Infinity"},"title":"😀","notes":"﻿bomhello world","priority":"trailing.","remind_at":"hello"},{"id":-1,"title":"ab","notes":"  padded  ","priority":"﻿bom","remind_at":"ns:key.path"},{"id":2,"title":"﻿bom","notes":"line1\nline2","priority":"hello world","remind_at":"ünïcödé"}],{},100],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":100,"title":"a.b.c./x/**/*.json","notes":"  padded  ","priority":"emoji 👍🏽 mixns:key.path","remind_at":null}],{"a":"b"},{"$num":"-0"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[{"a":{"b":"c"}},{"a":"b"},{"$num":"-0"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"NaN"},"title":"src/a/b.ts","notes":null,"priority":"ns:key.pathİstanbul","remind_at":"emoji 👍🏽 mix"},{"id":2147483648,"title":"a:b:c","notes":null,"priority":"ns:key.pathtrailing.","remind_at":"hello worlda😀b😀c"},{"id":9007199254740992,"title":"emoji 👍🏽 mixΣΊΣΥΦΟΣ","notes":null,"priority":"ünïcödé","remind_at":""}],true,{"$num":"Infinity"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[{},null,1000000],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"pickDueReminders","args":["x",{},{"$num":"-Infinity"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":0.5,"title":"a","notes":"abc","priority":"﻿bomhello","remind_at":"emoji 👍🏽 mix"},{"id":0,"title":":","notes":"ünïcödé","priority":"ns:key.path","remind_at":null}],"x",1000000],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":2147483648,"title":"trailing.","notes":"ΣΊΣΥΦΟΣ","priority":"a😀b😀c","remind_at":"ünïcödékey_name-1"},{"id":0.5,"title":"😀","notes":null,"priority":".leading","remind_at":null},{"id":{"$num":"-0"},"title":"  padded  ","notes":null,"priority":"abchello world","remind_at":"ns:key.path"}],0,1000000],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":2,"title":"ab","notes":null,"priority":"{name} has {count} items","remind_at":"ΣΊΣΥΦΟΣ.leading"},{"id":-1,"title":"ab","notes":"hello","priority":"Hello World","remind_at":null},{"id":-2.5,"title":".leading","notes":null,"priority":"","remind_at":null}],null,-2.5],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"pickDueReminders","args":[[{"id":-2.5,"title":"straße","notes":null,"priority":"hellohello world","remind_at":null},{"id":-2.5,"title":"HELLO","notes":"emoji 👍🏽 mix","priority":"﻿bom","remind_at":null},{"id":1000000,"title":":","notes":"./x/**/*.json","priority":"{name} has {count} items{name} has {count} items","remind_at":null}],null,1000000],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"NaN"},"title":"a","notes":null,"priority":"﻿bom","remind_at":null},{"id":{"$num":"-Infinity"},"title":"tab\tseparated","notes":"straße","priority":"İstanbulhello","remind_at":""}],[],2147483648],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":0.5,"title":"key_name-1","notes":null,"priority":"😀","remind_at":"a.b.c"},{"id":10,"title":"{name} has {count} items","notes":":","priority":"line1\nline2","remind_at":"日本語のテキスト"}],{},1000],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[],["a",1],2147483648],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[["a",1],{},{"$num":"Infinity"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[],0,2],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":0,"title":"ünïcödéHELLO","notes":null,"priority":"{name} has {count} items","remind_at":null}],[],1000],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"NaN"},"title":"ΣΊΣΥΦΟΣé","notes":":","priority":"./x/**/*.json","remind_at":null},{"id":10,"title":"abc","notes":null,"priority":":日本語のテキスト","remind_at":":a..b"},{"id":1000,"title":"ahello world","notes":null,"priority":"ünïcödé","remind_at":"aΣΊΣΥΦΟΣ"}],0,-2.5],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":0,"title":"hello worldab","notes":null,"priority":"é","remind_at":"key_name-1"},{"id":3,"title":"straße","notes":null,"priority":"atab\tseparated","remind_at":"abc﻿bom"},{"id":{"$num":"NaN"},"title":"Hello World","notes":null,"priority":"ns:key.path","remind_at":"HELLOab"}],{"a":"b"},3],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":-2.5,"title":"a.b.c","notes":"hello world","priority":"key_name-1","remind_at":null},{"id":3,"title":"line1\nline2","notes":null,"priority":"ab","remind_at":null}],null,-1],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"pickDueReminders","args":[[{"id":2147483648,"title":"a.b.c","notes":null,"priority":"日本語のテキスト","remind_at":null},{"id":{"$num":"Infinity"},"title":"straßehello","notes":null,"priority":"ns:key.pathhello world","remind_at":"tab\tseparatedHello World"},{"id":9007199254740992,"title":"key_name-1","notes":"emoji 👍🏽 mix","priority":"src/a/b.ts","remind_at":null}],{"a":"b"},{"$num":"Infinity"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":-1,"title":"﻿bom","notes":"aİstanbul","priority":"a","remind_at":"trailing."},{"id":{"$num":"NaN"},"title":"ΣΊΣΥΦΟΣ","notes":"😀","priority":"Hello World","remind_at":null}],"x",{"$num":"-0"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":1000,"title":"ns:key.path","notes":"tab\tseparated","priority":"straße😀","remind_at":"abc"},{"id":{"$num":"Infinity"},"title":"line1\nline2","notes":"Hello World","priority":"ab","remind_at":":"},{"id":100,"title":"Hello World","notes":null,"priority":"İstanbul","remind_at":"ab"}],null,42],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"pickDueReminders","args":[0,[],0.5],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[],true,42],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[null,{"a":{"b":"c"}},{"$num":"NaN"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":2147483648,"title":"ΣΊΣΥΦΟΣ","notes":"line1\nline2","priority":"日本語のテキスト","remind_at":":tab\tseparated"},{"id":0.5,"title":"a:b:c.leading","notes":"a..b","priority":"straßeé","remind_at":"abc﻿bom"}],0,-2.5],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":3,"title":"a..b","notes":"ns:key.path.leading","priority":"ns:key.path","remind_at":null},{"id":3,"title":"ns:key.path","notes":null,"priority":"ab","remind_at":"a.b.cemoji 👍🏽 mix"},{"id":{"$num":"-Infinity"},"title":"trailing.","notes":null,"priority":"日本語のテキストünïcödé","remind_at":null}],[],{"$num":"-0"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":1000,"title":"a.b.c","notes":null,"priority":"a😀b😀c","remind_at":null}],"x",0.5],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":10,"title":"a.b.c","notes":null,"priority":"trailing.a:b:c","remind_at":null},{"id":42,"title":"a..b","notes":":","priority":"trailing.","remind_at":null},{"id":-2.5,"title":"a😀b😀c","notes":"HELLO","priority":"ab","remind_at":null}],null,1000],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"pickDueReminders","args":[[{"id":2147483648,"title":"emoji 👍🏽 mix","notes":null,"priority":"src/a/b.ts","remind_at":"étab\tseparated"}],null,0.5],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"pickDueReminders","args":[[],[],2147483648],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":0.5,"title":":","notes":"ns:key.path","priority":"a.b.c","remind_at":null},{"id":3,"title":"a","notes":null,"priority":"é","remind_at":null}],["a",1],{"$num":"NaN"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":1000,"title":"a","notes":null,"priority":"a.b.c","remind_at":null},{"id":1000,"title":"src/a/b.ts","notes":"﻿bomsrc/a/b.ts","priority":"a:b:cab","remind_at":"tab\tseparatedHELLO"}],true,10],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":100,"title":"HELLO","notes":"hello world","priority":"ns:key.path","remind_at":null}],{"a":"b"},100],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":3,"title":"😀","notes":"trailing.","priority":".leading","remind_at":null},{"id":{"$num":"-0"},"title":"a😀b😀c","notes":null,"priority":"tab\tseparated","remind_at":"hello"},{"id":2147483648,"title":"é{name} has {count} items","notes":null,"priority":"﻿bomünïcödé","remind_at":"tab\tseparated"}],0,{"$num":"-Infinity"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[],{"a":{"b":"c"}},-2.5],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":2,"title":"İstanbul","notes":null,"priority":"key_name-1line1\nline2","remind_at":null},{"id":100,"title":"emoji 👍🏽 mix","notes":"trailing.","priority":"ΣΊΣΥΦΟΣ","remind_at":"a..b"}],{},0.5],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"-Infinity"},"title":"hello","notes":null,"priority":"hello","remind_at":null}],{"a":"b"},{"$num":"-Infinity"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"Infinity"},"title":"abc","notes":"HELLOabc","priority":"Hello World","remind_at":""},{"id":42,"title":"a:b:c","notes":"trailing.","priority":"﻿bom","remind_at":null}],true,1],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":42,"title":"éns:key.path","notes":"::","priority":"ΣΊΣΥΦΟΣ","remind_at":"Hello World"},{"id":{"$num":"-Infinity"},"title":"HELLO","notes":null,"priority":"a.b.c","remind_at":"  padded  "},{"id":-2.5,"title":".leading","notes":"日本語のテキスト","priority":"日本語のテキスト","remind_at":"{name} has {count} itemsünïcödé"}],"x",-1],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":1000000,"title":"tab\tseparated","notes":null,"priority":"./x/**/*.json","remind_at":null},{"id":0,"title":"ab","notes":"key_name-1","priority":"a..b","remind_at":null},{"id":9007199254740992,"title":"{name} has {count} items","notes":"ΣΊΣΥΦΟΣ","priority":"Hello World","remind_at":null}],{},0.5],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[],{"a":{"b":"c"}},-1],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":["x",0,1000],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"-0"},"title":"emoji 👍🏽 mix","notes":"ns:key.path","priority":"😀trailing.","remind_at":null}],null,42],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"pickDueReminders","args":[true,["a",1],2],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"NaN"},"title":"日本語のテキスト","notes":null,"priority":"HELLO","remind_at":"a.b.c"},{"id":{"$num":"NaN"},"title":"key_name-1a:b:c","notes":null,"priority":"abc","remind_at":null}],0,9007199254740992],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":1000000,"title":"./x/**/*.json","notes":"﻿bom","priority":"./x/**/*.jsonhello world","remind_at":null},{"id":{"$num":"NaN"},"title":"日本語のテキスト","notes":"éline1\nline2","priority":"tab\tseparatedline1\nline2","remind_at":null}],{"a":"b"},2147483648],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[],0,2147483648],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[true,[],2],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":0,"title":"trailing.","notes":null,"priority":"ΣΊΣΥΦΟΣ","remind_at":"straße"},{"id":1000,"title":"aHELLO","notes":null,"priority":"hello world:","remind_at":"ΣΊΣΥΦΟΣHello World"}],null,3],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"pickDueReminders","args":[[{"id":-2.5,"title":"a.b.c","notes":"src/a/b.ts","priority":"﻿bomé","remind_at":null},{"id":2147483648,"title":"a","notes":":hello","priority":"trailing.a😀b😀c","remind_at":"key_name-1"}],{"a":"b"},9007199254740992],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":["x",{"a":"b"},2],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":1000000,"title":":","notes":null,"priority":"  padded  HELLO","remind_at":null},{"id":0.5,"title":"emoji 👍🏽 mix","notes":"Hello World","priority":"a..bns:key.path","remind_at":null}],["a",1],2],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[{"a":"b"},{"a":{"b":"c"}},3],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":3,"title":"😀","notes":"İstanbul","priority":"ns:key.path","remind_at":null}],{"a":{"b":"c"}},9007199254740992],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[{},[],-1],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[],{},{"$num":"-Infinity"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[],null,{"$num":"NaN"}],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"-0"},"title":"ünïcödé","notes":"abckey_name-1","priority":"日本語のテキストhello world","remind_at":null},{"id":{"$num":"Infinity"},"title":"﻿bom","notes":null,"priority":"a😀b😀c","remind_at":null}],{"a":{"b":"c"}},-1],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[{"a":"b"},null,1000],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"-0"},"title":"a..b","notes":null,"priority":"a:","remind_at":null},{"id":100,"title":"src/a/b.ts","notes":"abc","priority":"key_name-1","remind_at":null}],[],{"$num":"Infinity"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"-Infinity"},"title":"","notes":"İstanbul","priority":"ΣΊΣΥΦΟΣ","remind_at":"abc"}],{"a":{"b":"c"}},{"$num":"-0"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":1,"title":"trailing.","notes":"﻿bom","priority":"key_name-1","remind_at":null},{"id":9007199254740992,"title":"tab\tseparated","notes":"emoji 👍🏽 mix  padded  ","priority":"","remind_at":null},{"id":1,"title":":a😀b😀c","notes":null,"priority":"ΣΊΣΥΦΟΣ","remind_at":"hello world"}],true,9007199254740992],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":3,"title":"line1\nline2","notes":null,"priority":"a:b:c","remind_at":null}],0,100],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":1000,"title":"hello","notes":"a","priority":"😀","remind_at":null}],0,3],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":2147483648,"title":"日本語のテキストé","notes":"abcHELLO","priority":"ab","remind_at":"tab\tseparated"}],"x",{"$num":"Infinity"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[],"x",2],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[],true,{"$num":"NaN"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"NaN"},"title":"a","notes":null,"priority":"tab\tseparateda","remind_at":"ΣΊΣΥΦΟΣ"},{"id":-1,"title":"Hello World","notes":"é","priority":"a.b.c","remind_at":null}],"x",1000000],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"-Infinity"},"title":"trailing.","notes":null,"priority":"hello","remind_at":"straße"}],{},2],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":0,"title":"{name} has {count} items","notes":"HELLO","priority":"ab","remind_at":"emoji 👍🏽 mixtab\tseparated"},{"id":3,"title":"😀","notes":"éİstanbul","priority":"a:b:c","remind_at":":./x/**/*.json"}],["a",1],{"$num":"-Infinity"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":-2.5,"title":"a","notes":"İstanbul","priority":"hello world","remind_at":"abc"},{"id":10,"title":"hello","notes":null,"priority":"İstanbul","remind_at":"ΣΊΣΥΦΟΣline1\nline2"}],[],9007199254740992],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":3,"title":"a😀b😀c","notes":"./x/**/*.json","priority":"😀","remind_at":null},{"id":-1,"title":"tab\tseparated","notes":null,"priority":":İstanbul","remind_at":"é"},{"id":3,"title":"abc","notes":"straße","priority":"Hello World","remind_at":"hello"}],null,0.5],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"pickDueReminders","args":[[],[],42],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":0,"title":"ünïcödé","notes":"  padded  ","priority":"a😀b😀c","remind_at":"./x/**/*.json"}],true,1000000],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"NaN"},"title":"","notes":"straße","priority":"  padded  ","remind_at":null}],[],9007199254740992],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"Infinity"},"title":"HELLO","notes":"src/a/b.ts./x/**/*.json","priority":"ünïcödé","remind_at":":😀"}],null,0.5],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"-Infinity"},"title":"hello","notes":"Hello Worlda:b:c","priority":"a:b:ca😀b😀c","remind_at":null},{"id":-1,"title":"﻿bom","notes":"ns:key.path","priority":"HELLO","remind_at":":"},{"id":9007199254740992,"title":"ns:key.pathünïcödé","notes":"hello world","priority":"😀","remind_at":"tab\tseparated"}],true,-1],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[],{"a":{"b":"c"}},0.5],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"NaN"},"title":"abc","notes":"  padded  HELLO","priority":"hello","remind_at":null},{"id":2147483648,"title":"HELLO","notes":null,"priority":"ünïcödé","remind_at":null},{"id":1000000,"title":"abtrailing.","notes":"hello worldstraße","priority":"straße","remind_at":"hello worldstraße"}],["a",1],1000000],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":10,"title":"abc","notes":"a😀b😀c","priority":"HELLO","remind_at":null}],{"a":{"b":"c"}},1],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[],null,9007199254740992],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"pickDueReminders","args":[[{"id":2147483648,"title":"hello","notes":null,"priority":"ünïcödé","remind_at":"ΣΊΣΥΦΟΣ"},{"id":42,"title":"asrc/a/b.ts","notes":null,"priority":"a","remind_at":null},{"id":2,"title":"İstanbul","notes":"a","priority":"emoji 👍🏽 mixstraße","remind_at":null}],"x",1000],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":1,"title":"tab\tseparated","notes":null,"priority":"Hello World","remind_at":"key_name-1"},{"id":100,"title":"hello","notes":"Hello World","priority":"src/a/b.ts","remind_at":null}],true,-1],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[{"a":"b"},["a",1],{"$num":"-0"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[0,true,{"$num":"-0"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":2,"title":"ab","notes":null,"priority":"src/a/b.ts","remind_at":null},{"id":2147483648,"title":"ΣΊΣΥΦΟΣ","notes":null,"priority":"src/a/b.ts","remind_at":"😀"},{"id":42,"title":"😀","notes":"key_name-1","priority":"hello","remind_at":"ΣΊΣΥΦΟΣ"}],{},42],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"Infinity"},"title":":","notes":"😀","priority":"﻿bom","remind_at":null},{"id":3,"title":".leading","notes":"ab","priority":"tab\tseparated","remind_at":"  padded  "},{"id":100,"title":"日本語のテキスト","notes":"emoji 👍🏽 mix","priority":"  padded  src/a/b.ts","remind_at":null}],true,1],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":10,"title":"ΣΊΣΥΦΟΣHello World","notes":null,"priority":"😀","remind_at":"trailing."},{"id":0,"title":"hello world日本語のテキスト","notes":null,"priority":"{name} has {count} itemsstraße","remind_at":null},{"id":2,"title":"{name} has {count} items","notes":null,"priority":"","remind_at":null}],{"a":"b"},1],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":1,"title":"{name} has {count} items","notes":"a.b.c","priority":"key_name-1","remind_at":null}],{"a":{"b":"c"}},-1],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":3,"title":"ΣΊΣΥΦΟΣ","notes":null,"priority":"é","remind_at":null}],[],2147483648],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[null,"x",-2.5],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"NaN"},"title":"src/a/b.ts","notes":"tab\tseparated","priority":"tab\tseparated😀","remind_at":null},{"id":1000000,"title":"ΣΊΣΥΦΟΣünïcödé","notes":null,"priority":"日本語のテキスト","remind_at":null}],["a",1],1000000],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[],{},3],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[],{"a":"b"},2],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"NaN"},"title":".leadinga:b:c","notes":"a.b.c","priority":".leading","remind_at":null},{"id":10,"title":".leading","notes":null,"priority":"İstanbul","remind_at":null}],"x",-2.5],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":0,"title":"abc","notes":".leading","priority":"a😀b😀c","remind_at":null}],["a",1],{"$num":"Infinity"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":3,"title":"./x/**/*.json","notes":null,"priority":"İstanbul","remind_at":"tab\tseparated"},{"id":9007199254740992,"title":".leading","notes":null,"priority":"src/a/b.ts","remind_at":"a😀b😀c"}],null,2],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"-Infinity"},"title":"HELLO","notes":"a..ba","priority":"./x/**/*.json","remind_at":"hello world"}],{"a":"b"},1],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":1000000,"title":"straße","notes":null,"priority":"emoji 👍🏽 mixns:key.path","remind_at":null},{"id":42,"title":"aemoji 👍🏽 mix","notes":"trailing.","priority":"ΣΊΣΥΦΟΣa","remind_at":null},{"id":100,"title":"a😀b😀c","notes":null,"priority":"helloHELLO","remind_at":"a"}],["a",1],-2.5],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":2147483648,"title":"","notes":"a..b","priority":"a😀b😀cé","remind_at":null}],{"a":"b"},0.5],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":1000,"title":"日本語のテキスト","notes":null,"priority":"src/a/b.ts","remind_at":null},{"id":{"$num":"NaN"},"title":"Hello World","notes":null,"priority":"tab\tseparated","remind_at":"emoji 👍🏽 mix"},{"id":{"$num":"-Infinity"},"title":"﻿bomline1\nline2","notes":null,"priority":"é","remind_at":null}],0,-2.5],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":100,"title":"straßea:b:c","notes":"trailing.:","priority":"a","remind_at":"ns:key.path"},{"id":2,"title":"line1\nline2","notes":"hello","priority":"trailing.","remind_at":null},{"id":0,"title":".leading","notes":null,"priority":"ünïcödé","remind_at":""}],{"a":"b"},9007199254740992],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":1000000,"title":"emoji 👍🏽 mix","notes":"src/a/b.ts","priority":":a","remind_at":"emoji 👍🏽 mix"},{"id":{"$num":"NaN"},"title":"straße","notes":null,"priority":"HELLO","remind_at":null},{"id":9007199254740992,"title":"tab\tseparatedİstanbul","notes":"abc","priority":"é","remind_at":null}],{"a":{"b":"c"}},{"$num":"NaN"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"-0"},"title":"src/a/b.ts","notes":null,"priority":"emoji 👍🏽 mix","remind_at":null},{"id":42,"title":"emoji 👍🏽 mix","notes":"ns:key.path","priority":"  padded  abc","remind_at":"emoji 👍🏽 mix"}],[],1000000],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":2,"title":"trailing.","notes":null,"priority":"aa","remind_at":null},{"id":1000000,"title":"hello","notes":"ΣΊΣΥΦΟΣ","priority":"hello","remind_at":"tab\tseparated"}],["a",1],-1],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":10,"title":"./x/**/*.json","notes":"tab\tseparated","priority":"trailing.","remind_at":null}],null,1000],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"pickDueReminders","args":[[{"id":42,"title":".leadingabc","notes":null,"priority":"éns:key.path","remind_at":null},{"id":9007199254740992,"title":"Hello World","notes":"a:b:cHELLO","priority":"a:b:c","remind_at":null}],{"a":"b"},2],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[true,true,2],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[],[],{"$num":"-Infinity"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"Infinity"},"title":"a:b:c","notes":":","priority":"a😀b😀c","remind_at":null},{"id":-1,"title":"straße","notes":null,"priority":"  padded  ","remind_at":null}],true,1000000],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":0.5,"title":"a😀b😀c😀","notes":"{name} has {count} items","priority":"Hello World","remind_at":null},{"id":0.5,"title":"line1\nline2","notes":null,"priority":"{name} has {count} items","remind_at":null}],true,{"$num":"Infinity"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"NaN"},"title":"﻿bom","notes":"key_name-1","priority":"é","remind_at":"straße"},{"id":{"$num":"-0"},"title":"{name} has {count} items","notes":"hello","priority":":é","remind_at":"HELLO"}],true,0],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":9007199254740992,"title":".leading","notes":"  padded  ","priority":"hello","remind_at":"ns:key.pathline1\nline2"}],{"a":{"b":"c"}},2147483648],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":0.5,"title":"  padded  ","notes":null,"priority":"  padded  ","remind_at":null},{"id":1000,"title":"ns:key.path","notes":null,"priority":"{name} has {count} itemsünïcödé","remind_at":null},{"id":2147483648,"title":"HELLO","notes":"trailing.","priority":"a:b:c","remind_at":".leading"}],["a",1],9007199254740992],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":3,"title":"İstanbul","notes":"a.b.c","priority":"日本語のテキスト","remind_at":"é"}],true,{"$num":"-Infinity"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[["a",1],true,{"$num":"Infinity"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[true,[],1000000],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":2147483648,"title":"hello world","notes":"ab","priority":"a😀b😀c","remind_at":null}],{},{"$num":"-Infinity"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":42,"title":"{name} has {count} items","notes":null,"priority":"trailing.","remind_at":".leading"},{"id":{"$num":"NaN"},"title":"😀","notes":"ünïcödé","priority":"hello world","remind_at":"line1\nline2trailing."}],[],-2.5],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":["x",["a",1],-2.5],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":100,"title":"trailing.","notes":":","priority":"hello world","remind_at":null}],{"a":"b"},1000000],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[],[],1000],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[],{},-2.5],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[],{},{"$num":"-0"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":2147483648,"title":"hello","notes":null,"priority":"src/a/b.ts","remind_at":null}],{"a":{"b":"c"}},9007199254740992],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":3,"title":"./x/**/*.json","notes":null,"priority":"a.b.c","remind_at":"ab"},{"id":1,"title":"Hello World","notes":null,"priority":"  padded  a😀b😀c","remind_at":"HELLOtrailing."}],{"a":{"b":"c"}},0],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":0.5,"title":"emoji 👍🏽 mix","notes":null,"priority":"﻿bom","remind_at":""},{"id":2147483648,"title":".leading日本語のテキスト","notes":null,"priority":"hello","remind_at":null},{"id":{"$num":"-0"},"title":"straße","notes":null,"priority":"日本語のテキスト","remind_at":null}],{},0.5],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":-1,"title":"  padded  ","notes":"key_name-1","priority":"ns:key.path","remind_at":"aa"},{"id":42,"title":"éHELLO","notes":null,"priority":"trailing.","remind_at":null},{"id":0.5,"title":"a:b:c","notes":"ab","priority":"ΣΊΣΥΦΟΣemoji 👍🏽 mix","remind_at":"straße"}],"x",2],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":1000000,"title":"ns:key.patha","notes":null,"priority":"src/a/b.ts","remind_at":null},{"id":{"$num":"NaN"},"title":"line1\nline2","notes":null,"priority":"line1\nline2key_name-1","remind_at":null},{"id":10,"title":"a","notes":null,"priority":"key_name-1","remind_at":null}],null,2147483648],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"pickDueReminders","args":[[{"id":42,"title":"a..b","notes":null,"priority":"ab","remind_at":"a:b:c"},{"id":2,"title":"éa..b","notes":null,"priority":"./x/**/*.json","remind_at":null},{"id":{"$num":"NaN"},"title":"HELLO","notes":null,"priority":".leading","remind_at":"a"}],"x",42],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"-0"},"title":"emoji 👍🏽 mix","notes":null,"priority":"a","remind_at":"é"},{"id":{"$num":"NaN"},"title":"trailing.","notes":"HELLO","priority":"İstanbul","remind_at":"a😀b😀c"}],{},-1],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":-2.5,"title":"./x/**/*.json","notes":".leading","priority":"trailing.","remind_at":null}],0,100],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"NaN"},"title":"日本語のテキスト","notes":"hello","priority":"a:b:cHELLO","remind_at":"ünïcödé"},{"id":9007199254740992,"title":"a..b.leading","notes":"","priority":"a:b:c","remind_at":"src/a/b.ts"},{"id":1000000,"title":"ünïcödé","notes":"😀","priority":"abc","remind_at":null}],{},3],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":100,"title":"trailing.","notes":"./x/**/*.json","priority":"straße","remind_at":"./x/**/*.json"},{"id":{"$num":"-Infinity"},"title":"abc","notes":null,"priority":"abcİstanbul","remind_at":"﻿bom"},{"id":9007199254740992,"title":"a😀b😀ckey_name-1","notes":"src/a/b.ts","priority":"﻿bom","remind_at":null}],{"a":"b"},-2.5],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[],{},9007199254740992],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":0,"title":"a😀b😀c","notes":"a:b:cab","priority":"","remind_at":"é﻿bom"}],0,3],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[],{"a":"b"},0.5],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":-1,"title":"a..b","notes":null,"priority":"a:b:c","remind_at":null}],{"a":"b"},10],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[{},null,{"$num":"-0"}],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"pickDueReminders","args":[["a",1],{"a":{"b":"c"}},0],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":3,"title":"tab\tseparated","notes":null,"priority":"Hello Worldtab\tseparated","remind_at":null}],{"a":{"b":"c"}},-1],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"-Infinity"},"title":"src/a/b.ts","notes":"日本語のテキスト😀","priority":"hello","remind_at":"a.b.cns:key.path"},{"id":10,"title":"a","notes":null,"priority":"a:b:c","remind_at":"ünïcödé"},{"id":42,"title":"emoji 👍🏽 mix","notes":"ns:key.path","priority":"  padded  ","remind_at":null}],true,{"$num":"-0"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":0,"title":"HELLOemoji 👍🏽 mix","notes":null,"priority":"a..b","remind_at":null}],null,-1],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"pickDueReminders","args":[[],{"a":"b"},{"$num":"Infinity"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":1,"title":"key_name-1trailing.","notes":"src/a/b.tssrc/a/b.ts","priority":"Hello World","remind_at":null},{"id":3,"title":"😀","notes":"a","priority":"é","remind_at":".leadinga..b"}],true,42],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":10,"title":"a..b","notes":null,"priority":"éemoji 👍🏽 mix","remind_at":"emoji 👍🏽 mix"},{"id":3,"title":"İstanbul","notes":null,"priority":"ab","remind_at":null},{"id":{"$num":"-Infinity"},"title":"ab","notes":null,"priority":"tab\tseparated","remind_at":null}],"x",10],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":0.5,"title":"trailing.","notes":"😀","priority":"İstanbul","remind_at":"﻿bom"},{"id":9007199254740992,"title":"a😀b😀c","notes":"a..b","priority":"ΣΊΣΥΦΟΣ","remind_at":null},{"id":3,"title":"key_name-1","notes":"hello日本語のテキスト","priority":"hello","remind_at":"tab\tseparated"}],[],1000],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":0,"title":"line1\nline2","notes":"﻿bom","priority":"hello world","remind_at":null}],{"a":{"b":"c"}},-2.5],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[null,[],{"$num":"-Infinity"}],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":2,"title":"tab\tseparatedstraße","notes":null,"priority":"éİstanbul","remind_at":null}],[],100],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[{"a":"b"},true,0],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":{"$num":"NaN"},"title":"a:b:chello world","notes":null,"priority":"😀","remind_at":"HELLO"}],{},3],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":1,"title":"a😀b😀c","notes":null,"priority":".leading","remind_at":"ünïcödé"},{"id":0,"title":"a","notes":"aHello World","priority":"emoji 👍🏽 mix","remind_at":".leading"},{"id":3,"title":"trailing.hello","notes":"é","priority":"a😀b😀c","remind_at":"ns:key.pathé"}],["a",1],0.5],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":1000000,"title":"﻿bom","notes":"a:b:c","priority":"straße{name} has {count} items","remind_at":null},{"id":-1,"title":"line1\nline2","notes":null,"priority":"Hello World","remind_at":"ΣΊΣΥΦΟΣ"}],["a",1],0.5],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":1000000,"title":"İstanbul","notes":"ΣΊΣΥΦΟΣ","priority":"trailing.src/a/b.ts","remind_at":"a:b:c"},{"id":-1,"title":"helloΣΊΣΥΦΟΣ","notes":":hello world","priority":"é","remind_at":"emoji 👍🏽 mix"}],0,-7.5],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":1000000,"title":"İstanbul","notes":"ΣΊΣΥΦΟΣ","priority":"trailing.src/a/b.ts","remind_at":"a:b:c"},{"id":-1,"title":"helloΣΊΣΥΦΟΣ","notes":":hello world","priority":"é","remind_at":"emoji 👍🏽 mix"}],0,0.1],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":1000000,"title":"İstanbul","notes":"ΣΊΣΥΦΟΣ","priority":"trailing.src/a/b.ts","remind_at":"a:b:c"},{"id":-1,"title":"helloΣΊΣΥΦΟΣ","notes":":hello world","priority":"é","remind_at":"emoji 👍🏽 mix"}],0,0.30000000000000004],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":1000000,"title":"İstanbul","notes":"ΣΊΣΥΦΟΣ","priority":"trailing.src/a/b.ts","remind_at":"a:b:c"},{"id":-1,"title":"helloΣΊΣΥΦΟΣ","notes":":hello world","priority":"é","remind_at":"emoji 👍🏽 mix"}],0,1e+21],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":1000000,"title":"İstanbul","notes":"ΣΊΣΥΦΟΣ","priority":"trailing.src/a/b.ts","remind_at":"a:b:c"},{"id":-1,"title":"helloΣΊΣΥΦΟΣ","notes":":hello world","priority":"é","remind_at":"emoji 👍🏽 mix"}],0,1e-7],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":1000000,"title":"İstanbul","notes":"ΣΊΣΥΦΟΣ","priority":"trailing.src/a/b.ts","remind_at":"a:b:c"},{"id":-1,"title":"helloΣΊΣΥΦΟΣ","notes":":hello world","priority":"é","remind_at":"emoji 👍🏽 mix"}],0,5e-324],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":1000000,"title":"İstanbul","notes":"ΣΊΣΥΦΟΣ","priority":"trailing.src/a/b.ts","remind_at":"a:b:c"},{"id":-1,"title":"helloΣΊΣΥΦΟΣ","notes":":hello world","priority":"é","remind_at":"emoji 👍🏽 mix"}],0,1.7976931348623157e+308],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":1000000,"title":"İstanbul","notes":"ΣΊΣΥΦΟΣ","priority":"trailing.src/a/b.ts","remind_at":"a:b:c"},{"id":-1,"title":"helloΣΊΣΥΦΟΣ","notes":":hello world","priority":"é","remind_at":"emoji 👍🏽 mix"}],0,9007199254740992],"error":"now.getTime is not a function"}
+{"fn":"pickDueReminders","args":[[{"id":1000000,"title":"İstanbul","notes":"ΣΊΣΥΦΟΣ","priority":"trailing.src/a/b.ts","remind_at":"a:b:c"},{"id":-1,"title":"helloΣΊΣΥΦΟΣ","notes":":hello world","priority":"é","remind_at":"emoji 👍🏽 mix"}],0,{"$num":"-0"}],"error":"now.getTime is not a function"}
+{"fn":"isExpiredReminder","args":[{"id":0.5,"title":"a.b.c","notes":null,"priority":"hello world","remind_at":"ns:key.path"},"x",0],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":2,"title":"./x/**/*.json","notes":"﻿bom","priority":"./x/**/*.json","remind_at":null},{"a":"b"},{"$num":"Infinity"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":2147483648,"title":"İstanbul","notes":null,"priority":"ab","remind_at":"a.b.c"},[],100],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":42,"title":"line1\nline2","notes":"a","priority":"trailing.","remind_at":"hello"},{"a":{"b":"c"}},{"$num":"-0"}],"ok":false}
+{"fn":"isExpiredReminder","args":[0,{"a":{"b":"c"}},42],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":0,"title":"İstanbul","notes":null,"priority":"tab\tseparated","remind_at":null},{"a":"b"},{"$num":"Infinity"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":1,"title":":","notes":null,"priority":"hello world","remind_at":null},null,9007199254740992],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":1,"title":"emoji 👍🏽 mixsrc/a/b.ts","notes":"trailing.","priority":"","remind_at":null},{"a":"b"},-1],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":9007199254740992,"title":"a:b:c","notes":"key_name-1","priority":".leading","remind_at":null},null,10],"ok":false}
+{"fn":"isExpiredReminder","args":[true,0,42],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":10,"title":"a","notes":null,"priority":"a😀b😀c","remind_at":"key_name-1"},["a",1],1],"error":"now.getTime is not a function"}
+{"fn":"isExpiredReminder","args":[{"id":2147483648,"title":"ΣΊΣΥΦΟΣsrc/a/b.ts","notes":"abcemoji 👍🏽 mix","priority":"./x/**/*.json","remind_at":"abc"},{},{"$num":"-Infinity"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":3,"title":"tab\tseparated","notes":"trailing.","priority":"a..b","remind_at":"é"},[],0],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":9007199254740992,"title":"é","notes":"ΣΊΣΥΦΟΣ","priority":"./x/**/*.json","remind_at":null},true,1000],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":{"$num":"NaN"},"title":"{name} has {count} items","notes":null,"priority":"éé","remind_at":null},true,3],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":-2.5,"title":"line1\nline2","notes":"line1\nline2","priority":"trailing.","remind_at":"tab\tseparated"},true,{"$num":"-Infinity"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":-1,"title":"emoji 👍🏽 mix","notes":null,"priority":"a.b.cHello World","remind_at":null},null,-2.5],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":{"$num":"-0"},"title":"abc","notes":null,"priority":"line1\nline2","remind_at":null},{"a":"b"},{"$num":"NaN"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":2,"title":"trailing.","notes":"ΣΊΣΥΦΟΣ","priority":"hello","remind_at":null},true,1],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":-2.5,"title":"","notes":null,"priority":"line1\nline2","remind_at":"line1\nline2straße"},"x",{"$num":"Infinity"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":-1,"title":"Hello World","notes":"﻿bomhello world","priority":"é","remind_at":"a.b.c"},null,{"$num":"NaN"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":0.5,"title":"ns:key.path","notes":"./x/**/*.json","priority":"日本語のテキストünïcödé","remind_at":"a:b:c"},{"a":"b"},0.5],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":{"$num":"NaN"},"title":"hello world日本語のテキスト","notes":null,"priority":"key_name-1","remind_at":null},0,1],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":9007199254740992,"title":"trailing.key_name-1","notes":"ns:key.path","priority":"trailing.","remind_at":"ünïcödé"},["a",1],3],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":{"$num":"NaN"},"title":"tab\tseparated","notes":"abc","priority":"Hello World","remind_at":"./x/**/*.json"},["a",1],10],"ok":false}
+{"fn":"isExpiredReminder","args":[["a",1],"x",{"$num":"-0"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":100,"title":"{name} has {count} itemsa😀b😀c","notes":"HELLO","priority":"﻿bom","remind_at":null},{"a":{"b":"c"}},9007199254740992],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":2,"title":"ΣΊΣΥΦΟΣ","notes":null,"priority":"{name} has {count} items","remind_at":"emoji 👍🏽 mix"},{"a":"b"},-1],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":-1,"title":"emoji 👍🏽 mix","notes":"ünïcödé","priority":":","remind_at":null},"x",0.5],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":0,"title":"line1\nline2:","notes":"trailing.","priority":"😀","remind_at":null},[],-1],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":10,"title":"﻿bom","notes":null,"priority":"hello world","remind_at":"{name} has {count} items"},null,3],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":42,"title":"a","notes":null,"priority":"ab","remind_at":null},true,1],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":{"$num":"NaN"},"title":"line1\nline2hello world","notes":"a.b.c","priority":"a:b:c","remind_at":null},{},{"$num":"Infinity"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":{"$num":"-0"},"title":"ünïcödé","notes":"日本語のテキスト","priority":"hello world","remind_at":"a😀b😀cab"},{"a":{"b":"c"}},-1],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":10,"title":"tab\tseparated","notes":"ns:key.pathline1\nline2","priority":"  padded  ","remind_at":null},["a",1],{"$num":"-0"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":1,"title":"a.b.cab","notes":"HELLO","priority":"日本語のテキスト","remind_at":"a..b"},{},3],"ok":false}
+{"fn":"isExpiredReminder","args":[[],{},100],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":2147483648,"title":"İstanbul","notes":"emoji 👍🏽 mix","priority":"a.b.c","remind_at":null},0,-2.5],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":2,"title":"hello","notes":"a","priority":"src/a/b.ts","remind_at":"a.b.c"},{"a":{"b":"c"}},1],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":1,"title":"line1\nline2hello","notes":"straße./x/**/*.json","priority":"a😀b😀c","remind_at":null},"x",9007199254740992],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":10,"title":"ns:key.pathİstanbul","notes":"straße","priority":"ΣΊΣΥΦΟΣ","remind_at":null},{"a":"b"},3],"ok":false}
+{"fn":"isExpiredReminder","args":["x",null,2147483648],"ok":false}
+{"fn":"isExpiredReminder","args":[[],{"a":{"b":"c"}},{"$num":"-0"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":3,"title":"key_name-1","notes":null,"priority":"hello world","remind_at":"emoji 👍🏽 mixhello world"},"x",1],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":9007199254740992,"title":"Hello WorldHELLO","notes":"trailing.","priority":"src/a/b.ts","remind_at":"ns:key.path"},{"a":{"b":"c"}},1000],"ok":false}
+{"fn":"isExpiredReminder","args":[0,"x",100],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":3,"title":".leading","notes":"﻿bom","priority":"a.b.c","remind_at":null},{"a":"b"},10],"ok":false}
+{"fn":"isExpiredReminder","args":[{},"x",{"$num":"-0"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":42,"title":".leading","notes":"tab\tseparated","priority":"{name} has {count} items","remind_at":null},null,100],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":42,"title":"hello world","notes":null,"priority":"abc","remind_at":"Hello World"},0,2147483648],"ok":false}
+{"fn":"isExpiredReminder","args":[{"a":"b"},null,2],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":{"$num":"Infinity"},"title":"tab\tseparated","notes":null,"priority":"straße","remind_at":null},null,-2.5],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":{"$num":"-0"},"title":"😀","notes":"Hello World","priority":"emoji 👍🏽 mix","remind_at":null},{"a":{"b":"c"}},1000000],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":9007199254740992,"title":"a..bhello world","notes":"straße","priority":"İstanbul😀","remind_at":null},{},1],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":3,"title":"{name} has {count} items","notes":null,"priority":"hello","remind_at":null},true,9007199254740992],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":-1,"title":"é","notes":"line1\nline2src/a/b.ts","priority":"日本語のテキスト","remind_at":"straße"},{},10],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":2147483648,"title":":é","notes":null,"priority":"a..ba😀b😀c","remind_at":null},{"a":"b"},1000000],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":0,"title":"HELLO","notes":null,"priority":"aé","remind_at":null},"x",-2.5],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":0.5,"title":"{name} has {count} items","notes":null,"priority":"src/a/b.ts","remind_at":"./x/**/*.json"},null,10],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":1000000,"title":"  padded  ","notes":null,"priority":"ΣΊΣΥΦΟΣ","remind_at":null},true,100],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":{"$num":"-Infinity"},"title":"hello","notes":"","priority":"aünïcödé","remind_at":"  padded  trailing."},{"a":"b"},{"$num":"-Infinity"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":10,"title":"trailing.","notes":null,"priority":"Hello World","remind_at":"emoji 👍🏽 mix"},{"a":{"b":"c"}},{"$num":"-Infinity"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":1,"title":"日本語のテキスト","notes":"src/a/b.ts","priority":"straße","remind_at":"ünïcödé"},"x",{"$num":"NaN"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":-1,"title":"ab","notes":null,"priority":"日本語のテキスト","remind_at":"ab"},true,0],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":{"$num":"Infinity"},"title":"a..b","notes":null,"priority":"😀","remind_at":"ΣΊΣΥΦΟΣ"},true,-2.5],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":2,"title":"﻿bom","notes":null,"priority":"﻿bom","remind_at":".leading"},{},0.5],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":{"$num":"-0"},"title":".leading","notes":null,"priority":"é","remind_at":null},{"a":"b"},{"$num":"-0"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":42,"title":"a..b","notes":"﻿bom","priority":"./x/**/*.json","remind_at":null},true,100],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":1000,"title":"İstanbul","notes":"trailing.","priority":"straße","remind_at":"😀"},{"a":{"b":"c"}},9007199254740992],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":{"$num":"-Infinity"},"title":"hello","notes":"a.b.c","priority":"﻿bom","remind_at":null},null,2],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":100,"title":"./x/**/*.json","notes":"é","priority":"日本語のテキスト","remind_at":"ΣΊΣΥΦΟΣ"},[],0],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":100,"title":"emoji 👍🏽 mix","notes":"é","priority":"straße","remind_at":"日本語のテキストtab\tseparated"},true,9007199254740992],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":9007199254740992,"title":"  padded  ","notes":null,"priority":"日本語のテキスト","remind_at":null},{"a":{"b":"c"}},{"$num":"-0"}],"ok":false}
+{"fn":"isExpiredReminder","args":[0,"x",1000000],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":42,"title":"é","notes":"hello","priority":"abc","remind_at":"  padded  😀"},{},42],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":100,"title":"a😀b😀ctrailing.","notes":"hello world","priority":"a..b","remind_at":null},{"a":"b"},-2.5],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":{"$num":"-Infinity"},"title":"straße","notes":"ünïcödé","priority":":HELLO","remind_at":null},{"a":"b"},42],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":2,"title":"emoji 👍🏽 mix","notes":"abc","priority":"tab\tseparated","remind_at":"a:b:c"},{"a":{"b":"c"}},-1],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":3,"title":"./x/**/*.json","notes":null,"priority":"key_name-1","remind_at":null},{"a":{"b":"c"}},2],"ok":false}
+{"fn":"isExpiredReminder","args":[true,{"a":{"b":"c"}},0],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":{"$num":"-Infinity"},"title":"﻿bom","notes":null,"priority":"./x/**/*.json","remind_at":"😀"},true,{"$num":"-0"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":100,"title":"ünïcödé","notes":"hello","priority":"😀","remind_at":null},null,2147483648],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":1000000,"title":"日本語のテキスト","notes":null,"priority":"a😀b😀c","remind_at":null},{"a":"b"},{"$num":"Infinity"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":1,"title":"{name} has {count} items","notes":null,"priority":"a.b.chello","remind_at":"helloİstanbul"},{"a":{"b":"c"}},2],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":1,"title":"😀","notes":null,"priority":"İstanbul","remind_at":"tab\tseparated"},0,{"$num":"-0"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":42,"title":"ns:key.path","notes":null,"priority":":","remind_at":null},true,{"$num":"NaN"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":1,"title":"hello world","notes":null,"priority":"hello","remind_at":"é"},{},-2.5],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":-2.5,"title":"hello","notes":null,"priority":"helloab","remind_at":null},"x",10],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":42,"title":"a:b:c","notes":null,"priority":"a😀b😀cİstanbul","remind_at":"é"},{},10],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":0,"title":"ns:key.path","notes":"é","priority":"hello","remind_at":"emoji 👍🏽 mix"},{"a":{"b":"c"}},-2.5],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":-2.5,"title":"日本語のテキスト","notes":"ΣΊΣΥΦΟΣ","priority":"a😀b😀c","remind_at":"abΣΊΣΥΦΟΣ"},"x",10],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":0.5,"title":"./x/**/*.json","notes":"hello","priority":"tab\tseparated","remind_at":null},true,10],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":0,"title":"straße","notes":"tab\tseparatedline1\nline2","priority":"trailing.trailing.","remind_at":"ΣΊΣΥΦΟΣ"},{},{"$num":"NaN"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":{"$num":"Infinity"},"title":"  padded  ","notes":"trailing.","priority":"./x/**/*.json","remind_at":null},[],0.5],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":9007199254740992,"title":"","notes":"src/a/b.ts","priority":"﻿bom","remind_at":"😀"},[],-2.5],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":10,"title":"😀","notes":"a..b:","priority":"a","remind_at":null},0,{"$num":"-0"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":9007199254740992,"title":"a:b:c","notes":"abc","priority":"./x/**/*.json","remind_at":"😀"},"x",{"$num":"-Infinity"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":2,"title":"line1\nline2","notes":null,"priority":"a😀b😀c","remind_at":null},0,1],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":-2.5,"title":"é","notes":null,"priority":"hello world","remind_at":".leading"},{"a":{"b":"c"}},{"$num":"NaN"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":-1,"title":"src/a/b.ts","notes":"😀","priority":"ns:key.path","remind_at":"ns:key.path:"},{},{"$num":"-Infinity"}],"ok":false}
+{"fn":"isExpiredReminder","args":["x",0,9007199254740992],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":3,"title":"ünïcödé","notes":null,"priority":"tab\tseparated","remind_at":null},{},2],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":0,"title":"straße","notes":"abc","priority":"ünïcödé","remind_at":"hello world"},0,10],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":1000000,"title":"ab{name} has {count} items","notes":"key_name-1","priority":"HELLO","remind_at":"hello"},{"a":{"b":"c"}},3],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":0,"title":"a","notes":null,"priority":"","remind_at":"key_name-1"},{"a":"b"},{"$num":"-0"}],"error":"now.getTime is not a function"}
+{"fn":"isExpiredReminder","args":[{"id":100,"title":"ünïcödé","notes":"trailing.","priority":"ahello","remind_at":"abcsrc/a/b.ts"},true,0],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":-1,"title":"asrc/a/b.ts","notes":null,"priority":"a😀b😀c","remind_at":"é"},0,{"$num":"Infinity"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":2147483648,"title":":","notes":"é","priority":"a..b","remind_at":null},true,1000],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":0.5,"title":"./x/**/*.json","notes":null,"priority":"a😀b😀c","remind_at":null},true,9007199254740992],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":-1,"title":"./x/**/*.jsonns:key.path","notes":null,"priority":"straße","remind_at":".leading"},{},1000],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":0,"title":"Hello World","notes":null,"priority":"a:b:c","remind_at":"ΣΊΣΥΦΟΣ"},[],2],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":{"$num":"NaN"},"title":"hello","notes":null,"priority":"ns:key.path:","remind_at":"a"},[],1000000],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":{"$num":"-Infinity"},"title":"Hello World","notes":"é","priority":"a..b","remind_at":null},"x",-1],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":42,"title":"hello world","notes":null,"priority":"Hello World.leading","remind_at":null},{},1000],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":9007199254740992,"title":"HELLO{name} has {count} items","notes":"a","priority":"日本語のテキストé","remind_at":"key_name-1a.b.c"},["a",1],-2.5],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":1,"title":"hello world","notes":"😀ünïcödé","priority":"a😀b😀c","remind_at":""},[],9007199254740992],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":{"$num":"-Infinity"},"title":"","notes":null,"priority":"./x/**/*.json","remind_at":null},null,1000],"ok":false}
+{"fn":"isExpiredReminder","args":[true,"x",1000000],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":2147483648,"title":"ns:key.path","notes":null,"priority":"hello","remind_at":".leading"},[],0],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":100,"title":"ns:key.path","notes":"emoji 👍🏽 mix","priority":"HELLO","remind_at":null},{},-1],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":{"$num":"Infinity"},"title":"./x/**/*.json","notes":"a😀b😀c","priority":"a..b","remind_at":"Hello World"},"x",42],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":2,"title":"line1\nline2a","notes":"a","priority":"straße","remind_at":null},["a",1],{"$num":"Infinity"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":3,"title":"","notes":"./x/**/*.json","priority":"abcé","remind_at":"straße"},["a",1],9007199254740992],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":10,"title":"emoji 👍🏽 mix","notes":"a","priority":"a..b","remind_at":null},{"a":{"b":"c"}},1000],"ok":false}
+{"fn":"isExpiredReminder","args":[{"a":{"b":"c"}},["a",1],3],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":-1,"title":".leading","notes":null,"priority":"line1\nline2","remind_at":null},null,0],"ok":false}
+{"fn":"isExpiredReminder","args":[[],true,-1],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":9007199254740992,"title":"ab","notes":"ns:key.path","priority":"﻿bom","remind_at":null},null,10],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":0.5,"title":"ns:key.path","notes":null,"priority":"  padded  a","remind_at":null},{},{"$num":"-0"}],"ok":false}
+{"fn":"isExpiredReminder","args":[[],[],10],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":0,"title":"ΣΊΣΥΦΟΣ","notes":".leading","priority":"  padded  ","remind_at":null},null,10],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":1000000,"title":".leading","notes":"src/a/b.ts","priority":"trailing.","remind_at":"a.b.c"},null,1000],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":1000000,"title":"hello","notes":"emoji 👍🏽 mix","priority":"abc","remind_at":null},{"a":"b"},{"$num":"-0"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":{"$num":"-Infinity"},"title":"étrailing.","notes":null,"priority":"hello","remind_at":null},{"a":"b"},42],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":1,"title":"ab","notes":"hello world","priority":"😀","remind_at":"hello"},0,10],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":2,"title":"﻿bom","notes":null,"priority":"﻿bom","remind_at":null},{"a":{"b":"c"}},{"$num":"NaN"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":2,"title":"a..b","notes":"﻿bomns:key.path","priority":"key_name-1","remind_at":"src/a/b.ts日本語のテキスト"},"x",{"$num":"-0"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{},["a",1],2147483648],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":3,"title":"HELLO","notes":null,"priority":"日本語のテキスト","remind_at":null},"x",{"$num":"-0"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":1000000,"title":"ns:key.path","notes":null,"priority":"é","remind_at":"ab"},true,1],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":1000000,"title":"😀","notes":"src/a/b.ts","priority":"./x/**/*.json","remind_at":null},"x",1],"ok":false}
+{"fn":"isExpiredReminder","args":[[],["a",1],0.5],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":-1,"title":"日本語のテキストns:key.path","notes":null,"priority":"key_name-1","remind_at":null},true,{"$num":"NaN"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":{"$num":"-0"},"title":"日本語のテキスト","notes":"Hello World","priority":"abc","remind_at":null},"x",0],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":42,"title":"a:b:c","notes":null,"priority":"./x/**/*.json","remind_at":"line1\nline2"},[],9007199254740992],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":10,"title":"Hello World","notes":null,"priority":"emoji 👍🏽 mixHello World","remind_at":null},{},1000],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":100,"title":"ab","notes":"emoji 👍🏽 mixİstanbul","priority":"  padded  ","remind_at":null},[],2147483648],"ok":false}
+{"fn":"isExpiredReminder","args":[true,[],9007199254740992],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":100,"title":"abc","notes":null,"priority":"a..b","remind_at":null},["a",1],-2.5],"ok":false}
+{"fn":"isExpiredReminder","args":[{},[],1000],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":-2.5,"title":"  padded  ","notes":null,"priority":"abca..b","remind_at":null},{"a":{"b":"c"}},9007199254740992],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":0,"title":"ünïcödé","notes":null,"priority":"HELLO","remind_at":null},null,{"$num":"Infinity"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":{"$num":"Infinity"},"title":"ünïcödé","notes":":","priority":"a😀b😀c","remind_at":null},{},0.5],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":10,"title":".leading","notes":null,"priority":"a:b:c","remind_at":":"},0,1],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":1000,"title":".leading","notes":null,"priority":"Hello World","remind_at":"abctrailing."},"x",2147483648],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":{"$num":"NaN"},"title":"emoji 👍🏽 mix","notes":null,"priority":"key_name-1İstanbul","remind_at":null},{"a":{"b":"c"}},2],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":2,"title":".leading","notes":"a:b:c","priority":"a😀b😀c:","remind_at":null},["a",1],9007199254740992],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":9007199254740992,"title":"HELLO","notes":"  padded  ","priority":"😀","remind_at":".leading"},null,{"$num":"-0"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":{"$num":"-0"},"title":"straße","notes":"hello world","priority":"﻿bomΣΊΣΥΦΟΣ","remind_at":"./x/**/*.json"},[],0],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":2,"title":"ΣΊΣΥΦΟΣa.b.c","notes":null,"priority":"😀hello","remind_at":"trailing."},null,10],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":1000,"title":".leading","notes":"abc","priority":"ns:key.path","remind_at":"ΣΊΣΥΦΟΣ"},null,100],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":-2.5,"title":"key_name-1","notes":"a..b  padded  ","priority":"a..b","remind_at":"ΣΊΣΥΦΟΣ"},{},1000],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":0.5,"title":"ΣΊΣΥΦΟΣ","notes":"./x/**/*.json日本語のテキスト","priority":":","remind_at":null},true,2],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":{"$num":"NaN"},"title":"😀","notes":"key_name-1.leading","priority":"a:b:c","remind_at":"éa..b"},{"a":{"b":"c"}},100],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":{"$num":"NaN"},"title":"é","notes":null,"priority":"a..b","remind_at":null},{},{"$num":"NaN"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":9007199254740992,"title":"ab","notes":"a:b:c","priority":"  padded  ","remind_at":"src/a/b.ts"},{"a":"b"},2147483648],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":1000,"title":"line1\nline2","notes":null,"priority":"hello world","remind_at":null},{"a":{"b":"c"}},{"$num":"-0"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"a":"b"},{"a":{"b":"c"}},2],"ok":false}
+{"fn":"isExpiredReminder","args":[0,null,9007199254740992],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":-2.5,"title":"line1\nline2","notes":"a","priority":"﻿bomünïcödé","remind_at":null},["a",1],100],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":100,"title":"tab\tseparated","notes":null,"priority":"","remind_at":"src/a/b.tsa:b:c"},{"a":"b"},{"$num":"-Infinity"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":100,"title":"Hello World","notes":null,"priority":"key_name-1ns:key.path","remind_at":null},{"a":"b"},{"$num":"NaN"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":-1,"title":"ns:key.path","notes":null,"priority":"ΣΊΣΥΦΟΣ","remind_at":"﻿bom"},{"a":"b"},-1],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":1,"title":"HELLO","notes":null,"priority":"日本語のテキスト","remind_at":null},true,2147483648],"ok":false}
+{"fn":"isExpiredReminder","args":[true,"x",3],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":-1,"title":"😀","notes":null,"priority":"ΣΊΣΥΦΟΣ","remind_at":".leading"},{"a":{"b":"c"}},1000000],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":42,"title":"ns:key.path","notes":null,"priority":"é","remind_at":"tab\tseparated"},null,42],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":0.5,"title":"﻿bom","notes":null,"priority":"  padded  ","remind_at":"  padded  "},{"a":{"b":"c"}},2],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":{"$num":"Infinity"},"title":"ünïcödé","notes":null,"priority":"abc","remind_at":null},["a",1],10],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":3,"title":"a","notes":null,"priority":"key_name-1","remind_at":"trailing."},["a",1],100],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":2,"title":"{name} has {count} items","notes":null,"priority":"é","remind_at":null},{"a":{"b":"c"}},100],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":{"$num":"NaN"},"title":"ünïcödé","notes":null,"priority":"ünïcödé","remind_at":null},null,{"$num":"NaN"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":10,"title":"İstanbul","notes":null,"priority":"./x/**/*.json","remind_at":".leading"},["a",1],1],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":0.5,"title":"hello world","notes":null,"priority":"a.b.c","remind_at":null},[],{"$num":"-0"}],"ok":false}
+{"fn":"isExpiredReminder","args":[null,{"a":{"b":"c"}},3],"error":"Cannot read properties of null (reading 'remind_at')"}
+{"fn":"isExpiredReminder","args":[{"id":9007199254740992,"title":"HELLO","notes":"line1\nline2","priority":"emoji 👍🏽 mix","remind_at":null},{},1],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":1000000,"title":"﻿bom.leading","notes":null,"priority":"{name} has {count} items","remind_at":null},{"a":"b"},10],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":-1,"title":"{name} has {count} items","notes":"Hello World","priority":"straße","remind_at":"Hello World"},["a",1],100],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":-2.5,"title":"éhello","notes":"Hello World","priority":"src/a/b.ts","remind_at":null},0,-2.5],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":{"$num":"Infinity"},"title":"src/a/b.ts","notes":"emoji 👍🏽 mix","priority":"straße","remind_at":null},{"a":{"b":"c"}},0],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":3,"title":"  padded  abc","notes":null,"priority":"ünïcödé","remind_at":null},{},10],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":{"$num":"-Infinity"},"title":"abc","notes":"./x/**/*.json","priority":"é","remind_at":"a..b"},{"a":"b"},{"$num":"-Infinity"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":2,"title":":","notes":"﻿bom","priority":"./x/**/*.json","remind_at":"é"},{},1000000],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":2147483648,"title":"  padded  ","notes":"😀","priority":"﻿bom","remind_at":null},null,100],"ok":false}
+{"fn":"isExpiredReminder","args":["x",["a",1],{"$num":"Infinity"}],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":1000,"title":"a😀b😀c","notes":".leading","priority":"a.b.c","remind_at":"😀"},{"a":{"b":"c"}},1000000],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":0,"title":"a","notes":null,"priority":"ns:key.path","remind_at":null},{"a":{"b":"c"}},3],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":0,"title":"straße","notes":"./x/**/*.json","priority":"a","remind_at":null},null,0],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":2,"title":"HELLO","notes":"﻿bomab","priority":"a.b.c","remind_at":"ΣΊΣΥΦΟΣ😀"},0,100],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":{"$num":"-0"},"title":"ünïcödé","notes":null,"priority":"hello worldHELLO","remind_at":"trailing."},null,0.5],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":0.5,"title":"a.b.c","notes":null,"priority":"hello world","remind_at":"ns:key.path"},"x",-7.5],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":0.5,"title":"a.b.c","notes":null,"priority":"hello world","remind_at":"ns:key.path"},"x",0.1],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":0.5,"title":"a.b.c","notes":null,"priority":"hello world","remind_at":"ns:key.path"},"x",0.30000000000000004],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":0.5,"title":"a.b.c","notes":null,"priority":"hello world","remind_at":"ns:key.path"},"x",1e+21],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":0.5,"title":"a.b.c","notes":null,"priority":"hello world","remind_at":"ns:key.path"},"x",1e-7],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":0.5,"title":"a.b.c","notes":null,"priority":"hello world","remind_at":"ns:key.path"},"x",5e-324],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":0.5,"title":"a.b.c","notes":null,"priority":"hello world","remind_at":"ns:key.path"},"x",1.7976931348623157e+308],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":0.5,"title":"a.b.c","notes":null,"priority":"hello world","remind_at":"ns:key.path"},"x",9007199254740992],"ok":false}
+{"fn":"isExpiredReminder","args":[{"id":0.5,"title":"a.b.c","notes":null,"priority":"hello world","remind_at":"ns:key.path"},"x",{"$num":"-0"}],"ok":false}
+{"fn":"resolveReminderTime","args":[":"],"ok":{"ok":false,"error":"无法识别提醒时间「:」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["ΣΊΣΥΦΟΣ",true],"ok":{"ok":false,"error":"无法识别提醒时间「ΣΊΣΥΦΟΣ」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["éabc",["a",1]],"ok":{"ok":false,"error":"无法识别提醒时间「éabc」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["a..b",0],"ok":{"ok":false,"error":"无法识别提醒时间「a..b」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["ünïcödé",0],"ok":{"ok":false,"error":"无法识别提醒时间「ünïcödé」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["İstanbul",true],"ok":{"ok":false,"error":"无法识别提醒时间「İstanbul」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["line1\nline2",{"a":"b"}],"ok":{"ok":false,"error":"无法识别提醒时间「line1\nline2」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["emoji 👍🏽 mix",{}],"ok":{"ok":false,"error":"无法识别提醒时间「emoji 👍🏽 mix」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["😀abc",{"a":"b"}],"ok":{"ok":false,"error":"无法识别提醒时间「😀abc」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["ns:key.pathhello",{"a":"b"}],"ok":{"ok":false,"error":"无法识别提醒时间「ns:key.pathhello」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["a.b.c😀","x"],"ok":{"ok":false,"error":"无法识别提醒时间「a.b.c😀」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["a:b:c",{"a":"b"}],"ok":{"ok":false,"error":"无法识别提醒时间「a:b:c」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["İstanbul",null],"ok":{"ok":false,"error":"无法识别提醒时间「İstanbul」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["ünïcödéns:key.path",[]],"ok":{"ok":false,"error":"无法识别提醒时间「ünïcödéns:key.path」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["a"],"ok":{"ok":false,"error":"无法识别提醒时间「a」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["İstanbul  padded  "],"ok":{"ok":false,"error":"无法识别提醒时间「İstanbul  padded」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["ns:key.path",{"$undefined":true}],"ok":{"ok":false,"error":"无法识别提醒时间「ns:key.path」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["日本語のテキスト",0],"ok":{"ok":false,"error":"无法识别提醒时间「日本語のテキスト」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["./x/**/*.json","/"],"ok":{"ok":false,"error":"无法识别提醒时间「./x/**/*.json」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["é",0],"ok":{"ok":false,"error":"无法识别提醒时间「é」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["ns:key.path",{"a":{"b":"c"}}],"ok":{"ok":false,"error":"无法识别提醒时间「ns:key.path」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["hello world",{}],"ok":{"ok":false,"error":"无法识别提醒时间「hello world」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["",null],"ok":{"ok":false,"error":"提醒时间为空"}}
+{"fn":"resolveReminderTime","args":["hello",{}],"ok":{"ok":false,"error":"无法识别提醒时间「hello」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["hello",{"a":{"b":"c"}}],"ok":{"ok":false,"error":"无法识别提醒时间「hello」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["😀",{"$undefined":true}],"ok":{"ok":false,"error":"无法识别提醒时间「😀」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["İstanbul",0],"ok":{"ok":false,"error":"无法识别提醒时间「İstanbul」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["a.b.c",{}],"ok":{"ok":false,"error":"无法识别提醒时间「a.b.c」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":[".leading",[]],"ok":{"ok":false,"error":"无法识别提醒时间「.leading」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["İstanbul"],"ok":{"ok":false,"error":"无法识别提醒时间「İstanbul」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["😀"],"ok":{"ok":false,"error":"无法识别提醒时间「😀」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["HELLO",0],"ok":{"ok":false,"error":"无法识别提醒时间「HELLO」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["ünïcödé",{"a":{"b":"c"}}],"ok":{"ok":false,"error":"无法识别提醒时间「ünïcödé」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["İstanbul",{"a":"b"}],"ok":{"ok":false,"error":"无法识别提醒时间「İstanbul」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["key_name-1"],"ok":{"ok":false,"error":"无法识别提醒时间「key_name-1」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["abc",[]],"ok":{"ok":false,"error":"无法识别提醒时间「abc」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":[":",0],"ok":{"ok":false,"error":"无法识别提醒时间「:」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["hello world",[]],"ok":{"ok":false,"error":"无法识别提醒时间「hello world」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["tab\tseparated",[]],"ok":{"ok":false,"error":"无法识别提醒时间「tab\tseparated」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["",{"a":"b"}],"ok":{"ok":false,"error":"提醒时间为空"}}
+{"fn":"resolveReminderTime","args":["trailing.","x"],"ok":{"ok":false,"error":"无法识别提醒时间「trailing.」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["",{}],"ok":{"ok":false,"error":"提醒时间为空"}}
+{"fn":"resolveReminderTime","args":["hello worldtrailing.",0],"ok":{"ok":false,"error":"无法识别提醒时间「hello worldtrailing.」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["X","x"],"ok":{"ok":false,"error":"无法识别提醒时间「X」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["hello worldkey_name-1",true],"ok":{"ok":false,"error":"无法识别提醒时间「hello worldkey_name-1」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["ns:key.path",0],"ok":{"ok":false,"error":"无法识别提醒时间「ns:key.path」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["a:b:c",{"a":{"b":"c"}}],"ok":{"ok":false,"error":"无法识别提醒时间「a:b:c」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["é",{"$undefined":true}],"ok":{"ok":false,"error":"无法识别提醒时间「é」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["  padded  ","x"],"ok":{"ok":false,"error":"无法识别提醒时间「padded」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["line1\nline2key_name-1",{"a":"b"}],"ok":{"ok":false,"error":"无法识别提醒时间「line1\nline2key_name-1」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["trailing.a",{}],"ok":{"ok":false,"error":"无法识别提醒时间「trailing.a」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["hello﻿bom",true],"ok":{"ok":false,"error":"无法识别提醒时间「hello﻿bom」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":[".leading.leading","x"],"ok":{"ok":false,"error":"无法识别提醒时间「.leading.leading」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["  padded  :",[]],"ok":{"ok":false,"error":"无法识别提醒时间「padded  :」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["./x/**/*.json",{"a":{"b":"c"}}],"ok":{"ok":false,"error":"无法识别提醒时间「./x/**/*.json」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["src/a/b.tsns:key.path",{"a":"b"}],"ok":{"ok":false,"error":"无法识别提醒时间「src/a/b.tsns:key.path」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["ab",["a",1]],"ok":{"ok":false,"error":"无法识别提醒时间「ab」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["ünïcödéa😀b😀c",{"$undefined":true}],"ok":{"ok":false,"error":"无法识别提醒时间「ünïcödéa😀b😀c」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["ΣΊΣΥΦΟΣ﻿bom",0],"ok":{"ok":false,"error":"无法识别提醒时间「ΣΊΣΥΦΟΣ﻿bom」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["trailing.",[]],"ok":{"ok":false,"error":"无法识别提醒时间「trailing.」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["a..b",[]],"ok":{"ok":false,"error":"无法识别提醒时间「a..b」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["  padded  ",true],"ok":{"ok":false,"error":"无法识别提醒时间「padded」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["{name} has {count} items",{}],"ok":{"ok":false,"error":"无法识别提醒时间「{name} has {count} items」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["Hello World",0],"ok":{"ok":false,"error":"无法识别提醒时间「Hello World」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":[".leading"],"ok":{"ok":false,"error":"无法识别提醒时间「.leading」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["",true],"ok":{"ok":false,"error":"提醒时间为空"}}
+{"fn":"resolveReminderTime","args":["line1\nline2",{"$undefined":true}],"ok":{"ok":false,"error":"无法识别提醒时间「line1\nline2」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["line1\nline2line1\nline2",[]],"ok":{"ok":false,"error":"无法识别提醒时间「line1\nline2line1\nline2」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["trailing.",{"$undefined":true}],"ok":{"ok":false,"error":"无法识别提醒时间「trailing.」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["é","x"],"ok":{"ok":false,"error":"无法识别提醒时间「é」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["./x/**/*.json",[]],"ok":{"ok":false,"error":"无法识别提醒时间「./x/**/*.json」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["HELLO",[]],"ok":{"ok":false,"error":"无法识别提醒时间「HELLO」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["emoji 👍🏽 mix"],"ok":{"ok":false,"error":"无法识别提醒时间「emoji 👍🏽 mix」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["key_name-1",{"a":{"b":"c"}}],"ok":{"ok":false,"error":"无法识别提醒时间「key_name-1」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["line1\nline2  padded  ",{}],"ok":{"ok":false,"error":"无法识别提醒时间「line1\nline2  padded」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["﻿bom",null],"ok":{"ok":false,"error":"无法识别提醒时间「bom」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["{name} has {count} items",true],"ok":{"ok":false,"error":"无法识别提醒时间「{name} has {count} items」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["",{"$undefined":true}],"ok":{"ok":false,"error":"提醒时间为空"}}
+{"fn":"resolveReminderTime","args":["Hello World",true],"ok":{"ok":false,"error":"无法识别提醒时间「Hello World」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["😀",null],"ok":{"ok":false,"error":"无法识别提醒时间「😀」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["日本語のテキスト",{"$undefined":true}],"ok":{"ok":false,"error":"无法识别提醒时间「日本語のテキスト」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["é","e"],"ok":{"ok":false,"error":"无法识别提醒时间「é」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["key_name-1",{}],"ok":{"ok":false,"error":"无法识别提醒时间「key_name-1」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["tab\tseparated",{"$undefined":true}],"ok":{"ok":false,"error":"无法识别提醒时间「tab\tseparated」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["trailing.",true],"ok":{"ok":false,"error":"无法识别提醒时间「trailing.」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["😀ünïcödé",{"a":"b"}],"ok":{"ok":false,"error":"无法识别提醒时间「😀ünïcödé」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["straße",{"$undefined":true}],"ok":{"ok":false,"error":"无法识别提醒时间「straße」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["a.b.c",["a",1]],"ok":{"ok":false,"error":"无法识别提醒时间「a.b.c」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["emoji 👍🏽 mixΣΊΣΥΦΟΣ"],"ok":{"ok":false,"error":"无法识别提醒时间「emoji 👍🏽 mixΣΊΣΥΦΟΣ」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["emoji 👍🏽 mixtrailing.",0],"ok":{"ok":false,"error":"无法识别提醒时间「emoji 👍🏽 mixtrailing.」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["a😀b😀c","x"],"ok":{"ok":false,"error":"无法识别提醒时间「a😀b😀c」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["{name} has {count} items",[]],"ok":{"ok":false,"error":"无法识别提醒时间「{name} has {count} items」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["","x"],"ok":{"ok":false,"error":"提醒时间为空"}}
+{"fn":"resolveReminderTime","args":["﻿bom",true],"ok":{"ok":false,"error":"无法识别提醒时间「bom」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["İstanbulHELLO"],"ok":{"ok":false,"error":"无法识别提醒时间「İstanbulHELLO」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["a.b.c",true],"ok":{"ok":false,"error":"无法识别提醒时间「a.b.c」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["ab",0],"ok":{"ok":false,"error":"无法识别提醒时间「ab」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["ünïcödé",{"a":"b"}],"ok":{"ok":false,"error":"无法识别提醒时间「ünïcödé」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":[":",{"a":{"b":"c"}}],"ok":{"ok":false,"error":"无法识别提醒时间「:」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["HELLO",{"a":{"b":"c"}}],"ok":{"ok":false,"error":"无法识别提醒时间「HELLO」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["hello",0],"ok":{"ok":false,"error":"无法识别提醒时间「hello」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["HELLO",{}],"ok":{"ok":false,"error":"无法识别提醒时间「HELLO」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["é日本語のテキスト",{}],"ok":{"ok":false,"error":"无法识别提醒时间「é日本語のテキスト」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["emoji 👍🏽 mixsrc/a/b.ts",{}],"ok":{"ok":false,"error":"无法识别提醒时间「emoji 👍🏽 mixsrc/a/b.ts」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["﻿bom",{"$undefined":true}],"ok":{"ok":false,"error":"无法识别提醒时间「bom」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["./x/**/*.jsonünïcödé",{"a":{"b":"c"}}],"ok":{"ok":false,"error":"无法识别提醒时间「./x/**/*.jsonünïcödé」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["x","x"],"ok":{"ok":false,"error":"无法识别提醒时间「x」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["日本語のテキスト",{"a":"b"}],"ok":{"ok":false,"error":"无法识别提醒时间「日本語のテキスト」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["  padded  hello",null],"ok":{"ok":false,"error":"无法识别提醒时间「padded  hello」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["emoji 👍🏽 mix","x"],"ok":{"ok":false,"error":"无法识别提醒时间「emoji 👍🏽 mix」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["a😀b😀ckey_name-1",{}],"ok":{"ok":false,"error":"无法识别提醒时间「a😀b😀ckey_name-1」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["Hello World",{"a":"b"}],"ok":{"ok":false,"error":"无法识别提醒时间「Hello World」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["é",[]],"ok":{"ok":false,"error":"无法识别提醒时间「é」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["straße",true],"ok":{"ok":false,"error":"无法识别提醒时间「straße」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["﻿bomns:key.path",0],"ok":{"ok":false,"error":"无法识别提醒时间「bomns:key.path」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["ΣΊΣΥΦΟΣ",{}],"ok":{"ok":false,"error":"无法识别提醒时间「ΣΊΣΥΦΟΣ」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":[":",["a",1]],"ok":{"ok":false,"error":"无法识别提醒时间「:」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["helloab",["a",1]],"ok":{"ok":false,"error":"无法识别提醒时间「helloab」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["hello world"],"ok":{"ok":false,"error":"无法识别提醒时间「hello world」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["./x/**/*.json:",{"$undefined":true}],"ok":{"ok":false,"error":"无法识别提醒时间「./x/**/*.json:」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["hellohello",true],"ok":{"ok":false,"error":"无法识别提醒时间「hellohello」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["straße",{}],"ok":{"ok":false,"error":"无法识别提醒时间「straße」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["abc",true],"ok":{"ok":false,"error":"无法识别提醒时间「abc」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["İstanbul",[]],"ok":{"ok":false,"error":"无法识别提醒时间「İstanbul」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["a..b",null],"ok":{"ok":false,"error":"无法识别提醒时间「a..b」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":[".leading",{"$undefined":true}],"ok":{"ok":false,"error":"无法识别提醒时间「.leading」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["a:b:c",null],"ok":{"ok":false,"error":"无法识别提醒时间「a:b:c」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["İstanbul",{"$undefined":true}],"ok":{"ok":false,"error":"无法识别提醒时间「İstanbul」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["src/a/b.ts",true],"ok":{"ok":false,"error":"无法识别提醒时间「src/a/b.ts」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":[".leading",{"a":{"b":"c"}}],"ok":{"ok":false,"error":"无法识别提醒时间「.leading」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["straße","x"],"ok":{"ok":false,"error":"无法识别提醒时间「straße」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["a😀b😀c",{}],"ok":{"ok":false,"error":"无法识别提醒时间「a😀b😀c」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["ab"],"ok":{"ok":false,"error":"无法识别提醒时间「ab」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["a..b","x"],"ok":{"ok":false,"error":"无法识别提醒时间「a..b」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["  padded  ",{}],"ok":{"ok":false,"error":"无法识别提醒时间「padded」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["line1\nline2",["a",1]],"ok":{"ok":false,"error":"无法识别提醒时间「line1\nline2」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["emoji 👍🏽 mix",null],"ok":{"ok":false,"error":"无法识别提醒时间「emoji 👍🏽 mix」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":[".leading",["a",1]],"ok":{"ok":false,"error":"无法识别提醒时间「.leading」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["hello",{"a":"b"}],"ok":{"ok":false,"error":"无法识别提醒时间「hello」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["ns:key.path",{"a":"b"}],"ok":{"ok":false,"error":"无法识别提醒时间「ns:key.path」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":[":",true],"ok":{"ok":false,"error":"无法识别提醒时间「:」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["😀",true],"ok":{"ok":false,"error":"无法识别提醒时间「😀」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["HELLO./x/**/*.json",{"$undefined":true}],"ok":{"ok":false,"error":"无法识别提醒时间「HELLO./x/**/*.json」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["😀",{}],"ok":{"ok":false,"error":"无法识别提醒时间「😀」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["./x/**/*.json",["a",1]],"ok":{"ok":false,"error":"无法识别提醒时间「./x/**/*.json」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["hellosrc/a/b.ts",{}],"ok":{"ok":false,"error":"无法识别提醒时间「hellosrc/a/b.ts」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["  padded  ",["a",1]],"ok":{"ok":false,"error":"无法识别提醒时间「padded」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["a.b.ctab\tseparated",{"a":"b"}],"ok":{"ok":false,"error":"无法识别提醒时间「a.b.ctab\tseparated」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["tab\tseparated",{"a":{"b":"c"}}],"ok":{"ok":false,"error":"无法识别提醒时间「tab\tseparated」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["abc",null],"ok":{"ok":false,"error":"无法识别提醒时间「abc」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["a..b",{"a":{"b":"c"}}],"ok":{"ok":false,"error":"无法识别提醒时间「a..b」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["ünïcödé",null],"ok":{"ok":false,"error":"无法识别提醒时间「ünïcödé」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["trailing.",0],"ok":{"ok":false,"error":"无法识别提醒时间「trailing.」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["line1\nline2",{"a":{"b":"c"}}],"ok":{"ok":false,"error":"无法识别提醒时间「line1\nline2」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["日本語のテキスト",{"a":{"b":"c"}}],"ok":{"ok":false,"error":"无法识别提醒时间「日本語のテキスト」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["{name} has {count} items",0],"ok":{"ok":false,"error":"无法识别提醒时间「{name} has {count} items」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["src/a/b.ts",{"$undefined":true}],"ok":{"ok":false,"error":"无法识别提醒时间「src/a/b.ts」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":[":",{}],"ok":{"ok":false,"error":"无法识别提醒时间「:」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["ns:key.path:",0],"ok":{"ok":false,"error":"无法识别提醒时间「ns:key.path:」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["{name} has {count} items",{"a":"b"}],"ok":{"ok":false,"error":"无法识别提醒时间「{name} has {count} items」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["a:b:c",[]],"ok":{"ok":false,"error":"无法识别提醒时间「a:b:c」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":[":line1\nline2",true],"ok":{"ok":false,"error":"无法识别提醒时间「:line1\nline2」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["emoji 👍🏽 mix",{"$undefined":true}],"ok":{"ok":false,"error":"无法识别提醒时间「emoji 👍🏽 mix」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["line1\nline2","x"],"ok":{"ok":false,"error":"无法识别提醒时间「line1\nline2」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["a",0],"ok":{"ok":false,"error":"无法识别提醒时间「a」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":[":","x"],"ok":{"ok":false,"error":"无法识别提醒时间「:」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["HELLO",{"$undefined":true}],"ok":{"ok":false,"error":"无法识别提醒时间「HELLO」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["tab\tseparated"],"ok":{"ok":false,"error":"无法识别提醒时间「tab\tseparated」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["a.b.c",null],"ok":{"ok":false,"error":"无法识别提醒时间「a.b.c」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["İstanbul",{}],"ok":{"ok":false,"error":"无法识别提醒时间「İstanbul」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["a😀b😀c",{"a":{"b":"c"}}],"ok":{"ok":false,"error":"无法识别提醒时间「a😀b😀c」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["emoji 👍🏽 mix"," mix"],"ok":{"ok":false,"error":"无法识别提醒时间「emoji 👍🏽 mix」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["./x/**/*.json",null],"ok":{"ok":false,"error":"无法识别提醒时间「./x/**/*.json」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["./x/**/*.json",{"a":"b"}],"ok":{"ok":false,"error":"无法识别提醒时间「./x/**/*.json」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["a",{"a":"b"}],"ok":{"ok":false,"error":"无法识别提醒时间「a」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["trailing.",["a",1]],"ok":{"ok":false,"error":"无法识别提醒时间「trailing.」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["a.b.ca😀b😀c",null],"ok":{"ok":false,"error":"无法识别提醒时间「a.b.ca😀b😀c」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["﻿bom"],"ok":{"ok":false,"error":"无法识别提醒时间「bom」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["line1\nline2line1\nline2",{"$undefined":true}],"ok":{"ok":false,"error":"无法识别提醒时间「line1\nline2line1\nline2」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["ΣΊΣΥΦΟΣhello",[]],"ok":{"ok":false,"error":"无法识别提醒时间「ΣΊΣΥΦΟΣhello」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["😀",["a",1]],"ok":{"ok":false,"error":"无法识别提醒时间「😀」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["abns:key.path",[]],"ok":{"ok":false,"error":"无法识别提醒时间「abns:key.path」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["Hello World  padded  ",{"a":"b"}],"ok":{"ok":false,"error":"无法识别提醒时间「Hello World  padded」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["日本語のテキストHELLO",{"$undefined":true}],"ok":{"ok":false,"error":"无法识别提醒时间「日本語のテキストHELLO」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["emoji 👍🏽 mixab",null],"ok":{"ok":false,"error":"无法识别提醒时间「emoji 👍🏽 mixab」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["abcns:key.path",{"$undefined":true}],"ok":{"ok":false,"error":"无法识别提醒时间「abcns:key.path」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["a",[]],"ok":{"ok":false,"error":"无法识别提醒时间「a」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["straße",[]],"ok":{"ok":false,"error":"无法识别提醒时间「straße」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["ünïcödéé"],"ok":{"ok":false,"error":"无法识别提醒时间「ünïcödéé」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["a.b.c",{"a":"b"}],"ok":{"ok":false,"error":"无法识别提醒时间「a.b.c」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["İstanbulHello World",true],"ok":{"ok":false,"error":"无法识别提醒时间「İstanbulHello World」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["ns:key.path",["a",1]],"ok":{"ok":false,"error":"无法识别提醒时间「ns:key.path」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["﻿bom",["a",1]],"ok":{"ok":false,"error":"无法识别提醒时间「bom」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["abc"],"ok":{"ok":false,"error":"无法识别提醒时间「abc」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["é",true],"ok":{"ok":false,"error":"无法识别提醒时间「é」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["{name} has {count} itemsstraße",null],"ok":{"ok":false,"error":"无法识别提醒时间「{name} has {count} itemsstraße」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["a..b",{"a":"b"}],"ok":{"ok":false,"error":"无法识别提醒时间「a..b」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["a",["a",1]],"ok":{"ok":false,"error":"无法识别提醒时间「a」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":[".leading","NG"],"ok":{"ok":false,"error":"无法识别提醒时间「.leading」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"resolveReminderTime","args":["src/a/b.tsHello World",0],"ok":{"ok":false,"error":"无法识别提醒时间「src/a/b.tsHello World」，请换成「明天下午3点」「30分钟后」「2026-11-19 15:30」这类写法"}}
+{"fn":"dayDiff","args":[0,["a",1]],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[true,true],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[{},0],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[{"a":{"b":"c"}},[]],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[{"a":"b"},["a",1]],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[{"a":"b"},0],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[{"a":"b"},{"a":{"b":"c"}}],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[{"a":{"b":"c"}},"x"],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[true,{"a":{"b":"c"}}],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[["a",1],[]],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[true,0],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[{"a":{"b":"c"}},{"a":{"b":"c"}}],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[["a",1],0],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":["x",["a",1]],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[{"a":"b"},"x"],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[0,null],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":["x","x"],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[null,true],"error":"Cannot read properties of null (reading 'getFullYear')"}
+{"fn":"dayDiff","args":[["a",1],"x"],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[null,{"a":"b"}],"error":"Cannot read properties of null (reading 'getFullYear')"}
+{"fn":"dayDiff","args":[{"a":"b"},[]],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":["x",{"a":"b"}],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":["x",0],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[["a",1],["a",1]],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[{"a":"b"},true],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[null,["a",1]],"error":"Cannot read properties of null (reading 'getFullYear')"}
+{"fn":"dayDiff","args":[{},{"a":{"b":"c"}}],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[null,"x"],"error":"Cannot read properties of null (reading 'getFullYear')"}
+{"fn":"dayDiff","args":[{},"x"],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[0,{"a":"b"}],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[{},true],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[null,null],"error":"Cannot read properties of null (reading 'getFullYear')"}
+{"fn":"dayDiff","args":[true,["a",1]],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[{"a":{"b":"c"}},null],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[true,{}],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[{"a":{"b":"c"}},{"a":"b"}],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[{"a":"b"},null],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[0,{}],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[["a",1],{}],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[null,0],"error":"Cannot read properties of null (reading 'getFullYear')"}
+{"fn":"dayDiff","args":[[],[]],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[[],["a",1]],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[{},{}],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[[],{}],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[true,"x"],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[["a",1],{"a":{"b":"c"}}],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[0,true],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[[],"x"],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[{"a":{"b":"c"}},{}],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[null,[]],"error":"Cannot read properties of null (reading 'getFullYear')"}
+{"fn":"dayDiff","args":[0,{"a":{"b":"c"}}],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[["a",1],{"a":"b"}],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[{},null],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[[],true],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[["a",1],true],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":["x",{}],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[0,[]],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[{"a":"b"},{}],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[[],null],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[{},["a",1]],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[0,0],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[{},{"a":"b"}],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[{"a":{"b":"c"}},0],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[{"a":{"b":"c"}},true],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[true,null],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[true,[]],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[{"a":"b"},{"a":"b"}],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[[],{"a":"b"}],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[["a",1],null],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[{"a":{"b":"c"}},["a",1]],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[null,{}],"error":"Cannot read properties of null (reading 'getFullYear')"}
+{"fn":"dayDiff","args":[[],0],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[[],{"a":{"b":"c"}}],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[{},[]],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":["x",null],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":["x",{"a":{"b":"c"}}],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[null,{"a":{"b":"c"}}],"error":"Cannot read properties of null (reading 'getFullYear')"}
+{"fn":"dayDiff","args":["x",[]],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[0,"x"],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":["x",true],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":[true,{"a":"b"}],"error":"date.getFullYear is not a function"}
+{"fn":"dayDiff","args":["X","x"],"error":"date.getFullYear is not a function"}
+{"fn":"formatReminderLabel","args":["x",0],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[{"a":"b"},[]],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[[],[]],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[{"a":{"b":"c"}},{"a":{"b":"c"}}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[0,null],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[{"a":"b"},true],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[{},["a",1]],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[["a",1],null],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[true,{"a":"b"}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[{"a":{"b":"c"}},"x"],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[{},"x"],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":["x"],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[0,{}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[true,true],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":["x",{"$undefined":true}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[{},{"a":{"b":"c"}}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[true,["a",1]],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[0,"x"],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[0,true],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[0,{"$undefined":true}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[{"a":"b"},["a",1]],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[true,{"a":{"b":"c"}}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[{"a":{"b":"c"}},{}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":["x",["a",1]],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[true,[]],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":["x",[]],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[true],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[{},null],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[{"a":{"b":"c"}}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[{"a":"b"},0],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[{"a":{"b":"c"}},{"a":"b"}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[{},{"a":"b"}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[null,{"a":"b"}],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"formatReminderLabel","args":[true,{"$undefined":true}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[null,null],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"formatReminderLabel","args":[0,{"a":"b"}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[["a",1],{"$undefined":true}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[{"a":{"b":"c"}},{"$undefined":true}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[{"a":{"b":"c"}},[]],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[["a",1],"x"],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[["a",1],0],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":["x",{"a":{"b":"c"}}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[{"a":{"b":"c"}},["a",1]],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[["a",1],true],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[null,true],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"formatReminderLabel","args":[["a",1],{"a":{"b":"c"}}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[[],null],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":["x",null],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[true,null],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[{"a":{"b":"c"}},null],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[{},[]],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[true,"x"],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[{},{}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":["x",true],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[{"a":"b"},{"$undefined":true}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[["a",1]],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[[],"x"],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[{},true],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[{"a":{"b":"c"}},true],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[{},0],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[{"a":"b"},null],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":["x","x"],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[null,"x"],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"formatReminderLabel","args":[{"a":"b"},{}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[{"a":"b"},{"a":{"b":"c"}}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[[],true],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[["a",1],{"a":"b"}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[true,{}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[[],{"$undefined":true}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[null,["a",1]],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"formatReminderLabel","args":[0],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[null,{"a":{"b":"c"}}],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"formatReminderLabel","args":["x",{"a":"b"}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[0,["a",1]],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":["x",{}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[["a",1],["a",1]],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[[]],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[[],{}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[["a",1],[]],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[null,{}],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"formatReminderLabel","args":[{}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[0,{"a":{"b":"c"}}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[null],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"formatReminderLabel","args":[null,0],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"formatReminderLabel","args":[0,[]],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[[],{"a":{"b":"c"}}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[null,[]],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"formatReminderLabel","args":[{},{"$undefined":true}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[{"a":"b"},"x"],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[{"a":"b"}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[{"a":{"b":"c"}},0],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[[],["a",1]],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[true,0],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[[],{"a":"b"}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[null,{"$undefined":true}],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"formatReminderLabel","args":[0,0],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[["a",1],{}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[[],0],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":["X","x"],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":[{"a":"b"},{"a":"b"}],"error":"at.getTime is not a function"}
+{"fn":"formatReminderLabel","args":["x","X"],"error":"at.getTime is not a function"}
+{"fn":"formatLocalDateTime","args":[0],"ok":""}
+{"fn":"formatLocalDateTime","args":[null],"ok":""}
+{"fn":"formatLocalDateTime","args":[["a",1]],"error":"at.getTime is not a function"}
+{"fn":"formatLocalDateTime","args":[{"a":{"b":"c"}}],"error":"at.getTime is not a function"}
+{"fn":"formatLocalDateTime","args":[{"a":"b"}],"error":"at.getTime is not a function"}
+{"fn":"formatLocalDateTime","args":[[]],"error":"at.getTime is not a function"}
+{"fn":"formatLocalDateTime","args":[true],"error":"at.getTime is not a function"}
+{"fn":"formatLocalDateTime","args":[{}],"error":"at.getTime is not a function"}
+{"fn":"formatLocalDateTime","args":["x"],"error":"at.getTime is not a function"}
+{"fn":"toDateTimeLocalValue","args":[null],"ok":""}
+{"fn":"toDateTimeLocalValue","args":[["a",1]],"error":"at.getTime is not a function"}
+{"fn":"toDateTimeLocalValue","args":[{"a":"b"}],"error":"at.getTime is not a function"}
+{"fn":"toDateTimeLocalValue","args":[[]],"error":"at.getTime is not a function"}
+{"fn":"toDateTimeLocalValue","args":["x"],"error":"at.getTime is not a function"}
+{"fn":"toDateTimeLocalValue","args":[{"a":{"b":"c"}}],"error":"at.getTime is not a function"}
+{"fn":"toDateTimeLocalValue","args":[0],"ok":""}
+{"fn":"toDateTimeLocalValue","args":[{}],"error":"at.getTime is not a function"}
+{"fn":"toDateTimeLocalValue","args":[true],"error":"at.getTime is not a function"}
+{"fn":"fromDateTimeLocalValue","args":["😀"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":[":"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["abcab"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["emoji 👍🏽 mix"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["hello"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["src/a/b.ts"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["straße"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["İstanbul"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a😀b😀c"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a./x/**/*.json"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["key_name-1"],"ok":{"$date":"2000-12-31T16:00:00.000Z"}}
+{"fn":"fromDateTimeLocalValue","args":[".leading"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a..b"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["日本語のテキスト"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["line1\nline2"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["ΣΊΣΥΦΟΣ"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["abc"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["ΣΊΣΥΦΟΣtab\tseparated"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["  padded  "],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["aΣΊΣΥΦΟΣ"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a:b:c﻿bom"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a.b.c"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["tab\tseparated"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["İstanbul{name} has {count} items"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["é"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["{name} has {count} items"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["éstraße"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["abemoji 👍🏽 mix"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["HELLO"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["ünïcödé"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["hello world"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a:b:cns:key.path"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["日本語のテキストkey_name-1"],"ok":{"$date":"2000-12-31T16:00:00.000Z"}}
+{"fn":"fromDateTimeLocalValue","args":["ns:key.pathHELLO"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a:b:cünïcödé"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":[".leadingİstanbul"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a😀b😀c{name} has {count} items"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["ab"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["trailing."],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a:b:c"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["ns:key.path"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["﻿bom"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["src/a/b.tsab"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["trailing.é"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["tab\tseparatedabc"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":[":hello world"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["tab\tseparated.leading"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["tab\tseparateda.b.c"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["./x/**/*.json"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a😀b😀c  padded  "],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["Hello World"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["é:"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["Hello Worlda😀b😀c"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a..bstraße"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["Hello Worldsrc/a/b.ts"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["tab\tseparatedkey_name-1"],"ok":{"$date":"2001-08-31T16:00:00.000Z"}}
+{"fn":"fromDateTimeLocalValue","args":[""],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["./x/**/*.jsona😀b😀c"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["./x/**/*.jsonkey_name-1"],"ok":{"$date":"2000-12-31T16:00:00.000Z"}}
+{"fn":"fromDateTimeLocalValue","args":["key_name-1ΣΊΣΥΦΟΣ"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["HELLOemoji 👍🏽 mix"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["HELLOHELLO"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["Hello Worldhello world"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a..bline1\nline2"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["emoji 👍🏽 mixİstanbul"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a😀b😀csrc/a/b.ts"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["İstanbul:"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["ünïcödétab\tseparated"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["hello worlda.b.c"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a.b.ca:b:c"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a😀b😀c./x/**/*.json"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["{name} has {count} itemsa😀b😀c"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["trailing.ab"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["tab\tseparatedHello World"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["trailing.emoji 👍🏽 mix"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["ab.leading"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["key_name-1hello"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["tab\tseparateda..b"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["trailing.a"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["straßeabc"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["abchello"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["key_name-1:"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a😀b😀c日本語のテキスト"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["ünïcödé:"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["ΣΊΣΥΦΟΣkey_name-1"],"ok":{"$date":"2000-12-31T16:00:00.000Z"}}
+{"fn":"fromDateTimeLocalValue","args":[":a..b"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["HELLOsrc/a/b.ts"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["src/a/b.ts日本語のテキスト"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["helloemoji 👍🏽 mix"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["hello worldé"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["ΣΊΣΥΦΟΣHELLO"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["straßeİstanbul"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a:b:cHello World"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["HELLOİstanbul"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["  padded  İstanbul"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["./x/**/*.jsonemoji 👍🏽 mix"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["key_name-1  padded  "],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":[":line1\nline2"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["😀a"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":[".leadingtab\tseparated"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["😀straße"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["ünïcödéns:key.path"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["ΣΊΣΥΦΟΣline1\nline2"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["ns:key.path﻿bom"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a..bé"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["abé"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["aa😀b😀c"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":[":key_name-1"],"ok":{"$date":"2000-12-31T16:00:00.000Z"}}
+{"fn":"fromDateTimeLocalValue","args":["straße😀"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a..b😀"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["ns:key.patha..b"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["abc  padded  "],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":[".leadingHELLO"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["aünïcödé"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["hellosrc/a/b.ts"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["tab\tseparated:"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["éa😀b😀c"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["src/a/b.tsa..b"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["﻿bomé"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a😀b😀ca..b"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["ünïcödé  padded  "],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["ns:key.pathab"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a:b:ca:b:c"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["src/a/b.tsünïcödé"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["line1\nline2hello"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["trailing.hello"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":[".leadingabc"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["﻿bomab"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["emoji 👍🏽 mixemoji 👍🏽 mix"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["{name} has {count} itemsa:b:c"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["İstanbula..b"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["İstanbulΣΊΣΥΦΟΣ"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["key_name-1﻿bom"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["日本語のテキストsrc/a/b.ts"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a:b:c  padded  "],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a..b﻿bom"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":[".leadinghello world"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["ΣΊΣΥΦΟΣİstanbul"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["trailing.ünïcödé"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["straßea.b.c"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["😀key_name-1"],"ok":{"$date":"2000-12-31T16:00:00.000Z"}}
+{"fn":"fromDateTimeLocalValue","args":["hello worldemoji 👍🏽 mix"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["ans:key.path"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["ΣΊΣΥΦΟΣhello"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["ΣΊΣΥΦΟΣa:b:c"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["./x/**/*.json{name} has {count} items"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a:b:ca..b"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["İstanbulab"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":[".leadinghello"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a😀b😀cns:key.path"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a..bns:key.path"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["﻿bomHello World"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["ésrc/a/b.ts"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["line1\nline2HELLO"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a.b.cabc"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["line1\nline2😀"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["HELLOa"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["  padded  a😀b😀c"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["abchello world"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a:"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["Hello World😀"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["key_name-1a:b:c"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a😀b😀chello"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a..bhello world"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":[":{name} has {count} items"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["😀./x/**/*.json"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["src/a/b.tsΣΊΣΥΦΟΣ"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["ünïcödéa.b.c"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["İstanbul﻿bom"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["ékey_name-1"],"ok":{"$date":"2000-12-31T16:00:00.000Z"}}
+{"fn":"fromDateTimeLocalValue","args":["a.b.c.leading"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["./x/**/*.jsonline1\nline2"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["😀line1\nline2"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["éhello"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["😀İstanbul"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["line1\nline2hello world"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["İstanbulİstanbul"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a:b:cΣΊΣΥΦΟΣ"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["straßestraße"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["{name} has {count} items{name} has {count} items"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":[":.leading"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a.b.cab"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["ns:key.pathemoji 👍🏽 mix"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["ünïcödéline1\nline2"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["aab"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["日本語のテキスト😀"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["abhello"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["ünïcödéabc"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["./x/**/*.json😀"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["{name} has {count} itemsa..b"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["src/a/b.tsHello World"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["ünïcödé日本語のテキスト"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["İstanbulline1\nline2"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["éa:b:c"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["ünïcödéhello"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":[":HELLO"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["src/a/b.ts./x/**/*.json"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["HELLOa.b.c"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["ΣΊΣΥΦΟΣ日本語のテキスト"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["héllo wörld"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["👍🏽 thumbs"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["日本語"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["ılık ırmak"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["👨‍👩‍👧 family"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a b"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a😀b"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["Iı İi"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["K K k"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["ſ s S"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["x‍y 👨‍👩‍👧"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["a b c　d"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["١٢٣ ٤٥"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["𝟘𝟙 ²³"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["snake_case foo-bar o'neil"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["ǅungla Ǆ"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["one\r\ntwo threefour"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["café café"],"ok":null}
+{"fn":"fromDateTimeLocalValue","args":["ΣΑΣ σας ς"],"ok":null}
+{"fn":"getWeekRange","args":[{}],"ok":{"start":{"$date":"Invalid"},"end":{"$date":"Invalid"}}}
+{"fn":"getWeekRange","args":[0],"ok":{"start":{"$date":"1969-12-28T16:00:00.000Z"},"end":{"$date":"1970-01-04T15:59:59.999Z"}}}
+{"fn":"getWeekRange","args":[[]],"ok":{"start":{"$date":"Invalid"},"end":{"$date":"Invalid"}}}
+{"fn":"getWeekRange","args":[{"$undefined":true}],"ok":{"start":{"$date":"2026-11-15T16:00:00.000Z"},"end":{"$date":"2026-11-22T15:59:59.999Z"}}}
+{"fn":"getWeekRange","args":[null],"ok":{"start":{"$date":"1969-12-28T16:00:00.000Z"},"end":{"$date":"1970-01-04T15:59:59.999Z"}}}
+{"fn":"getWeekRange","args":[true],"ok":{"start":{"$date":"1969-12-28T16:00:00.000Z"},"end":{"$date":"1970-01-04T15:59:59.999Z"}}}
+{"fn":"getWeekRange","args":[["a",1]],"ok":{"start":{"$date":"2000-12-31T16:00:00.000Z"},"end":{"$date":"2001-01-07T15:59:59.999Z"}}}
+{"fn":"getWeekRange","args":[{"a":{"b":"c"}}],"ok":{"start":{"$date":"Invalid"},"end":{"$date":"Invalid"}}}
+{"fn":"getWeekRange","args":[{"a":"b"}],"ok":{"start":{"$date":"Invalid"},"end":{"$date":"Invalid"}}}
+{"fn":"getWeekRange","args":["x"],"ok":{"start":{"$date":"Invalid"},"end":{"$date":"Invalid"}}}
+{"fn":"getWeekRange","args":[],"ok":{"start":{"$date":"2026-11-15T16:00:00.000Z"},"end":{"$date":"2026-11-22T15:59:59.999Z"}}}
+{"fn":"isInWeek","args":[{},{"start":{"a":{"b":"c"}},"end":true}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":["x",{"start":{},"end":"x"}],"ok":false}
+{"fn":"isInWeek","args":[{"$undefined":true},{"start":0,"end":null}],"ok":false}
+{"fn":"isInWeek","args":[{},{"start":"x","end":{}}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":[null,{"start":{"a":"b"},"end":"x"}],"ok":false}
+{"fn":"isInWeek","args":[null,{"start":0,"end":{"a":{"b":"c"}}}],"ok":false}
+{"fn":"isInWeek","args":[{"a":{"b":"c"}},{"start":null,"end":"x"}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":[{"$undefined":true},{"start":{},"end":[]}],"ok":false}
+{"fn":"isInWeek","args":[{"a":"b"},{"start":{},"end":"x"}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":[{},{"start":{},"end":null}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":[{"$undefined":true},{"start":"x","end":"x"}],"ok":false}
+{"fn":"isInWeek","args":[{},{"start":{},"end":{"a":"b"}}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":[{"$undefined":true},{"start":[],"end":[]}],"ok":false}
+{"fn":"isInWeek","args":[[],{"a":{"b":"c"}}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":[2147483648,{"start":["a",1],"end":{}}],"error":"range.start.getTime is not a function"}
+{"fn":"isInWeek","args":[[],{"start":{"a":{"b":"c"}},"end":true}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":[{"$undefined":true},{"start":true,"end":{"a":"b"}}],"ok":false}
+{"fn":"isInWeek","args":[{"a":"b"},{"start":{},"end":{"a":"b"}}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":[null,{"start":{"a":{"b":"c"}},"end":["a",1]}],"ok":false}
+{"fn":"isInWeek","args":[true,{"start":{"a":{"b":"c"}},"end":["a",1]}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":[{"a":{"b":"c"}},{"start":["a",1],"end":null}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":[["a",1],{"start":{},"end":{"a":"b"}}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":["﻿bom",{"start":{"a":"b"},"end":true}],"ok":false}
+{"fn":"isInWeek","args":[[],{"start":{"a":"b"},"end":["a",1]}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":[{"$undefined":true},{"start":0,"end":[]}],"ok":false}
+{"fn":"isInWeek","args":[100,{"start":true,"end":0}],"error":"range.start.getTime is not a function"}
+{"fn":"isInWeek","args":[{"$num":"-0"},null],"error":"Cannot read properties of null (reading 'start')"}
+{"fn":"isInWeek","args":[{"$num":"NaN"},{"start":0,"end":null}],"ok":false}
+{"fn":"isInWeek","args":[[],["a",1]],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":[{"$undefined":true},["a",1]],"ok":false}
+{"fn":"isInWeek","args":[null,{"start":{},"end":["a",1]}],"ok":false}
+{"fn":"isInWeek","args":[{"$undefined":true},{"start":{},"end":{"a":{"b":"c"}}}],"ok":false}
+{"fn":"isInWeek","args":[null,{"start":null,"end":{"a":{"b":"c"}}}],"ok":false}
+{"fn":"isInWeek","args":[-1,{"start":"x","end":null}],"error":"range.start.getTime is not a function"}
+{"fn":"isInWeek","args":[null,{"start":{"a":{"b":"c"}},"end":{"a":{"b":"c"}}}],"ok":false}
+{"fn":"isInWeek","args":[0,{"start":{"a":{"b":"c"}},"end":["a",1]}],"error":"range.start.getTime is not a function"}
+{"fn":"isInWeek","args":[{"$undefined":true},{"start":0,"end":0}],"ok":false}
+{"fn":"isInWeek","args":[null,{"start":{"a":"b"},"end":{}}],"ok":false}
+{"fn":"isInWeek","args":[[],{"start":true,"end":{}}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":["straße",{"start":true,"end":true}],"ok":false}
+{"fn":"isInWeek","args":[true,{"start":{},"end":null}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":[{},null],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":[{"$num":"NaN"},{"start":["a",1],"end":0}],"ok":false}
+{"fn":"isInWeek","args":["ünïcödé",{"start":"x","end":{"a":{"b":"c"}}}],"ok":false}
+{"fn":"isInWeek","args":[0.5,{}],"error":"Cannot read properties of undefined (reading 'getTime')"}
+{"fn":"isInWeek","args":["  padded  ",{"start":{"a":{"b":"c"}},"end":{}}],"ok":false}
+{"fn":"isInWeek","args":[null,{"start":{"a":"b"},"end":null}],"ok":false}
+{"fn":"isInWeek","args":[0.5,{"start":true,"end":"x"}],"error":"range.start.getTime is not a function"}
+{"fn":"isInWeek","args":[true,{"start":["a",1],"end":{}}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":[[],{"start":true,"end":null}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":[null,{"start":[],"end":["a",1]}],"ok":false}
+{"fn":"isInWeek","args":["x",{"start":{},"end":[]}],"ok":false}
+{"fn":"isInWeek","args":["hello",{"a":"b"}],"ok":false}
+{"fn":"isInWeek","args":[["a",1],{"start":"x","end":[]}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":[null,["a",1]],"ok":false}
+{"fn":"isInWeek","args":[true,{"start":"x","end":{"a":{"b":"c"}}}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":[{"a":{"b":"c"}},{"start":["a",1],"end":{"a":"b"}}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":[1,{"start":{},"end":null}],"error":"range.start.getTime is not a function"}
+{"fn":"isInWeek","args":["a😀b😀c",{"start":0,"end":{"a":{"b":"c"}}}],"ok":false}
+{"fn":"isInWeek","args":[{"$undefined":true},{"start":["a",1],"end":null}],"ok":false}
+{"fn":"isInWeek","args":[null,{"start":null,"end":0}],"ok":false}
+{"fn":"isInWeek","args":[10,{"start":{"a":"b"},"end":{"a":"b"}}],"error":"range.start.getTime is not a function"}
+{"fn":"isInWeek","args":["😀.leading",{"start":{"a":{"b":"c"}},"end":{"a":"b"}}],"ok":false}
+{"fn":"isInWeek","args":[0,{"start":true,"end":{"a":{"b":"c"}}}],"error":"range.start.getTime is not a function"}
+{"fn":"isInWeek","args":[0,null],"error":"Cannot read properties of null (reading 'start')"}
+{"fn":"isInWeek","args":["x",{"start":0,"end":{"a":"b"}}],"ok":false}
+{"fn":"isInWeek","args":[{"a":{"b":"c"}},{"start":true,"end":"x"}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":[["a",1],{"start":[],"end":true}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":[null,{"start":{},"end":"x"}],"ok":false}
+{"fn":"isInWeek","args":["hello",{"start":["a",1],"end":0}],"ok":false}
+{"fn":"isInWeek","args":[{},{"start":true,"end":true}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":[10,"x"],"error":"Cannot read properties of undefined (reading 'getTime')"}
+{"fn":"isInWeek","args":[-2.5,{"start":{},"end":null}],"error":"range.start.getTime is not a function"}
+{"fn":"isInWeek","args":[{"$undefined":true},{"start":{"a":{"b":"c"}},"end":"x"}],"ok":false}
+{"fn":"isInWeek","args":[".leadingHELLO",{"start":{},"end":"x"}],"ok":false}
+{"fn":"isInWeek","args":[["a",1],{"start":{},"end":["a",1]}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":[{"a":{"b":"c"}},{"start":"x","end":{"a":"b"}}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":["x",{"start":{"a":{"b":"c"}},"end":null}],"ok":false}
+{"fn":"isInWeek","args":[42,{"start":0,"end":0}],"error":"range.start.getTime is not a function"}
+{"fn":"isInWeek","args":["emoji 👍🏽 mix",{"start":{"a":"b"},"end":0}],"ok":false}
+{"fn":"isInWeek","args":[{"$undefined":true},{"start":["a",1],"end":true}],"ok":false}
+{"fn":"isInWeek","args":[{"$undefined":true},{"start":null,"end":null}],"ok":false}
+{"fn":"isInWeek","args":[{"$undefined":true},{"start":null,"end":{"a":{"b":"c"}}}],"ok":false}
+{"fn":"isInWeek","args":[{"a":"b"},{"start":{"a":{"b":"c"}},"end":{}}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":[null,{"start":true,"end":{"a":"b"}}],"ok":false}
+{"fn":"isInWeek","args":[0,{"start":null,"end":0}],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"isInWeek","args":[{"$undefined":true},{"start":null,"end":[]}],"ok":false}
+{"fn":"isInWeek","args":[null,null],"ok":false}
+{"fn":"isInWeek","args":[100,{"start":[],"end":"x"}],"error":"range.start.getTime is not a function"}
+{"fn":"isInWeek","args":[{"$undefined":true},{"start":{"a":"b"},"end":{}}],"ok":false}
+{"fn":"isInWeek","args":[0,{"start":[],"end":"x"}],"error":"range.start.getTime is not a function"}
+{"fn":"isInWeek","args":["a.b.c",{"start":{"a":{"b":"c"}},"end":true}],"ok":false}
+{"fn":"isInWeek","args":[{"$undefined":true},{"start":{},"end":true}],"ok":false}
+{"fn":"isInWeek","args":[0,{"start":{"a":"b"},"end":true}],"error":"range.start.getTime is not a function"}
+{"fn":"isInWeek","args":[{"$undefined":true},{"start":"x","end":{"a":{"b":"c"}}}],"ok":false}
+{"fn":"isInWeek","args":[["a",1],{"start":{},"end":{"a":{"b":"c"}}}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":[{"a":"b"},{"start":true,"end":null}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":["helloa.b.c",{"start":[],"end":[]}],"ok":false}
+{"fn":"isInWeek","args":[[],{"start":{"a":{"b":"c"}},"end":"x"}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":[0,{"start":["a",1],"end":0}],"error":"range.start.getTime is not a function"}
+{"fn":"isInWeek","args":[{"$num":"NaN"},{"start":{"a":{"b":"c"}},"end":{"a":"b"}}],"ok":false}
+{"fn":"isInWeek","args":[{"$undefined":true},{"start":{"a":"b"},"end":null}],"ok":false}
+{"fn":"isInWeek","args":["abc",{"start":{},"end":[]}],"ok":false}
+{"fn":"isInWeek","args":[{"$undefined":true},{"start":"x","end":["a",1]}],"ok":false}
+{"fn":"isInWeek","args":["trailing.",{"start":null,"end":{}}],"ok":false}
+{"fn":"isInWeek","args":[null,{"start":{},"end":[]}],"ok":false}
+{"fn":"isInWeek","args":[{"$undefined":true},0],"ok":false}
+{"fn":"isInWeek","args":[["a",1],{"start":{"a":{"b":"c"}},"end":{}}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":[null,[]],"ok":false}
+{"fn":"isInWeek","args":[{},{"start":"x","end":["a",1]}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":["straße",{"start":0,"end":null}],"ok":false}
+{"fn":"isInWeek","args":["x",{"start":[],"end":0}],"ok":false}
+{"fn":"isInWeek","args":[{"$undefined":true},{"start":[],"end":["a",1]}],"ok":false}
+{"fn":"isInWeek","args":[{"$num":"Infinity"},{}],"ok":false}
+{"fn":"isInWeek","args":[null,{"start":true,"end":{}}],"ok":false}
+{"fn":"isInWeek","args":["x",{"start":0,"end":[]}],"ok":false}
+{"fn":"isInWeek","args":[null,{"start":0,"end":0}],"ok":false}
+{"fn":"isInWeek","args":[true,{"start":null,"end":true}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":[null,{"start":"x","end":[]}],"ok":false}
+{"fn":"isInWeek","args":[2,{"start":true,"end":true}],"error":"range.start.getTime is not a function"}
+{"fn":"isInWeek","args":[{"a":"b"},{"start":{"a":"b"},"end":{"a":{"b":"c"}}}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":[null,0],"ok":false}
+{"fn":"isInWeek","args":[{"$undefined":true},{"start":{"a":"b"},"end":["a",1]}],"ok":false}
+{"fn":"isInWeek","args":[{"$undefined":true},"x"],"ok":false}
+{"fn":"isInWeek","args":["x",{"start":"x","end":{}}],"ok":false}
+{"fn":"isInWeek","args":["İstanbul",{"start":{},"end":"x"}],"ok":false}
+{"fn":"isInWeek","args":[3,{"start":0,"end":[]}],"error":"range.start.getTime is not a function"}
+{"fn":"isInWeek","args":[2,{"start":[],"end":{}}],"error":"range.start.getTime is not a function"}
+{"fn":"isInWeek","args":["a..b",{"a":{"b":"c"}}],"ok":false}
+{"fn":"isInWeek","args":[9007199254740992,{"start":{"a":"b"},"end":null}],"ok":false}
+{"fn":"isInWeek","args":["a..b",{"start":0,"end":0}],"ok":false}
+{"fn":"isInWeek","args":[{"$undefined":true},{"start":"x","end":0}],"ok":false}
+{"fn":"isInWeek","args":[0.5,{"start":0,"end":true}],"error":"range.start.getTime is not a function"}
+{"fn":"isInWeek","args":[":",{"start":{},"end":["a",1]}],"ok":false}
+{"fn":"isInWeek","args":[10,{"start":["a",1],"end":{"a":{"b":"c"}}}],"error":"range.start.getTime is not a function"}
+{"fn":"isInWeek","args":[{"$undefined":true},{"start":"x","end":[]}],"ok":false}
+{"fn":"isInWeek","args":[42,{"start":{"a":"b"},"end":{"a":{"b":"c"}}}],"error":"range.start.getTime is not a function"}
+{"fn":"isInWeek","args":["hello world{name} has {count} items",{"start":[],"end":["a",1]}],"ok":false}
+{"fn":"isInWeek","args":[1000,{"start":["a",1],"end":{"a":{"b":"c"}}}],"error":"range.start.getTime is not a function"}
+{"fn":"isInWeek","args":[null,{"start":{},"end":{"a":{"b":"c"}}}],"ok":false}
+{"fn":"isInWeek","args":[9007199254740992,0],"ok":false}
+{"fn":"isInWeek","args":["straßesrc/a/b.ts",{"start":{},"end":{"a":"b"}}],"ok":false}
+{"fn":"isInWeek","args":[null,{"a":"b"}],"ok":false}
+{"fn":"isInWeek","args":[null,{"start":{"a":{"b":"c"}},"end":null}],"ok":false}
+{"fn":"isInWeek","args":["src/a/b.ts",{"start":{},"end":{"a":{"b":"c"}}}],"ok":false}
+{"fn":"isInWeek","args":["src/a/b.ts",{"start":0,"end":["a",1]}],"ok":false}
+{"fn":"isInWeek","args":[{"$undefined":true},{"start":true,"end":[]}],"ok":false}
+{"fn":"isInWeek","args":[42,{"start":"x","end":0}],"error":"range.start.getTime is not a function"}
+{"fn":"isInWeek","args":[null,{"start":[],"end":"x"}],"ok":false}
+{"fn":"isInWeek","args":[{"$num":"-0"},{"start":[],"end":"x"}],"error":"range.start.getTime is not a function"}
+{"fn":"isInWeek","args":[{"$undefined":true},{"start":["a",1],"end":0}],"ok":false}
+{"fn":"isInWeek","args":[{"$undefined":true},{"start":{"a":{"b":"c"}},"end":[]}],"ok":false}
+{"fn":"isInWeek","args":[{"$undefined":true},{"start":{"a":"b"},"end":{"a":{"b":"c"}}}],"ok":false}
+{"fn":"isInWeek","args":[[],{"start":"x","end":[]}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":[null,{"start":{"a":{"b":"c"}},"end":true}],"ok":false}
+{"fn":"isInWeek","args":["ab",{"start":"x","end":0}],"ok":false}
+{"fn":"isInWeek","args":[null,{"start":[],"end":null}],"ok":false}
+{"fn":"isInWeek","args":["a😀b😀c",{"start":{},"end":["a",1]}],"ok":false}
+{"fn":"isInWeek","args":[["a",1],{"start":["a",1],"end":{"a":{"b":"c"}}}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":["hello world",{"start":null,"end":"x"}],"ok":false}
+{"fn":"isInWeek","args":[1,{}],"error":"Cannot read properties of undefined (reading 'getTime')"}
+{"fn":"isInWeek","args":[0,{"start":["a",1],"end":{}}],"error":"range.start.getTime is not a function"}
+{"fn":"isInWeek","args":[{"$undefined":true},{"start":{"a":"b"},"end":0}],"ok":false}
+{"fn":"isInWeek","args":[["a",1],{"start":0,"end":{}}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":[{"$undefined":true},{"start":{"a":{"b":"c"}},"end":{"a":{"b":"c"}}}],"ok":false}
+{"fn":"isInWeek","args":[0,{"start":["a",1],"end":{"a":{"b":"c"}}}],"error":"range.start.getTime is not a function"}
+{"fn":"isInWeek","args":["key_name-1",{"start":[],"end":{"a":"b"}}],"error":"range.start.getTime is not a function"}
+{"fn":"isInWeek","args":[1000000,{"start":{},"end":0}],"error":"range.start.getTime is not a function"}
+{"fn":"isInWeek","args":[null,{"start":{"a":{"b":"c"}},"end":0}],"ok":false}
+{"fn":"isInWeek","args":[{"$undefined":true},{"start":{},"end":["a",1]}],"ok":false}
+{"fn":"isInWeek","args":["ab",{"start":{"a":"b"},"end":true}],"ok":false}
+{"fn":"isInWeek","args":[{"$num":"Infinity"},{"start":{"a":"b"},"end":true}],"ok":false}
+{"fn":"isInWeek","args":[{"$num":"Infinity"},{"start":[],"end":{"a":{"b":"c"}}}],"ok":false}
+{"fn":"isInWeek","args":[null,{"start":true,"end":true}],"ok":false}
+{"fn":"isInWeek","args":[{"a":"b"},{"start":["a",1],"end":{}}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":["abc",{"start":null,"end":"x"}],"ok":false}
+{"fn":"isInWeek","args":[null,{"start":null,"end":{"a":"b"}}],"ok":false}
+{"fn":"isInWeek","args":[null,true],"ok":false}
+{"fn":"isInWeek","args":[{"$undefined":true},{"start":null,"end":{}}],"ok":false}
+{"fn":"isInWeek","args":[{"$undefined":true},{"start":[],"end":{"a":{"b":"c"}}}],"ok":false}
+{"fn":"isInWeek","args":[null,{"start":[],"end":0}],"ok":false}
+{"fn":"isInWeek","args":[null,"x"],"ok":false}
+{"fn":"isInWeek","args":["x",{"start":0,"end":true}],"ok":false}
+{"fn":"isInWeek","args":[{"$num":"NaN"},{"start":[],"end":null}],"ok":false}
+{"fn":"isInWeek","args":[{"$num":"-Infinity"},{"start":true,"end":{"a":"b"}}],"ok":false}
+{"fn":"isInWeek","args":["{name} has {count} items",{}],"ok":false}
+{"fn":"isInWeek","args":[{"$num":"-0"},{"start":true,"end":"x"}],"error":"range.start.getTime is not a function"}
+{"fn":"isInWeek","args":[{"$undefined":true},{"start":{"a":{"b":"c"}},"end":true}],"ok":false}
+{"fn":"isInWeek","args":[{"$num":"-Infinity"},["a",1]],"ok":false}
+{"fn":"isInWeek","args":[0,{"start":true,"end":"x"}],"error":"range.start.getTime is not a function"}
+{"fn":"isInWeek","args":[null,{"start":"x","end":0}],"ok":false}
+{"fn":"isInWeek","args":[null,{"start":"x","end":null}],"ok":false}
+{"fn":"isInWeek","args":["line1\nline2",{"start":null,"end":["a",1]}],"ok":false}
+{"fn":"isInWeek","args":[0,{"start":true,"end":{"a":"b"}}],"error":"range.start.getTime is not a function"}
+{"fn":"isInWeek","args":[null,{"start":[],"end":{"a":{"b":"c"}}}],"ok":false}
+{"fn":"isInWeek","args":[{"$num":"Infinity"},{"start":{"a":"b"},"end":"x"}],"ok":false}
+{"fn":"isInWeek","args":["x",{"start":null,"end":{}}],"ok":false}
+{"fn":"isInWeek","args":[{},{"start":{"a":"b"},"end":null}],"error":"value.trim is not a function"}
+{"fn":"isInWeek","args":[null,{"start":{},"end":0}],"ok":false}
+{"fn":"isInWeek","args":["ns:key.path",{"start":{"a":{"b":"c"}},"end":{"a":{"b":"c"}}}],"ok":false}
+{"fn":"isInCurrentWeek","args":["﻿bom",true],"ok":false}
+{"fn":"isInCurrentWeek","args":[null,true],"ok":false}
+{"fn":"isInCurrentWeek","args":[0,true],"ok":true}
+{"fn":"isInCurrentWeek","args":["x","x"],"ok":false}
+{"fn":"isInCurrentWeek","args":[null,["a",1]],"ok":false}
+{"fn":"isInCurrentWeek","args":[{"$undefined":true},[]],"ok":false}
+{"fn":"isInCurrentWeek","args":[{"$undefined":true},["a",1]],"ok":false}
+{"fn":"isInCurrentWeek","args":[{"$undefined":true},{"a":"b"}],"ok":false}
+{"fn":"isInCurrentWeek","args":[null,"x"],"ok":false}
+{"fn":"isInCurrentWeek","args":[{}],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":[null,[]],"ok":false}
+{"fn":"isInCurrentWeek","args":[1,true],"ok":true}
+{"fn":"isInCurrentWeek","args":[null,0],"ok":false}
+{"fn":"isInCurrentWeek","args":["src/a/b.ts",{"a":{"b":"c"}}],"ok":false}
+{"fn":"isInCurrentWeek","args":[{},{"a":{"b":"c"}}],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":["x",{}],"ok":false}
+{"fn":"isInCurrentWeek","args":[1000,"x"],"ok":false}
+{"fn":"isInCurrentWeek","args":[null,{"a":{"b":"c"}}],"ok":false}
+{"fn":"isInCurrentWeek","args":[null],"ok":false}
+{"fn":"isInCurrentWeek","args":[0,{"a":"b"}],"ok":false}
+{"fn":"isInCurrentWeek","args":[{"$undefined":true},{"$undefined":true}],"ok":false}
+{"fn":"isInCurrentWeek","args":[{"a":{"b":"c"}},null],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":["x",{"a":"b"}],"ok":false}
+{"fn":"isInCurrentWeek","args":["﻿boma..b",["a",1]],"ok":false}
+{"fn":"isInCurrentWeek","args":["ns:key.path",{"$undefined":true}],"ok":false}
+{"fn":"isInCurrentWeek","args":[["a",1],null],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":[0],"ok":false}
+{"fn":"isInCurrentWeek","args":[-1,"x"],"ok":false}
+{"fn":"isInCurrentWeek","args":[null,null],"ok":false}
+{"fn":"isInCurrentWeek","args":[100,{"a":"b"}],"ok":false}
+{"fn":"isInCurrentWeek","args":[42],"ok":false}
+{"fn":"isInCurrentWeek","args":[9007199254740992,[]],"ok":false}
+{"fn":"isInCurrentWeek","args":[3,0],"ok":true}
+{"fn":"isInCurrentWeek","args":[-1],"ok":false}
+{"fn":"isInCurrentWeek","args":[null,{}],"ok":false}
+{"fn":"isInCurrentWeek","args":[null,{"a":"b"}],"ok":false}
+{"fn":"isInCurrentWeek","args":[null,{"$undefined":true}],"ok":false}
+{"fn":"isInCurrentWeek","args":[{},{"$undefined":true}],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":[{},null],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":[[],["a",1]],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":[0,[]],"ok":false}
+{"fn":"isInCurrentWeek","args":[{"$num":"Infinity"},{"$undefined":true}],"ok":false}
+{"fn":"isInCurrentWeek","args":["a",0],"ok":false}
+{"fn":"isInCurrentWeek","args":[true,"x"],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":["x",{"$undefined":true}],"ok":false}
+{"fn":"isInCurrentWeek","args":[[],0],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":["x",0],"ok":false}
+{"fn":"isInCurrentWeek","args":[{"$num":"Infinity"},{}],"ok":false}
+{"fn":"isInCurrentWeek","args":[{},[]],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":[["a",1],"x"],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":[{"a":{"b":"c"}},[]],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":["HELLO",{"$undefined":true}],"ok":false}
+{"fn":"isInCurrentWeek","args":[0,{"a":{"b":"c"}}],"ok":false}
+{"fn":"isInCurrentWeek","args":[3,true],"ok":true}
+{"fn":"isInCurrentWeek","args":[0,0],"ok":true}
+{"fn":"isInCurrentWeek","args":[1,0],"ok":true}
+{"fn":"isInCurrentWeek","args":[{"a":{"b":"c"}},true],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":["x",null],"ok":false}
+{"fn":"isInCurrentWeek","args":[0,["a",1]],"ok":false}
+{"fn":"isInCurrentWeek","args":[9007199254740992,true],"ok":false}
+{"fn":"isInCurrentWeek","args":[[],"x"],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":[{"$undefined":true},true],"ok":false}
+{"fn":"isInCurrentWeek","args":[{},{"a":"b"}],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":[{"$num":"-0"}],"ok":false}
+{"fn":"isInCurrentWeek","args":["trailing.",{"$undefined":true}],"ok":false}
+{"fn":"isInCurrentWeek","args":[{"$num":"-Infinity"},{"a":"b"}],"ok":false}
+{"fn":"isInCurrentWeek","args":[{"a":"b"}],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":["a😀b😀cemoji 👍🏽 mix","x"],"ok":false}
+{"fn":"isInCurrentWeek","args":[{"a":"b"},[]],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":[{"$undefined":true},{}],"ok":false}
+{"fn":"isInCurrentWeek","args":[true,{"a":"b"}],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":["x"],"ok":false}
+{"fn":"isInCurrentWeek","args":[2,null],"ok":true}
+{"fn":"isInCurrentWeek","args":[[],true],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":[{},0],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":[true,["a",1]],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":["src/a/b.ts",null],"ok":false}
+{"fn":"isInCurrentWeek","args":[{"$num":"-0"},"x"],"ok":false}
+{"fn":"isInCurrentWeek","args":[".leading",null],"ok":false}
+{"fn":"isInCurrentWeek","args":[9007199254740992,0],"ok":false}
+{"fn":"isInCurrentWeek","args":[["a",1],{"a":{"b":"c"}}],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":[],"ok":false}
+{"fn":"isInCurrentWeek","args":[[],[]],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":["key_name-1",{"$undefined":true}],"ok":false}
+{"fn":"isInCurrentWeek","args":[42,true],"ok":true}
+{"fn":"isInCurrentWeek","args":[{"a":{"b":"c"}}],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":[{"$num":"Infinity"},{"a":"b"}],"ok":false}
+{"fn":"isInCurrentWeek","args":[100,{}],"ok":false}
+{"fn":"isInCurrentWeek","args":[2147483648],"ok":false}
+{"fn":"isInCurrentWeek","args":["ns:key.path"],"ok":false}
+{"fn":"isInCurrentWeek","args":["İstanbul","x"],"ok":false}
+{"fn":"isInCurrentWeek","args":["Hello World",{"$undefined":true}],"ok":false}
+{"fn":"isInCurrentWeek","args":[2147483648,[]],"ok":false}
+{"fn":"isInCurrentWeek","args":[["a",1],true],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":["ΣΊΣΥΦΟΣ","x"],"ok":false}
+{"fn":"isInCurrentWeek","args":[{"$num":"-0"},0],"ok":true}
+{"fn":"isInCurrentWeek","args":[["a",1],{}],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":[true,null],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":[0,{}],"ok":false}
+{"fn":"isInCurrentWeek","args":[1000000,{"$undefined":true}],"ok":false}
+{"fn":"isInCurrentWeek","args":[1000,{}],"ok":false}
+{"fn":"isInCurrentWeek","args":[{"a":{"b":"c"}},{"a":"b"}],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":[42,0],"ok":true}
+{"fn":"isInCurrentWeek","args":[true,[]],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":["src/a/b.ts",{"$undefined":true}],"ok":false}
+{"fn":"isInCurrentWeek","args":[true,{}],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":["Hello Worlda",null],"ok":false}
+{"fn":"isInCurrentWeek","args":[["a",1],["a",1]],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":[{"$num":"Infinity"},[]],"ok":false}
+{"fn":"isInCurrentWeek","args":[2,true],"ok":true}
+{"fn":"isInCurrentWeek","args":[42,[]],"ok":false}
+{"fn":"isInCurrentWeek","args":[{"$num":"Infinity"},["a",1]],"ok":false}
+{"fn":"isInCurrentWeek","args":["a:b:c",[]],"ok":false}
+{"fn":"isInCurrentWeek","args":[10,[]],"ok":false}
+{"fn":"isInCurrentWeek","args":[42,"x"],"ok":false}
+{"fn":"isInCurrentWeek","args":[0,[]],"ok":false}
+{"fn":"isInCurrentWeek","args":[{"$num":"NaN"},{"$undefined":true}],"ok":false}
+{"fn":"isInCurrentWeek","args":["hello world",{"a":{"b":"c"}}],"ok":false}
+{"fn":"isInCurrentWeek","args":[{"$undefined":true},"x"],"ok":false}
+{"fn":"isInCurrentWeek","args":[{"a":{"b":"c"}},"x"],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":[true,{"$undefined":true}],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":[{"$undefined":true}],"ok":false}
+{"fn":"isInCurrentWeek","args":[3,{}],"ok":false}
+{"fn":"isInCurrentWeek","args":[-1,[]],"ok":false}
+{"fn":"isInCurrentWeek","args":[42,{"a":"b"}],"ok":false}
+{"fn":"isInCurrentWeek","args":[{},"x"],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":[{"$num":"-0"},{"$undefined":true}],"ok":false}
+{"fn":"isInCurrentWeek","args":[{"$num":"-Infinity"},0],"ok":false}
+{"fn":"isInCurrentWeek","args":["ΣΊΣΥΦΟΣ",{"$undefined":true}],"ok":false}
+{"fn":"isInCurrentWeek","args":[true,{"a":{"b":"c"}}],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":[[],{"a":"b"}],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":[true],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":[{"a":"b"},["a",1]],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":[{"$undefined":true},null],"ok":false}
+{"fn":"isInCurrentWeek","args":["a.b.c",{"a":"b"}],"ok":false}
+{"fn":"isInCurrentWeek","args":[2,{"a":{"b":"c"}}],"ok":false}
+{"fn":"isInCurrentWeek","args":[":",{"a":"b"}],"ok":false}
+{"fn":"isInCurrentWeek","args":[42,{"$undefined":true}],"ok":false}
+{"fn":"isInCurrentWeek","args":[".leading日本語のテキスト",{}],"ok":false}
+{"fn":"isInCurrentWeek","args":[0.5,{}],"ok":false}
+{"fn":"isInCurrentWeek","args":[9007199254740992,"x"],"ok":false}
+{"fn":"isInCurrentWeek","args":["é",null],"ok":false}
+{"fn":"isInCurrentWeek","args":[["a",1],0],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":["a.b.c",{"$undefined":true}],"ok":false}
+{"fn":"isInCurrentWeek","args":["src/a/b.ts",{}],"ok":false}
+{"fn":"isInCurrentWeek","args":[[],null],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":[9007199254740992,{}],"ok":false}
+{"fn":"isInCurrentWeek","args":[{"$undefined":true},{"a":{"b":"c"}}],"ok":false}
+{"fn":"isInCurrentWeek","args":[["a",1],{"$undefined":true}],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":[".leading",["a",1]],"ok":false}
+{"fn":"isInCurrentWeek","args":[{"$undefined":true},0],"ok":false}
+{"fn":"isInCurrentWeek","args":[2147483648,{}],"ok":false}
+{"fn":"isInCurrentWeek","args":["a..b",{"a":{"b":"c"}}],"ok":false}
+{"fn":"isInCurrentWeek","args":["x",{"a":{"b":"c"}}],"ok":false}
+{"fn":"isInCurrentWeek","args":["İstanbul",{"$undefined":true}],"ok":false}
+{"fn":"isInCurrentWeek","args":[{"a":{"b":"c"}},{}],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":["a😀b😀cstraße",null],"ok":false}
+{"fn":"isInCurrentWeek","args":[1],"ok":false}
+{"fn":"isInCurrentWeek","args":[["a",1],[]],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":[true,true],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":["straße",[]],"ok":false}
+{"fn":"isInCurrentWeek","args":["﻿bom",{"$undefined":true}],"ok":false}
+{"fn":"isInCurrentWeek","args":[[],{}],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":[10,{}],"ok":false}
+{"fn":"isInCurrentWeek","args":["日本語のテキスト"],"ok":false}
+{"fn":"isInCurrentWeek","args":[3,[]],"ok":false}
+{"fn":"isInCurrentWeek","args":["a:b:c",true],"ok":false}
+{"fn":"isInCurrentWeek","args":[{"a":"b"},null],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":[1,{"$undefined":true}],"ok":false}
+{"fn":"isInCurrentWeek","args":[0,{"$undefined":true}],"ok":false}
+{"fn":"isInCurrentWeek","args":[0,"x"],"ok":false}
+{"fn":"isInCurrentWeek","args":[-2.5,{"a":"b"}],"ok":false}
+{"fn":"isInCurrentWeek","args":["aba😀b😀c",0],"ok":false}
+{"fn":"isInCurrentWeek","args":["a{name} has {count} items",0],"ok":false}
+{"fn":"isInCurrentWeek","args":["a😀b😀cİstanbul",{"$undefined":true}],"ok":false}
+{"fn":"isInCurrentWeek","args":[{"a":"b"},"x"],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":["abc",{"a":{"b":"c"}}],"ok":false}
+{"fn":"isInCurrentWeek","args":["﻿bom",[]],"ok":false}
+{"fn":"isInCurrentWeek","args":["ΣΊΣΥΦΟΣ",null],"ok":false}
+{"fn":"isInCurrentWeek","args":["a.b.c  padded  ",{}],"ok":false}
+{"fn":"isInCurrentWeek","args":[{"a":{"b":"c"}},0],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":[{"$num":"-Infinity"},[]],"ok":false}
+{"fn":"isInCurrentWeek","args":["Hello World",null],"ok":false}
+{"fn":"isInCurrentWeek","args":["  padded  ",0],"ok":false}
+{"fn":"isInCurrentWeek","args":["abchello"],"ok":false}
+{"fn":"isInCurrentWeek","args":[1,{"a":"b"}],"ok":false}
+{"fn":"isInCurrentWeek","args":[2,{"$undefined":true}],"ok":false}
+{"fn":"isInCurrentWeek","args":[{"a":"b"},{}],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":["a",{"$undefined":true}],"ok":false}
+{"fn":"isInCurrentWeek","args":[10,"x"],"ok":false}
+{"fn":"isInCurrentWeek","args":[{},{}],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":[{"a":"b"},{"a":{"b":"c"}}],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":[{"a":"b"},true],"error":"value.trim is not a function"}
+{"fn":"isInCurrentWeek","args":["emoji 👍🏽 mix",{"a":"b"}],"ok":false}
+{"fn":"isInCurrentWeek","args":["😀",null],"ok":false}
+{"fn":"isInCurrentWeek","args":["😀",{}],"ok":false}
+{"fn":"isInCurrentWeek","args":["hello world",0],"ok":false}
+{"fn":"isInCurrentWeek","args":["😀",["a",1]],"ok":false}
+{"fn":"isInCurrentWeek","args":["ns:key.path",0],"ok":false}
+{"fn":"isInCurrentWeek","args":["😀",0],"ok":false}
+{"fn":"isTodoInWeek","args":[{"a":"b"},{"start":0,"end":{}}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":"hello world","completed_at":null},{}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":{"$num":"-0"},"completed_at":{"$num":"NaN"}},{"a":"b"}],"error":"Cannot read properties of undefined (reading 'getTime')"}
+{"fn":"isTodoInWeek","args":[{"created_at":"trailing.","completed_at":null},{"start":["a",1],"end":0}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":"ns:key.path","completed_at":{"$num":"-Infinity"}},{"start":{"a":{"b":"c"}},"end":"x"}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":1000,"completed_at":1000000},{"start":[],"end":{"a":{"b":"c"}}}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"hello日本語のテキスト","completed_at":{"$num":"Infinity"}},{"start":"x","end":["a",1]}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":{"$num":"Infinity"},"completed_at":null},{"start":{"a":"b"},"end":["a",1]}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":100,"completed_at":"  padded  "},{"start":[],"end":["a",1]}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":0.5,"completed_at":"tab\tseparated"},{"start":{"a":{"b":"c"}},"end":0}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"a":"b"},{"start":{"a":"b"},"end":true}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":1,"completed_at":null},{"a":{"b":"c"}}],"error":"Cannot read properties of undefined (reading 'getTime')"}
+{"fn":"isTodoInWeek","args":[{"created_at":{"$num":"NaN"},"completed_at":null},{"start":{"a":"b"},"end":{"a":{"b":"c"}}}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":42,"completed_at":null},true],"error":"Cannot read properties of undefined (reading 'getTime')"}
+{"fn":"isTodoInWeek","args":[{"a":{"b":"c"}},["a",1]],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":{"$num":"NaN"},"completed_at":null},{"a":"b"}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":1000,"completed_at":"😀"},{"start":"x","end":{"a":{"b":"c"}}}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":{"$num":"Infinity"},"completed_at":"a.b.c"},["a",1]],"ok":false}
+{"fn":"isTodoInWeek","args":[{},{"start":[],"end":0}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":2,"completed_at":"İstanbul"},{"a":"b"}],"error":"Cannot read properties of undefined (reading 'getTime')"}
+{"fn":"isTodoInWeek","args":[true,{"start":true,"end":{"a":{"b":"c"}}}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":"","completed_at":"Hello World"},{"start":"x","end":{"a":{"b":"c"}}}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":{"$num":"-0"},"completed_at":null},{"start":{"a":{"b":"c"}},"end":["a",1]}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"😀","completed_at":null},{"start":["a",1],"end":{"a":"b"}}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":"","completed_at":null},{"a":"b"}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":1,"completed_at":"  padded  "},{"start":null,"end":{}}],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"isTodoInWeek","args":[{"created_at":3,"completed_at":{"$num":"NaN"}},{"start":["a",1],"end":[]}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[null,0],"error":"Cannot read properties of null (reading 'completed_at')"}
+{"fn":"isTodoInWeek","args":[{"created_at":"😀","completed_at":null},true],"ok":false}
+{"fn":"isTodoInWeek","args":[0,{"start":{},"end":[]}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":-1,"completed_at":"src/a/b.ts"},{"start":["a",1],"end":null}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"ns:key.path","completed_at":9007199254740992},true],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":2147483648,"completed_at":""},{"start":{"a":{"b":"c"}},"end":true}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":{"$num":"-0"},"completed_at":0},{"start":true,"end":0}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"İstanbul","completed_at":"a"},{"start":{"a":"b"},"end":{}}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":42,"completed_at":null},{"start":{"a":"b"},"end":{}}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"ünïcödé","completed_at":"a😀b😀c😀"},0],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":"日本語のテキスト","completed_at":"./x/**/*.jsonsrc/a/b.ts"},{"start":{"a":"b"},"end":{"a":{"b":"c"}}}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":"ΣΊΣΥΦΟΣ","completed_at":0},{"start":{},"end":{}}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"key_name-1.leading","completed_at":-1},{"start":true,"end":{"a":"b"}}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"a😀b😀c","completed_at":"aünïcödé"},{"start":[],"end":true}],"ok":false}
+{"fn":"isTodoInWeek","args":["x",{"start":true,"end":{}}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":42,"completed_at":null},{"start":{},"end":true}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"./x/**/*.json","completed_at":1},{"start":0,"end":true}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":2147483648,"completed_at":"./x/**/*.json"},{"start":["a",1],"end":[]}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[null,[]],"error":"Cannot read properties of null (reading 'completed_at')"}
+{"fn":"isTodoInWeek","args":[{"created_at":"ünïcödéΣΊΣΥΦΟΣ","completed_at":null},{"start":null,"end":[]}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":0,"completed_at":"ns:key.path"},null],"error":"Cannot read properties of null (reading 'start')"}
+{"fn":"isTodoInWeek","args":[{"created_at":10,"completed_at":null},[]],"error":"Cannot read properties of undefined (reading 'getTime')"}
+{"fn":"isTodoInWeek","args":["x",{"start":"x","end":{"a":{"b":"c"}}}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":3,"completed_at":2},{"start":"x","end":{}}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"﻿bom","completed_at":"straße"},{"start":"x","end":null}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":9007199254740992,"completed_at":null},{"start":0,"end":{"a":{"b":"c"}}}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":"key_name-1","completed_at":{"$num":"Infinity"}},{"start":[],"end":true}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":-2.5,"completed_at":"abc"},{"start":"x","end":["a",1]}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"é","completed_at":"a:b:c.leading"},{"start":true,"end":"x"}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":"日本語のテキスト","completed_at":null},{"start":{"a":{"b":"c"}},"end":"x"}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":-1,"completed_at":1000000},{"start":{"a":{"b":"c"}},"end":0}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":{"$num":"-Infinity"},"completed_at":0},{"start":{"a":"b"},"end":{"a":"b"}}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"./x/**/*.json","completed_at":0},{"start":true,"end":0}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"tab\tseparated","completed_at":-1},[]],"error":"Cannot read properties of undefined (reading 'getTime')"}
+{"fn":"isTodoInWeek","args":["x",{"start":true,"end":true}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":{"$num":"Infinity"},"completed_at":1000},{"start":[],"end":{}}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":{"$num":"-Infinity"},"completed_at":"a..b"},{"start":["a",1],"end":null}],"ok":false}
+{"fn":"isTodoInWeek","args":[0,["a",1]],"ok":false}
+{"fn":"isTodoInWeek","args":["x",{"start":["a",1],"end":"x"}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":"﻿bomabc","completed_at":"﻿bom"},[]],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":{"$num":"-0"},"completed_at":null},{"start":{},"end":{"a":{"b":"c"}}}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"  padded  ","completed_at":10},{"start":{"a":"b"},"end":0}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[true,{"start":0,"end":"x"}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":-1,"completed_at":"a"},{"start":true,"end":{}}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"HELLO","completed_at":2147483648},{"start":{"a":{"b":"c"}},"end":"x"}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"abc","completed_at":null},{"start":{"a":{"b":"c"}},"end":true}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":".leading","completed_at":"{name} has {count} items"},{"start":{"a":"b"},"end":null}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":{"$num":"-0"},"completed_at":9007199254740992},{"start":{"a":{"b":"c"}},"end":0}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":{"$num":"-0"},"completed_at":".leading"},{"start":0,"end":"x"}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":{"$num":"Infinity"},"completed_at":null},"x"],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":0,"completed_at":null},{"start":0,"end":[]}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":-1,"completed_at":"ΣΊΣΥΦΟΣé"},{"start":["a",1],"end":{"a":{"b":"c"}}}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"./x/**/*.json","completed_at":null},{"start":"x","end":{"a":"b"}}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":"","completed_at":{"$num":"-0"}},{"start":true,"end":"x"}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"﻿bom","completed_at":null},{"start":["a",1],"end":["a",1]}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":"trailing.","completed_at":null},{"start":{},"end":{"a":"b"}}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":10,"completed_at":null},{"start":{},"end":"x"}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"src/a/b.ts","completed_at":{"$num":"-Infinity"}},{"start":["a",1],"end":{"a":"b"}}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":42,"completed_at":0.5},{"start":true,"end":0}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"line1\nline2a.b.c","completed_at":{"$num":"Infinity"}},{"start":{"a":"b"},"end":0}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":-1,"completed_at":{"$num":"Infinity"}},{"start":{"a":{"b":"c"}},"end":{"a":"b"}}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[true,{"start":null,"end":{"a":"b"}}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":0.5,"completed_at":"line1\nline2"},{"start":["a",1],"end":[]}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":9007199254740992,"completed_at":null},{"start":{},"end":true}],"ok":false}
+{"fn":"isTodoInWeek","args":[null,{"start":true,"end":"x"}],"error":"Cannot read properties of null (reading 'completed_at')"}
+{"fn":"isTodoInWeek","args":[{"created_at":1000000,"completed_at":"straße"},{"start":"x","end":{"a":{"b":"c"}}}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"ab","completed_at":":straße"},{"start":{"a":"b"},"end":"x"}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":2147483648,"completed_at":null},{"start":true,"end":["a",1]}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"straße","completed_at":10},{"start":{"a":{"b":"c"}},"end":0}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"","completed_at":"tab\tseparated"},{"start":{},"end":0}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":{"$num":"NaN"},"completed_at":null},{"start":"x","end":["a",1]}],"ok":false}
+{"fn":"isTodoInWeek","args":[{},{"start":[],"end":{"a":"b"}}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":{"$num":"-Infinity"},"completed_at":null},{"start":{"a":"b"},"end":{"a":"b"}}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":"İstanbul","completed_at":null},{"start":[],"end":{}}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":"ΣΊΣΥΦΟΣ","completed_at":null},{"start":"x","end":null}],"ok":false}
+{"fn":"isTodoInWeek","args":[0,{"start":["a",1],"end":"x"}],"ok":false}
+{"fn":"isTodoInWeek","args":[{},{"start":0,"end":{}}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":1000000,"completed_at":null},{}],"error":"Cannot read properties of undefined (reading 'getTime')"}
+{"fn":"isTodoInWeek","args":[{"created_at":"hello","completed_at":null},{"start":[],"end":{"a":"b"}}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":{"$num":"-Infinity"},"completed_at":"abns:key.path"},["a",1]],"ok":false}
+{"fn":"isTodoInWeek","args":[null,{"start":null,"end":{}}],"error":"Cannot read properties of null (reading 'completed_at')"}
+{"fn":"isTodoInWeek","args":[{"created_at":42,"completed_at":3},{"start":{"a":{"b":"c"}},"end":0}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[["a",1],{"start":true,"end":{}}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":3,"completed_at":".leading"},{"start":true,"end":null}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"HELLOa","completed_at":100},{"start":true,"end":{}}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":-1,"completed_at":9007199254740992},[]],"error":"Cannot read properties of undefined (reading 'getTime')"}
+{"fn":"isTodoInWeek","args":[{"created_at":{"$num":"-Infinity"},"completed_at":null},{"start":[],"end":["a",1]}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":"src/a/b.ts","completed_at":1000000},"x"],"error":"Cannot read properties of undefined (reading 'getTime')"}
+{"fn":"isTodoInWeek","args":[{"created_at":-2.5,"completed_at":9007199254740992},{"start":["a",1],"end":0}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"ΣΊΣΥΦΟΣ","completed_at":2},{"start":null,"end":{"a":"b"}}],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"isTodoInWeek","args":[{"created_at":"hello world","completed_at":"  padded  "},{"start":{"a":{"b":"c"}},"end":"x"}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":"key_name-1","completed_at":"straße"},{"start":true,"end":["a",1]}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":3,"completed_at":null},{"start":true,"end":{"a":{"b":"c"}}}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":42,"completed_at":null},{"start":[],"end":["a",1]}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"a😀b😀c","completed_at":{"$num":"Infinity"}},{"start":true,"end":0}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":0,"completed_at":"tab\tseparated"},{"start":[],"end":null}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"hello","completed_at":"hello日本語のテキスト"},{"start":true,"end":{"a":{"b":"c"}}}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":"Hello Worlda:b:c","completed_at":"a.b.c"},{"start":{"a":{"b":"c"}},"end":{"a":"b"}}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":"😀","completed_at":null},{"start":{},"end":{}}],"ok":false}
+{"fn":"isTodoInWeek","args":[0,{"start":{"a":{"b":"c"}},"end":[]}],"ok":false}
+{"fn":"isTodoInWeek","args":[{},{"start":{},"end":["a",1]}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":0,"completed_at":"abc"},{"start":[],"end":true}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"a","completed_at":"hello world"},{"start":"x","end":true}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":3,"completed_at":"hello world"},{"start":true,"end":"x"}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":-1,"completed_at":"ab"},{"a":{"b":"c"}}],"error":"Cannot read properties of undefined (reading 'getTime')"}
+{"fn":"isTodoInWeek","args":[{"created_at":"line1\nline2","completed_at":null},{"start":{"a":{"b":"c"}},"end":null}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":2,"completed_at":{"$num":"NaN"}},{"start":{"a":"b"},"end":{"a":{"b":"c"}}}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"a:b:c","completed_at":"İstanbula:b:c"},{"start":[],"end":[]}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":{"$num":"Infinity"},"completed_at":-2.5},{"start":null,"end":null}],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"isTodoInWeek","args":[{"created_at":2147483648,"completed_at":null},{"start":{},"end":true}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"a:b:c","completed_at":0},{"start":{},"end":{"a":{"b":"c"}}}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":3,"completed_at":"a..b"},{"start":{"a":"b"},"end":"x"}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":":","completed_at":1},null],"error":"Cannot read properties of null (reading 'start')"}
+{"fn":"isTodoInWeek","args":[["a",1],{"start":{"a":"b"},"end":["a",1]}],"ok":false}
+{"fn":"isTodoInWeek","args":[true,{"start":{"a":{"b":"c"}},"end":"x"}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":1000,"completed_at":"trailing."},{"start":null,"end":null}],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"isTodoInWeek","args":[{"created_at":"a😀b😀c","completed_at":null},{"start":{},"end":true}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":-2.5,"completed_at":{"$num":"-Infinity"}},{"start":{},"end":{"a":"b"}}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"a:b:c","completed_at":42},{"start":{"a":"b"},"end":0}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[true,{"start":[],"end":{}}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":100,"completed_at":null},{"start":{"a":{"b":"c"}},"end":{"a":{"b":"c"}}}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":-2.5,"completed_at":"src/a/b.tsa..b"},{"start":{},"end":null}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"a":{"b":"c"}},{"start":null,"end":{"a":{"b":"c"}}}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":"tab\tseparated","completed_at":"abc"},{"start":true,"end":{"a":"b"}}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":2,"completed_at":null},{"start":{"a":{"b":"c"}},"end":0}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":-2.5,"completed_at":{"$num":"-0"}},{"start":0,"end":null}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"straßekey_name-1","completed_at":null},{"start":[],"end":{"a":{"b":"c"}}}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"emoji 👍🏽 mix","completed_at":null},{"start":{},"end":["a",1]}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":1000000,"completed_at":1000},{"start":{},"end":{}}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":1,"completed_at":null},{"start":[],"end":["a",1]}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":42,"completed_at":null},{"start":null,"end":0}],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"isTodoInWeek","args":[{"created_at":"😀","completed_at":"a.b.c"},{"start":[],"end":true}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":1,"completed_at":null},[]],"error":"Cannot read properties of undefined (reading 'getTime')"}
+{"fn":"isTodoInWeek","args":[{"created_at":"tab\tseparated","completed_at":2},{"start":0,"end":[]}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"a":"b"},{"start":{},"end":{}}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":1000000,"completed_at":null},{"start":0,"end":null}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":42,"completed_at":"Hello World"},{"a":"b"}],"error":"Cannot read properties of undefined (reading 'getTime')"}
+{"fn":"isTodoInWeek","args":[{"created_at":"line1\nline2","completed_at":null},{"start":[],"end":{"a":"b"}}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":1,"completed_at":"HELLO"},{"start":{},"end":true}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":1000000,"completed_at":null},{"start":{"a":{"b":"c"}},"end":[]}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"İstanbul","completed_at":2147483648},{"start":["a",1],"end":{"a":"b"}}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":2,"completed_at":"emoji 👍🏽 mix"},{"start":null,"end":["a",1]}],"error":"Cannot read properties of null (reading 'getTime')"}
+{"fn":"isTodoInWeek","args":[{"created_at":"{name} has {count} items","completed_at":null},{"start":true,"end":{"a":{"b":"c"}}}],"ok":false}
+{"fn":"isTodoInWeek","args":[0,{"start":true,"end":{}}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":{"$num":"-0"},"completed_at":null},{"start":{"a":"b"},"end":"x"}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{},{"start":{"a":"b"},"end":[]}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":-2.5,"completed_at":100},{"start":true,"end":0}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"  padded  ","completed_at":10},{"start":["a",1],"end":{"a":{"b":"c"}}}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"Hello World","completed_at":null},{"start":["a",1],"end":{"a":"b"}}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":3,"completed_at":null},{"start":{"a":"b"},"end":"x"}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"😀","completed_at":":"},{"start":["a",1],"end":true}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":"a😀b😀c","completed_at":null},{"start":[],"end":[]}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":"HELLO","completed_at":2147483648},{"start":"x","end":{"a":{"b":"c"}}}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"HELLO","completed_at":"﻿bom"},{"start":true,"end":[]}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":"日本語のテキスト","completed_at":{"$num":"-0"}},{"start":{},"end":[]}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"a:b:c","completed_at":"ünïcödé"},[]],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":1,"completed_at":"  padded  tab\tseparated"},{"start":"x","end":"x"}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"abc","completed_at":2},{"start":[],"end":true}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":{"$num":"-Infinity"},"completed_at":"line1\nline2"},{"start":{},"end":0}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":0,"completed_at":null},{"start":[],"end":null}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"line1\nline2","completed_at":"{name} has {count} items"},{"start":0,"end":["a",1]}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":"ns:key.path","completed_at":null},{"start":{"a":{"b":"c"}},"end":[]}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"a":"b"},{"start":null,"end":{"a":{"b":"c"}}}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":9007199254740992,"completed_at":null},{"start":{"a":{"b":"c"}},"end":{"a":{"b":"c"}}}],"ok":false}
+{"fn":"isTodoInWeek","args":[{},{"start":null,"end":{}}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":1000,"completed_at":"ab"},{"start":{"a":"b"},"end":["a",1]}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":2,"completed_at":0},{"start":{},"end":{"a":"b"}}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":1000000,"completed_at":10},{"start":[],"end":{"a":"b"}}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"abc","completed_at":null},"x"],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":42,"completed_at":42},{"start":["a",1],"end":true}],"error":"range.start.getTime is not a function"}
+{"fn":"isTodoInWeek","args":[{"created_at":"é","completed_at":":a:b:c"},{"start":[],"end":"x"}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"a":{"b":"c"}},{"start":{},"end":null}],"ok":false}
+{"fn":"isTodoInWeek","args":[{"created_at":"😀","completed_at":-2.5},null],"error":"Cannot read properties of null (reading 'start')"}
+{"fn":"pickDueReminders","args":[[{"id":1,"title":"t","notes":null,"priority":"p","remind_at":"2026-11-19T03:00:00.000Z"}],{"$date":"2026-11-19T04:00:00.000Z"},3600000],"ok":[{"id":1,"title":"t","notes":null,"priority":"p","remind_at":"2026-11-19T03:00:00.000Z"}]}
+{"fn":"getWeekRange","args":[{"$date":"2026-11-19T04:00:00.000Z"}],"ok":{"start":{"$date":"2026-11-15T16:00:00.000Z"},"end":{"$date":"2026-11-22T15:59:59.999Z"}}}
+{"fn":"dayDiff","args":[{"$date":"2026-11-18T04:00:00.000Z"},{"$date":"2026-11-19T04:00:00.000Z"}],"ok":1}

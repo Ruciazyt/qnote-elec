@@ -1,0 +1,180 @@
+{
+  "schema": "rust-anything/bridge@1",
+  "root": "D:\\personal-projects\\qnote-elec",
+  "unit": "src/shared/notes/",
+  "language": "ts",
+  "kind": "napi",
+  "crate_name": "notes-rs",
+  "exports": [
+    {
+      "name": "contentHash",
+      "file": "src/shared/notes/noteHash.ts",
+      "line": 2,
+      "params": [
+        {
+          "name": "content",
+          "ts_type": "string",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "string",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "isCreatableNoteType",
+      "file": "src/shared/notes/noteTypes.ts",
+      "line": 22,
+      "params": [
+        {
+          "name": "type",
+          "ts_type": "(\"excalidraw\" | \"markdown\" | \"image\" | \"html\" | \"pdf\")",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "boolean",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "isFolderNode",
+      "file": "src/shared/notes/noteTypes.ts",
+      "line": 72,
+      "params": [
+        {
+          "name": "node",
+          "ts_type": "(| ({ kind: \"folder\" } & NoteFolderEntry & { children: (| ({ kind: \"folder\" } & NoteFolderEntry & { children: (| ({ kind: \"folder\" } & NoteFolderEntry & { children: (| ({ kind: \"folder\" } & NoteFolderEntry & { children: NoteTreeNode[] })\n  | ({ kind: \"file\" } & NoteFileEntry))[] })\n  | ({ kind: \"file\" } & NoteFileEntry))[] })\n  | ({ kind: \"file\" } & NoteFileEntry))[] })\n  | ({ kind: \"file\" } & NoteFileEntry))",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "node is Extract<(| ({ kind: \"folder\" } & NoteFolderEntry & { children: (| ({ kind: \"folder\" } & NoteFolderEntry & { children: (| ({ kind: \"folder\" } & NoteFolderEntry & { children: (| ({ kind: \"folder\" } & NoteFolderEntry & { children: NoteTreeNode[] })\n  | ({ kind: \"file\" } & NoteFileEntry))[] })\n  | ({ kind: \"file\" } & NoteFileEntry))[] })\n  | ({ kind: \"file\" } & NoteFileEntry))[] })\n  | ({ kind: \"file\" } & NoteFileEntry)), { kind: \"folder\" }>",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "getExt",
+      "file": "src/shared/notes/noteTypes.ts",
+      "line": 81,
+      "params": [
+        {
+          "name": "fileName",
+          "ts_type": "string",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "string",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "detectNoteType",
+      "file": "src/shared/notes/noteTypes.ts",
+      "line": 87,
+      "params": [
+        {
+          "name": "fileName",
+          "ts_type": "string",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "(\"excalidraw\" | \"markdown\" | \"image\" | \"html\" | \"pdf\") | null",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "isNoteFile",
+      "file": "src/shared/notes/noteTypes.ts",
+      "line": 91,
+      "params": [
+        {
+          "name": "fileName",
+          "ts_type": "string",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "boolean",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "stripExt",
+      "file": "src/shared/notes/noteTypes.ts",
+      "line": 95,
+      "params": [
+        {
+          "name": "fileName",
+          "ts_type": "string",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "string",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "getNoteTypeMeta",
+      "file": "src/shared/notes/noteTypes.ts",
+      "line": 100,
+      "params": [
+        {
+          "name": "type",
+          "ts_type": "(\"excalidraw\" | \"markdown\" | \"image\" | \"html\" | \"pdf\")",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "NoteTypeMeta",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "withDefaultExt",
+      "file": "src/shared/notes/noteTypes.ts",
+      "line": 104,
+      "params": [
+        {
+          "name": "rawName",
+          "ts_type": "string",
+          "optional": false,
+          "rest": false
+        },
+        {
+          "name": "type",
+          "ts_type": "(\"excalidraw\" | \"markdown\" | \"image\" | \"html\" | \"pdf\")",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "string",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    }
+  ],
+  "classes": [],
+  "js_only": []
+}

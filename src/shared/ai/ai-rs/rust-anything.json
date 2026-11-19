@@ -1,0 +1,271 @@
+{
+  "schema": "rust-anything/bridge@1",
+  "root": "D:\\personal-projects\\qnote-elec",
+  "unit": "src/shared/ai/",
+  "language": "ts",
+  "kind": "napi",
+  "crate_name": "ai-rs",
+  "exports": [
+    {
+      "name": "parseBlocks",
+      "file": "src/shared/ai/aiBlocks.ts",
+      "line": 109,
+      "params": [
+        {
+          "name": "raw",
+          "ts_type": "unknown",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "(| { kind: 'thinking'; text: string }\n  | { kind: 'tool'; call: ToolCallRecord }\n  | { kind: 'text'; text: string })[]",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "serializeBlocks",
+      "file": "src/shared/ai/aiBlocks.ts",
+      "line": 125,
+      "params": [
+        {
+          "name": "blocks",
+          "ts_type": "(| { kind: 'thinking'; text: string }\n  | { kind: 'tool'; call: ToolCallRecord }\n  | { kind: 'text'; text: string })[]",
+          "optional": false,
+          "rest": false
+        },
+        {
+          "name": "maxResultLen",
+          "ts_type": "number",
+          "optional": true,
+          "rest": false
+        }
+      ],
+      "returns": "string",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "aiImageDataUrl",
+      "file": "src/shared/ai/aiImages.ts",
+      "line": 23,
+      "params": [
+        {
+          "name": "image",
+          "ts_type": "AiImageAttachment",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "string",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "parseAiImageDataUrl",
+      "file": "src/shared/ai/aiImages.ts",
+      "line": 27,
+      "params": [
+        {
+          "name": "dataUrl",
+          "ts_type": "string",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "AiImageAttachment | null",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "normalizeAiImages",
+      "file": "src/shared/ai/aiImages.ts",
+      "line": 33,
+      "params": [
+        {
+          "name": "raw",
+          "ts_type": "unknown",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "AiImageAttachment[]",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "serializeAiImages",
+      "file": "src/shared/ai/aiImages.ts",
+      "line": 59,
+      "params": [
+        {
+          "name": "images",
+          "ts_type": "AiImageAttachment[]",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "string",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "parseAiImages",
+      "file": "src/shared/ai/aiImages.ts",
+      "line": 70,
+      "params": [
+        {
+          "name": "raw",
+          "ts_type": "unknown",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "AiImageAttachment[]",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "aiImageContentBlocks",
+      "file": "src/shared/ai/aiImages.ts",
+      "line": 81,
+      "params": [
+        {
+          "name": "images",
+          "ts_type": "AiImageAttachment[]",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "(| { type: 'text'; text: string }\n  | { type: 'image_url'; image_url: { url: string } })[]",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "buildUserContent",
+      "file": "src/shared/ai/aiImages.ts",
+      "line": 88,
+      "params": [
+        {
+          "name": "text",
+          "ts_type": "string",
+          "optional": false,
+          "rest": false
+        },
+        {
+          "name": "images",
+          "ts_type": "AiImageAttachment[]",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "string | (| { type: 'text'; text: string }\n  | { type: 'image_url'; image_url: { url: string } })[]",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "aiContentToText",
+      "file": "src/shared/ai/aiImages.ts",
+      "line": 100,
+      "params": [
+        {
+          "name": "content",
+          "ts_type": "unknown",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "string",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "buildSessionPreview",
+      "file": "src/shared/ai/aiSessionPreview.ts",
+      "line": 4,
+      "params": [
+        {
+          "name": "text",
+          "ts_type": "string | null | undefined",
+          "optional": false,
+          "rest": false
+        },
+        {
+          "name": "max",
+          "ts_type": "number",
+          "optional": true,
+          "rest": false
+        }
+      ],
+      "returns": "string",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "parseKeyValueLines",
+      "file": "src/shared/ai/mcp.ts",
+      "line": 74,
+      "params": [
+        {
+          "name": "text",
+          "ts_type": "string",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "Record<string, string>",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "parseArgsLines",
+      "file": "src/shared/ai/mcp.ts",
+      "line": 88,
+      "params": [
+        {
+          "name": "text",
+          "ts_type": "string",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "string[]",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    }
+  ],
+  "classes": [],
+  "js_only": [
+    {
+      "name": "BlockBuilder",
+      "file": "src/shared/ai/aiBlocks.ts",
+      "line": 28,
+      "reason": "class: 类留在 TS"
+    }
+  ]
+}

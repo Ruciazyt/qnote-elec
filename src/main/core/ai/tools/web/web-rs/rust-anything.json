@@ -1,0 +1,187 @@
+{
+  "schema": "rust-anything/bridge@1",
+  "root": "D:\\personal-projects\\qnote-elec",
+  "unit": "src/main/core/ai/tools/web/",
+  "language": "ts",
+  "kind": "napi",
+  "crate_name": "web-rs",
+  "exports": [
+    {
+      "name": "decodeEntities",
+      "file": "src/main/core/ai/tools/web/searchEngine.ts",
+      "line": 39,
+      "params": [
+        {
+          "name": "input",
+          "ts_type": "string",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "string",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "stripTags",
+      "file": "src/main/core/ai/tools/web/searchEngine.ts",
+      "line": 52,
+      "params": [
+        {
+          "name": "html",
+          "ts_type": "string",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "string",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "plainText",
+      "file": "src/main/core/ai/tools/web/searchEngine.ts",
+      "line": 63,
+      "params": [
+        {
+          "name": "html",
+          "ts_type": "string",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "string",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "htmlToText",
+      "file": "src/main/core/ai/tools/web/searchEngine.ts",
+      "line": 69,
+      "params": [
+        {
+          "name": "html",
+          "ts_type": "string",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "string",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "extractTitle",
+      "file": "src/main/core/ai/tools/web/searchEngine.ts",
+      "line": 97,
+      "params": [
+        {
+          "name": "html",
+          "ts_type": "string",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "string",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "parseBingResults",
+      "file": "src/main/core/ai/tools/web/searchEngine.ts",
+      "line": 102,
+      "params": [
+        {
+          "name": "html",
+          "ts_type": "string",
+          "optional": false,
+          "rest": false
+        },
+        {
+          "name": "limit",
+          "ts_type": "number",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "WebSearchResult[]",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "parseBaiduResults",
+      "file": "src/main/core/ai/tools/web/searchEngine.ts",
+      "line": 121,
+      "params": [
+        {
+          "name": "html",
+          "ts_type": "string",
+          "optional": false,
+          "rest": false
+        },
+        {
+          "name": "limit",
+          "ts_type": "number",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "WebSearchResult[]",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "buildSearchUrl",
+      "file": "src/main/core/ai/tools/web/searchEngine.ts",
+      "line": 141,
+      "params": [
+        {
+          "name": "engine",
+          "ts_type": "('bing' | 'baidu')",
+          "optional": false,
+          "rest": false
+        },
+        {
+          "name": "query",
+          "ts_type": "string",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "string",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    }
+  ],
+  "classes": [],
+  "js_only": [
+    {
+      "name": "fetchText",
+      "file": "src/main/core/ai/tools/web/searchEngine.ts",
+      "line": 155,
+      "reason": "走网络"
+    },
+    {
+      "name": "runWebSearch",
+      "file": "src/main/core/ai/tools/web/searchEngine.ts",
+      "line": 194,
+      "reason": "走网络"
+    }
+  ]
+}

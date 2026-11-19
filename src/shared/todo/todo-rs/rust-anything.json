@@ -1,0 +1,295 @@
+{
+  "schema": "rust-anything/bridge@1",
+  "root": "D:\\personal-projects\\qnote-elec",
+  "unit": "src/shared/todo/",
+  "language": "ts",
+  "kind": "napi",
+  "crate_name": "todo-rs",
+  "exports": [
+    {
+      "name": "pickDueReminders",
+      "file": "src/shared/todo/reminderDue.ts",
+      "line": 9,
+      "params": [
+        {
+          "name": "rows",
+          "ts_type": "ReminderCandidate[]",
+          "optional": false,
+          "rest": false
+        },
+        {
+          "name": "now",
+          "ts_type": "Date",
+          "optional": false,
+          "rest": false
+        },
+        {
+          "name": "graceMs",
+          "ts_type": "number",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "ReminderCandidate[]",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "isExpiredReminder",
+      "file": "src/shared/todo/reminderDue.ts",
+      "line": 24,
+      "params": [
+        {
+          "name": "row",
+          "ts_type": "ReminderCandidate",
+          "optional": false,
+          "rest": false
+        },
+        {
+          "name": "now",
+          "ts_type": "Date",
+          "optional": false,
+          "rest": false
+        },
+        {
+          "name": "graceMs",
+          "ts_type": "number",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "boolean",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "resolveReminderTime",
+      "file": "src/shared/todo/reminderTime.ts",
+      "line": 520,
+      "params": [
+        {
+          "name": "input",
+          "ts_type": "string",
+          "optional": false,
+          "rest": false
+        },
+        {
+          "name": "now",
+          "ts_type": "Date",
+          "optional": true,
+          "rest": false
+        }
+      ],
+      "returns": "ReminderTimeResolution",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "dayDiff",
+      "file": "src/shared/todo/reminderTime.ts",
+      "line": 548,
+      "params": [
+        {
+          "name": "from",
+          "ts_type": "Date",
+          "optional": false,
+          "rest": false
+        },
+        {
+          "name": "to",
+          "ts_type": "Date",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "number",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "formatReminderLabel",
+      "file": "src/shared/todo/reminderTime.ts",
+      "line": 554,
+      "params": [
+        {
+          "name": "at",
+          "ts_type": "Date",
+          "optional": false,
+          "rest": false
+        },
+        {
+          "name": "now",
+          "ts_type": "Date",
+          "optional": true,
+          "rest": false
+        }
+      ],
+      "returns": "string",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "formatLocalDateTime",
+      "file": "src/shared/todo/reminderTime.ts",
+      "line": 565,
+      "params": [
+        {
+          "name": "at",
+          "ts_type": "Date | null",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "string",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "toDateTimeLocalValue",
+      "file": "src/shared/todo/reminderTime.ts",
+      "line": 572,
+      "params": [
+        {
+          "name": "at",
+          "ts_type": "Date | null",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "string",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "fromDateTimeLocalValue",
+      "file": "src/shared/todo/reminderTime.ts",
+      "line": 579,
+      "params": [
+        {
+          "name": "value",
+          "ts_type": "string",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "Date | null",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "getWeekRange",
+      "file": "src/shared/todo/weekRange.ts",
+      "line": 39,
+      "params": [
+        {
+          "name": "now",
+          "ts_type": "Date",
+          "optional": true,
+          "rest": false
+        }
+      ],
+      "returns": "WeekRange",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "isInWeek",
+      "file": "src/shared/todo/weekRange.ts",
+      "line": 49,
+      "params": [
+        {
+          "name": "value",
+          "ts_type": "(string | number | Date | null | undefined)",
+          "optional": false,
+          "rest": false
+        },
+        {
+          "name": "range",
+          "ts_type": "WeekRange",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "boolean",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "isInCurrentWeek",
+      "file": "src/shared/todo/weekRange.ts",
+      "line": 59,
+      "params": [
+        {
+          "name": "value",
+          "ts_type": "(string | number | Date | null | undefined)",
+          "optional": false,
+          "rest": false
+        },
+        {
+          "name": "now",
+          "ts_type": "Date",
+          "optional": true,
+          "rest": false
+        }
+      ],
+      "returns": "boolean",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    },
+    {
+      "name": "isTodoInWeek",
+      "file": "src/shared/todo/weekRange.ts",
+      "line": 66,
+      "params": [
+        {
+          "name": "todo",
+          "ts_type": "WeekTodoLike",
+          "optional": false,
+          "rest": false
+        },
+        {
+          "name": "range",
+          "ts_type": "WeekRange",
+          "optional": false,
+          "rest": false
+        }
+      ],
+      "returns": "boolean",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    }
+  ],
+  "classes": [],
+  "js_only": [
+    {
+      "name": "parseTodoTime",
+      "file": "src/shared/todo/weekRange.ts",
+      "line": 16,
+      "reason": "checks `instanceof`: class identity does not survive the bridge"
+    }
+  ]
+}
