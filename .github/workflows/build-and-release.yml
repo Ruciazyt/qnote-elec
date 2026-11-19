@@ -145,6 +145,18 @@ jobs:
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Setup Rust
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe -OutFile rustup-init.exe -UseBasicParsing
+          ./rustup-init.exe -y --profile minimal --default-toolchain stable
+          echo "$env:USERPROFILE\.cargo\bin" >> $env:GITHUB_PATH
+
+      - name: Build native modules
+        run: pnpm run build:rust
+        env:
+          RUST_REQUIRED: "1"
+
       - name: Run unit tests
         run: pnpm test
         shell: pwsh
@@ -355,6 +367,16 @@ jobs:
 
       - name: Build electron
         run: pnpm run build:electron
+
+      - name: Setup Rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
+      - name: Build native modules
+        run: pnpm run build:rust
+        env:
+          RUST_REQUIRED: "1"
 
       - name: Check Apple signing configuration
         id: apple-signing
