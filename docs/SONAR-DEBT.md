@@ -8,7 +8,7 @@
 
 | 类别 | 数量 | 处置 |
 | --- | ---: | --- |
-| 漏洞（VULNERABILITY） | 6 | **全修**（含 4 个 BLOCKER） |
+| 漏洞（VULNERABILITY） | 8 | **全修**（含 4 个 BLOCKER） |
 | 缺陷（BUG） | 2 | **全修** |
 | 代码异味（CODE_SMELL） | 695 | 按规则分档处置，见下 |
 
@@ -25,6 +25,8 @@
 | typescript:S4036 | `appManager.ts` ×2 | 命令从 PATH 解析 | `taskkill` 改用 `SystemRoot\System32\taskkill.exe` 绝对路径 |
 | typescript:S6438 | `SideBar.tsx` | JSX 里的 `/* */` 被当**纯文本渲染**出来 | 改成 `{/* */}` |
 | typescript:S2871 | `ui-guards.ts` | 排序没带 localeCompare | 补上 |
+| typescript:S4790 | `projectConfig.ts`、`nameRegistry.ts` | 弱哈希算法 sha1 | 改成 sha256（仓库里 noteStore / shortcutIcons 本来就用 sha256） |
+| tssecurity:S2076 | `appManager.ts` | 命令注入：`spawn(commandLine, { shell: true })`，command 来自项目自己的 `qnote.json` | 清单命令本来就要走 shell，保留 `shell: true`，补 NOSONAR + 理由；市场来源另有风险分析与启动确认 |
 
 ---
 

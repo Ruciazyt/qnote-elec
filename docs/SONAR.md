@@ -147,6 +147,24 @@ POST /api/settings/set  key=sonar.autoscan.enabled  component=ruciazyt → Compo
 自动分析要在 SonarCloud 控制台里关（组织 → Administration → Automatic Analysis），
 API 改不动。
 
+关掉之前 CI 的表现：`SonarCloud scan` 那步会以 exit 3 失败；扫描诊断里
+`Automatic Analysis is enabled` 这条现在记成 warning（不再刷一屏红色 error），
+`Collect issue list` 仍会照常跑 —— 自动分析已经分析了同一个提交，
+清单和门禁判定拿到的就是那次的分析结果。
+
+### 4.4.1 本地扫描漏掉过的安全规则
+
+`eslint.config.mjs` 里只挑了 86 条 SonarJS 规则，SonarJS recommended 一共 295 条，
+漏掉的正好有安全类：`sonarjs/hashing`（typescript:S4790 弱哈希）和
+`sonarjs/os-command`（tssecurity:S2076 命令注入）—— 这两条在本地永远扫不出来，
+直接漏到 SonarCloud 上算漏洞，拉低新代码的安全评级。
+
+现在本地启用的安全类规则补到了 12 条（再加 `no-unsafe-unzip`、
+`encryption-secure-mode`、`insecure-jwt-token`、`confidential-information-logging`、
+`no-mixed-content`、`web-sql-database`、`post-message`、
+`dynamically-constructed-templates`、`no-intrusive-permissions`、`production-debug`），
+`pnpm run sonar:local` 能提前拦住这一类。
+
 ### 4.5 当前的覆盖范围（**待验证**）
 
 `sonar.sources` 是四个目录，测试文件由 `sonar.test.inclusions` 单独标，没有设
