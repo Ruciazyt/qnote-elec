@@ -56,6 +56,25 @@ function main() {
     }
   }
 
+  const newCode = data.newCode || {};
+  const measures = Object.entries(newCode).filter(([, value]) => value !== undefined && value !== null);
+  if (measures.length) {
+    console.log(
+      '::notice title=SonarCloud new code::' +
+        escapeAnnotation(measures.map(([key, value]) => key + '=' + value).join(' '))
+    );
+  }
+
+  const analyses = Array.isArray(data.analyses) ? data.analyses : [];
+  if (analyses.length) {
+    console.log(
+      '::notice title=SonarCloud versions::' +
+        escapeAnnotation(
+          analyses.slice(0, 8).map((a) => (a.version || 'none') + '@' + a.revision).join(' ')
+        )
+    );
+  }
+
   const issues = Array.isArray(data.issues) ? data.issues : [];
   const blocking = issues.filter((issue) => issueTypes(issue).some((type) => BLOCK_TYPES.includes(type)));
 

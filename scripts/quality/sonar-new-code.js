@@ -113,6 +113,7 @@ async function main() {
         }
     }
     note('notice', 'SonarCloud new code', '已把新代码周期改成 type=' + wanted['sonar.leak.period.type'] + ' value=' + wanted['sonar.leak.period']);
+    await new Promise((resolve) => setTimeout(resolve, 15000));
 }
 
 main().catch((error) => {

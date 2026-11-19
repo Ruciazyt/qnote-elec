@@ -205,6 +205,23 @@ async function fetchLastAnalysis() {
     }
 }
 
+async function fetchAnalyses(branch) {
+    try {
+        const data = await api('/api/project_analyses/search', {
+            project: PROJECT_KEY,
+            ps: 20,
+            branch: branch || undefined,
+        });
+        return (data.analyses || []).map((analysis) => ({
+            date: analysis.date || '',
+            revision: (analysis.revision || '').slice(0, 7),
+            version: analysis.version || '',
+        }));
+    } catch {
+        return [];
+    }
+}
+
 async function fetchGateStatus(branch) {
     try {
         const data = await api('/api/qualitygates/project_status', {
@@ -231,12 +248,13 @@ async function fetchGateStatus(branch) {
 async function fetchNewCodeMeasures(branch) {
     const metricKeys = [
         'new_coverage',
+        'new_lines_to_cover',
+        'new_uncovered_lines',
         'new_duplicated_lines_density',
         'new_bugs',
         'new_vulnerabilities',
         'new_code_smells',
         'new_security_hotspots_reviewed',
-        'new_lines',
     ];
     try {
         const data = await api('/api/measures/component', {
@@ -251,7 +269,7 @@ async function fetchNewCodeMeasures(branch) {
     }
 }
 
-function renderGateSection(gate, newCode) {
+function renderGateSection(gate, newCode, analyses) {
     const lines = [];
     lines.push('');
     lines.push('## 质量门禁（SonarCloud 自带的那道）');
@@ -263,6 +281,14 @@ function renderGateSection(gate, newCode) {
     if (newCode) {
         for (const [key, value] of Object.entries(newCode)) {
             lines.push('| ' + key + ' | ' + value + ' |');
+        }
+    }
+    if (analyses && analyses.length) {
+        lines.push('');
+        lines.push('| 提交 | 版本 | 时间 |');
+        lines.push('| --- | --- | --- |');
+        for (const analysis of analyses.slice(0, 10)) {
+            lines.push('| ' + analysis.revision + ' | ' + analysis.version + ' | ' + analysis.date + ' |');
         }
     }
     lines.push('');
@@ -500,6 +526,7 @@ async function main() {
     const analysis = await fetchLastAnalysis();
     const gate = await fetchGateStatus(branch);
     const newCode = await fetchNewCodeMeasures(branch);
+    const analyses = await fetchAnalyses(branch);
     if (gate && gate.status !== 'OK') {
         const failed = gate.conditions.filter((condition) => condition.status === 'ERROR');
         console.error('');
@@ -556,7 +583,7 @@ async function main() {
     };
 
     let markdown = renderMarkdown(issues, summary, meta);
-    if (gate) markdown += renderGateSection(gate, newCode);
+    if (gate) markdown += renderGateSection(gate, newCode, analyses);
     try {
         fs.mkdirSync(REPORT_DIR, { recursive: true });
         fs.writeFileSync(path.join(REPORT_DIR, 'sonar-issues.md'), markdown, 'utf8');
@@ -578,6 +605,7 @@ async function main() {
                     blockingCount: blocking.length,
                     gate,
                     newCode,
+                    analyses,
                     issues,
                 },
                 null,
