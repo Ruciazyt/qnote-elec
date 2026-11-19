@@ -51,6 +51,7 @@ jobs:
         run: |
           code=0
           node scripts/quality/sonar-issues.js --gate --wait || code=$?
+          node scripts/quality/sonar-annotate.js
           if [ "$code" -eq 2 ]; then
             echo "::warning::SonarCloud gate could not be evaluated (token or network problem), continuing"
             exit 0
