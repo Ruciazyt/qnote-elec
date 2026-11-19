@@ -38,6 +38,22 @@ function main() {
     return;
   }
 
+  const gate = data.gate;
+  if (gate && gate.status && gate.status !== 'OK') {
+    const failed = (gate.conditions || []).filter((condition) => condition.status === 'ERROR');
+    console.log(
+      '::error title=SonarCloud quality gate ' + escapeAnnotation(gate.status) +
+      '::' + escapeAnnotation(failed.length + ' condition(s) failed')
+    );
+    for (const condition of failed) {
+      const title = escapeAnnotation('gate: ' + condition.metricKey);
+      const body = escapeAnnotation(
+        'actual ' + condition.actualValue + ', requires ' + condition.comparator + ' ' + condition.errorThreshold
+      );
+      console.log('::error title=' + title + '::' + body);
+    }
+  }
+
   const issues = Array.isArray(data.issues) ? data.issues : [];
   const blocking = issues.filter((issue) => issueTypes(issue).some((type) => BLOCK_TYPES.includes(type)));
 

@@ -205,6 +205,81 @@ async function fetchLastAnalysis() {
     }
 }
 
+async function fetchGateStatus(branch) {
+    try {
+        const data = await api('/api/qualitygates/project_status', {
+            projectKey: PROJECT_KEY,
+            branch: branch || undefined,
+        });
+        const status = data.projectStatus || null;
+        return {
+            status: (status && status.status) || 'UNKNOWN',
+            conditions: ((status && status.conditions) || []).map((condition) => ({
+                metricKey: condition.metricKey,
+                status: condition.status,
+                comparator: condition.comparator,
+                actualValue: condition.actualValue ?? null,
+                errorThreshold: condition.errorThreshold ?? null,
+            })),
+            newCodePeriod: (data.newCodePeriod && data.newCodePeriod.value) || null,
+        };
+    } catch {
+        return null;
+    }
+}
+
+async function fetchNewCodeMeasures(branch) {
+    const metricKeys = [
+        'new_coverage',
+        'new_duplicated_lines_density',
+        'new_bugs',
+        'new_vulnerabilities',
+        'new_code_smells',
+        'new_security_hotspots_reviewed',
+        'new_lines',
+    ];
+    try {
+        const data = await api('/api/measures/component', {
+            component: PROJECT_KEY,
+            metricKeys: metricKeys.join(','),
+            branch: branch || undefined,
+        });
+        const measures = (data.component && data.component.measures) || [];
+        return Object.fromEntries(measures.map((measure) => [measure.metric, measure.value]));
+    } catch {
+        return null;
+    }
+}
+
+function renderGateSection(gate, newCode) {
+    const lines = [];
+    lines.push('');
+    lines.push('## 质量门禁（SonarCloud 自带的那道）');
+    lines.push('');
+    lines.push('| 项 | 值 |');
+    lines.push('| --- | --- |');
+    lines.push('| 状态 | ' + gate.status + ' |');
+    if (gate.newCodePeriod) lines.push('| 新代码周期 | ' + gate.newCodePeriod + ' |');
+    if (newCode) {
+        for (const [key, value] of Object.entries(newCode)) {
+            lines.push('| ' + key + ' | ' + value + ' |');
+        }
+    }
+    lines.push('');
+    lines.push('| 条件 | 实际值 | 要求 | 状态 |');
+    lines.push('| --- | --- | --- | --- |');
+    for (const condition of gate.conditions) {
+        lines.push(
+            '| ' + condition.metricKey +
+            ' | ' + condition.actualValue +
+            ' | ' + condition.comparator + ' ' + condition.errorThreshold +
+            ' | ' + condition.status + ' |'
+        );
+    }
+    lines.push('');
+    return lines.join('\n');
+}
+
 function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -423,6 +498,20 @@ async function main() {
 
     const summary = buildSummary(issues);
     const analysis = await fetchLastAnalysis();
+    const gate = await fetchGateStatus(branch);
+    const newCode = await fetchNewCodeMeasures(branch);
+    if (gate && gate.status !== 'OK') {
+        const failed = gate.conditions.filter((condition) => condition.status === 'ERROR');
+        console.error('');
+        console.error('⚠️  SonarCloud 自己的质量门禁没通过：' + gate.status);
+        for (const condition of failed) {
+            console.error(
+                '   · ' + condition.metricKey + ' 实际 ' + condition.actualValue +
+                '（要求 ' + condition.comparator + ' ' + condition.errorThreshold + '）'
+            );
+        }
+        console.error('');
+    }
     const blockTypeList = blockTypes();
     const blockSeverityList = blockSeverities();
 
@@ -466,7 +555,8 @@ async function main() {
         stale,
     };
 
-    const markdown = renderMarkdown(issues, summary, meta);
+    let markdown = renderMarkdown(issues, summary, meta);
+    if (gate) markdown += renderGateSection(gate, newCode);
     try {
         fs.mkdirSync(REPORT_DIR, { recursive: true });
         fs.writeFileSync(path.join(REPORT_DIR, 'sonar-issues.md'), markdown, 'utf8');
@@ -486,6 +576,8 @@ async function main() {
                         byType: Object.fromEntries(summary.byType),
                     },
                     blockingCount: blocking.length,
+                    gate,
+                    newCode,
                     issues,
                 },
                 null,
