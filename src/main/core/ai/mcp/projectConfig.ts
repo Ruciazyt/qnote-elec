@@ -55,7 +55,7 @@ export function loadProjectMcpConfig(
     return empty;
   }
 
-  const fingerprint = `${createHash("sha1").update(raw).digest("hex")}:${mtimeMs}`;
+  const fingerprint = `${createHash("sha256").update(raw).digest("hex")}:${mtimeMs}`;
 
   let parsed: unknown;
   try {
