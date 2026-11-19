@@ -20,7 +20,7 @@ const FILTERS: { key: Filter; label: string }[] = [
 const EMPTY_HINT: Partial<Record<Filter, { title: string; hint: string }>> = {
   week: {
     title: "本周还没有任务",
-    hint: "这周新建或完成的 Todo 会出现在这里",
+    hint: "这周新建或完成的 Todo 会出现在这里，已归档的也算",
   },
   archived: {
     title: "归档区是空的",
@@ -62,8 +62,8 @@ export default function TodoPage() {
   const filtered = useMemo(() => {
     const range = getWeekRange();
     if (filter === "archived") return todos.filter((t) => Boolean(t.archived_at));
+    if (filter === "week") return todos.filter((t) => isTodoInWeek(t, range));
     const live = todos.filter((t) => !t.archived_at);
-    if (filter === "week") return live.filter((t) => isTodoInWeek(t, range));
     if (filter === "active") return live.filter((t) => t.completed === 0);
     if (filter === "completed") return live.filter((t) => t.completed === 1);
     return live;
@@ -74,7 +74,7 @@ export default function TodoPage() {
     const live = todos.filter((t) => !t.archived_at);
     return {
       all: live.length,
-      week: live.filter((t) => isTodoInWeek(t, range)).length,
+      week: todos.filter((t) => isTodoInWeek(t, range)).length,
       active: live.filter((t) => t.completed === 0).length,
       completed: live.filter((t) => t.completed === 1).length,
       archived: todos.filter((t) => Boolean(t.archived_at)).length,

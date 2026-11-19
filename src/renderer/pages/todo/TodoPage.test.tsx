@@ -64,22 +64,22 @@ async function renderPage() {
 }
 
 describe("Todo「本周」页签", () => {
-  it("本周新建与本周完成的都算进来，计数为 2", async () => {
+  it("本周新建、本周完成的和归档的都算进来，计数为 3", async () => {
     await renderPage();
 
     const tab = screen.getByRole("button", { name: /本周/ });
-    expect(tab.textContent).toContain("2");
+    expect(tab.textContent).toContain("3");
   });
 
-  it("点开只显示本周创建或完成的，归档的不算", async () => {
+  it("点开显示本周创建或完成的，归档的也在", async () => {
     await renderPage();
 
     await userEvent.click(screen.getByRole("button", { name: /本周/ }));
 
     expect(screen.getByText("本周新建的活")).toBeInTheDocument();
     expect(screen.getByText("本周完成的活")).toBeInTheDocument();
+    expect(screen.getByText("归档的活")).toBeInTheDocument();
     expect(screen.queryByText("上周的活")).not.toBeInTheDocument();
-    expect(screen.queryByText("归档的活")).not.toBeInTheDocument();
   });
 
   it("全部页签里三条未归档的都在", async () => {
