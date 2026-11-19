@@ -14,6 +14,7 @@ interface TodoListProps {
   onArchive?: (todo: Todo) => void;
   onUnarchive?: (todo: Todo) => void;
   onAttachmentClick?: (attachment: TodoAttachment, todo: Todo) => void;
+  showCompletedAt?: boolean;
   emptyTitle?: string;
   emptyHint?: string;
 }
@@ -69,7 +70,7 @@ function formatReminder(
   return { text, className };
 }
 
-function formatCreated(date: string): string {
+function formatCreated(date: string | number): string {
   try {
     return formatDistanceToNow(new Date(date), { addSuffix: true, locale: zhCN });
   } catch {
@@ -85,6 +86,7 @@ export function TodoList({
   onArchive,
   onUnarchive,
   onAttachmentClick,
+  showCompletedAt,
   emptyTitle,
   emptyHint,
 }: TodoListProps) {
@@ -141,6 +143,11 @@ export function TodoList({
                 </span>
               )}
               <span className="text-muted-foreground">{formatCreated(todo.created_at)}</span>
+              {showCompletedAt && completed && todo.completed_at && (
+                <span className="text-muted-foreground">
+                  完成于 {formatCreated(todo.completed_at)}
+                </span>
+              )}
               <div className="ml-auto flex items-center gap-0.5">
                 <Tooltip>
                   <TooltipTrigger asChild>

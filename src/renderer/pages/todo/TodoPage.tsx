@@ -2,20 +2,26 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Plus, ListChecks, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/ui/use-toast";
+import { getWeekRange, isTodoInWeek } from "@shared/todo/weekRange";
 import { TodoEditDialog } from "@/pages/todo/TodoEditDialog";
 import { TodoList } from "@/pages/todo/TodoList";
 import type { Todo, TodoPriority, TodoAttachment } from "@/pages/todo/types";
 
-type Filter = "all" | "active" | "completed" | "archived";
+type Filter = "all" | "week" | "active" | "completed" | "archived";
 
 const FILTERS: { key: Filter; label: string }[] = [
   { key: "all", label: "全部" },
+  { key: "week", label: "本周" },
   { key: "active", label: "待办" },
   { key: "completed", label: "已完成" },
   { key: "archived", label: "归档" },
 ];
 
 const EMPTY_HINT: Partial<Record<Filter, { title: string; hint: string }>> = {
+  week: {
+    title: "本周还没有任务",
+    hint: "这周新建或完成的 Todo 会出现在这里",
+  },
   archived: {
     title: "归档区是空的",
     hint: "在待办列表里点「归档」按钮，收起来的任务会放到这里",
@@ -54,17 +60,21 @@ export default function TodoPage() {
   }, [load]);
 
   const filtered = useMemo(() => {
+    const range = getWeekRange();
     if (filter === "archived") return todos.filter((t) => Boolean(t.archived_at));
     const live = todos.filter((t) => !t.archived_at);
+    if (filter === "week") return live.filter((t) => isTodoInWeek(t, range));
     if (filter === "active") return live.filter((t) => t.completed === 0);
     if (filter === "completed") return live.filter((t) => t.completed === 1);
     return live;
   }, [todos, filter]);
 
   const counts = useMemo(() => {
+    const range = getWeekRange();
     const live = todos.filter((t) => !t.archived_at);
     return {
       all: live.length,
+      week: live.filter((t) => isTodoInWeek(t, range)).length,
       active: live.filter((t) => t.completed === 0).length,
       completed: live.filter((t) => t.completed === 1).length,
       archived: todos.filter((t) => Boolean(t.archived_at)).length,
@@ -206,6 +216,7 @@ export default function TodoPage() {
           onArchive={handleArchive}
           onUnarchive={handleUnarchive}
           onAttachmentClick={handleAttachmentClick}
+          showCompletedAt={filter === "week"}
           emptyTitle={EMPTY_HINT[filter]?.title}
           emptyHint={EMPTY_HINT[filter]?.hint}
         />
