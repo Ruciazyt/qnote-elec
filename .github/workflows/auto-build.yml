@@ -64,6 +64,20 @@ jobs:
           ELECTRON_CACHE: ~/.cache/electron
           ELECTRON_BUILDER_CACHE: ~/.cache/electron-builder
 
+      - name: "Diagnostics: packaging failure"
+        if: failure()
+        shell: pwsh
+        run: |
+          $log = '.data/build/build-error.log'
+          if (-not (Test-Path $log)) {
+            Write-Host '没有找到打包错误日志（.data/build/build-error.log）'
+            exit 0
+          }
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '### 打包失败日志'
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '~~~text'
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value (Get-Content $log -Tail 200)
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value '~~~'
+
       - name: Process portable version
         run: node scripts/build/post-build.js
 

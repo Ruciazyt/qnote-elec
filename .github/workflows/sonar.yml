@@ -98,19 +98,31 @@ jobs:
             -Dsonar.exclusions='**/node_modules/**,**/dist/**,**/dist_electron/**,**/build/**,**/.data/**,**/out-tsc/**,**/coverage/**,**/*.d.ts,**/*.min.js,**/public/**,**/*.svg,**/*.png,**/*.ico,**/*.icns,**/*.css,**/*.html' \
             > scanner-output.log 2>&1
           code=$?
+          matched=$(grep -Ei 'project root|load properties|sonar\.(sources|tests|exclusions)|module|skipping|indexed|lines of code|excluded|warning|error' scanner-output.log | head -60)
           {
-            grep -Ei 'project root|load properties|sonar\.(sources|tests|exclusions)|module|skipping|indexed|lines of code|excluded|warning|error' scanner-output.log \
-              | head -60 \
-              | while IFS= read -r line; do
-                  safe=$(printf '%s' "$line" | sed -e 's/%/%25/g' -e 's/\r//g' | cut -c1-900)
-                  echo "::error title=scanner::${safe}"
-                done
-            echo "::error title=scanner::scanner exit code ${code}"
-          }
+            echo "### Scanner 输出"
+            echo ""
+            echo '```'
+            printf '%s\n' "$matched" | sed -e 's/\r//g' | cut -c1-900
+            echo '```'
+            echo ""
+            echo "- 退出码：${code}"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if grep -q "Automatic Analysis is enabled" scanner-output.log; then
+            echo "::warning title=scanner::组织开了 Automatic Analysis，CI 扫描被拒（exit ${code}）；关掉自动分析后 CI 才能上传分析结果"
+            exit 0
+          fi
+          if [ -n "$matched" ]; then
+            printf '%s\n' "$matched" | while IFS= read -r line; do
+              safe=$(printf '%s' "$line" | sed -e 's/%/%25/g' -e 's/\r//g' | cut -c1-900)
+              echo "::error title=scanner::${safe}"
+            done
+          fi
+          echo "::error title=scanner::scanner exit code ${code}"
           exit 0
 
       - name: Collect issue list
-        if: steps.sonar-token.outputs.enabled == 'true'
+        if: always() && steps.sonar-token.outputs.enabled == 'true'
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_BLOCK_SEVERITIES: ${{ vars.SONAR_BLOCK_SEVERITIES }}
