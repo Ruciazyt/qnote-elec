@@ -214,6 +214,39 @@ curl -s -H "Authorization: Bearer $TOKEN" \
 ```
 
 
+### 4.6 新代码周期：按「上一个版本」算
+
+项目默认继承组织级的「新代码 = 最近 30 天」。本仓库的提交全落在 28 天内，
+于是整个仓库都被算成新代码，`coverage on new code` 只有 22%，
+门禁要的 80% 靠补测试够不着。
+
+改成「上一个版本」，两次调用（先值后类型）：
+
+```bash
+curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+  'https://sonarcloud.io/api/settings/set?component=Ruciazyt_qnote-elec&key=sonar.leak.period&value=previous_version'
+curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+  'https://sonarcloud.io/api/settings/set?component=Ruciazyt_qnote-elec&key=sonar.leak.period.type&value=previous_version'
+```
+
+CI 里由 `scripts/quality/sonar-new-code.js` 在扫描前检查并按需设置（已是目标值就不动）。
+
+「上一个版本」要能定位基线，分析必须带版本号。CI 扫描前用
+`scripts/quality/stamp-sonar-version.js` 把 `package.json` 的版本号写进
+`sonar.projectVersion` —— 版本号的唯一来源仍是 package.json，仓库里不另抄一份。
+发版时版本号一升，下一次分析就把上一版当基线，新代码 = 上次发版之后的改动。
+
+> 基线现在是空的：历史分析都没带版本号，SonarCloud 找不到「上一个版本」，
+> 新代码集为空，`new_coverage` 这条条件不参与判定，门禁因此直接通过。
+> 发一个版本（1.18.1）之后基线落下来，门禁会开始按「上次发版后的改动」算覆盖率。
+
+### 4.7 两个让覆盖率算不准的坑
+
+| 坑 | 现象 | 处理 |
+| --- | --- | --- |
+| CI 里用 `-Dsonar.exclusions=` 覆盖 | properties 文件里的排除项（含 `**/*-rs/**`）全部失效 | 分析范围只写在 `sonar-project.properties`，CI 不再传 `-D` |
+| 覆盖率测试跑在 Rust 编译之前 | 主进程走的是 TypeScript 兜底，原生路径的覆盖率是 0 | CI 先 `pnpm run build:rust` 再跑覆盖率测试 |
+
 ---
 
 ## 5. 清单怎么看
@@ -280,6 +313,8 @@ SKIP_SONAR=1 pnpm run release:patch
 
 - **checkout 带 `fetch-depth: 0`** —— 浅克隆会让 Sonar 把整个仓库当成"新增代码"
 - **判定步骤带 `--wait`** —— 扫描器把结果传上去之后计算任务还要跑一会儿，
+- **步骤顺序** —— 装依赖 → 编译 Rust 原生模块 → 跑覆盖率测试 → 盖章版本号 →
+  设新代码周期 → 扫描 → 出清单并判定
 
 
 ---
