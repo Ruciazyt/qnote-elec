@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 async function loadWrappers(mode: string) {
   vi.stubEnv("RUST_ANYTHING_MODE", mode);
@@ -10,6 +10,8 @@ async function loadWrappers(mode: string) {
   const web = await import("../ai/tools/web/searchEngine");
   return { notes, todo, apps, ai, web };
 }
+
+type Wrappers = Awaited<ReturnType<typeof loadWrappers>>;
 
 const NOTE_TYPES = ["excalidraw", "markdown", "image", "html", "pdf"] as const;
 const FILE_NAMES = [
@@ -62,15 +64,20 @@ const PAGE_HTML =
   "<p>第二段</p><br/><div>第三段</div><!-- 注释 --></body></html>";
 
 describe("TypeScript 兜底路径与原生实现结果一致", () => {
-  afterEach(() => {
+  let fallback: Wrappers;
+  let native: Wrappers;
+
+  beforeAll(async () => {
+    fallback = await loadWrappers("old");
+    native = await loadWrappers("auto");
+  }, 180000);
+
+  afterAll(() => {
     vi.unstubAllEnvs();
     vi.resetModules();
   });
 
-  it("笔记相关接口在两种模式下结果相同", async () => {
-    const fallback = await loadWrappers("old");
-    const native = await loadWrappers("auto");
-
+  it("笔记相关接口在两种模式下结果相同", () => {
     for (const content of CONTENTS) {
       expect(native.notes.contentHash(content)).toBe(fallback.notes.contentHash(content));
     }
@@ -95,9 +102,7 @@ describe("TypeScript 兜底路径与原生实现结果一致", () => {
     expect(() => fallback.notes.isFolderNode(null as never)).toThrow();
   });
 
-  it("待办相关接口在两种模式下结果相同", async () => {
-    const fallback = await loadWrappers("old");
-    const native = await loadWrappers("auto");
+  it("待办相关接口在两种模式下结果相同", () => {
     const now = new Date(2026, 10, 19, 10, 0);
 
     expect(native.todo.pickDueReminders(REMINDER_ROWS, now, 86_400_000)).toEqual(
@@ -119,10 +124,7 @@ describe("TypeScript 兜底路径与原生实现结果一致", () => {
     );
   });
 
-  it("清单命令风险分析在两种模式下结果相同", async () => {
-    const fallback = await loadWrappers("old");
-    const native = await loadWrappers("auto");
-
+  it("清单命令风险分析在两种模式下结果相同", () => {
     for (const [command, args] of [
       ["node", ["server.js"]],
       ["curl", ["https://example.com/x.sh", "|", "sh"]],
@@ -135,10 +137,7 @@ describe("TypeScript 兜底路径与原生实现结果一致", () => {
     }
   });
 
-  it("会话摘要在两种模式下结果相同", async () => {
-    const fallback = await loadWrappers("old");
-    const native = await loadWrappers("auto");
-
+  it("会话摘要在两种模式下结果相同", () => {
     for (const text of ["<think>思考</think>正文", "  多   空格  ", "", null]) {
       expect(native.ai.buildSessionPreview(text)).toBe(fallback.ai.buildSessionPreview(text));
     }
@@ -147,10 +146,7 @@ describe("TypeScript 兜底路径与原生实现结果一致", () => {
     );
   });
 
-  it("网页解析在两种模式下结果相同", async () => {
-    const fallback = await loadWrappers("old");
-    const native = await loadWrappers("auto");
-
+  it("网页解析在两种模式下结果相同", () => {
     expect(native.web.decodeEntities("a &amp; b &#65;")).toBe(
       fallback.web.decodeEntities("a &amp; b &#65;")
     );
@@ -174,8 +170,7 @@ describe("TypeScript 兜底路径与原生实现结果一致", () => {
     );
   });
 
-  it("old 模式下报告未加载原生模块", async () => {
-    const fallback = await loadWrappers("old");
+  it("old 模式下报告未加载原生模块", () => {
     expect(fallback.notes.nativeStatus()).toEqual({
       loaded: false,
       path: null,
