@@ -239,6 +239,14 @@ Get-ChildItem -Path dist_electron -Force
      Select-Object FileDescription, ProductName, FileVersion
    ```
 
+6. **`Failed to move directory from ... win-unpacked.tmp to ... win-unpacked: EBUSY ... EPERM`**
+
+   electron-builder 解压完产物后要把临时目录 `win-unpacked.tmp` 改名成 `win-unpacked`，
+   改名的瞬间文件被杀毒软件或索引服务占住就会报这个 —— 同一台机器上时好时坏。
+   `build-app.js` 现在会清掉残留的 `win-unpacked.tmp` / `win-unpacked` 再自动重试
+   （最多 3 次）。CI 里重试完仍失败时，完整报错会写进 `.data/build/build-error.log`，
+   并出现在该次 Actions 运行页的 Summary 里（不用登录也能看）。
+
 
    | 做法 | 说明 |
    | --- | --- |
