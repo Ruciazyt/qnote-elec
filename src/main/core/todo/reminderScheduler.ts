@@ -1,10 +1,7 @@
 import { BrowserWindow, Notification } from "electron";
 import type { Knex } from "knex";
-import {
-  isExpiredReminder,
-  pickDueReminders,
-  type ReminderCandidate,
-} from "../../../shared/todo/reminderDue";
+import { isExpiredReminder, pickDueReminders } from "./nativeTodo";
+import type { ReminderCandidate } from "../../../shared/todo/reminderDue";
 import { log } from "../system/log";
 import { showMainWindow } from "../window/mainWindow";
 

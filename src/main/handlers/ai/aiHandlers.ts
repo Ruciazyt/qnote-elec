@@ -6,7 +6,7 @@ import { getMainWindow } from "../../core/window/mainWindow";
 import { startAiActivity, setAiActivityTool, endAiActivity } from "../../core/ai/aiActivity";
 import { DEFAULT_AI_CHAT_SESSION_ID } from "../../../shared/ai/constants/aiChat";
 import { resolveAiChatSession } from "../../core/ai/chatSession";
-import { buildSessionPreview } from "../../../shared/ai/aiSessionPreview";
+import { buildSessionPreview } from "../../core/ai/nativeAi";
 import { aiService, AiMessage } from "../../core/ai/aiService";
 import { configManager } from "../../core/system/config";
 import { vectorStore } from "../../core/ai/vectorStore";

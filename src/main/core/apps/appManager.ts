@@ -21,8 +21,8 @@ import type {
   AppRuntimeState,
   StartConfirmation,
 } from "../../../shared/apps/appTypes";
-import { analyzeCommand } from "../../../shared/apps/appRisk";
-import { contentHash } from "../../../shared/notes/noteHash";
+import { analyzeCommand } from "./nativeApps";
+import { contentHash } from "../notes/nativeNotes";
 
 
 const LOG_BUFFER_LIMIT = 400;

@@ -1,4 +1,6 @@
 
+import { nativeCall } from '../../../system/nativeModules';
+
 export type SearchEngineId = 'bing' | 'baidu';
 
 export interface WebSearchResult {
@@ -12,6 +14,18 @@ export interface WebSearchOutcome {
   results: WebSearchResult[];
   warning?: string;
 }
+
+interface NativeWeb {
+  decodeEntities(input: string): string;
+  stripTags(html: string): string;
+  plainText(html: string): string;
+  htmlToText(html: string): string;
+  extractTitle(html: string): string;
+  parseBingResults(html: string, limit: number): WebSearchResult[];
+  parseBaiduResults(html: string, limit: number): WebSearchResult[];
+}
+
+const WRAPPER = 'web-rs.cjs';
 
 const USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
@@ -36,7 +50,7 @@ function fromCodePoint(code: number): string {
   }
 }
 
-export function decodeEntities(input: string): string {
+function tsDecodeEntities(input: string): string {
   return input
     .replace(/&#(x[0-9a-fA-F]+|[0-9]+);/gi, (match, body: string) => {
       const hex = body.charAt(0).toLowerCase() === 'x';
@@ -49,7 +63,7 @@ export function decodeEntities(input: string): string {
     });
 }
 
-export function stripTags(html: string): string {
+function tsStripTags(html: string): string {
   const segments = html.split('<');
   const kept: string[] = [segments[0] ?? ''];
   for (let i = 1; i < segments.length; i += 1) {
@@ -60,13 +74,13 @@ export function stripTags(html: string): string {
   return kept.join(' ');
 }
 
-export function plainText(html: string): string {
-  return decodeEntities(stripTags(html))
+function tsPlainText(html: string): string {
+  return tsDecodeEntities(tsStripTags(html))
     .replace(/[\s\u00a0]+/g, ' ')
     .trim();
 }
 
-export function htmlToText(html: string): string {
+function tsHtmlToText(html: string): string {
   const text = html
     .replace(/<script[\s\S]*?<\/script>/gi, ' ')
     .replace(/<style[\s\S]*?<\/style>/gi, ' ')
@@ -76,7 +90,7 @@ export function htmlToText(html: string): string {
     .replace(/<\/(p|div|section|article|li|ul|ol|tr|h[1-6]|blockquote|pre)\s*>/gi, '\n')
     .replace(/<br\s*\/?>/gi, '\n');
 
-  const lines = decodeEntities(stripTags(text))
+  const lines = tsDecodeEntities(tsStripTags(text))
     .split('\n')
     .map((line) => line.replace(/[ \t\u00a0]+/g, ' ').trim());
 
@@ -94,31 +108,31 @@ export function htmlToText(html: string): string {
   return out.join('\n');
 }
 
-export function extractTitle(html: string): string {
+function tsExtractTitle(html: string): string {
   const m = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(html);
-  return m ? plainText(m[1]).slice(0, 200) : '';
+  return m ? tsPlainText(m[1]).slice(0, 200) : '';
 }
 
-export function parseBingResults(html: string, limit: number): WebSearchResult[] {
+function tsParseBingResults(html: string, limit: number): WebSearchResult[] {
   const results: WebSearchResult[] = [];
   const blocks = html.split(/<li class="b_algo"/).slice(1);
   for (const block of blocks) {
     if (results.length >= limit) break;
     const link = /<h2[^>]*>\s*<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/.exec(block);
     if (!link) continue;
-    const url = decodeEntities(link[1]);
+    const url = tsDecodeEntities(link[1]);
     if (!/^https?:\/\//i.test(url)) continue;
     const desc = /<p[^>]*>([\s\S]*?)<\/p>/.exec(block);
     results.push({
-      title: plainText(link[2]).slice(0, 160),
+      title: tsPlainText(link[2]).slice(0, 160),
       url,
-      snippet: desc ? plainText(desc[1]).slice(0, 400) : '',
+      snippet: desc ? tsPlainText(desc[1]).slice(0, 400) : '',
     });
   }
   return results;
 }
 
-export function parseBaiduResults(html: string, limit: number): WebSearchResult[] {
+function tsParseBaiduResults(html: string, limit: number): WebSearchResult[] {
   const results: WebSearchResult[] = [];
   const blocks = html.split(/<div[^>]*class="[^"]*c-container[^"]*"/).slice(1);
   for (const block of blocks) {
@@ -126,16 +140,79 @@ export function parseBaiduResults(html: string, limit: number): WebSearchResult[
     const link = /<h3[^>]*>[\s\S]*?<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/.exec(block);
     if (!link) continue;
     const real = /\bmu="([^"]+)"/.exec(block);
-    const url = decodeEntities(real ? real[1] : link[1]);
+    const url = tsDecodeEntities(real ? real[1] : link[1]);
     if (!/^https?:\/\//i.test(url)) continue;
     const body = block.replace(/<h3[\s\S]*?<\/h3>/i, ' ');
     results.push({
-      title: plainText(link[2]).slice(0, 160),
+      title: tsPlainText(link[2]).slice(0, 160),
       url,
-      snippet: plainText(body).slice(0, 400),
+      snippet: tsPlainText(body).slice(0, 400),
     });
   }
   return results;
+}
+
+export function decodeEntities(input: string): string {
+  return nativeCall<string, NativeWeb>(
+    WRAPPER,
+    'decodeEntities',
+    () => tsDecodeEntities(input),
+    (module) => module.decodeEntities(input)
+  );
+}
+
+export function stripTags(html: string): string {
+  return nativeCall<string, NativeWeb>(
+    WRAPPER,
+    'stripTags',
+    () => tsStripTags(html),
+    (module) => module.stripTags(html)
+  );
+}
+
+export function plainText(html: string): string {
+  return nativeCall<string, NativeWeb>(
+    WRAPPER,
+    'plainText',
+    () => tsPlainText(html),
+    (module) => module.plainText(html)
+  );
+}
+
+export function htmlToText(html: string): string {
+  return nativeCall<string, NativeWeb>(
+    WRAPPER,
+    'htmlToText',
+    () => tsHtmlToText(html),
+    (module) => module.htmlToText(html)
+  );
+}
+
+export function extractTitle(html: string): string {
+  return nativeCall<string, NativeWeb>(
+    WRAPPER,
+    'extractTitle',
+    () => tsExtractTitle(html),
+    (module) => module.extractTitle(html)
+  );
+}
+
+export function parseBingResults(html: string, limit: number): WebSearchResult[] {
+  return nativeCall<WebSearchResult[], NativeWeb>(
+    WRAPPER,
+    'parseBingResults',
+    () => tsParseBingResults(html, limit),
+    (module) => module.parseBingResults(html, limit)
+  );
+}
+
+export function parseBaiduResults(html: string, limit: number): WebSearchResult[] {
+  return nativeCall<WebSearchResult[], NativeWeb>(
+    WRAPPER,
+    'parseBaiduResults',
+    () => tsParseBaiduResults(html, limit),
+    (module) => module.parseBaiduResults(html, limit)
+  );
 }
 
 export function buildSearchUrl(engine: SearchEngineId, query: string): string {

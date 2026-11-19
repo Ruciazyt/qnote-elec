@@ -1,8 +1,8 @@
 import { log } from "../../main/core/system/log";
 import { getDB } from "../index";
 import { DEFAULT_AI_CHAT_SESSION_ID } from "../../shared/ai/constants/aiChat";
-import { buildSessionPreview } from "../../shared/ai/aiSessionPreview";
-import { contentHash } from "../../shared/notes/noteHash";
+import { buildSessionPreview } from "../../main/core/ai/nativeAi";
+import { contentHash } from "../../main/core/notes/nativeNotes";
 import type { Knex } from "knex";
 
 async function createNotesTable(DB: Knex): Promise<void> {

@@ -1,7 +1,7 @@
 import { clipboard, BrowserWindow, NativeImage } from "electron";
 import { log } from "../system/log";
 import { Knex } from "knex";
-import { contentHash } from "../../../shared/notes/noteHash";
+import { contentHash } from "../notes/nativeNotes";
 import { readClipboardImage } from "../../utils/clipboard";
 
 let lastClipboardText: string = "";

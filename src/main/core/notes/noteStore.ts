@@ -8,12 +8,14 @@ import {
   NoteFileEntry,
   NoteTreeNode,
   NoteType,
+} from "../../../shared/notes/noteTypes";
+import {
   detectNoteType,
   getExt,
   getNoteTypeMeta,
   isCreatableNoteType,
   isNoteFile,
-} from "../../../shared/notes/noteTypes";
+} from "./nativeNotes";
 import { log } from "../system/log";
 
 const ILLEGAL_NAME_CHARS = /[\\/:*?"<>|]/;

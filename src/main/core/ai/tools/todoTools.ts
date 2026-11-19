@@ -1,11 +1,8 @@
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { getToolContext } from "../toolContext";
-import {
-  formatLocalDateTime,
-  formatReminderLabel,
-  resolveReminderTime,
-} from "../../../../shared/todo/reminderTime";
+import { formatLocalDateTime } from "../../../../shared/todo/reminderTime";
+import { formatReminderLabel, resolveReminderTime } from "../../todo/nativeTodo";
 import { log } from "../../system/log";
 
 function pad2(value: number): string {
