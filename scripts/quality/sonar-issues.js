@@ -477,7 +477,7 @@ async function main() {
                     branch: branch || null,
                     headRevision: head,
                     analysisRevision: meta.analysisRevision,
-                    blockSeverities: blockLevels,
+                    blockSeverities: blockSeverityList,
                     summary: {
                         total: summary.total,
                         bySeverity: Object.fromEntries(summary.bySeverity),
@@ -500,7 +500,7 @@ async function main() {
                 {
                     total: summary.total,
                     blockingCount: blocking.length,
-                    blockSeverities: blockLevels,
+                    blockSeverities: blockSeverityList,
                     issues,
                 },
                 null,
