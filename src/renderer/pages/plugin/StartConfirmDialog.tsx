@@ -15,44 +15,12 @@ import {
   RISK_LEVEL_TITLES,
   type RiskLevel,
 } from "@shared/plugin/pluginRisk";
-import type {
-  PluginCapabilities,
-  StartConfirmation,
-} from "@shared/plugin/pluginTypes";
+import { capabilitySummary } from "@/pages/plugin/pluginPermissions";
+import type { StartConfirmation } from "@shared/plugin/pluginTypes";
 
 interface StartConfirmDialogProps {
   confirmation: StartConfirmation | null;
   onClose: () => void;
-}
-
-function describeCapabilities(capabilities?: PluginCapabilities): string[] {
-  if (!capabilities) return [];
-  const lines: string[] = [];
-  if (capabilities.process?.spawn) lines.push("启动子进程");
-  if (capabilities.process?.env?.length) {
-    lines.push(`设置环境变量 ${capabilities.process.env.join("、")}`);
-  }
-  if (capabilities.network?.length) {
-    lines.push(`访问网络 ${capabilities.network.join("、")}`);
-  }
-  if (capabilities.filesystem?.read?.length) {
-    lines.push(`读取文件 ${capabilities.filesystem.read.join("、")}`);
-  }
-  if (capabilities.filesystem?.write?.length) {
-    lines.push(`写入文件 ${capabilities.filesystem.write.join("、")}`);
-  }
-  const qnote = capabilities.qnote;
-  if (qnote) {
-    if (qnote.notes && qnote.notes !== "none") {
-      lines.push(`${qnote.notes === "write" ? "读写" : "读取"}笔记`);
-    }
-    if (qnote.todos && qnote.todos !== "none") {
-      lines.push(`${qnote.todos === "write" ? "读写" : "读取"}待办`);
-    }
-    if (qnote.clipboard === "read") lines.push("读取剪贴板");
-    if (qnote.ai === "read") lines.push("读取 AI 会话");
-  }
-  return lines;
 }
 
 export function StartConfirmDialog({
@@ -70,7 +38,7 @@ export function StartConfirmDialog({
   const level: RiskLevel = confirmation.risk.level;
   const isDanger = level === "danger";
   const canRun = !isDanger || acknowledged;
-  const permissions = describeCapabilities(confirmation.capabilities);
+  const permissions = capabilitySummary(confirmation.capabilities);
 
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>

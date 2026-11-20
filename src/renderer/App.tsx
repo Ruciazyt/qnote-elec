@@ -1,10 +1,13 @@
-import { Suspense, lazy, useEffect, useLayoutEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import "./index.css";
 import Layout from "./components/shell/layout";
 import { Toaster } from "./components/ui/toaster";
+import { CommandPalette } from "./components/panel/CommandPalette";
 import { FloatingAiAssistant } from "./pages/ai/FloatingAiAssistant";
 import { useScrollIndicator } from "./hooks/shell/useScrollIndicator";
+import { usePluginCommands } from "./hooks/plugin/usePluginCommands";
+import { usePluginRegistry } from "./hooks/plugin/usePluginRegistry";
 import { toast } from "./hooks/ui/use-toast";
 import { publishRoutePath } from "./hooks/system/routeStore";
 import { pushExternalAdd } from "./pages/home/shortcut/externalAdd";
@@ -74,6 +77,37 @@ function App() {
     setVisited((prev) => (prev.includes(pathname) ? prev : [...prev, pathname]));
   }, [pathname]);
 
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const { commands, run: runCommand } = usePluginCommands();
+  const { pluginNames } = usePluginRegistry();
+  const pluginNamesRef = useRef(pluginNames);
+
+  useEffect(() => {
+    pluginNamesRef.current = pluginNames;
+  }, [pluginNames]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() !== "p") return;
+      if (!event.ctrlKey && !event.metaKey) return;
+      if (!event.shiftKey) return;
+      event.preventDefault();
+      setPaletteOpen((prev) => !prev);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  useEffect(() => {
+    return window.electron.onPluginNotify((payload) => {
+      toast({
+        title: pluginNamesRef.current[payload.pluginId] ?? "插件",
+        description: payload.message,
+        variant: payload.level === "error" ? "destructive" : "default",
+      });
+    });
+  }, []);
+
   return (
     <Layout>
       <Suspense
@@ -102,6 +136,13 @@ function App() {
         ))}
       </Suspense>
       {}
+      <CommandPalette
+        open={paletteOpen}
+        onOpenChange={setPaletteOpen}
+        commands={commands}
+        pluginNames={pluginNames}
+        onRun={(command) => void runCommand(command)}
+      />
       {FLOATING_AI_ASSISTANT}
       {TOASTER}
     </Layout>

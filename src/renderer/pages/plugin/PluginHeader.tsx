@@ -7,6 +7,9 @@ import {
   Play,
   Power,
   RefreshCw,
+  RotateCcw,
+  ShieldCheck,
+  SlidersHorizontal,
   Square,
   Trash2,
   Upload,
@@ -30,6 +33,9 @@ interface PluginHeaderProps {
   onOpenFolder: () => void;
   onRemove: () => void;
   onToggleEnabled: (enabled: boolean) => void;
+  onShowPermissions?: () => void;
+  onShowSettings?: () => void;
+  onRestart?: () => void;
   onCopyAddress?: (address: string) => void;
   onRefreshPreview?: () => void;
 }
@@ -77,6 +83,9 @@ export function PluginHeader({
   onOpenFolder,
   onRemove,
   onToggleEnabled,
+  onShowPermissions,
+  onShowSettings,
+  onRestart,
   onCopyAddress,
   onRefreshPreview,
 }: PluginHeaderProps) {
@@ -277,6 +286,24 @@ export function PluginHeader({
         onEditManifest
       )}
       {secondaryAction("打开目录", <FolderOpen className="h-3.5 w-3.5" />, onOpenFolder)}
+      {onShowPermissions &&
+        secondaryAction(
+          "权限",
+          <ShieldCheck className="h-3.5 w-3.5" />,
+          onShowPermissions
+        )}
+      {onShowSettings &&
+        secondaryAction(
+          "设置",
+          <SlidersHorizontal className="h-3.5 w-3.5" />,
+          onShowSettings
+        )}
+      {onRestart &&
+        secondaryAction(
+          "重启",
+          <RotateCcw className="h-3.5 w-3.5" />,
+          onRestart
+        )}
       {secondaryAction(
         plugin.enabled ? "禁用" : "启用",
         <Power className="h-3.5 w-3.5" />,

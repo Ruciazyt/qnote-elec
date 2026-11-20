@@ -457,6 +457,13 @@ contextBridge.exposeInMainWorld("electron", {
   pluginRuntimeStates: () => ipcRenderer.invoke("plugin:runtime-states"),
   pluginLogs: (pluginId: string) => ipcRenderer.invoke("plugin:logs", pluginId),
   pluginClearLogs: (pluginId: string) => ipcRenderer.invoke("plugin:clear-logs", pluginId),
+  pluginListCommands: () => ipcRenderer.invoke("plugin:list-commands"),
+  pluginExecuteCommand: (command: string) =>
+    ipcRenderer.invoke("plugin:execute-command", command),
+  pluginGetSettings: (pluginId: string) =>
+    ipcRenderer.invoke("plugin:get-settings", pluginId),
+  pluginSetSetting: (pluginId: string, key: string, value: unknown) =>
+    ipcRenderer.invoke("plugin:set-setting", pluginId, key, value),
   pluginPreviewLoad: (localId: number) =>
     ipcRenderer.invoke("plugin:preview-load", localId),
   pluginPreviewVisible: (visible: boolean) => ipcRenderer.invoke("plugin:preview-visible", visible),
@@ -476,6 +483,16 @@ contextBridge.exposeInMainWorld("electron", {
     const listener = (_event: unknown, line: any) => callback(line);
     ipcRenderer.on("plugin:log", listener);
     return () => ipcRenderer.removeListener("plugin:log", listener);
+  },
+  onPluginNotify: (
+    callback: (payload: { pluginId: string; level: string; message: string }) => void
+  ) => {
+    const listener = (
+      _event: unknown,
+      payload: { pluginId: string; level: string; message: string }
+    ) => callback(payload);
+    ipcRenderer.on("plugin:notify", listener);
+    return () => ipcRenderer.removeListener("plugin:notify", listener);
   },
   onPluginPreviewError: (callback: (payload: any) => void) => {
     const listener = (_event: unknown, payload: any) => callback(payload);

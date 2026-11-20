@@ -1,0 +1,34 @@
+{
+  "id": "local.hello-qnote",
+  "name": "Hello QNote 示例",
+  "version": "1.0.0",
+  "publisher": "local",
+  "description": "最小示例插件：注册一个命令、弹一条通知、读写一个设置项",
+  "license": "MIT",
+  "engines": { "qnote": "^2.0.0" },
+  "activationEvents": ["onCommand:hello.sayHi"],
+  "runtime": {
+    "command": "node main.js",
+    "cwd": ".",
+    "preview": { "type": "path", "path": "preview/index.html" }
+  },
+  "capabilities": {
+    "process": { "spawn": true },
+    "qnote": { "todos": "read" }
+  },
+  "contributes": {
+    "commands": [
+      { "command": "hello.sayHi", "title": "打个招呼", "category": "Hello" }
+    ],
+    "settings": [
+      {
+        "key": "greeting",
+        "type": "string",
+        "default": "你好，QNote",
+        "title": "打招呼用语",
+        "description": "点命令时弹出的问候语"
+      }
+    ],
+    "sidebar": [{ "id": "hello", "title": "Hello QNote" }]
+  }
+}

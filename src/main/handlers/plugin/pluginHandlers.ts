@@ -216,6 +216,99 @@ export function registerPluginHandlers(DB: Knex): PluginManager {
     return true;
   });
 
+  ipcMain.handle("plugin:list-commands", async () => {
+    return pluginManager.listCommands();
+  });
+
+  ipcMain.handle("plugin:execute-command", async (_event, command: string) => {
+    const id = String(command ?? "");
+    if (!id) return { ok: false, error: "命令不能为空" };
+
+    const entry = pluginManager
+      .listCommands()
+      .find((item) => item.command === id);
+    if (!entry) return { ok: false, error: `没有这个命令：${id}` };
+
+    const state = pluginManager.getRuntimeState(entry.pluginId);
+    const alive = state?.status === "running" || state?.status === "starting";
+    if (!alive) {
+      const started = await pluginManager.startPlugin(entry.pluginId);
+      if (!started.ok) {
+        return {
+          ok: false,
+          error: started.error,
+          needsConfirmation: started.needsConfirmation,
+        };
+      }
+    }
+
+    try {
+      await pluginManager.executeCommand(id);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  });
+
+  ipcMain.handle("plugin:get-settings", async (_event, pluginId: string) => {
+    const id = String(pluginId ?? "");
+    const rows = await DB("plugin_setting")
+      .where("plugin_id", id)
+      .select("key", "value");
+    return rows.map((row) => ({
+      key: String(row.key),
+      value:
+        row.value === null || row.value === undefined ? null : String(row.value),
+    }));
+  });
+
+  ipcMain.handle(
+    "plugin:set-setting",
+    async (_event, pluginId: string, key: string, value: unknown) => {
+      const id = String(pluginId ?? "");
+      const settingKey = String(key ?? "");
+      if (!id || !settingKey) return { ok: false, error: "参数不完整" };
+
+      const plugin = await pluginManager.getPlugin(id);
+      if (!plugin) return { ok: false, error: "插件不存在" };
+
+      const declared = plugin.contributes?.settings?.find(
+        (item) => item.key === settingKey
+      );
+      if (!declared) {
+        return { ok: false, error: `这个插件没有声明设置项 ${settingKey}` };
+      }
+
+      const text = value === null || value === undefined ? null : String(value);
+      if (text !== null) {
+        if (declared.type === "number" && !Number.isFinite(Number(text))) {
+          return { ok: false, error: `设置项 ${settingKey} 要的是数字` };
+        }
+        if (declared.type === "boolean" && text !== "true" && text !== "false") {
+          return { ok: false, error: `设置项 ${settingKey} 要的是布尔值` };
+        }
+      }
+
+      const existing = await DB("plugin_setting")
+        .where("plugin_id", id)
+        .where("key", settingKey)
+        .first();
+      if (existing) {
+        await DB("plugin_setting")
+          .where("plugin_id", id)
+          .where("key", settingKey)
+          .update({ value: text });
+      } else {
+        await DB("plugin_setting").insert({
+          plugin_id: id,
+          key: settingKey,
+          value: text,
+        });
+      }
+      return { ok: true };
+    }
+  );
+
   ipcMain.handle("plugin:preview-load", async (_event, localId: number) => {
     try {
       const id = Number(localId);

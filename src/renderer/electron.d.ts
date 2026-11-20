@@ -395,6 +395,20 @@ interface ElectronAPI {
   pluginRuntimeStates: () => Promise<import("@shared/plugin/pluginTypes").PluginRuntimeState[]>;
   pluginLogs: (pluginId: string) => Promise<import("@shared/plugin/pluginTypes").PluginLogLine[]>;
   pluginClearLogs: (pluginId: string) => Promise<boolean>;
+  pluginListCommands: () => Promise<import("@shared/plugin/pluginTypes").PluginCommandEntry[]>;
+  pluginExecuteCommand: (command: string) => Promise<{
+    ok: boolean;
+    error?: string;
+    needsConfirmation?: import("@shared/plugin/pluginTypes").StartConfirmation;
+  }>;
+  pluginGetSettings: (
+    pluginId: string
+  ) => Promise<import("@shared/plugin/pluginTypes").PluginSettingValue[]>;
+  pluginSetSetting: (
+    pluginId: string,
+    key: string,
+    value: unknown
+  ) => Promise<{ ok: boolean; error?: string }>;
   pluginPreviewLoad: (localId: number) => Promise<{
     ok: boolean;
     error?: string;
@@ -415,6 +429,9 @@ interface ElectronAPI {
     callback: (state: import("@shared/plugin/pluginTypes").PluginRuntimeState) => void
   ) => () => void;
   onPluginLog: (callback: (line: import("@shared/plugin/pluginTypes").PluginLogLine) => void) => () => void;
+  onPluginNotify: (
+    callback: (payload: import("@shared/plugin/pluginTypes").PluginNotification) => void
+  ) => () => void;
   onPluginPreviewError: (
     callback: (payload: {
       localId?: number;

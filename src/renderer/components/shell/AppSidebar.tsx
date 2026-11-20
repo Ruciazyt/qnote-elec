@@ -1,5 +1,5 @@
-import { Home, Settings, BookOpen, PenTool, PanelLeftClose, PanelLeftOpen, ListChecks, Globe, Sparkles, Boxes } from "lucide-react";
-import { Link, useLocation } from "react-router";
+import { Home, Settings, BookOpen, PenTool, PanelLeftClose, PanelLeftOpen, ListChecks, Globe, Sparkles, Boxes, Puzzle } from "lucide-react";
+import { Link, useLocation, useSearchParams } from "react-router";
 import {
   Sidebar,
   SidebarContent,
@@ -13,6 +13,7 @@ import {
   useSidebar,
 } from "../ui/sidebar";
 import { useSidebarTabs, type SidebarTabsConfig } from "@/hooks/shell/useSidebarTabs";
+import { usePluginRegistry } from "@/hooks/plugin/usePluginRegistry";
 
 type TabKey = keyof SidebarTabsConfig;
 
@@ -74,16 +75,37 @@ const items: SidebarItem[] = [
   },
 ];
 
+interface PluginSidebarEntry {
+  key: string;
+  title: string;
+  pluginId: string;
+}
+
 export function AppSidebar() {
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { state, toggleSidebar } = useSidebar();
   const isCollapsed = state === "collapsed";
   const [tabsConfig] = useSidebarTabs();
+  const { plugins } = usePluginRegistry();
 
   const visibleItems = items.filter((item) => {
     if (item.tabKey === "always" || !item.tabKey) return true;
     return tabsConfig[item.tabKey];
   });
+
+  const selectedPlugin = searchParams.get("plugin");
+  const pluginEntries: PluginSidebarEntry[] = [];
+  for (const plugin of plugins) {
+    if (!plugin.enabled) continue;
+    for (const entry of plugin.contributes?.sidebar ?? []) {
+      pluginEntries.push({
+        key: `${plugin.id}:${entry.id}`,
+        title: entry.title,
+        pluginId: plugin.id,
+      });
+    }
+  }
 
   return (
     <Sidebar collapsible="icon">
@@ -114,6 +136,30 @@ export function AppSidebar() {
                         {
 }
                         <span className="truncate whitespace-nowrap">{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+                {pluginEntries.map((entry) => (
+                  <SidebarMenuItem key={entry.key}>
+                    <SidebarMenuButton
+                      asChild
+                      tooltip={entry.title}
+                      isActive={
+                        location.pathname === "/plugins" &&
+                        selectedPlugin === entry.pluginId
+                      }>
+                      <Link
+                        to={`/plugins?plugin=${encodeURIComponent(entry.pluginId)}`}
+                        aria-current={
+                          location.pathname === "/plugins" &&
+                          selectedPlugin === entry.pluginId
+                            ? "page"
+                            : undefined
+                        }
+                        className="flex items-center gap-3 px-2 py-1.5 text-sm font-medium rounded-md sidebar-menu-btn hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                        <Puzzle className="h-4 w-4" />
+                        <span className="truncate whitespace-nowrap">{entry.title}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

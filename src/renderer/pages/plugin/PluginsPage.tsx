@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
 import {
   Boxes,
   CircleAlert,
@@ -10,6 +11,13 @@ import {
   ScrollText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/ui/use-toast";
 import { useRouteActive } from "@/hooks/system/useRouteActive";
 import { useCollapsedState } from "@/hooks/panel/useCollapsedState";
@@ -24,6 +32,8 @@ import {
   type PluginManifestForm,
 } from "@/pages/plugin/PluginManifestDialog";
 import { RemovePluginDialog } from "@/pages/plugin/RemovePluginDialog";
+import { PluginPermissionsPanel } from "@/pages/plugin/PluginPermissionsPanel";
+import { PluginSettingsPanel } from "@/pages/plugin/PluginSettingsPanel";
 import { PluginSpecDialog } from "@/pages/plugin/PluginSpecDialog";
 import { PublishedPluginMarket } from "@/pages/plugin/PublishedPluginMarket";
 import {
@@ -96,11 +106,31 @@ export default function PluginsPage() {
     null
   );
   const [removeOpen, setRemoveOpen] = useState(false);
+  const [permissionsOpen, setPermissionsOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [marketOpen, setMarketOpen] = useState(false);
   const [cloudBackend, setCloudBackend] = useState<CloudBackend>("local");
   const [previewReloadToken, setPreviewReloadToken] = useState(0);
 
   const [logCollapsed, setLogCollapsed] = useCollapsedState(LOG_COLLAPSED_KEY, false);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedId = searchParams.get("plugin");
+
+  useEffect(() => {
+    if (!requestedId) return;
+    setSelectedId(requestedId);
+  }, [requestedId]);
+
+  const handleSelect = useCallback(
+    (id: string) => {
+      setSelectedId(id);
+      const next = new URLSearchParams(searchParams);
+      next.set("plugin", id);
+      setSearchParams(next, { replace: true });
+    },
+    [searchParams, setSearchParams]
+  );
 
   const filteredPlugins = useMemo(() => {
     const kw = keyword.trim().toLowerCase();
@@ -306,6 +336,37 @@ export default function PluginsPage() {
       if (!res.ok) {
         toast({ title: "停止失败", description: res.error, variant: "destructive" });
       }
+    },
+    [toast]
+  );
+
+  const handleRestart = useCallback(
+    async (plugin: PluginRecord) => {
+      await window.electron.pluginStop(plugin.id);
+      const res = await window.electron.pluginStart(plugin.id);
+      if (res.needsConfirmation) {
+        const opened = await window.electron.dialogOpen({
+          type: "start-confirm",
+          payload: res.needsConfirmation as unknown as Record<string, unknown>,
+        });
+        if (!opened?.ok) {
+          toast({
+            title: "重启失败",
+            description: opened?.error ?? "打不开确认窗口",
+            variant: "destructive",
+          });
+        }
+        return;
+      }
+      if (!res.ok) {
+        toast({
+          title: "重启失败",
+          description: res.error,
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({ title: "插件已重启", description: plugin.name });
     },
     [toast]
   );
@@ -546,7 +607,7 @@ export default function PluginsPage() {
             onKeywordChange={setKeyword}
             runtime={runtime}
             selectedId={selectedId}
-            onSelect={setSelectedId}
+            onSelect={handleSelect}
             onImport={() => void handleImport()}
           />
         </ResizableSidebar>
@@ -596,6 +657,9 @@ export default function PluginsPage() {
                 onToggleEnabled={(enabled) =>
                   void handleToggleEnabled(selected, enabled)
                 }
+                onShowPermissions={() => setPermissionsOpen(true)}
+                onShowSettings={() => setSettingsOpen(true)}
+                onRestart={() => void handleRestart(selected)}
                 onCopyAddress={(address) => void handleCopyAddress(address)}
                 onRefreshPreview={() => setPreviewReloadToken((token) => token + 1)}
               />
@@ -690,6 +754,34 @@ export default function PluginsPage() {
       )}
 
       <PluginSpecDialog open={specOpen} onClose={() => setSpecOpen(false)} />
+
+      {selected && (
+        <Dialog open={permissionsOpen} onOpenChange={setPermissionsOpen}>
+          <DialogContent className="sm:max-w-[480px]">
+            <DialogHeader>
+              <DialogTitle>插件权限</DialogTitle>
+              <DialogDescription>
+                {selected.name} 在清单里声明的权限
+              </DialogDescription>
+            </DialogHeader>
+            <PluginPermissionsPanel plugin={selected} />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {selected && (
+        <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+          <DialogContent className="sm:max-w-[480px] max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>插件设置</DialogTitle>
+              <DialogDescription>
+                {selected.name} 在清单里声明的设置项
+              </DialogDescription>
+            </DialogHeader>
+            <PluginSettingsPanel plugin={selected} />
+          </DialogContent>
+        </Dialog>
+      )}
 
       {selected && (
         <RemovePluginDialog

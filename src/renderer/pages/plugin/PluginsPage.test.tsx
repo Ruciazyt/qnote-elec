@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router";
 import { createElectronStub } from "@/test/electron-stub";
 import PluginsPage from "./PluginsPage";
 
@@ -40,6 +41,14 @@ const IMPORTED = {
   origin: "market",
   enabled: true,
 };
+
+function renderPage(initialEntries: string[] = ["/plugins"]) {
+  return render(
+    <MemoryRouter initialEntries={initialEntries}>
+      <PluginsPage />
+    </MemoryRouter>
+  );
+}
 
 function setup(plugins: unknown[] = []) {
   let imported = false;
@@ -86,7 +95,7 @@ function setup(plugins: unknown[] = []) {
 describe("插件管理页", () => {
   it("没有「本机插件」这个 tab", async () => {
     setup();
-    render(<PluginsPage />);
+    renderPage();
 
     await waitFor(() => expect(screen.getByText("插件管理")).toBeInTheDocument());
     expect(screen.queryByText("本机插件")).toBeNull();
@@ -97,7 +106,7 @@ describe("插件管理页", () => {
 
   it("市场里拉到的插件落到左侧的插件列表里，并被选中", async () => {
     setup();
-    render(<PluginsPage />);
+    renderPage();
 
     await waitFor(() => expect(screen.getByText("插件管理")).toBeInTheDocument());
     await userEvent.click(screen.getByRole("button", { name: /插件市场/ }));
@@ -144,7 +153,7 @@ describe("发布走独立弹框窗口", () => {
 
   it("点发布把清单交给弹框窗口", async () => {
     const stub = setup([PLUGIN]);
-    render(<PluginsPage />);
+    renderPage();
 
     await waitFor(() =>
       expect(screen.getByText("iChain Dev Console")).toBeInTheDocument()
@@ -159,6 +168,36 @@ describe("发布走独立弹框窗口", () => {
     expect(JSON.parse(context.payload.manifest).runtime.preview).toEqual({
       type: "port",
       port: 7788,
+    });
+  });
+});
+
+describe("侧栏入口", () => {
+  const WEB = {
+    localId: 1,
+    id: "local.web",
+    name: "web",
+    version: "1.0.0",
+    publisher: "local",
+    path: "D:\\plugins\\web",
+    status: "ready",
+    origin: "local",
+    enabled: true,
+  };
+
+  it("带 plugin 参数进来时选中对应插件", async () => {
+    setup([WEB]);
+    renderPage(["/plugins?plugin=local.web"]);
+
+    await waitFor(() => expect(screen.getAllByText("web").length).toBeGreaterThan(0));
+    await waitFor(() => {
+      const items = screen
+        .getAllByText("web")
+        .map((el) => el.closest("button"))
+        .filter((el): el is HTMLButtonElement => Boolean(el));
+      expect(
+        items.some((el) => el.getAttribute("aria-current") === "true")
+      ).toBe(true);
     });
   });
 });

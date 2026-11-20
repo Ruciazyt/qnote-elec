@@ -20,6 +20,7 @@ export default defineConfig({
       "../main/**/*.{test,spec}.{ts,tsx}",
       "../database/**/*.{test,spec}.{ts,tsx}",
       "../../scripts/**/*.{test,spec}.{ts,tsx}",
+      "../../examples/**/*.{test,spec}.{ts,tsx}",
     ],
     exclude: ["**/node_modules/**", "**/dist/**"],
     restoreMocks: true,

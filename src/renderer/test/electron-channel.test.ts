@@ -118,6 +118,10 @@ const BROADCAST_WHITELIST: { channel: string; why: string }[] = [
     why: "handlers/plugin/pluginHandlers.ts 的 broadcast 辅助函数",
   },
   {
+    channel: "plugin:notify",
+    why: "handlers/plugin/pluginHandlers.ts 的 broadcast 辅助函数",
+  },
+  {
     channel: "browser:tabs-changed",
     why: "core/window/browser/browserViewManager.ts 的 send 辅助函数（channel 是参数）",
   },

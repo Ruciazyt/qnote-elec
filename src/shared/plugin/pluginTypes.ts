@@ -38,6 +38,24 @@ export interface PluginCommandContribution {
   icon?: string;
 }
 
+export interface PluginCommandEntry {
+  command: string;
+  title: string;
+  category?: string;
+  pluginId: string;
+}
+
+export interface PluginSettingValue {
+  key: string;
+  value: string | null;
+}
+
+export interface PluginNotification {
+  pluginId: string;
+  level: string;
+  message: string;
+}
+
 export interface PluginSettingContribution {
   key: string;
   type: "string" | "number" | "boolean";
