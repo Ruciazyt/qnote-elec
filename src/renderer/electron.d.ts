@@ -428,6 +428,9 @@ interface ElectronAPI {
       message: string;
     }) => void
   ) => () => void;
+  onAppPreviewLoaded: (
+    callback: (payload: { projectId?: number }) => void
+  ) => () => void;
 
   dialogOpen: (context: {
     type: import("@shared/apps/dialogTypes").DialogType;

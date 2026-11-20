@@ -153,13 +153,18 @@ export function loadAppPreview(url: string, projectId?: number): boolean {
     });
   }
 
-  view.webContents.loadURL(url).catch((err: unknown) => {
-    if (isAbortedError(err)) {
-      return;
-    }
-    log.warn("[app] 预览页面加载失败:", err);
-    notifyPreviewError(projectId, url, err);
-  });
+  view.webContents
+    .loadURL(url)
+    .then(() => {
+      notifyPreviewLoaded(projectId);
+    })
+    .catch((err: unknown) => {
+      if (isAbortedError(err)) {
+        return;
+      }
+      log.warn("[app] 预览页面加载失败:", err);
+      notifyPreviewError(projectId, url, err);
+    });
   applyVisibility();
   return true;
 }
@@ -187,6 +192,14 @@ function describeLoadError(err: unknown): string {
     if (pattern.test(raw)) return text;
   }
   return raw;
+}
+
+function notifyPreviewLoaded(projectId: number | undefined): void {
+  if (!host || host.isDestroyed()) return;
+  try {
+    host.webContents.send("app:preview-loaded", { projectId });
+  } catch {
+  }
 }
 
 function notifyPreviewError(

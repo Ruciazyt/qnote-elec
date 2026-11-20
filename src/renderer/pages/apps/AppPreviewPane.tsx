@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef } from "react";
-import { MonitorPlay } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { MonitorPlay, RefreshCw, WifiOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { setNativeViewCover } from "@/hooks/apps/useNativeViewCover";
 import { cn } from "@/lib/utils";
 import type { AppProject } from "@shared/apps/appTypes";
@@ -8,7 +9,7 @@ interface AppPreviewPaneProps {
   project: AppProject | null;
   active: boolean;
   suspended?: boolean;
-  onError?: (message: string) => void;
+  reloadToken?: number;
   onUrlLoaded?: (projectId: number, address: string) => void;
   className?: string;
 }
@@ -19,17 +20,15 @@ export function AppPreviewPane({
   project,
   active,
   suspended = false,
-  onError,
+  reloadToken = 0,
   onUrlLoaded,
   className,
 }: AppPreviewPaneProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const hasPreview = Boolean(project?.preview);
-
-  const onErrorRef = useRef(onError);
-  useEffect(() => {
-    onErrorRef.current = onError;
-  }, [onError]);
+  const [error, setError] = useState<string | null>(null);
+  const [reloading, setReloading] = useState(false);
+  const [localToken, setLocalToken] = useState(0);
 
   const onUrlLoadedRef = useRef(onUrlLoaded);
   useEffect(() => {
@@ -37,11 +36,20 @@ export function AppPreviewPane({
   }, [onUrlLoaded]);
 
   useEffect(() => {
-    const off = window.electron.onAppPreviewError((payload) => {
-      if (payload.projectId !== project?.id) return;
-      onErrorRef.current?.(payload.message);
+    const offError = window.electron.onAppPreviewError((payload) => {
+      if (project?.id == null || payload.projectId !== project.id) return;
+      setError(payload.message);
+      setReloading(false);
     });
-    return () => off();
+    const offLoaded = window.electron.onAppPreviewLoaded((payload) => {
+      if (project?.id == null || payload.projectId !== project.id) return;
+      setError(null);
+      setReloading(false);
+    });
+    return () => {
+      offError();
+      offLoaded();
+    };
   }, [project?.id]);
 
   const syncBounds = useCallback(() => {
@@ -79,33 +87,43 @@ export function AppPreviewPane({
   }, [syncBounds]);
 
   useEffect(() => {
+    setError(null);
+    setReloading(false);
+  }, [project?.id]);
+
+  useEffect(() => {
     if (!project?.preview) return;
     syncBounds();
     let cancelled = false;
+    setReloading(true);
     void (async () => {
       try {
         const res = await window.electron.appPreviewLoad(project.id);
         if (cancelled) return;
         if (!res.ok) {
-          onErrorRef.current?.(res.error ?? "预览加载失败");
+          setError(res.error ?? "预览加载失败");
+          setReloading(false);
         } else if (res.display) {
           onUrlLoadedRef.current?.(project.id, res.display);
         }
       } catch (err) {
-        if (!cancelled) onErrorRef.current?.(String(err));
+        if (!cancelled) {
+          setError(String(err));
+          setReloading(false);
+        }
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [project?.id, project?.preview, syncBounds]);
+  }, [project?.id, project?.preview, reloadToken, localToken, syncBounds]);
 
   useEffect(() => {
-    const shouldShow = active && hasPreview && !suspended;
+    const shouldShow = active && hasPreview && !suspended && !error;
     void window.electron.appPreviewVisible(shouldShow);
     setNativeViewCover(shouldShow, COVER_OWNER);
     if (shouldShow) syncBounds();
-  }, [active, hasPreview, suspended, syncBounds]);
+  }, [active, hasPreview, suspended, error, syncBounds]);
 
   useEffect(() => {
     return () => {
@@ -126,6 +144,25 @@ export function AppPreviewPane({
           <p className="text-xs text-muted-foreground/50">
             在 qnote.json 里填一个 <code className="font-mono">preview</code> 就能在这里看到它
           </p>
+        </div>
+      )}
+
+      {hasPreview && error && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2.5 text-center px-6">
+          <WifiOff className="h-8 w-8 text-muted-foreground/30" />
+          <p className="text-sm text-muted-foreground/80">预览加载失败</p>
+          <p className="text-xs text-muted-foreground/60 max-w-[360px] leading-relaxed">{error}</p>
+          <p className="text-xs text-muted-foreground/50">服务起来之后点下面这个按钮重载</p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-7 px-2 text-xs btn-hover"
+            onClick={() => setLocalToken((token) => token + 1)}
+            disabled={reloading}>
+            <RefreshCw className={cn("h-3.5 w-3.5 mr-1", reloading && "animate-spin")} />
+            {reloading ? "正在刷新" : "刷新预览"}
+          </Button>
         </div>
       )}
     </div>

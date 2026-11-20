@@ -39,6 +39,27 @@ describe("项目头部", () => {
     expect(buttons.indexOf(publish)).toBeLessThan(buttons.indexOf(start));
   });
 
+  it("有刷新预览按钮并触发回调", () => {
+    const onRefreshPreview = vi.fn();
+    render(
+      <AppProjectHeader
+        project={{ ...PROJECT, preview: "http://127.0.0.1:7800/" }}
+        runtime={undefined}
+        previewUrl="http://127.0.0.1:7800/"
+        onPublish={vi.fn()}
+        onStart={vi.fn()}
+        onStop={vi.fn()}
+        onEditManifest={vi.fn()}
+        onOpenFolder={vi.fn()}
+        onRemove={vi.fn()}
+        onRefreshPreview={onRefreshPreview}
+      />
+    );
+
+    screen.getByRole("button", { name: "刷新预览" }).click();
+    expect(onRefreshPreview).toHaveBeenCalled();
+  });
+
   it("点发布走 onPublish", async () => {
     const onPublish = vi.fn();
     render(

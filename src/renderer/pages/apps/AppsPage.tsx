@@ -94,6 +94,7 @@ export default function AppsPage() {
   const [removeOpen, setRemoveOpen] = useState(false);
   const [marketOpen, setMarketOpen] = useState(false);
   const [cloudBackend, setCloudBackend] = useState<CloudBackend>("local");
+  const [previewReloadToken, setPreviewReloadToken] = useState(0);
 
   const [logCollapsed, setLogCollapsed] = useCollapsedState(LOG_COLLAPSED_KEY, false);
 
@@ -570,6 +571,7 @@ export default function AppsPage() {
                 onOpenFolder={() => void handleOpenFolder(selected.path)}
                 onRemove={() => setRemoveOpen(true)}
                 onCopyAddress={(address) => void handleCopyAddress(address)}
+                onRefreshPreview={() => setPreviewReloadToken((token) => token + 1)}
               />
 
               {}
@@ -606,10 +608,8 @@ export default function AppsPage() {
                 project={selected}
                 active={isRouteActive}
                 suspended={manifestOpen || specOpen || removeOpen}
+                reloadToken={previewReloadToken}
                 onUrlLoaded={handlePreviewUrlLoaded}
-                onError={(message) =>
-                  toast({ title: "预览加载失败", description: message, variant: "destructive" })
-                }
                 className="flex-1"
               />
 

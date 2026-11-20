@@ -5,6 +5,7 @@ import {
   Link2,
   Pencil,
   Play,
+  RefreshCw,
   Square,
   Trash2,
   Upload,
@@ -24,6 +25,7 @@ interface AppProjectHeaderProps {
   onOpenFolder: () => void;
   onRemove: () => void;
   onCopyAddress?: (address: string) => void;
+  onRefreshPreview?: () => void;
 }
 
 const RUNTIME_LABEL = {
@@ -50,6 +52,7 @@ export function AppProjectHeader({
   onOpenFolder,
   onRemove,
   onCopyAddress,
+  onRefreshPreview,
 }: AppProjectHeaderProps) {
   const running = runtime?.status === "running" || runtime?.status === "starting";
   const hasCommand = Boolean(project.command);
@@ -169,6 +172,17 @@ export function AppProjectHeader({
       )}
 
       {}
+      {onRefreshPreview && project.preview && (
+        <button
+          type="button"
+          aria-label="刷新预览"
+          title="刷新预览"
+          className="flex-shrink-0 h-5 w-5 flex items-center justify-center rounded text-muted-foreground/60 hover:text-foreground transition-colors"
+          onClick={onRefreshPreview}>
+          <RefreshCw className="h-3.5 w-3.5" />
+        </button>
+      )}
+
       {showPath && (
         <span className={cn(LINE, "hidden lg:inline-flex max-w-[30%]")}>
           <span

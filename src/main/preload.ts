@@ -490,6 +490,11 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("app:preview-error", listener);
     return () => ipcRenderer.removeListener("app:preview-error", listener);
   },
+  onAppPreviewLoaded: (callback: (payload: any) => void) => {
+    const listener = (_event: unknown, payload: any) => callback(payload);
+    ipcRenderer.on("app:preview-loaded", listener);
+    return () => ipcRenderer.removeListener("app:preview-loaded", listener);
+  },
 
   dialogOpen: (context: { type: string; payload?: Record<string, unknown> }) =>
     ipcRenderer.invoke("dialog:open", context),

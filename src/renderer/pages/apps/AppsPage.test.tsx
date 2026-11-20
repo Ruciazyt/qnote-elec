@@ -56,6 +56,7 @@ function setup(projects: unknown[] = []) {
     onAppRuntimeChanged: vi.fn(() => () => {}),
     onAppLog: vi.fn(() => () => {}),
     onAppPreviewError: vi.fn(() => () => {}),
+    onAppPreviewLoaded: vi.fn(() => () => {}),
     onDialogMessage: vi.fn(() => () => {}),
     appLogs: vi.fn(async () => []),
     appPreviewBounds: vi.fn(async () => undefined),
