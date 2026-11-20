@@ -56,6 +56,32 @@ describe("应用市场", () => {
     expect(screen.queryByRole("button", { name: /发布/ })).toBeNull();
   });
 
+  it("清单里的预览是端口号时也要带过去（端口化之后清单里存的是数字）", async () => {
+    const stub = setup();
+    const app = {
+      ...MARKET_APP,
+      manifest: JSON.stringify({
+        name: "行程地图",
+        command: "node server.mjs",
+        preview: 7800,
+      }),
+    };
+    stub.cloudListApps.mockResolvedValue({
+      ok: true,
+      data: { apps: [app], total: 1 },
+    });
+
+    render(<PublishedAppMarket backend="catalog" />);
+
+    await waitFor(() => expect(screen.getByText("行程地图")).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: "获取" }));
+
+    await waitFor(() => expect(stub.appImportFromMarket).toHaveBeenCalled());
+    expect(stub.appImportFromMarket.mock.calls[0][1]).toMatchObject({
+      preview: 7800,
+    });
+  });
+
   it("获取成功后把项目交出去 —— 交给左侧的项目列表", async () => {
     const stub = setup();
     const onImported = vi.fn();

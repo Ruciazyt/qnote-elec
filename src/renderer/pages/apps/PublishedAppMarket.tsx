@@ -111,7 +111,10 @@ export function PublishedAppMarket({
                   ])
                 )
               : undefined,
-          preview: typeof manifest.preview === "string" ? manifest.preview : undefined,
+          preview:
+            typeof manifest.preview === "string" || typeof manifest.preview === "number"
+              ? manifest.preview
+              : undefined,
         });
 
         if (!imported.ok) {
