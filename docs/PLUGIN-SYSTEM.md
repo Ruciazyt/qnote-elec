@@ -2,6 +2,7 @@
 
 > 状态：**已实现**（当前发布线 1.19.x，落地版本 **2.0.0** —— 切线与版本号 bump 必须同一个提交，见 AGENTS.md 3.1）
 > 取代对象：【应用】模块（`qnote.json` 清单 + `app_project` 表 + `AppManager`）
+> 现行架构与全链路（创建 → 导入注册 → 启动运行 → 上传发布 → 下载安装）见 [PLUGIN-ARCHITECTURE.md](./PLUGIN-ARCHITECTURE.md)
 
 ### 实现现状
 
