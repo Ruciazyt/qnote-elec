@@ -13,7 +13,7 @@ const GIT = resolveExe('git');
 
 const VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
 
-const RELEASE_LINE = { major: 1, minor: 19 };
+const RELEASE_LINE = { major: 2, minor: 0 };
 
 function readVersion() {
   const pkgPath = path.join(ROOT, 'package.json');
