@@ -23,6 +23,18 @@ describe("云端错误提示", () => {
     expect(describeCloudError(new CatalogError("forbidden", 403))).toContain("权限");
   });
 
+  it("403 且是网关拦的 → 说网关的事，不说 API Key 权限", () => {
+    const error = new CatalogError(
+      "公共目录的网关拦下了这次请求",
+      403,
+      undefined,
+      undefined,
+      true
+    );
+    expect(describeCloudError(error)).toContain("网关");
+    expect(describeCloudError(error)).not.toContain("API Key");
+  });
+
   it("404 → 找不到端点", () => {
     expect(
       describeCloudError(new CatalogError("endpoint not found", 404))

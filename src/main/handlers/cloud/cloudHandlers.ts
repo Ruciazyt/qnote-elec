@@ -13,7 +13,10 @@ import {
   switchBackend,
   updateConfig,
 } from "../../../database/cloud/cloudManager";
-import { sanitizeCatalogConfig } from "../../../database/cloud/defaults";
+import {
+  resolveDefaultCatalogConfig,
+  sanitizeCatalogConfig,
+} from "../../../database/cloud/defaults";
 import type {
   CatalogConfig,
   CloudBackend,
@@ -33,7 +36,8 @@ function fail(error: unknown): { ok: false; error: string } {
 
 function readCatalogConfig(payload: { catalog?: CatalogConfig }): CatalogConfig {
   return (
-    sanitizeCatalogConfig(payload?.catalog) ?? {
+    sanitizeCatalogConfig(payload?.catalog) ??
+    resolveDefaultCatalogConfig() ?? {
       baseUrl: "",
       appId: "",
       publicKey: "",

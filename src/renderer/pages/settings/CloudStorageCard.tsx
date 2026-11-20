@@ -2,17 +2,11 @@
 import * as React from "react";
 import { Cloud, Check, HelpCircle, RefreshCw, Wifi, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { CardContent } from "@/components/ui/card";
 import { ACCENTS, SettingsCard, SettingsCardHeader } from "./settings-card";
 import { CatalogSetupGuide } from "./CatalogSetupGuide";
 import { cn } from "@/lib/utils";
-import type {
-  CatalogConfig,
-  CloudBackend,
-  CloudConnectionStatus,
-  CloudStorageConfig,
-} from "@shared/cloud/cloudTypes";
+import type { CloudBackend, CloudConnectionStatus } from "@shared/cloud/cloudTypes";
 
 const BACKEND_OPTIONS: Array<{
   value: CloudBackend;
@@ -31,17 +25,8 @@ const BACKEND_OPTIONS: Array<{
   },
 ];
 
-const EMPTY_CATALOG: CatalogConfig = {
-  baseUrl: "",
-  appId: "",
-  publicKey: "",
-  privateKey: "",
-};
-
 export function CloudStorageCard() {
-  const [config, setConfig] = React.useState<CloudStorageConfig | null>(null);
   const [backend, setBackend] = React.useState<CloudBackend>("local");
-  const [catalog, setCatalog] = React.useState<CatalogConfig>(EMPTY_CATALOG);
   const [status, setStatus] = React.useState<CloudConnectionStatus | null>(null);
   const [checking, setChecking] = React.useState(false);
   const [guideOpen, setGuideOpen] = React.useState(false);
@@ -54,14 +39,7 @@ export function CloudStorageCard() {
       try {
         const loaded = await window.electron.cloudGetConfig();
         if (!alive) return;
-        setConfig(loaded);
         setBackend(loaded.backend);
-        setCatalog({
-          baseUrl: loaded.catalog?.baseUrl || loaded.catalogDefaults?.baseUrl || "",
-          appId: loaded.catalog?.appId || loaded.catalogDefaults?.appId || "",
-          publicKey: loaded.catalog?.publicKey || "",
-          privateKey: loaded.catalog?.privateKey || "",
-        });
         if (loaded.lastCheck) setStatus(loaded.lastCheck);
       } catch (err) {
         console.error("读取云端配置失败", err);
@@ -77,7 +55,7 @@ export function CloudStorageCard() {
     setError(null);
     setStatus(null);
     try {
-      const result = await window.electron.cloudTestConnection({ catalog });
+      const result = await window.electron.cloudTestConnection({});
       setStatus(result);
       if (!result.ok) setError(result.error ?? "连接失败");
     } catch (err) {
@@ -92,15 +70,11 @@ export function CloudStorageCard() {
     setSaving(true);
     setError(null);
     try {
-      const result = await window.electron.cloudSaveConfig({
-        backend,
-        catalog: backend === "catalog" ? catalog : config?.catalog ?? null,
-      });
+      const result = await window.electron.cloudSaveConfig({ backend });
       if (!result.ok) {
         setError(result.error);
         return;
       }
-      setConfig(result.data);
       setStatus(result.data.lastCheck ?? null);
     } catch (err) {
       console.error("保存云端配置失败", err);
@@ -191,62 +165,6 @@ export function CloudStorageCard() {
             })}
           </div>
         </div>
-
-        {isCatalog && (
-          <div className="space-y-3 rounded-lg border border-border/60 bg-muted/30 p-3">
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-foreground/80 block">
-                站点地址
-              </label>
-              <Input
-                value={catalog.baseUrl}
-                onChange={(e) => setCatalog({ ...catalog, baseUrl: e.target.value })}
-                placeholder="https://us-west-2.data.tidbcloud.com"
-                className="h-9 text-xs"
-              />
-              <p className="text-[11px] text-muted-foreground/70 leading-relaxed">
-                TiDB Cloud Data Service 的区域站点，已内置，一般不用改。
-              </p>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-foreground/80 block">
-                App ID
-              </label>
-              <Input
-                value={catalog.appId}
-                onChange={(e) => setCatalog({ ...catalog, appId: e.target.value })}
-                placeholder="Data App 的 App ID"
-                className="h-9 text-xs"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-foreground/80 block">
-                Public Key
-              </label>
-              <Input
-                value={catalog.publicKey}
-                onChange={(e) => setCatalog({ ...catalog, publicKey: e.target.value })}
-                placeholder="API Key 的 Public Key"
-                className="h-9 text-xs"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-foreground/80 block">
-                Private Key
-              </label>
-              <Input
-                type="password"
-                value={catalog.privateKey}
-                onChange={(e) => setCatalog({ ...catalog, privateKey: e.target.value })}
-                placeholder="API Key 的 Private Key"
-                className="h-9 text-xs"
-              />
-              <p className="text-[11px] text-muted-foreground/70 leading-relaxed">
-                Private Key 只存在本机，不会上传到任何地方。
-              </p>
-            </div>
-          </div>
-        )}
 
         {isCatalog && (
           <div className="flex items-center gap-2">

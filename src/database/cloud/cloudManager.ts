@@ -75,7 +75,7 @@ export async function updateConfig(input: {
     if (!next.catalog) {
       return {
         ok: false,
-        error: "切换到公共目录前请先填好站点地址、App ID 与 API Key",
+        error: "公共目录的连接信息没装进这个版本，请重新下载正式版",
         config: current,
       };
     }
@@ -105,7 +105,7 @@ export async function checkCatalog(
   if (!sanitized) {
     return {
       ok: false,
-      error: "公共目录的站点地址、App ID、Public Key 与 Private Key 要填全",
+      error: "公共目录的连接信息没装进这个版本，请重新下载正式版",
     };
   }
   try {
@@ -172,6 +172,7 @@ export function describeCloudError(error: unknown): string {
       return "公共目录拒绝了这次认证，请检查 API Key";
     }
     if (status === 403) {
+      if (error.gatewayBlocked) return error.message;
       return "这个 API Key 没有访问该端点的权限";
     }
     if (status === 404) {

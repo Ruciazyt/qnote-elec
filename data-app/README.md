@@ -45,11 +45,23 @@ Data App 详情页 → Authentication → **Create API Key**，角色选 `ReadAn
 
 ### 5. 接进 QNote
 
-设置 → 数据与开发 → 云端存储 → 选「公共目录」→ 填站点地址 / App ID / Public Key / Private Key
-→ 测试连接 → 保存。
+连接信息是**构建期注入**的，用户那边装好就能用，设置页不提供填写入口：
+
+- 把四个值放进 `.data/catalog-credentials.json`，或设环境变量
+  `QNOTE_CATALOG_BASE_URL` / `QNOTE_CATALOG_APP_ID` /
+  `QNOTE_CATALOG_PUBLIC_KEY` / `QNOTE_CATALOG_PRIVATE_KEY`
+- 打包时 `scripts/build/inject-catalog-credentials.js` 写进 `resources/catalog/credentials.json`
+- 主进程运行时读它；可用 `QNOTE_CATALOG_*` 换一套自己的目录
 
 站点地址是区域站点，形如 `https://us-west-2.data.tidbcloud.com`，
 从端点详情页的 Endpoint URL 里取前半段。
+
+### 6. 已知限制：清单里的本机地址发不出去
+
+公共目录前面挂的是 AWS ALB，它会扫整个请求，只要出现**指向 IP 字面量的链接**
+（`http://127.0.0.1:7799/`、`http://10.0.0.1`）就返回 `403 Forbidden`（HTML，不是 JSON）。
+QNote 自己的应用清单普遍带 `preview: http://127.0.0.1:<端口>/`，直接发布会被拦下。
+纯主机名 `http://localhost` 与不带 scheme 的 `127.0.0.1:7799` 不受影响。
 
 ---
 

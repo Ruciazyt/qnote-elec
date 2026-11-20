@@ -190,6 +190,62 @@ describe("公共目录客户端", () => {
     ).rejects.toThrow(/不是合法 JSON/);
   });
 
+  it("网关返回 HTML 403 时说网关的事，不说 API Key 权限", async () => {
+    const fetchImpl = vi.fn(async () => ({
+      ok: false,
+      status: 403,
+      text: async () =>
+        "<html><head><title>403 Forbidden</title></head><body></body></html>",
+    })) as unknown as typeof fetch;
+    const client = new CatalogClient(CONFIG, fetchImpl);
+
+    await expect(
+      client.request({
+        method: "POST",
+        path: "/apps_publish",
+        body: { id: "app_1" },
+      })
+    ).rejects.toMatchObject({
+      status: 403,
+      gatewayBlocked: true,
+      message: expect.stringContaining("网关拦下"),
+    });
+  });
+
+  it("服务端自己回的 403 不算网关拦截", async () => {
+    const fetchImpl = vi.fn(async () =>
+      jsonResponse(
+        {
+          type: "sql_endpoint",
+          data: {
+            columns: [],
+            rows: [],
+            result: { code: 403, message: "forbidden" },
+          },
+        },
+        403
+      )
+    );
+    const client = new CatalogClient(CONFIG, fetchImpl as unknown as typeof fetch);
+
+    await expect(
+      client.request({ method: "GET", path: "/apps_count" })
+    ).rejects.toMatchObject({ status: 403, gatewayBlocked: false });
+  });
+
+  it("响应不是 JSON 时保留原文片段", async () => {
+    const fetchImpl = vi.fn(async () => ({
+      ok: false,
+      status: 500,
+      text: async () => "<html>boom</html>",
+    })) as unknown as typeof fetch;
+    const client = new CatalogClient(CONFIG, fetchImpl);
+
+    await expect(
+      client.request({ method: "GET", path: "/apps_count" })
+    ).rejects.toThrow(/boom/);
+  });
+
   it("连不上时给出可读原因", async () => {
     const fetchImpl = vi.fn(async () => {
       throw new Error("fetch failed");

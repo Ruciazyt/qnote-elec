@@ -32,7 +32,8 @@ export class CatalogError extends Error {
     message: string,
     readonly status?: number,
     readonly code?: number,
-    readonly cause?: unknown
+    readonly cause?: unknown,
+    readonly gatewayBlocked = false
   ) {
     super(message);
     this.name = "CatalogError";
@@ -84,19 +85,18 @@ export class CatalogClient implements CatalogTransport {
       clearTimeout(timer);
     }
 
-    let payload: unknown;
-    try {
-      payload = await response.json();
-    } catch (error) {
+    const body = await readBody(response);
+    if (body.parseError) {
       throw new CatalogError(
-        `公共目录响应不是合法 JSON（HTTP ${response.status}）`,
+        describeUnparsedResponse(response.status, body.raw),
         response.status,
         undefined,
-        error
+        body.parseError,
+        response.status === 403
       );
     }
 
-    const parsed = parseCatalogPayload(payload);
+    const parsed = parseCatalogPayload(body.parsed);
 
     if (!response.ok) {
       throw new CatalogError(
@@ -137,6 +137,37 @@ export class CatalogClient implements CatalogTransport {
     const search = query.toString();
     return search ? `${url}?${search}` : url;
   }
+}
+
+interface RawBody {
+  raw: string;
+  parsed?: unknown;
+  parseError?: unknown;
+}
+
+async function readBody(response: Response): Promise<RawBody> {
+  try {
+    const raw = await response.text();
+    try {
+      return { raw, parsed: JSON.parse(raw) };
+    } catch (error) {
+      return { raw, parseError: error };
+    }
+  } catch {
+    try {
+      return { raw: "", parsed: await response.json() };
+    } catch (error) {
+      return { raw: "", parseError: error };
+    }
+  }
+}
+
+function describeUnparsedResponse(status: number, raw: string): string {
+  if (status === 403) {
+    return "公共目录的网关拦下了这次请求（HTTP 403，不是 API Key 的问题）—— 公共目录不接受内容里带具体 IP 地址的链接";
+  }
+  const excerpt = raw.replace(/\s+/g, " ").trim().slice(0, 120);
+  return `公共目录响应不是合法 JSON（HTTP ${status}）${excerpt ? `：${excerpt}` : ""}`;
 }
 
 function trimTrailingSlash(value: string): string {
