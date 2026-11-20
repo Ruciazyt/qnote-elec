@@ -21,18 +21,6 @@ function isIslandPage(value: unknown): value is IslandPage {
   return typeof value === "string" && (ISLAND_PAGES as readonly string[]).includes(value);
 }
 
-function flattenFiles(nodes: any[], out: any[] = []): any[] {
-  for (const node of nodes) {
-    if (!node) continue;
-    if (node.kind === "file") {
-      out.push(node);
-    } else if (Array.isArray(node.children)) {
-      flattenFiles(node.children, out);
-    }
-  }
-  return out;
-}
-
 function isMainWindowHidden(): boolean {
   const win = getMainWindow();
   if (!win || win.isDestroyed()) return true;
@@ -158,7 +146,11 @@ export function registerIslandHandlers(fileWriter: FileWriter): void {
       const root = fileWriter.getRootPath();
       if (!root) return [];
       const noteStore = new NoteStore();
-      const files = flattenFiles(noteStore.tree(root));
+      const files = await noteStore.scanFiles(root, {
+        maxDirs: 500,
+        maxFiles: 2000,
+        deadlineMs: 2000,
+      });
       files.sort((a, b) => (b.mtime ?? 0) - (a.mtime ?? 0));
       return files.slice(0, RECENT_NOTES_LIMIT).map((file) => ({
         relPath: file.relPath,

@@ -16,6 +16,9 @@ import {
 } from "../../../shared/notes/noteTypes";
 
 const EXTERNAL_TREE_MAX_NODES = 3000;
+const COUNTS_TTL_MS = 5000;
+
+const countsCache = new Map<string, { at: number; value: Record<NoteType, number> }>();
 
 function allocateUniquePath(root: string, relPath: string): string {
   const abs = path.resolve(root, relPath);
@@ -67,9 +70,34 @@ export function registerFileHandlers(
   });
 
 
-  ipcMain.handle("notes:tree", (_event, dirPath: string): NoteTreeNode[] => {
-    return noteStore.tree(dirPath);
+  ipcMain.handle("notes:tree", async (_event, dirPath: string): Promise<NoteTreeNode[]> => {
+    return noteStore.listChildren(dirPath, "");
   });
+
+  ipcMain.handle(
+    "notes:tree-children",
+    async (_event, dirPath: string, relDir: string): Promise<NoteTreeNode[]> => {
+      return noteStore.listChildren(dirPath, relDir);
+    }
+  );
+
+  ipcMain.handle(
+    "notes:counts",
+    async (_event, dirPath: string): Promise<Record<NoteType, number>> => {
+      const cached = countsCache.get(dirPath);
+      if (cached && Date.now() - cached.at < COUNTS_TTL_MS) return cached.value;
+      const value = await noteStore.countByType(dirPath);
+      countsCache.set(dirPath, { at: Date.now(), value });
+      return value;
+    }
+  );
+
+  ipcMain.handle(
+    "notes:stat",
+    (_event, dirPath: string, relPath: string): NoteFileEntry | null => {
+      return noteStore.stat(dirPath, relPath);
+    }
+  );
 
   ipcMain.handle("notes:read", (_event, dirPath: string, relPath: string) => {
     try {
@@ -234,7 +262,7 @@ export function registerFileHandlers(
         const relPath = noteStore.allocateImageName(dirPath, parentRel, ".png");
         if (!noteStore.writeBinary(dirPath, relPath, image.toPNG())) return null;
 
-        return findEntry(noteStore.tree(dirPath), relPath) ?? null;
+        return noteStore.stat(dirPath, relPath);
       } catch (err) {
         log.error("保存剪贴板图片失败", err);
         return null;
@@ -272,12 +300,26 @@ export function registerFileHandlers(
     const folder = await externalFolders.get(id);
     if (!folder) return [];
     try {
-      return noteStore.tree(folder.path, EXTERNAL_TREE_MAX_NODES);
+      return await noteStore.listChildren(folder.path, "", EXTERNAL_TREE_MAX_NODES);
     } catch (err) {
       log.error(`读取外部文件夹失败: ${folder.path}`, err);
       return [];
     }
   });
+
+  ipcMain.handle(
+    "notes:external-tree-children",
+    async (_event, id: string, relDir: string): Promise<NoteTreeNode[]> => {
+      const folder = await externalFolders.get(id);
+      if (!folder) return [];
+      try {
+        return await noteStore.listChildren(folder.path, relDir, EXTERNAL_TREE_MAX_NODES);
+      } catch (err) {
+        log.error(`读取外部文件夹失败: ${folder.path}/${relDir}`, err);
+        return [];
+      }
+    }
+  );
 
   ipcMain.handle(
     "notes:external-reveal",
@@ -424,18 +466,6 @@ async function importFilesInto(
 
   log.info(`[notes] 导入完成：成功 ${imported.length}，跳过 ${skipped.length}`);
   return { imported, skipped };
-}
-
-function findEntry(nodes: NoteTreeNode[], relPath: string): NoteFileEntry | null {
-  for (const node of nodes) {
-    if (node.kind === "file") {
-      if (node.relPath === relPath) return node;
-    } else {
-      const hit = findEntry(node.children, relPath);
-      if (hit) return hit;
-    }
-  }
-  return null;
 }
 
 export function broadcastNotesChanged(root: string): void {

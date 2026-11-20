@@ -56,7 +56,7 @@ export interface NoteFileEntry {
 export interface NoteFolderEntry {
   name: string;
   relPath: string;
-  childCount: number;
+  childCount?: number;
 }
 
 export type NoteTreeNode =

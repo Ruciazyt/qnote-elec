@@ -61,7 +61,13 @@ const MIME_TO_EXT: Readonly<Record<string, string>> = {
 
 const HTML_SRC_RE = /\bsrc\s*=\s*(["'])([^"']*)\1/gi;
 
-const MAX_DEPTH = 12;
+const CHILDREN_LIMIT = 2000;
+
+export interface ScanBudget {
+  maxDirs?: number;
+  maxFiles?: number;
+  deadlineMs?: number;
+}
 
 export class NoteStore {
   private resolveSafe(root: string, relPath: string): string {
@@ -103,24 +109,15 @@ export class NoteStore {
     };
   }
 
-  tree(root: string, limit = 0): NoteTreeNode[] {
-    return this.readDirInto(root, "", 0, limit, { count: 0 });
-  }
-
-  private readDirInto(
+  async listChildren(
     root: string,
     relDir: string,
-    depth: number,
-    limit: number,
-    counter: { count: number }
-  ): NoteTreeNode[] {
-    if (depth > MAX_DEPTH) return [];
-
+    limit = CHILDREN_LIMIT
+  ): Promise<NoteTreeNode[]> {
     let dirents: fs.Dirent[];
     try {
       const abs = this.resolveSafe(root, relDir || ".");
-      if (!fs.existsSync(abs)) return [];
-      dirents = fs.readdirSync(abs, { withFileTypes: true });
+      dirents = await fs.promises.readdir(abs, { withFileTypes: true });
     } catch (err) {
       log.error(`读取笔记目录失败: ${relDir || "/"}`, err);
       return [];
@@ -130,32 +127,23 @@ export class NoteStore {
     const files: Extract<NoteTreeNode, { kind: "file" }>[] = [];
 
     for (const dirent of dirents) {
-      if (limit > 0 && counter.count >= limit) break;
+      if (limit > 0 && folders.length + files.length >= limit) break;
       if (dirent.name.startsWith(".")) continue;
-      if (relDir === "" && dirent.name === ASSET_DIR) continue;
+      if (!relDir && dirent.name === ASSET_DIR) continue;
+
       const relPath = NoteStore.joinRel(relDir, dirent.name);
 
       try {
         if (dirent.isDirectory()) {
-          const children = this.readDirInto(root, relPath, depth + 1, limit, counter);
-          folders.push({
-            kind: "folder",
-            name: dirent.name,
-            relPath,
-            childCount: children.length,
-            children,
-          });
-          counter.count += 1;
+          folders.push({ kind: "folder", name: dirent.name, relPath, children: [] });
           continue;
         }
         if (!dirent.isFile()) continue;
+        if (!detectNoteType(dirent.name)) continue;
 
-        const stat = fs.statSync(path.join(root, relPath));
+        const stat = await fs.promises.stat(path.join(root, relPath));
         const node = this.makeFileNode(root, relPath, stat);
-        if (node) {
-          files.push(node);
-          counter.count += 1;
-        }
+        if (node) files.push(node);
       } catch (err) {
         log.warn?.(`跳过无法读取的条目: ${relPath}`, err);
       }
@@ -166,16 +154,103 @@ export class NoteStore {
     return [...folders, ...files];
   }
 
-  static collectFiles(nodes: NoteTreeNode[]): Extract<NoteTreeNode, { kind: "file" }>[] {
+  async scanFiles(
+    root: string,
+    budget: ScanBudget = {}
+  ): Promise<Extract<NoteTreeNode, { kind: "file" }>[]> {
+    const maxDirs = budget.maxDirs ?? 500;
+    const maxFiles = budget.maxFiles ?? 2000;
+    const deadline = Date.now() + (budget.deadlineMs ?? 2000);
+
     const out: Extract<NoteTreeNode, { kind: "file" }>[] = [];
-    const walk = (list: NoteTreeNode[]) => {
-      for (const n of list) {
-        if (n.kind === "file") out.push(n);
-        else walk(n.children);
+    const queue: string[] = [""];
+    let visited = 0;
+
+    while (queue.length > 0 && visited < maxDirs && out.length < maxFiles) {
+      if (Date.now() >= deadline) break;
+      const relDir = queue.shift() as string;
+      visited += 1;
+
+      let dirents: fs.Dirent[];
+      try {
+        dirents = await fs.promises.readdir(this.resolveSafe(root, relDir || "."), {
+          withFileTypes: true,
+        });
+      } catch {
+        continue;
       }
-    };
-    walk(nodes);
+
+      for (const dirent of dirents) {
+        if (out.length >= maxFiles || Date.now() >= deadline) break;
+        if (dirent.name.startsWith(".")) continue;
+        if (!relDir && dirent.name === ASSET_DIR) continue;
+
+        const relPath = NoteStore.joinRel(relDir, dirent.name);
+        try {
+          if (dirent.isDirectory()) {
+            queue.push(relPath);
+            continue;
+          }
+          if (!dirent.isFile()) continue;
+          if (!detectNoteType(dirent.name)) continue;
+
+          const stat = await fs.promises.stat(path.join(root, relPath));
+          const node = this.makeFileNode(root, relPath, stat);
+          if (node) out.push(node);
+        } catch {
+          continue;
+        }
+      }
+    }
+
     return out;
+  }
+
+  async countByType(root: string, budget: ScanBudget = {}): Promise<Record<NoteType, number>> {
+    const maxDirs = budget.maxDirs ?? 5000;
+    const maxFiles = budget.maxFiles ?? 50000;
+    const deadline = Date.now() + (budget.deadlineMs ?? 3000);
+
+    const byType = {} as Record<NoteType, number>;
+    for (const { type } of NOTE_TYPES) byType[type] = 0;
+
+    const queue: string[] = [""];
+    let visited = 0;
+    let counted = 0;
+
+    while (queue.length > 0 && visited < maxDirs && counted < maxFiles) {
+      if (Date.now() >= deadline) break;
+      const relDir = queue.shift() as string;
+      visited += 1;
+
+      let dirents: fs.Dirent[];
+      try {
+        dirents = await fs.promises.readdir(this.resolveSafe(root, relDir || "."), {
+          withFileTypes: true,
+        });
+      } catch {
+        continue;
+      }
+
+      for (const dirent of dirents) {
+        if (counted >= maxFiles || Date.now() >= deadline) break;
+        if (dirent.name.startsWith(".")) continue;
+        if (!relDir && dirent.name === ASSET_DIR) continue;
+
+        if (dirent.isDirectory()) {
+          queue.push(NoteStore.joinRel(relDir, dirent.name));
+          continue;
+        }
+        if (!dirent.isFile()) continue;
+
+        const type = detectNoteType(dirent.name);
+        if (!type) continue;
+        byType[type] += 1;
+        counted += 1;
+      }
+    }
+
+    return byType;
   }
 
   read(root: string, relPath: string): NoteContent {
@@ -386,27 +461,20 @@ export class NoteStore {
     }
   }
 
-  listByType(root: string, type: NoteType): NoteFileEntry[] {
-    return NoteStore.collectFiles(this.tree(root))
-      .filter((n) => n.type === type)
-      .map((n) => ({
-        name: n.name,
-        relPath: n.relPath,
-        path: n.path,
-        type: n.type,
-        ext: n.ext,
-        size: n.size,
-        mtime: n.mtime,
-      }));
-  }
-
-  countByType(root: string): Record<NoteType, number> {
-    const byType = {} as Record<NoteType, number>;
-    for (const { type } of NOTE_TYPES) byType[type] = 0;
-    for (const node of NoteStore.collectFiles(this.tree(root))) {
-      if (node.kind === "file" && node.type in byType) byType[node.type] += 1;
-    }
-    return byType;
+  listByType(root: string, type: NoteType): Promise<NoteFileEntry[]> {
+    return this.scanFiles(root).then((files) =>
+      files
+        .filter((n) => n.type === type)
+        .map((n) => ({
+          name: n.name,
+          relPath: n.relPath,
+          path: n.path,
+          type: n.type,
+          ext: n.ext,
+          size: n.size,
+          mtime: n.mtime,
+        }))
+    );
   }
 
 

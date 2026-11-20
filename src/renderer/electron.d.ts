@@ -12,10 +12,25 @@ interface ElectronAPI {
   getFilePath: () => Promise<string>;
   selectDirs: () => Promise<string | undefined>;
   getNoteTree: (dirPath: string) => Promise<import("../shared/notes/noteTypes").NoteTreeNode[]>;
+  getNoteTreeChildren: (
+    dirPath: string,
+    relDir: string
+  ) => Promise<import("../shared/notes/noteTypes").NoteTreeNode[]>;
+  getNoteCounts: (
+    dirPath: string
+  ) => Promise<Record<import("../shared/notes/noteTypes").NoteType, number>>;
+  getNoteStat: (
+    dirPath: string,
+    relPath: string
+  ) => Promise<import("../shared/notes/noteTypes").NoteFileEntry | null>;
   getExternalFolders: () => Promise<import("../shared/notes/noteTypes").ExternalFolder[]>;
   addExternalFolders: () => Promise<import("../shared/notes/noteTypes").ExternalFolder[] | null>;
   removeExternalFolder: (id: string) => Promise<import("../shared/notes/noteTypes").ExternalFolder[]>;
   getExternalTree: (id: string) => Promise<import("../shared/notes/noteTypes").NoteTreeNode[]>;
+  getExternalTreeChildren: (
+    id: string,
+    relDir: string
+  ) => Promise<import("../shared/notes/noteTypes").NoteTreeNode[]>;
   revealExternalFile: (
     id: string,
     relPath: string,

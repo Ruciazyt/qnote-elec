@@ -18,6 +18,8 @@ import { NOTE_TYPE_ICONS } from "./noteIcons";
 import NoteTreeMenu, { NoteTreeMenuTarget } from "./NoteTreeMenu";
 import { cn } from "@/lib/utils";
 
+const EMPTY_CHILDREN: Record<string, NoteTreeNode[]> = {};
+
 function relativeTime(mtime: number): string {
   const diff = Date.now() - mtime;
   const min = Math.floor(diff / 60000);
@@ -32,6 +34,8 @@ function relativeTime(mtime: number): string {
 
 interface NoteFileListProps {
   nodes: NoteTreeNode[];
+  childrenMap?: Record<string, NoteTreeNode[]>;
+  onLoadChildren?: (relPath: string) => void;
   activeRelPath: string | null;
   currentFolder: string;
   renamingRel: string | null;
@@ -134,6 +138,8 @@ function RowActions({
 
 function NoteFileList({
   nodes,
+  childrenMap,
+  onLoadChildren,
   activeRelPath,
   currentFolder,
   renamingRel,
@@ -199,6 +205,20 @@ function NoteFileList({
     return next;
   };
 
+  const expandParentDirs = (prev: Set<string>, filePath: string): Set<string> => {
+    if (!filePath) return prev;
+    const idx = filePath.lastIndexOf("/");
+    if (idx === -1) return prev;
+    const next = new Set(prev);
+    let acc = "";
+    for (const seg of filePath.slice(0, idx).split("/")) {
+      acc = acc ? `${acc}/${seg}` : seg;
+      next.add(acc);
+    }
+    if (next.size === prev.size) return prev;
+    return next;
+  };
+
   useEffect(() => {
     setExpanded((prev) => expandAncestors(prev, currentFolder));
   }, [currentFolder]);
@@ -206,6 +226,23 @@ function NoteFileList({
   useEffect(() => {
     setExpanded((prev) => expandAncestors(prev, createTargetFolder));
   }, [createTargetFolder]);
+
+  useEffect(() => {
+    setExpanded((prev) => expandParentDirs(prev, activeRelPath ?? ""));
+  }, [activeRelPath]);
+
+  const childMap = childrenMap ?? EMPTY_CHILDREN;
+
+  const loadChildrenRef = useRef(onLoadChildren);
+  loadChildrenRef.current = onLoadChildren;
+
+  useEffect(() => {
+    const load = loadChildrenRef.current;
+    if (!load) return;
+    for (const rel of expanded) {
+      if (childMap[rel] === undefined) load(rel);
+    }
+  }, [expanded, childMap]);
 
   const endDrag = () => {
     clearExpandTimer();
@@ -312,6 +349,10 @@ function NoteFileList({
       }
 
       if (node.kind === "folder") {
+        const loadedChildren = childMap[node.relPath];
+        const kids = loadedChildren ?? node.children ?? [];
+        const kidCount = loadedChildren ? loadedChildren.length : node.childCount;
+        const kidsPending = loadedChildren === undefined && !!onLoadChildren;
         return (
           <React.Fragment key={node.relPath}>
             <div
@@ -371,9 +412,11 @@ function NoteFileList({
               )}
               {}
               <span className="flex-1 min-w-0 truncate text-xs">{node.name}</span>
-              <span className="text-[10px] text-muted-foreground/50 tabular-nums flex-shrink-0">
-                {node.childCount}
-              </span>
+              {typeof kidCount === "number" && kidCount >= 0 && (
+                <span className="text-[10px] text-muted-foreground/50 tabular-nums flex-shrink-0">
+                  {kidCount}
+                </span>
+              )}
               {}
               <div className="w-[46px] flex justify-end flex-shrink-0">
                 {(showActions || isActiveFolder) && (
@@ -385,7 +428,17 @@ function NoteFileList({
                 )}
               </div>
             </div>
-            {isOpen && renderNodes(node.children, depth + 1)}
+            {isOpen &&
+              (kidsPending ? (
+                <div
+                  className="flex items-center h-6 text-[11px] text-muted-foreground/60"
+                  style={{ paddingLeft: 6 + (depth + 1) * 12 + 18 }}
+                >
+                  正在读取…
+                </div>
+              ) : (
+                renderNodes(kids, depth + 1)
+              ))}
           </React.Fragment>
         );
       }

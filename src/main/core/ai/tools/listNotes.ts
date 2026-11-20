@@ -27,7 +27,7 @@ export const listNotesTool = tool(
 
     try {
       const store = new NoteStore();
-      const all = NoteStore.collectFiles(store.tree(root));
+      const all = await store.scanFiles(root, { maxDirs: 2000, maxFiles: 5000, deadlineMs: 5000 });
 
       const prefix = input.folder && input.folder.trim() ? input.folder.trim().replace(/^((?:[\s\S]*[^/])?)\/+$/, "$1") : '';
       let items = all;

@@ -81,11 +81,18 @@ contextBridge.exposeInMainWorld("electron", {
   getPathForFile: (file: File) => webUtils.getPathForFile(file),
 
   getNoteTree: (dirPath: string) => ipcRenderer.invoke("notes:tree", dirPath),
+  getNoteTreeChildren: (dirPath: string, relDir: string) =>
+    ipcRenderer.invoke("notes:tree-children", dirPath, relDir),
+  getNoteCounts: (dirPath: string) => ipcRenderer.invoke("notes:counts", dirPath),
+  getNoteStat: (dirPath: string, relPath: string) =>
+    ipcRenderer.invoke("notes:stat", dirPath, relPath),
   getExternalFolders: () => ipcRenderer.invoke("notes:external-folders"),
   addExternalFolders: () => ipcRenderer.invoke("notes:add-external-folders"),
   removeExternalFolder: (id: string) =>
     ipcRenderer.invoke("notes:remove-external-folder", id),
   getExternalTree: (id: string) => ipcRenderer.invoke("notes:external-tree", id),
+  getExternalTreeChildren: (id: string, relDir: string) =>
+    ipcRenderer.invoke("notes:external-tree-children", id, relDir),
   revealExternalFile: (id: string, relPath: string, mode: "reveal" | "open" = "reveal") =>
     ipcRenderer.invoke("notes:external-reveal", id, relPath, mode),
   deleteExternalFile: (id: string, relPath: string) =>

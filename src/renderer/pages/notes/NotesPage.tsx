@@ -91,38 +91,54 @@ function isEditable(target: EventTarget | null): boolean {
   return el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable;
 }
 
-function findFile(nodes: NoteTreeNode[], relPath: string): FileNode | null {
-  for (const n of nodes) {
-    if (n.kind === "file") {
-      if (n.relPath === relPath) return n;
-    } else {
-      const hit = findFile(n.children, relPath);
-      if (hit) return hit;
-    }
-  }
-  return null;
-}
-
-function findNode(nodes: NoteTreeNode[], relPath: string): NoteTreeNode | null {
+function findNodeIn(
+  nodes: NoteTreeNode[],
+  relPath: string,
+  childrenMap: Record<string, NoteTreeNode[]>
+): NoteTreeNode | null {
   for (const n of nodes) {
     if (n.relPath === relPath) return n;
     if (n.kind === "folder") {
-      const hit = findNode(n.children, relPath);
-      if (hit) return hit;
+      const kids = childrenMap[n.relPath] ?? n.children;
+      if (kids && kids.length > 0) {
+        const hit = findNodeIn(kids, relPath, childrenMap);
+        if (hit) return hit;
+      }
     }
   }
   return null;
 }
 
-function siblingRelPaths(nodes: NoteTreeNode[], folderRel: string): string[] {
-  const segs = folderRel ? folderRel.split("/") : [];
+function findFileIn(
+  nodes: NoteTreeNode[],
+  relPath: string,
+  childrenMap: Record<string, NoteTreeNode[]>
+): FileNode | null {
+  const node = findNodeIn(nodes, relPath, childrenMap);
+  return node && node.kind === "file" ? node : null;
+}
+
+function layerOf(
+  nodes: NoteTreeNode[],
+  folderRel: string,
+  childrenMap: Record<string, NoteTreeNode[]>
+): NoteTreeNode[] {
+  if (!folderRel) return nodes;
   let level = nodes;
-  for (const seg of segs) {
+  for (const seg of folderRel.split("/")) {
     const next = level.find((n) => n.kind === "folder" && n.name === seg);
     if (!next || next.kind !== "folder") return [];
-    level = next.children;
+    level = childrenMap[next.relPath] ?? next.children ?? [];
   }
-  return level.map((n) => n.relPath);
+  return level;
+}
+
+function siblingRelPaths(
+  nodes: NoteTreeNode[],
+  folderRel: string,
+  childrenMap: Record<string, NoteTreeNode[]>
+): string[] {
+  return layerOf(nodes, folderRel, childrenMap).map((n) => n.relPath);
 }
 
 export default function NotesPage() {
@@ -131,6 +147,7 @@ export default function NotesPage() {
 
   const [filePath, setFilePath] = useState<string | null>(null);
   const [tree, setTree] = useState<NoteTreeNode[]>([]);
+  const [treeChildren, setTreeChildren] = useState<Record<string, NoteTreeNode[]>>({});
   const [activeType, setActiveType] = useState<NoteType>("excalidraw");
   const [activeRelPath, setActiveRelPath] = useState<string | null>(null);
   const [lastRelByType, setLastRelByType] = useState<
@@ -143,6 +160,9 @@ export default function NotesPage() {
   );
   const [externalFolders, setExternalFolders] = useState<ExternalFolder[]>([]);
   const [externalTrees, setExternalTrees] = useState<Record<string, NoteTreeNode[]>>({});
+  const [externalTreeChildren, setExternalTreeChildren] = useState<
+    Record<string, Record<string, NoteTreeNode[]>>
+  >({});
   const [loadingExternal, setLoadingExternal] = useState<Set<string>>(() => new Set());
   const [activeExternalId, setActiveExternalId] = useState<string | null>(null);
   const [currentFolder, setCurrentFolder] = useState("");
@@ -302,10 +322,19 @@ export default function NotesPage() {
     if (!activeRelPath) return null;
     if (activeExternalId) {
       const extTree = externalTrees[activeExternalId];
-      return extTree ? findFile(extTree, activeRelPath) : null;
+      return extTree
+        ? findFileIn(extTree, activeRelPath, externalTreeChildren[activeExternalId] ?? {})
+        : null;
     }
-    return findFile(tree, activeRelPath);
-  }, [tree, externalTrees, activeRelPath, activeExternalId]);
+    return findFileIn(tree, activeRelPath, treeChildren);
+  }, [
+    tree,
+    treeChildren,
+    externalTrees,
+    externalTreeChildren,
+    activeRelPath,
+    activeExternalId,
+  ]);
 
   const activeRootPath = useMemo(() => {
     if (activeExternalId) {
@@ -327,19 +356,41 @@ export default function NotesPage() {
     return externalFolders.find((f) => f.id === createExternalId)?.name ?? "";
   }, [createExternalId, externalFolders]);
 
-  const counts = useMemo(() => {
+  const [counts, setCounts] = useState<Record<NoteType, number>>(() => {
     const acc = {} as Record<NoteType, number>;
     for (const { type } of NOTE_TYPES) acc[type] = 0;
-    const walk = (list: NoteTreeNode[]) => {
-      for (const n of list) {
-        if (n.kind === "file") {
-          if (n.type in acc) acc[n.type] += 1;
-        } else walk(n.children);
-      }
-    };
-    walk(tree);
     return acc;
-  }, [tree]);
+  });
+
+  const countsStateRef = useRef({ busy: false, dirty: false, dir: "" });
+
+  const refreshCounts = useCallback((dirPath: string) => {
+    const state = countsStateRef.current;
+    state.dir = dirPath;
+    if (state.busy) {
+      state.dirty = true;
+      return;
+    }
+    state.busy = true;
+    state.dirty = false;
+
+    const run = (dir: string) => {
+      void window.electron
+        .getNoteCounts(dir)
+        .then((next) => {
+          if (next) setCounts(next);
+        })
+        .catch(() => {})
+        .finally(() => {
+          state.busy = false;
+          if (state.dirty) {
+            state.dirty = false;
+            run(state.dir);
+          }
+        });
+    };
+    run(dirPath);
+  }, []);
 
   const activeEditor = useCallback((): NoteEditorHandle | null => {
     switch (activeType) {
@@ -366,8 +417,58 @@ export default function NotesPage() {
   const loadTree = useCallback(async () => {
     const p = await window.electron.getFilePath();
     setFilePath(p);
-    setTree(p ? await window.electron.getNoteTree(p) : []);
-  }, []);
+    if (!p) {
+      setTree([]);
+      setTreeChildren({});
+      return;
+    }
+    const nodes = await window.electron.getNoteTree(p);
+    setTree(nodes);
+    treeChildrenRef.current = {};
+    setTreeChildren({});
+    refreshCounts(p);
+  }, [refreshCounts]);
+
+  const loadingChildrenRef = useRef<Set<string>>(new Set());
+  const treeChildrenRef = useRef<Record<string, NoteTreeNode[]>>({});
+  treeChildrenRef.current = treeChildren;
+
+  const loadTreeChildren = useCallback(
+    async (relDir: string) => {
+      if (!filePath) return;
+      if (loadingChildrenRef.current.has(relDir)) return;
+      if (treeChildrenRef.current[relDir] !== undefined) return;
+      loadingChildrenRef.current.add(relDir);
+      try {
+        const nodes = await window.electron.getNoteTreeChildren(filePath, relDir);
+        setTreeChildren((prev) => ({ ...prev, [relDir]: nodes ?? [] }));
+      } catch (err) {
+        console.error("读取子目录失败:", relDir, err);
+        setTreeChildren((prev) => ({ ...prev, [relDir]: [] }));
+      } finally {
+        loadingChildrenRef.current.delete(relDir);
+      }
+    },
+    [filePath]
+  );
+
+  const loadPathToFile = useCallback(
+    async (relPath: string) => {
+      const idx = relPath.lastIndexOf("/");
+      if (idx === -1) return;
+      let acc = "";
+      for (const seg of relPath.slice(0, idx).split("/")) {
+        acc = acc ? `${acc}/${seg}` : seg;
+        await loadTreeChildren(acc);
+      }
+    },
+    [loadTreeChildren]
+  );
+
+  useEffect(() => {
+    if (!activeRelPath || activeExternalId) return;
+    void loadPathToFile(activeRelPath);
+  }, [activeRelPath, activeExternalId, loadPathToFile]);
 
   const loadExternalFolders = useCallback(async () => {
     try {
@@ -384,6 +485,15 @@ export default function NotesPage() {
     try {
       const nodes = await window.electron.getExternalTree(id);
       setExternalTrees((prev) => ({ ...prev, [id]: nodes }));
+      setExternalTreeChildren((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      externalTreeChildrenRef.current = {
+        ...externalTreeChildrenRef.current,
+        [id]: {},
+      };
     } catch (err) {
       console.error("读取外部文件夹失败", err);
       setExternalTrees((prev) => ({ ...prev, [id]: [] }));
@@ -393,6 +503,32 @@ export default function NotesPage() {
         next.delete(id);
         return next;
       });
+    }
+  }, []);
+
+  const loadingExternalChildrenRef = useRef<Set<string>>(new Set());
+  const externalTreeChildrenRef = useRef<Record<string, Record<string, NoteTreeNode[]>>>({});
+  externalTreeChildrenRef.current = externalTreeChildren;
+
+  const loadExternalTreeChildren = useCallback(async (id: string, relPath: string) => {
+    const key = `${id}\u0000${relPath}`;
+    if (loadingExternalChildrenRef.current.has(key)) return;
+    if (externalTreeChildrenRef.current[id]?.[relPath] !== undefined) return;
+    loadingExternalChildrenRef.current.add(key);
+    try {
+      const nodes = await window.electron.getExternalTreeChildren(id, relPath);
+      setExternalTreeChildren((prev) => ({
+        ...prev,
+        [id]: { ...(prev[id] ?? {}), [relPath]: nodes ?? [] },
+      }));
+    } catch (err) {
+      console.error("读取外部子目录失败:", relPath, err);
+      setExternalTreeChildren((prev) => ({
+        ...prev,
+        [id]: { ...(prev[id] ?? {}), [relPath]: [] },
+      }));
+    } finally {
+      loadingExternalChildrenRef.current.delete(key);
     }
   }, []);
 
@@ -411,8 +547,7 @@ export default function NotesPage() {
         await loadTree();
 
         if (!activeRelPath) return;
-        const next = await window.electron.getNoteTree(filePath);
-        const node = findFile(next, activeRelPath);
+        const node = await window.electron.getNoteStat(filePath, activeRelPath);
         if (!node) return;
 
         seenMtimeRef.current = node.mtime;
@@ -440,9 +575,9 @@ export default function NotesPage() {
 
   const handleKeepLocal = useCallback(() => {
     setExternalConflict(null);
-    const node = activeRelPath ? findFile(tree, activeRelPath) : null;
+    const node = activeRelPath ? findFileIn(tree, activeRelPath, treeChildren) : null;
     if (node) seenMtimeRef.current = node.mtime;
-  }, [activeRelPath, tree]);
+  }, [activeRelPath, tree, treeChildren]);
 
   const handleOverwriteDisk = useCallback(async () => {
     setExternalConflict(null);
@@ -450,12 +585,12 @@ export default function NotesPage() {
     if (!editor?.currentRelPath()) return;
     const ok = await editor.save();
     if (ok) {
-      const node = activeRelPath ? findFile(tree, activeRelPath) : null;
+      const node = activeRelPath ? findFileIn(tree, activeRelPath, treeChildren) : null;
       if (node) seenMtimeRef.current = node.mtime;
       await loadTree();
       toast({ title: "已保存", description: "本地改动已覆盖磁盘版本" });
     }
-  }, [activeRelPath, tree, loadTree, toast]);
+  }, [activeRelPath, tree, treeChildren, loadTree, toast]);
 
   const handleOpen = useCallback((node: FileNode) => {
     setActiveType(node.type);
@@ -471,15 +606,21 @@ export default function NotesPage() {
   const pendingIslandRelPath = useRef<string | null>(null);
   useIslandOpenNote((relPath) => {
     pendingIslandRelPath.current = relPath;
+    void loadPathToFile(relPath);
   });
   useEffect(() => {
     const relPath = pendingIslandRelPath.current;
+    if (!relPath || !filePath) return;
+    void loadPathToFile(relPath);
+  }, [filePath, loadPathToFile]);
+  useEffect(() => {
+    const relPath = pendingIslandRelPath.current;
     if (!relPath) return;
-    const node = findFile(tree, relPath);
+    const node = findFileIn(tree, relPath, treeChildren);
     if (!node) return;
     pendingIslandRelPath.current = null;
     handleOpen(node);
-  }, [tree, handleOpen]);
+  }, [tree, treeChildren, handleOpen]);
 
   const handleOpenExternal = useCallback((folder: ExternalFolder, node: FileNode) => {
     setActiveType(node.type);
@@ -554,9 +695,11 @@ export default function NotesPage() {
 
   const willOverwrite =
     !!targetRelPath &&
-    siblingRelPaths(activeExternalId ? externalTrees[activeExternalId] ?? [] : tree, saveFolder).includes(
-      targetRelPath
-    );
+    siblingRelPaths(
+      activeExternalId ? externalTrees[activeExternalId] ?? [] : tree,
+      saveFolder,
+      activeExternalId ? externalTreeChildren[activeExternalId] ?? {} : treeChildren
+    ).includes(targetRelPath);
 
   const handleSaveConfirm = useCallback(async () => {
     if (!targetRelPath) return;
@@ -646,7 +789,11 @@ export default function NotesPage() {
       const parentRel = node.relPath.includes("/")
         ? node.relPath.slice(0, node.relPath.lastIndexOf("/"))
         : "";
-      if (siblingRelPaths(tree, parentRel).includes(`${parentRel ? parentRel + "/" : ""}${newName}`)) {
+      if (
+        siblingRelPaths(tree, parentRel, treeChildren).includes(
+          `${parentRel ? parentRel + "/" : ""}${newName}`
+        )
+      ) {
         toast({ title: "同名条目已存在！", variant: "destructive" });
         return;
       }
@@ -674,7 +821,7 @@ export default function NotesPage() {
       });
       void loadTree();
     },
-    [renameValue, tree, filePath, currentFolder, loadTree, toast]
+    [renameValue, tree, treeChildren, filePath, currentFolder, loadTree, toast]
   );
 
   const handleChangePath = useCallback(async () => {
@@ -1190,7 +1337,7 @@ export default function NotesPage() {
       const mod = e.ctrlKey || e.metaKey;
       if (!mod) {
         if (e.key === "F2" && !isEditable(e.target) && activeRelPath) {
-          const node = findFile(tree, activeRelPath);
+          const node = findFileIn(tree, activeRelPath, treeChildren);
           if (node) {
             e.preventDefault();
             handleRenameStart(node);
@@ -1237,6 +1384,7 @@ export default function NotesPage() {
     isActive,
     filePath,
     tree,
+    treeChildren,
     activeRelPath,
     currentFolder,
     loadTree,
@@ -1251,7 +1399,7 @@ export default function NotesPage() {
     const onMouseDown = (e: MouseEvent) => {
       if (renamingRel === null) return;
       if ((e.target as HTMLElement | null)?.closest?.("[data-rename-input]")) return;
-      const node = findNode(tree, renamingRel);
+      const node = findNodeIn(tree, renamingRel, treeChildren);
       const original = node
         ? node.kind === "folder"
           ? node.name
@@ -1266,7 +1414,7 @@ export default function NotesPage() {
     };
     window.addEventListener("mousedown", onMouseDown);
     return () => window.removeEventListener("mousedown", onMouseDown);
-  }, [isActive, renamingRel, renameValue, tree]);
+  }, [isActive, renamingRel, renameValue, tree, treeChildren]);
 
   const typeLabel = getNoteTypeMeta(activeType).label;
 
@@ -1415,6 +1563,8 @@ export default function NotesPage() {
                 >
                   <NoteFileList
                     nodes={tree}
+                    childrenMap={treeChildren}
+                    onLoadChildren={loadTreeChildren}
                     activeRelPath={activeRelPath}
                     currentFolder={currentFolder}
                     renamingRel={renamingRel}
@@ -1468,6 +1618,8 @@ export default function NotesPage() {
                   <NoteExternalFolders
                     folders={externalFolders}
                     trees={externalTrees}
+                    childrenByFolder={externalTreeChildren}
+                    onLoadChildren={loadExternalTreeChildren}
                     loadingIds={loadingExternal}
                     onToggleFolder={handleToggleExternalFolder}
                     onAdd={handleAddExternal}
@@ -1685,7 +1837,9 @@ export default function NotesPage() {
                       )}
                       <br />
                       <span className="text-destructive font-medium">
-                        其中的 {pendingDelete.node.childCount} 个条目会一并永久删除，无法恢复。
+                        {typeof pendingDelete.node.childCount === "number" && (
+                          <>其中的 {pendingDelete.node.childCount} 个条目会一并永久删除，无法恢复。</>
+                        )}
                       </span>
                     </p>
                   </DialogDescription>
@@ -1778,7 +1932,7 @@ export default function NotesPage() {
           }}
           onConfirm={() => {
             if (renamingRel) {
-              const node = findNode(tree, renamingRel);
+              const node = findNodeIn(tree, renamingRel, treeChildren);
               if (node) void handleRenameConfirm(node);
             }
             setShowRenameConfirm(false);

@@ -22,6 +22,8 @@ import { cn } from "@/lib/utils";
 
 type FileNode = Extract<NoteTreeNode, { kind: "file" }>;
 
+const EMPTY_CHILDREN: Record<string, NoteTreeNode[]> = {};
+
 interface ExternalUiState {
   currentFolder: string;
   renamingRel: string | null;
@@ -39,6 +41,8 @@ const EMPTY_UI_STATE: ExternalUiState = {
 interface NoteExternalFoldersProps {
   folders: ExternalFolder[];
   trees: Record<string, NoteTreeNode[]>;
+  childrenByFolder?: Record<string, Record<string, NoteTreeNode[]>>;
+  onLoadChildren?: (folderId: string, relPath: string) => void;
   loadingIds: Set<string>;
   onToggleFolder: (id: string) => void;
   onAdd: () => void;
@@ -62,6 +66,8 @@ interface NoteExternalFoldersProps {
 function NoteExternalFolders({
   folders,
   trees,
+  childrenByFolder = {},
+  onLoadChildren,
   loadingIds,
   onToggleFolder,
   onAdd,
@@ -309,6 +315,12 @@ function NoteExternalFolders({
                         {tree && (
                           <NoteFileList
                             nodes={tree}
+                            childrenMap={childrenByFolder[folder.id] ?? EMPTY_CHILDREN}
+                            onLoadChildren={
+                              onLoadChildren
+                                ? (relPath) => onLoadChildren(folder.id, relPath)
+                                : undefined
+                            }
                             activeRelPath={
                               activeFolderId === folder.id ? activeRelPath : null
                             }
