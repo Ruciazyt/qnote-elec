@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { app } from "electron";
+import { appVersion } from "../../system/appVersion";
 import type { StructuredToolInterface } from "@langchain/core/tools";
 import { log } from "../../system/log";
 import { loadMcpSdk } from "./sdk";
@@ -264,7 +264,7 @@ class McpManager {
       }
       const sdk = loadMcpSdk();
       const client = new sdk.client.Client(
-        { name: "qnote", version: app.getVersion() },
+        { name: "qnote", version: appVersion() },
         { capabilities: {} }
       );
       const transport = this.buildTransport(sdk, resolved.config);

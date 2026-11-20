@@ -1,6 +1,7 @@
 import { tool } from '@langchain/core/tools';
 import { z } from 'zod';
 import { app } from 'electron';
+import { appVersion } from "../../system/appVersion";
 import { getToolContext } from "../toolContext";
 
 export const getAppInfoTool = tool(
@@ -9,7 +10,7 @@ export const getAppInfoTool = tool(
     return JSON.stringify({
       app: {
         name: app.getName(),
-        version: app.getVersion(),
+        version: appVersion(),
         dataPath: app.getPath('userData'),
         isPackaged: app.isPackaged,
         platform: process.platform,

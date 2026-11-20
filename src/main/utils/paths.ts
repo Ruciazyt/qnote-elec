@@ -26,6 +26,10 @@ export function getDevRoot(): string {
   return root ? path.dirname(root) : path.resolve(__dirname, "..", "..", "..");
 }
 
+export function getAppPackageJsonPath(): string {
+  return path.join(getDevRoot(), "package.json");
+}
+
 export function getCatalogCredentialsPath(): string {
   const packaged = process.resourcesPath;
   if (packaged) {

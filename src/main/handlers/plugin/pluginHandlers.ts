@@ -2,7 +2,8 @@ import {
   parsePluginPreview,
   previewPortUrl,
 } from "../../../shared/plugin/pluginPreview";
-import { ipcMain, dialog, shell, BrowserWindow, app } from "electron";
+import { ipcMain, dialog, shell, BrowserWindow } from "electron";
+import { appVersion } from "../../core/system/appVersion";
 import * as path from "node:path";
 import type { Knex } from "knex";
 import { log } from "../../core/system/log";
@@ -45,7 +46,7 @@ function encodeRelativePath(relative: string): string {
 
 export function registerPluginHandlers(DB: Knex): PluginManager {
   const pluginManager = new PluginManager(DB);
-  pluginManager.setHostVersion(app.getVersion());
+  pluginManager.setHostVersion(appVersion());
   manager = pluginManager;
 
   pluginManager.setEventSink({

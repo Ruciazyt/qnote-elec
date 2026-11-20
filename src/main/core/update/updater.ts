@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from "electron";
 import { autoUpdater } from "electron-updater";
 import { log } from "../system/log";
+import { appVersion } from "../system/appVersion";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import {
@@ -53,7 +54,7 @@ let downloadedArchivePath: string | undefined;
 
 function safeAppVersion(): string {
   try {
-    return app.getVersion();
+    return appVersion();
   } catch {
     return "unknown";
   }

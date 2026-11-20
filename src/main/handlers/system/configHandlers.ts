@@ -1,4 +1,5 @@
 import { ipcMain, app } from "electron";
+import { appVersion } from "../../core/system/appVersion";
 import { configManager } from "../../core/system/config";
 import { setBaiduKeys } from "../../core/ai/baiduOCR";
 import { log } from "../../core/system/log";
@@ -28,7 +29,7 @@ export function registerConfigHandlers() {
         productName: app.getName(),
         dataPath: configManager.getDataPath(),
         configPath: configManager.getConfigPath(),
-        version: app.getVersion(),
+        version: appVersion(),
         appPath: app.getAppPath(),
         exePath: app.getPath('exe')
       };
