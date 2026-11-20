@@ -3,6 +3,10 @@
 TiDB Cloud Data App 的声明式配置。推到 GitHub 并在 TiDB Cloud 里连上该仓库，
 这 7 个端点会自动部署。
 
+**线上那个公共目录（集群 `public-apps`、Data App「New App」）走的是手工那条路** ——
+端点在控制台里建、逐个点 Deploy 维护，没接 GitHub：推这个仓库不会触发部署。
+改了端点 SQL 要去控制台里改对应端点再点 Deploy，这里的 `http_endpoints/` 是对账用的副本。
+
 ---
 
 ## 一、步骤
