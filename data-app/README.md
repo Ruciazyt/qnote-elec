@@ -68,6 +68,9 @@ ALTER TABLE qnote_catalog.published_app ADD COLUMN bundle MEDIUMTEXT NOT NULL;
 没补这一列也能发布 —— 客户端发现端点不认 `bundle` 就会退回「只发清单」，
 不会报错。端点定义在 `http_endpoints/`，改完推 GitHub，Auto Sync & Deployment 会自动部署。
 
+线上那个公共目录（集群 `public-apps`）的这一列已在 2026-11-20 补好，上面那条只在新建库时才需要再跑一次。
+**建列要排在部署端点之前** —— 端点 SQL 里 `bundle` 进了 INSERT 的列清单，列还不存在时发布会整个失败。
+
 ### 7. 已知限制：清单里的本机地址发不出去
 
 公共目录前面挂的是 AWS ALB，它会扫整个请求，只要出现**指向 IP 字面量的链接**
