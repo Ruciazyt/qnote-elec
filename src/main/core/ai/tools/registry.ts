@@ -14,6 +14,8 @@ import { browserFillTool } from './browser/browserFill';
 import { browserNavigateTool } from './browser/browserNavigate';
 import { webSearchTool } from './web/webSearch';
 import { webFetchTool } from './web/webFetch';
+import { GITLAB_READ_TOOLS, GITLAB_WRITE_TOOLS } from './gitlab';
+import { isGitlabConfigured } from './gitlab/config';
 import { mcpManager } from '../mcp/manager';
 
 export const READ_TOOLS: StructuredToolInterface[] = [
@@ -40,7 +42,10 @@ export const WRITE_TOOLS: StructuredToolInterface[] = [
 ];
 
 export function getEnabledTools(): StructuredToolInterface[] {
-  return [...READ_TOOLS, ...WRITE_TOOLS, ...mcpManager.getTools()];
+  const gitlabTools = isGitlabConfigured()
+    ? [...GITLAB_READ_TOOLS, ...GITLAB_WRITE_TOOLS]
+    : [];
+  return [...READ_TOOLS, ...WRITE_TOOLS, ...gitlabTools, ...mcpManager.getTools()];
 }
 
 export async function prepareEnabledTools(): Promise<StructuredToolInterface[]> {

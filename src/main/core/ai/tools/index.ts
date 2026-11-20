@@ -14,3 +14,4 @@ export { browserFillTool } from './browser/browserFill';
 export { browserNavigateTool } from './browser/browserNavigate';
 export { webSearchTool } from './web/webSearch';
 export { webFetchTool } from './web/webFetch';
+export { GITLAB_READ_TOOLS, GITLAB_WRITE_TOOLS } from './gitlab';
