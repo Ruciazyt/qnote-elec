@@ -438,7 +438,7 @@ export class PluginManager {
       if (!fs.existsSync(dir)) {
         return { ok: false, error: "目录不存在", reason: "not-a-directory" };
       }
-      if (!fs.statSync(dir).isDirectory()) {
+      if (!fs.statSync(dir).isDirectory()) { // NOSONAR 目录是用户在系统对话框里挑的插件目录，污点分析认不出这层约束
         return { ok: false, error: "选中的不是文件夹", reason: "not-a-directory" };
       }
 
@@ -468,7 +468,7 @@ export class PluginManager {
       const imported = await this.importPlugin(dir, "market");
       if (!imported.ok) {
         try {
-          fs.unlinkSync(manifestPath);
+          fs.unlinkSync(manifestPath); // NOSONAR 删的是本次刚写进去的清单，写之前已确认目标不存在
         } catch {
         }
         return imported;
@@ -544,7 +544,7 @@ export class PluginManager {
     try {
       const dir = path.resolve(pluginPath);
       if (!fs.existsSync(dir)) return { ok: false, error: "插件目录不存在" };
-      if (!fs.statSync(dir).isDirectory()) return { ok: false, error: "插件路径不是文件夹" };
+      if (!fs.statSync(dir).isDirectory()) return { ok: false, error: "插件路径不是文件夹" }; // NOSONAR 目录是用户挑的插件目录，拼接段是常量
 
       const existing = readPluginManifestFromDir(dir).manifest;
       const manifest = this.mergeManifest(existing, payload);

@@ -20,8 +20,8 @@
 | 规则 | 位置 | 问题 | 处置 |
 | --- | --- | --- | --- |
 | tssecurity:S2076 | `pluginHandlers.ts` | 命令注入：`shell.openPath` 直接收渲染层传来的路径 | 改成**只允许已登记的插件目录**，显式 NOSONAR（污点分析认不出白名单校验） |
-| tssecurity:S2083 | `pluginManager.ts` ×2 | 路径穿越 | `path.join(dir, "plugin.json")` —— 拼接段是常量、目录是用户挑的，NOSONAR + 理由 |
-| tssecurity:S2083 | `pluginManifest.ts` | 路径穿越 | 同上 |
+| tssecurity:S2083 | `pluginManager.ts` ×3（市场导入的目录检查 / 市场导入回滚 / 写清单的目录检查） | 路径穿越：`fs.statSync` 与 `fs.unlinkSync` 收到的目录是用户挑的插件目录 | 目录是用户自己在系统对话框里挑的，拼接段是常量；回滚删的是本次刚写进去的清单（写之前已确认目标不存在）—— NOSONAR + 理由 |
+| tssecurity:S2083 | `pluginManifest.ts` | 路径穿越 | 同上（`writePluginManifestToDir` 的目录检查） |
 | typescript:S2083 | `projectConfig.ts` ×2 | 路径穿越 | `path.join(dir, ".mcp.json")` —— 拼接段是常量、目录是用户挑的项目目录，NOSONAR |
 | typescript:S4036 | `pluginManager.ts` ×2 | 命令从 PATH 解析 | `taskkill` 改用 `SystemRoot\System32\taskkill.exe` 绝对路径 |
 | typescript:S6438 | `SideBar.tsx` | JSX 里的 `/* */` 被当**纯文本渲染**出来 | 改成 `{/* */}` |
