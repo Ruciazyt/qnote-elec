@@ -1,6 +1,6 @@
 # QNote 插件系统 —— 设计文档
 
-> 状态：**已实现**（当前发布线 1.19.x，落地版本 **2.0.0** —— 切线与版本号 bump 必须同一个提交，见 AGENTS.md 3.1）
+> 状态：**已实现**（当前发布线 2.1.x，落地版本 **2.1.0** —— 切线与版本号 bump 必须同一个提交，见 AGENTS.md 3.1）
 > 取代对象：【应用】模块（`qnote.json` 清单 + `app_project` 表 + `AppManager`）
 > 现行架构与全链路（创建 → 导入注册 → 启动运行 → 上传发布 → 下载安装）见 [PLUGIN-ARCHITECTURE.md](./PLUGIN-ARCHITECTURE.md)
 
@@ -15,7 +15,8 @@
 | 声明式权限判定 | ✅ 已实现（`capabilities.ts`），数据类调用逐个校验 |
 | SDK 通道与宿主 API | ✅ 已实现，**传输用 loopback HTTP + 长轮询**（不是 WebSocket） |
 | 插件侧 SDK | ✅ 已实现（`resources/plugin-sdk/qnote-plugin-sdk.js`，纯 ESM 无构建） |
-| 命令面板、侧栏动态入口、插件设置页 | ⏳ 未实现 —— 贡献点已在清单里声明，但挂载点还没做 |
+| 命令面板、侧栏动态入口、插件设置页 | ✅ 已实现（`Ctrl+Shift+P` 唤起命令面板，侧栏按 `contributes.sidebar` 生成入口，插件页可读写清单声明的设置项） |
+| 插件通知（宿主 toast） | ✅ 已实现（`plugin:notify` 事件，插件经 SDK 发通知） |
 | 市场版本与依赖、逐项授权撤销 | ⏳ 未实现 —— `extensionDependencies` 已在清单里声明，解析器还没做 |
 | `qnote.clipboard.list` / `qnote.ai.chat` | ⏳ 未实现 |
 
@@ -540,8 +541,9 @@ CREATE TABLE plugin_grant (
 
 | 项 | 内容 |
 | --- | --- |
-| 改哪 | 新增 `src/renderer/components/panel/CommandPalette.tsx`；`src/renderer/pages/plugin/PluginSettings.tsx`；`src/renderer/components/shell/AppSidebar.tsx` 改动态挂载 |
+| 改哪 | 新增 `src/renderer/components/panel/CommandPalette.tsx`；`src/renderer/pages/plugin/PluginSettingsPanel.tsx`；`src/renderer/components/shell/AppSidebar.tsx` 改动态挂载 |
 | 交付 | 命令面板；插件设置项落设置页；侧栏动态入口 |
+| 状态 | ✅ 已落地（2.1.0） |
 
 **验收标准**
 

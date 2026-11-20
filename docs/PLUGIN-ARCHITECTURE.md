@@ -271,23 +271,97 @@ plugin:import(dirPath)
 
 **关键点**：不合规的清单**不落库**（一个字节都不写）。版本不兼容的**照落库**，只是状态标成 `incompatible`，启动时被拒。
 
-### 5.2 落库结构
+### 5.2 数据库里的插件长什么样
 
-`plugin` 表只存索引与快照：
+插件在库里占**三张表**：`plugin`（索引与快照）、`plugin_setting`（插件自己的设置项）、`plugin_grant`（逐项授权，预留未启用）。
 
-| 列 | 说明 |
-| --- | --- |
-| `local_id` | 主键，自增整数 |
-| `id` | 业务标识，唯一 |
-| `name` / `version` / `publisher` / `description` | 展示字段 |
-| `path` | 插件目录绝对路径，唯一 |
-| `status` | 快照状态 |
-| `manifest_text` / `command` / `preview` / `error` | 快照 |
-| `runtime_json` / `capabilities_json` / `contributes_json` | 结构化快照 |
-| `origin` | `local` / `market` |
-| `enabled` | 启用开关 |
-| `confirmed_manifest_hash` | **市场来源的启动确认指纹** |
-| `sort_order` / `created_at` / `updated_at` | — |
+开发库位置：`<仓库根>/.data/clipboard.sqlite`；安装版：`<userData>/db/clipboard.sqlite`。
+
+#### 5.2.1 `plugin` 表
+
+| 列 | 类型 | 说明 |
+| --- | --- | --- |
+| `local_id` | INTEGER | **主键**，自增。预览协议 `qnote-app://p<local_id>/` 用它 |
+| `id` | TEXT | 业务标识（`publisher.name`），唯一 |
+| `name` / `version` / `publisher` | TEXT | 展示字段，来自清单 |
+| `description` | TEXT | 可空 |
+| `path` | TEXT | 插件目录绝对路径，唯一 |
+| `status` | VARCHAR | 快照状态：`ready` / `incompatible` / `missing-manifest` / `invalid-manifest` |
+| `manifest_text` | TEXT | **清单原文快照**（整个 plugin.json 的文本） |
+| `command` | TEXT | 拼好的命令行，如 `node server.mjs` |
+| `preview` | TEXT | 预览的"草稿态"表示：port 型存端口号 `7788`，url 型存 URL，path 型存相对路径 |
+| `error` | TEXT | 状态为异常时的原因，正常时 NULL |
+| `runtime_json` | TEXT | `runtime` 段的结构化快照 |
+| `capabilities_json` | TEXT | `capabilities` 段的结构化快照 |
+| `contributes_json` | TEXT | `contributes` 段的结构化快照（没声明就是 NULL） |
+| `origin` | VARCHAR | `local` / `market` —— 决定启动前要不要弹确认框 |
+| `enabled` | INTEGER | 启用开关，0/1 |
+| `confirmed_manifest_hash` | VARCHAR | **市场来源的启动确认指纹**（清单内容哈希），改过清单就对不上 |
+| `sort_order` | INTEGER | 排序 |
+| `created_at` / `updated_at` | datetime | 时间戳 |
+
+真实的一行（`local.ichain-dev-console`）：
+
+```json
+{
+  "local_id": 1,
+  "id": "local.ichain-dev-console",
+  "name": "iChain Dev Console",
+  "version": "0.0.1",
+  "publisher": "local",
+  "description": "同时拉起 iChain 四个仓库的 pnpm run dev，看状态、日志与健康探测，并切换后端环境",
+  "path": "D:\\lenovo\\gsc\\ichain-dev-console",
+  "status": "ready",
+  "manifest_text": "{\n  \"id\": \"local.ichain-dev-console\",\n  ... \n}\n",
+  "command": "node server.mjs",
+  "preview": "7788",
+  "error": null,
+  "runtime_json": "{\"command\":\"node server.mjs\",\"cwd\":\".\",\"env\":{\"QNOTE_MANAGED\":\"1\"},\"preview\":{\"type\":\"port\",\"port\":7788}}",
+  "capabilities_json": "{\"process\":{\"spawn\":true}}",
+  "contributes_json": null,
+  "origin": "local",
+  "enabled": 1,
+  "confirmed_manifest_hash": "",
+  "sort_order": 0,
+  "created_at": 1795166598558,
+  "updated_at": 1795166598581
+}
+```
+
+#### 5.2.2 `plugin_setting` 表
+
+插件自己声明的设置项的值。**key 必须在 `contributes.settings` 里声明过**，否则宿主 API 拒绝读写。
+
+| 列 | 类型 | 说明 |
+| --- | --- | --- |
+| `plugin_id` | TEXT | 插件的 `id`（不是 `local_id`） |
+| `key` | TEXT | 设置项 key |
+| `value` | TEXT | 值，统一存成字符串 |
+
+复合主键：`(plugin_id, key)`。
+例：`("local.ichain-dev-console", "autoStart", "true")`。
+
+#### 5.2.3 `plugin_grant` 表
+
+| 列 | 类型 | 说明 |
+| --- | --- | --- |
+| `plugin_id` | TEXT | 插件 `id` |
+| `capability` | TEXT | 能力名（如 `process.spawn`、`qnote.notes`） |
+| `granted` | INTEGER | 是否已授权，0/1 |
+| `granted_at` | datetime | 授权时间 |
+
+复合主键：`(plugin_id, capability)`。
+**表建了但还没用** —— 逐项授权与撤销的 UI 还没做（见 §十二）。
+
+#### 5.2.4 老表还留着
+
+1.x 的 `app_project` 表**不删**，老记录完整保留（`id` / `name` / `path` / `status` / `manifest_text` / `command` / `preview` / `origin` / `confirmed_manifest_hash` …）。它是回滚口子：万一要退回 1.x 的【应用】模块，老数据还在。
+
+#### 5.2.5 三条铁律
+
+1. **数据库只存索引与快照，清单真源在磁盘。** 改 `plugin.json` 后点「刷新」，`readPluginRecord` 重读清单并覆盖快照列。
+2. **`status` 是算出来的，不是存出来的状态机。** 每次刷新都按「清单能不能解析 + `engines.qnote` 满不满足当前宿主版本」重算。
+3. **两个 id 不能混用。** `plugin_id` 关联的是**字符串 `id`**；只有预览协议的 host 段用数字 `local_id`。
 
 ### 5.3 老应用迁移（1.x → 2.0）
 
@@ -482,6 +556,87 @@ PublishDialog
 
 端点不认的未知参数会被**静默忽略**，不会报错。所以客户端读回来发现没有 bundle，就标 `bundleDropped` —— 界面提示「公共目录还不支持上传资源，本次只发布了清单」，**不是错误**。
 
+### 7.5 云数据库里的插件长什么样
+
+云端不是 QNote 的 SQLite，是 **TiDB Cloud Data Service** 上的 `qnote_catalog.published_app`（集群 cluster_id `10793486381217312394`）。端点定义在 `data-app/http_endpoints/`，**SQL 写死在服务端**，客户端发不了任意 SQL。
+
+表结构（`data-app/schema.sql`）：
+
+```sql
+CREATE TABLE IF NOT EXISTS qnote_catalog.published_app (
+  id VARCHAR(64) NOT NULL,
+  name VARCHAR(255) NOT NULL DEFAULT '',
+  description TEXT NOT NULL,
+  author VARCHAR(128) NOT NULL DEFAULT '',
+  manifest TEXT NOT NULL,
+  repo_url VARCHAR(1024) NOT NULL DEFAULT '',
+  tags VARCHAR(512) NOT NULL DEFAULT '',
+  bundle MEDIUMTEXT NULL,
+  pulls BIGINT NOT NULL DEFAULT 0,
+  created_at BIGINT NOT NULL DEFAULT 0,
+  updated_at BIGINT NOT NULL DEFAULT 0,
+  PRIMARY KEY (id),
+  KEY published_app_updated_at_idx (updated_at DESC)
+);
+```
+
+真实的一行（线上当前只有 1 条 —— 「行程地图」）：
+
+```json
+{
+  "id": "app_mwk0pv4u_8377am",
+  "name": "行程地图",
+  "description": "全国市级地图 + 去过点亮 + 城市景点介绍，管理自己的行程足迹",
+  "author": "",
+  "manifest": "{\n  \"name\": \"行程地图\",\n  \"command\": \"node server.mjs\",\n  \"cwd\": \".\",\n  \"env\": { \"PORT\": \"7800\", \"QNOTE_MANAGED\": \"1\" },\n  \"preview\": 7800\n}",
+  "repo_url": "",
+  "tags": "",
+  "pulls": "0",
+  "created_at": "1795163058861",
+  "updated_at": "1795163058861"
+}
+```
+
+四个必须知道的点：
+
+1. **云端 `id` 是 `app_xxx` 随机串**，不是插件的 `publisher.name` id —— 插件自己的 id 只存在于 `manifest` 原文里。下载时由 `toMarketPayload` 从清单原文抽出来用。
+2. **BIGINT 在响应里是字符串**（`"pulls": "0"`、`"created_at": "1795163058861"`），客户端要自己 `Number()` 转。
+3. **`manifest` 存的是清单原文**，runtime / capabilities 不单独拆列，全在这一列里。
+4. **`bundle` 是 MEDIUMTEXT NULL** —— 存 base64 + deflateRaw 的资源包；**列必须可空**（TiDB 不给 TEXT 列设默认值，老客户端发布时不带这个参数）。
+
+> 线上这条是 1.x 时期发布的，`manifest` 还是老格式（顶层 `command`/`cwd`/`env`/`preview`）。下载时 `toMarketPayload` 会做兼容转换（`parseLegacyPreview` 等），所以照样能装。新版发布的记录是完整的 `plugin.json`。
+
+#### 7.5.1 云端 vs 本地 `plugin` 表
+
+| | 本地 `plugin` 表 | 云端 `published_app` 表 |
+| --- | --- | --- |
+| 主键 | `local_id` 自增 + `id` 唯一 | `id` 字符串主键（`app_xxx`） |
+| 语义 | **索引**：指向磁盘上的插件目录 | **发布记录**：一份可被别人获取的快照 |
+| 清单 | 拆成 `manifest_text` + 三个 `*_json` | 只有一列 `manifest` 原文 |
+| 资源包 | 不存 | `bundle` MEDIUMTEXT |
+| 权限 | `capabilities_json` 结构化存 | 藏在 `manifest` 原文里 |
+| 运行态 | 关联 `plugin_setting` / `plugin_grant` | 无（云端不跑插件） |
+
+#### 7.5.2 七个端点
+
+| 端点 | 方法 | 参数 | 返回 |
+| --- | --- | --- | --- |
+| `/apps_list` | GET | keyword, limit, offset | 列表（**不含 bundle**，轻量） |
+| `/apps_count` | GET | keyword | `{n}` 总数 |
+| `/apps_get` | GET | id | 单条（**含 bundle**） |
+| `/apps_publish` | POST | id, name, description, author, manifest, bundle, repo_url, tags, pulls, created_at, updated_at | 发布 |
+| `/apps_update` | POST | 同上去掉 pulls / created_at | 覆盖发布 |
+| `/apps_remove` | POST | id | 删除 |
+| `/apps_mark_pulled` | POST | id | 获取次数 +1 |
+
+访问方式：Basic 认证（Public Key 当用户名、Private Key 当密码），URL 形如
+`https://<region>.data.tidbcloud.com/api/v1beta/app/<App ID>/endpoint/<path>`。
+GET 的参数进 query string，POST 的参数进 JSON body，**只用 GET / POST**。
+
+#### 7.5.3 本地等价物
+
+设置页切到「本地」后端时，同一张表建在本地 SQLite 里（`src/database/cloud/sharedStore.ts`），列名一样，但 `bundle` 是 `TEXT NOT NULL DEFAULT ''`（本地没有 TiDB 的可空限制）。
+
 ---
 
 ## 八、链路五：下载安装
@@ -566,6 +721,31 @@ PublishedPluginMarket.handlePull(entry)
 `pluginRisk.ts` 的 13 条正则（命令分隔符、命令替换、下载后直接执行、编码后执行、递归删除、提权……）只用来**在确认框里提示「这条命令看起来危险」**。
 
 **它不是安全边界** —— 关键词匹配挡不住刻意伪装。真正的防线是「来源标记 + 运行前确认 + 声明式权限」三件套。
+
+### 9.4 进程隔离 ≠ 沙箱
+
+插件跑在**独立 OS 进程**里，但它是个**普通用户进程** —— 没有容器、没有 seccomp、没有文件系统限制。声明式权限管的是**宿主 API 面**，不是插件进程本身。
+
+`checkCapability` 只有两个调用点：
+
+| 调用点 | 判定 |
+| --- | --- |
+| `pluginManager.startPlugin` | `{ kind: "spawn" }` —— 没有 `process.spawn` 就不让起 |
+| `hostApi.listTodos` / `hostApi.listNotes` | `{ kind: "data", area, access }` —— 每次数据调用都重判 |
+
+**真正被强制的只有两件事**：能不能启动、能不能通过 SDK 读笔记/待办。
+
+**声明了但目前没有强制点的**（清单里写、确认框里显示、但运行时不管）：
+
+| 声明 | 现状 |
+| --- | --- |
+| `capabilities.network` | 无强制。插件进程可以直接访问任何网络地址 |
+| `capabilities.filesystem` | 无强制。插件进程能读写任何当前用户有权限的文件 |
+| `capabilities.process.env` | 无强制。spawn 时传的是 `{ ...process.env, ...runtime.env }`，插件继承 QNote 的**全部**环境变量 |
+
+所以「声明了什么」目前是**给人看的信任声明**，不是隔离边界。真正管住的是：① 市场来源的启动确认 ② 声明式权限管住的宿主 API 面 ③ 风险分析（仅提示）。
+
+真正的隔离要等：把插件跑进容器/受限沙箱，或给 `network` / `filesystem` 加真正的执行层拦截。
 
 ---
 
@@ -698,7 +878,8 @@ createPlugin({
 | --- | --- | --- |
 | 导入报「清单不合规」 | `plugin.json` 解析不过，错误信息里有具体字段 | 按提示改；id 必须是 `publisher.name` 且小写 |
 | 导入报「已经有 id 相同的插件」 | `duplicate-id` | 换 id，或先移除旧的 |
-| 状态显示「版本不兼容」 | `engines.qnote` 要求更高版本 | 改清单的版本范围，或升级 QNote |
+| 状态显示「版本不兼容」但 QNote 版本是对的 | `engines.qnote` 写错了（比如写成了 Electron 的版本号） | 改清单的版本范围为 `^<当前 QNote 版本>`，再点「刷新」让快照跟上 |
+| dev 下所有地方都显示版本 `45.x` | Electron 的 `app.getVersion()` 在 `electron ./dist/main/index.js` 启动方式下拿不到应用版本，回退成 Electron 版本 | 主进程统一用 `src/main/core/system/appVersion.ts` 的 `appVersion()`，别直接调 `app.getVersion()` |
 | 点了启动没反应 | 没声明 `capabilities.process.spawn` | 清单里补上；只做预览页面的插件本来就起不来 |
 | 提示「cwd 指向了插件目录之外」 | `runtime.cwd` 越界 | 改成相对路径 |
 | 市场插件每次启动都弹确认 | 清单改过了，指纹对不上 | 确认一次即可（指纹会记下来） |
