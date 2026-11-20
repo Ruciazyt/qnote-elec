@@ -21,6 +21,7 @@ export default defineConfig({
         "sticky-note": path.resolve(__dirname, "sticky-note.html"),
         "popup-clipboard": path.resolve(__dirname, "popup-clipboard.html"),
         island: path.resolve(__dirname, "island.html"),
+        dialog: path.resolve(__dirname, "dialog.html"),
       },
     },
   },

@@ -420,6 +420,20 @@ interface ElectronAPI {
     }) => void
   ) => () => void;
 
+  dialogOpen: (context: {
+    type: import("@shared/apps/dialogTypes").DialogType;
+    payload?: Record<string, unknown>;
+  }) => Promise<{ ok: boolean; error?: string }>;
+  dialogGetContext: () => Promise<import("@shared/apps/dialogTypes").DialogContext | null>;
+  dialogClose: () => Promise<{ ok: boolean }>;
+  dialogSend: (message: import("@shared/apps/dialogTypes").DialogMessage) => void;
+  onDialogContext: (
+    callback: (context: import("@shared/apps/dialogTypes").DialogContext) => void
+  ) => () => void;
+  onDialogMessage: (
+    callback: (message: import("@shared/apps/dialogTypes").DialogMessage) => void
+  ) => () => void;
+
   cloudGetConfig: () => Promise<import("@shared/cloud/cloudTypes").CloudStorageConfig>;
   cloudSaveConfig: (payload: {
     backend?: import("@shared/cloud/cloudTypes").CloudBackend;

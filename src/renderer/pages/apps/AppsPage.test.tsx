@@ -37,6 +37,7 @@ function setup(projects: unknown[] = []) {
     data: { apps: [MARKET_APP], total: 1 },
   }));
   const appPickProjectDir = vi.fn(async () => "D:\\apps\\travel-map");
+  const dialogOpen = vi.fn(async () => ({ ok: true }));
   const appImportFromMarket = vi.fn(async () => {
     imported = true;
     return { ok: true, project: IMPORTED };
@@ -49,17 +50,19 @@ function setup(projects: unknown[] = []) {
     cloudListApps,
     appPickProjectDir,
     appImportFromMarket,
+    dialogOpen,
     cloudMarkPulled: vi.fn(async () => true),
     onAppProjectsChanged: vi.fn(() => () => {}),
     onAppRuntimeChanged: vi.fn(() => () => {}),
     onAppLog: vi.fn(() => () => {}),
     onAppPreviewError: vi.fn(() => () => {}),
+    onDialogMessage: vi.fn(() => () => {}),
     appLogs: vi.fn(async () => []),
     appPreviewBounds: vi.fn(async () => undefined),
     setNativeViewCover: vi.fn(async () => undefined),
   });
 
-  return { appListProjects, appImportFromMarket };
+  return { appListProjects, appImportFromMarket, dialogOpen };
 }
 
 describe("应用管理页", () => {
@@ -93,5 +96,37 @@ describe("应用管理页", () => {
         items.some((el) => el.getAttribute("aria-current") === "true")
       ).toBe(true);
     });
+  });
+});
+
+describe("发布走独立弹框窗口", () => {
+  const PROJECT = {
+    id: 1,
+    name: "iChain Dev Console",
+    path: "D:\\lenovo\\gsc\\ichain-dev-console",
+    status: "ready",
+    command: "node server.mjs",
+    manifestText: JSON.stringify({
+      name: "iChain Dev Console",
+      command: "node server.mjs",
+      preview: "http://127.0.0.1:7788/",
+    }),
+  };
+
+  it("点发布把清单交给弹框窗口，清单里的回环地址已换成端口", async () => {
+    const stub = setup([PROJECT]);
+    render(<AppsPage />);
+
+    await waitFor(() =>
+      expect(screen.getByText("iChain Dev Console")).toBeInTheDocument()
+    );
+    await userEvent.click(screen.getByText("iChain Dev Console"));
+    await userEvent.click(screen.getByRole("button", { name: "发布到应用市场" }));
+
+    await waitFor(() => expect(stub.dialogOpen).toHaveBeenCalled());
+    const context = stub.dialogOpen.mock.calls[0][0];
+    expect(context.type).toBe("publish");
+    expect(context.payload.manifest).not.toContain("127.0.0.1");
+    expect(JSON.parse(context.payload.manifest).preview).toBe(7788);
   });
 });

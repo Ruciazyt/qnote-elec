@@ -18,23 +18,19 @@ import {
 import type { StartConfirmation } from "@shared/apps/appTypes";
 
 interface StartConfirmDialogProps {
-  open: boolean;
   confirmation: StartConfirmation | null;
   onClose: () => void;
-  onConfirm: (manifestHash: string) => void;
 }
 
 export function StartConfirmDialog({
-  open,
   confirmation,
   onClose,
-  onConfirm,
 }: StartConfirmDialogProps) {
   const [acknowledged, setAcknowledged] = React.useState(false);
 
   React.useEffect(() => {
-    if (open) setAcknowledged(false);
-  }, [open]);
+    setAcknowledged(false);
+  }, [confirmation]);
 
   if (!confirmation) return null;
 
@@ -43,7 +39,7 @@ export function StartConfirmDialog({
   const canRun = !isDanger || acknowledged;
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+    <Dialog open onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="sm:max-w-[560px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -140,7 +136,15 @@ export function StartConfirmDialog({
           <Button
             variant={isDanger ? "destructive" : "default"}
             disabled={!canRun}
-            onClick={() => onConfirm(confirmation.manifestHash)}
+            onClick={() => {
+              window.electron.dialogSend({
+                action: "confirm",
+                payload: {
+                  manifestHash: confirmation.manifestHash,
+                  projectId: confirmation.projectId,
+                },
+              });
+            }}
             className="btn-hover"
           >
             运行

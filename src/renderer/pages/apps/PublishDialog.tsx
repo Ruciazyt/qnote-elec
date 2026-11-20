@@ -11,46 +11,64 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import type { AppProject } from "@shared/apps/appTypes";
 
-export interface PublishPayload {
+export interface PublishTarget {
+  name: string;
   description: string;
-  author: string;
-  repoUrl: string;
-  tags: string;
+  manifest: string;
 }
 
 interface PublishDialogProps {
-  open: boolean;
-  project: AppProject | null;
+  target: PublishTarget | null;
   onClose: () => void;
-  onSubmit: (payload: PublishPayload) => void;
-  submitting: boolean;
 }
 
-export function PublishDialog({
-  open,
-  project,
-  onClose,
-  onSubmit,
-  submitting,
-}: PublishDialogProps) {
+export function PublishDialog({ target, onClose }: PublishDialogProps) {
   const [description, setDescription] = React.useState("");
   const [author, setAuthor] = React.useState("");
   const [repoUrl, setRepoUrl] = React.useState("");
   const [tags, setTags] = React.useState("");
+  const [publishing, setPublishing] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    if (open) {
-      setDescription(project?.description ?? "");
-      setAuthor("");
-      setRepoUrl("");
-      setTags("");
+    setDescription(target?.description ?? "");
+    setAuthor("");
+    setRepoUrl("");
+    setTags("");
+    setError(null);
+  }, [target]);
+
+  const handleSubmit = async () => {
+    if (!target || publishing) return;
+    setPublishing(true);
+    setError(null);
+    try {
+      const result = await window.electron.cloudPublishApp({
+        name: target.name,
+        description: description || target.description || "",
+        author,
+        manifest: target.manifest,
+        repoUrl,
+        tags,
+      });
+      if (!result.ok) {
+        setError(result.error ?? "发布失败");
+        setPublishing(false);
+        return;
+      }
+      window.electron.dialogSend({
+        action: "published",
+        payload: { name: result.data.name },
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      setPublishing(false);
     }
-  }, [open, project]);
+  };
 
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>发布到应用市场</DialogTitle>
@@ -63,7 +81,7 @@ export function PublishDialog({
         <div className="space-y-3">
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-foreground/80 block">应用名</label>
-            <Input value={project?.name ?? ""} disabled className="h-9 text-xs" />
+            <Input value={target?.name ?? ""} disabled className="h-9 text-xs" />
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-foreground/80 block">简介</label>
@@ -103,6 +121,11 @@ export function PublishDialog({
               className="h-9 text-xs"
             />
           </div>
+          {error && (
+            <p className="text-[12px] text-destructive leading-relaxed" role="alert">
+              {error}
+            </p>
+          )}
         </div>
 
         <DialogFooter>
@@ -111,14 +134,12 @@ export function PublishDialog({
           </Button>
           <Button
             type="button"
-            onClick={() =>
-              onSubmit({ description, author, repoUrl, tags })
-            }
-            disabled={submitting || !project}
+            onClick={() => void handleSubmit()}
+            disabled={publishing || !target}
             className="h-9 btn-hover"
           >
-            {submitting && <RefreshCw className="h-4 w-4 mr-1.5 animate-spin" />}
-            {submitting ? "发布中..." : "发布"}
+            {publishing && <RefreshCw className="h-4 w-4 mr-1.5 animate-spin" />}
+            {publishing ? "发布中..." : "发布"}
           </Button>
         </DialogFooter>
       </DialogContent>

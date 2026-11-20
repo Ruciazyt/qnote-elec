@@ -21,22 +21,19 @@ import { AppProjectList } from "@/pages/apps/AppProjectList";
 import { AppProjectHeader } from "@/pages/apps/AppProjectHeader";
 import { ManifestDialog, type ManifestDraft, type ManifestPayload } from "@/pages/apps/ManifestDialog";
 import { RemoveProjectDialog } from "@/pages/apps/RemoveProjectDialog";
-import { StartConfirmDialog } from "@/pages/apps/StartConfirmDialog";
 import { SpecDialog } from "@/pages/apps/SpecDialog";
 import { PublishedAppMarket } from "@/pages/apps/PublishedAppMarket";
-import { PublishDialog, type PublishPayload } from "@/pages/apps/PublishDialog";
-import type {
-  AppLogLine,
-  AppProject,
-  AppRuntimeState,
-  StartConfirmation,
-} from "@shared/apps/appTypes";
-import type { CloudBackend } from "@shared/cloud/cloudTypes";
 import {
   normalizeManifestPreview,
   previewAddressOf,
   previewToDraftText,
 } from "@shared/apps/preview";
+import type {
+  AppLogLine,
+  AppProject,
+  AppRuntimeState,
+} from "@shared/apps/appTypes";
+import type { CloudBackend } from "@shared/cloud/cloudTypes";
 
 
 const LOG_COLLAPSED_KEY = "qnote-apps-log-collapsed";
@@ -95,10 +92,7 @@ export default function AppsPage() {
   const [busy, setBusy] = useState(false);
   const [pendingImport, setPendingImport] = useState<{ path: string; name: string } | null>(null);
   const [removeOpen, setRemoveOpen] = useState(false);
-  const [startConfirmation, setStartConfirmation] = useState<StartConfirmation | null>(null);
   const [marketOpen, setMarketOpen] = useState(false);
-  const [publishOpen, setPublishOpen] = useState(false);
-  const [publishing, setPublishing] = useState(false);
   const [cloudBackend, setCloudBackend] = useState<CloudBackend>("local");
 
   const [logCollapsed, setLogCollapsed] = useCollapsedState(LOG_COLLAPSED_KEY, false);
@@ -208,6 +202,36 @@ export default function AppsPage() {
     setRemoveOpen(false);
   }, [selectedId]);
 
+  useEffect(() => {
+    const off = window.electron.onDialogMessage((message) => {
+      if (message.action === "published") {
+        toast({ title: "已发布", description: String(message.payload?.name ?? "") });
+        return;
+      }
+      if (message.action !== "confirm") return;
+
+      const projectId = Number(message.payload?.projectId ?? 0);
+      const manifestHash = String(message.payload?.manifestHash ?? "");
+      if (!projectId || !manifestHash) return;
+
+      void (async () => {
+        const res = await window.electron.appStart(projectId, manifestHash);
+        if (res.needsConfirmation) {
+          toast({
+            title: "启动失败",
+            description: "清单已经变了，请重新确认",
+            variant: "destructive",
+          });
+          return;
+        }
+        if (!res.ok) {
+          toast({ title: "启动失败", description: res.error, variant: "destructive" });
+        }
+      })();
+    });
+    return off;
+  }, [toast]);
+
 
   const handleImport = useCallback(async () => {
     try {
@@ -242,7 +266,17 @@ export default function AppsPage() {
     async (project: AppProject, confirmedManifestHash?: string) => {
       const res = await window.electron.appStart(project.id, confirmedManifestHash);
       if (res.needsConfirmation) {
-        setStartConfirmation(res.needsConfirmation);
+        const opened = await window.electron.dialogOpen({
+          type: "start-confirm",
+          payload: res.needsConfirmation as unknown as Record<string, unknown>,
+        });
+        if (!opened?.ok) {
+          toast({
+            title: "启动失败",
+            description: opened?.error ?? "打不开确认窗口",
+            variant: "destructive",
+          });
+        }
         return;
       }
       if (!res.ok) {
@@ -250,24 +284,6 @@ export default function AppsPage() {
       }
     },
     [toast]
-  );
-
-  const handleStartConfirmed = useCallback(
-    async (manifestHash: string) => {
-      const confirmation = startConfirmation;
-      setStartConfirmation(null);
-      if (!confirmation) return;
-      await handleStart(
-        {
-          id: confirmation.projectId,
-          name: confirmation.name,
-          path: "",
-          status: "ready",
-        },
-        manifestHash
-      );
-    },
-    [handleStart, startConfirmation]
   );
 
   const handleStop = useCallback(
@@ -289,38 +305,24 @@ export default function AppsPage() {
     [reload]
   );
 
-  const handlePublish = useCallback(
-    async (payload: PublishPayload) => {
-      if (!selected) return;
-      setPublishing(true);
-      try {
-        const result = await window.electron.cloudPublishApp({
-          name: selected.name,
-          description: payload.description || selected.description || "",
-          author: payload.author,
-          manifest: normalizeManifestPreview(selected.manifestText ?? ""),
-          repoUrl: payload.repoUrl,
-          tags: payload.tags,
-        });
-        if (!result.ok) {
-          toast({
-            title: "发布失败",
-            description: result.error,
-            variant: "destructive",
-          });
-          return;
-        }
-        toast({ title: "已发布", description: result.data.name });
-        setPublishOpen(false);
-      } catch (err) {
-        console.error("发布失败", err);
-        toast({ title: "发布失败", description: String(err), variant: "destructive" });
-      } finally {
-        setPublishing(false);
-      }
-    },
-    [selected, toast]
-  );
+  const handlePublish = useCallback(async () => {
+    if (!selected) return;
+    const opened = await window.electron.dialogOpen({
+      type: "publish",
+      payload: {
+        name: selected.name,
+        description: selected.description,
+        manifest: normalizeManifestPreview(selected.manifestText ?? ""),
+      },
+    });
+    if (!opened?.ok) {
+      toast({
+        title: "发布失败",
+        description: opened?.error ?? "打不开发布窗口",
+        variant: "destructive",
+      });
+    }
+  }, [selected, toast]);
 
   const handleSaveManifest = useCallback(
     async (payload: ManifestPayload) => {
@@ -557,7 +559,7 @@ export default function AppsPage() {
                 project={selected}
                 runtime={selectedRuntime}
                 previewUrl={previewAddress}
-                onPublish={() => setPublishOpen(true)}
+                onPublish={() => void handlePublish()}
                 onStart={() => void handleStart(selected)}
                 onStop={() => void handleStop(selected)}
                 onEditManifest={() => {
@@ -638,23 +640,7 @@ export default function AppsPage() {
         />
       )}
 
-      <PublishDialog
-        open={publishOpen}
-        project={selected}
-        onClose={() => setPublishOpen(false)}
-        onSubmit={(payload) => void handlePublish(payload)}
-        submitting={publishing}
-      />
-
       <SpecDialog open={specOpen} onClose={() => setSpecOpen(false)} />
-
-      {}
-      <StartConfirmDialog
-        open={startConfirmation !== null}
-        confirmation={startConfirmation}
-        onClose={() => setStartConfirmation(null)}
-        onConfirm={(manifestHash) => void handleStartConfirmed(manifestHash)}
-      />
 
       {}
       {selected && (

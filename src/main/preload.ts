@@ -489,6 +489,27 @@ contextBridge.exposeInMainWorld("electron", {
     return () => ipcRenderer.removeListener("app:preview-error", listener);
   },
 
+  dialogOpen: (context: { type: string; payload?: Record<string, unknown> }) =>
+    ipcRenderer.invoke("dialog:open", context),
+  dialogGetContext: () => ipcRenderer.invoke("dialog:context-get"),
+  dialogClose: () => ipcRenderer.invoke("dialog:close"),
+  dialogSend: (message: { action: string; payload?: Record<string, unknown> }) =>
+    ipcRenderer.send("dialog:message", message),
+  onDialogContext: (
+    callback: (context: { type: string; payload: Record<string, unknown> }) => void
+  ) => {
+    const listener = (_event: unknown, context: any) => callback(context);
+    ipcRenderer.on("dialog:context", listener);
+    return () => ipcRenderer.removeListener("dialog:context", listener);
+  },
+  onDialogMessage: (
+    callback: (message: { action: string; payload?: Record<string, unknown> }) => void
+  ) => {
+    const listener = (_event: unknown, message: any) => callback(message);
+    ipcRenderer.on("dialog:message", listener);
+    return () => ipcRenderer.removeListener("dialog:message", listener);
+  },
+
   cloudGetConfig: () => ipcRenderer.invoke("cloud:get-config"),
   cloudSaveConfig: (payload: { backend?: string; catalog?: unknown }) =>
     ipcRenderer.invoke("cloud:save-config", payload),

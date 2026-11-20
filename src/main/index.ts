@@ -53,6 +53,8 @@ import { initUpdater } from "./core/update/updater";
 import { parseAddShortcutArg, repairContextMenu } from "./utils/shellContextMenu";
 import { registerAsrHandlers } from "./handlers/ai/asrHandlers";
 import { registerAppHandlers, teardownAppHandlers, resolveAppProjectDir } from "./handlers/apps/appHandlers";
+import { registerDialogHandlers } from "./handlers/apps/dialogHandlers";
+import { dialogWindowManager } from "./core/window/apps/dialogWindow";
 import { registerCloudHandlers } from "./handlers/cloud/cloudHandlers";
 import { initCloudStorage } from "../database/cloud/cloudManager";
 import {
@@ -194,6 +196,7 @@ function registerIpcHandlers() {
   registerAsrHandlers();
   registerUpdateHandlers();
   registerAppHandlers(DB);
+  registerDialogHandlers();
   registerCloudHandlers();
 }
 
@@ -384,6 +387,7 @@ app.on("will-quit", () => {
 
   teardownAppHandlers();
   disposeAppPreview();
+  dialogWindowManager.dispose();
 
   tray?.destroy();
   tray = null;
