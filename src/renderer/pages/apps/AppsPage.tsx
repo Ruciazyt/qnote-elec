@@ -4,6 +4,7 @@ import {
   CircleAlert,
   FileCode2,
   FolderPlus,
+  Package,
   Plus,
   RefreshCw,
   ScrollText,
@@ -23,6 +24,7 @@ import { RemoveProjectDialog } from "@/pages/apps/RemoveProjectDialog";
 import { StartConfirmDialog } from "@/pages/apps/StartConfirmDialog";
 import { SpecDialog } from "@/pages/apps/SpecDialog";
 import { PublishedAppMarket } from "@/pages/apps/PublishedAppMarket";
+import { PublishDialog, type PublishPayload } from "@/pages/apps/PublishDialog";
 import type {
   AppLogLine,
   AppProject,
@@ -89,7 +91,9 @@ export default function AppsPage() {
   const [pendingImport, setPendingImport] = useState<{ path: string; name: string } | null>(null);
   const [removeOpen, setRemoveOpen] = useState(false);
   const [startConfirmation, setStartConfirmation] = useState<StartConfirmation | null>(null);
-  const [view, setView] = useState<"local" | "market">("local");
+  const [marketOpen, setMarketOpen] = useState(false);
+  const [publishOpen, setPublishOpen] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const [cloudBackend, setCloudBackend] = useState<CloudBackend>("local");
 
   const [logCollapsed, setLogCollapsed] = useCollapsedState(LOG_COLLAPSED_KEY, false);
@@ -271,6 +275,48 @@ export default function AppsPage() {
     [toast]
   );
 
+  const handleMarketImported = useCallback(
+    async (project: AppProject) => {
+      setMarketOpen(false);
+      await reload();
+      setSelectedId(project.id);
+    },
+    [reload]
+  );
+
+  const handlePublish = useCallback(
+    async (payload: PublishPayload) => {
+      if (!selected) return;
+      setPublishing(true);
+      try {
+        const result = await window.electron.cloudPublishApp({
+          name: selected.name,
+          description: payload.description || selected.description || "",
+          author: payload.author,
+          manifest: selected.manifestText ?? "",
+          repoUrl: payload.repoUrl,
+          tags: payload.tags,
+        });
+        if (!result.ok) {
+          toast({
+            title: "发布失败",
+            description: result.error,
+            variant: "destructive",
+          });
+          return;
+        }
+        toast({ title: "已发布", description: result.data.name });
+        setPublishOpen(false);
+      } catch (err) {
+        console.error("发布失败", err);
+        toast({ title: "发布失败", description: String(err), variant: "destructive" });
+      } finally {
+        setPublishing(false);
+      }
+    },
+    [selected, toast]
+  );
+
   const handleSaveManifest = useCallback(
     async (payload: ManifestPayload) => {
       const target = pendingImport?.path ?? selected?.path;
@@ -396,34 +442,18 @@ export default function AppsPage() {
         <Boxes className="h-4 w-4 text-muted-foreground/70" />
         <span className="text-sm font-medium">应用管理</span>
 
-        {
-}
-        <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-muted/60 ml-1">
-          {(
-            [
-              { id: "local", label: "本机项目" },
-              { id: "market", label: "应用市场" },
-            ] as const
-          ).map((option) => {
-            const active = view === option.id;
-            return (
-              <button
-                key={option.id}
-                type="button"
-                onClick={() => setView(option.id)}
-                aria-pressed={active}
-                className={cn(
-                  "px-2 py-0.5 rounded text-[11px] font-medium transition-colors",
-                  active
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {option.label}
-              </button>
-            );
-          })}
-        </div>
+        <Button
+          type="button"
+          variant={marketOpen ? "secondary" : "ghost"}
+          size="sm"
+          className="h-7 px-2 text-xs btn-hover ml-1"
+          onClick={() => setMarketOpen((v) => !v)}
+          aria-pressed={marketOpen}
+          title="浏览别人发布的应用"
+        >
+          <Package className="h-3.5 w-3.5 mr-1" />
+          应用市场
+        </Button>
 
         <div className="flex-1" />
 
@@ -489,11 +519,10 @@ export default function AppsPage() {
 
         {}
         <section className="flex-1 min-w-0 min-h-0 flex flex-col">
-          {view === "market" ? (
+          {marketOpen ? (
             <PublishedAppMarket
-              selectedProject={selected}
               backend={cloudBackend}
-              onChanged={() => void reload()}
+              onImported={(project) => void handleMarketImported(project)}
             />
           ) : !selected ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center px-6">
@@ -523,6 +552,7 @@ export default function AppsPage() {
                 project={selected}
                 runtime={selectedRuntime}
                 previewUrl={previewAddress}
+                onPublish={() => setPublishOpen(true)}
                 onStart={() => void handleStart(selected)}
                 onStop={() => void handleStop(selected)}
                 onEditManifest={() => {
@@ -602,6 +632,14 @@ export default function AppsPage() {
           onSave={handleSaveManifest}
         />
       )}
+
+      <PublishDialog
+        open={publishOpen}
+        project={selected}
+        onClose={() => setPublishOpen(false)}
+        onSubmit={(payload) => void handlePublish(payload)}
+        submitting={publishing}
+      />
 
       <SpecDialog open={specOpen} onClose={() => setSpecOpen(false)} />
 

@@ -7,6 +7,7 @@ import {
   Play,
   Square,
   Trash2,
+  Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -16,6 +17,7 @@ interface AppProjectHeaderProps {
   project: AppProject;
   runtime?: AppRuntimeState;
   previewUrl?: string;
+  onPublish: () => void;
   onStart: () => void;
   onStop: () => void;
   onEditManifest: () => void;
@@ -48,6 +50,7 @@ export function AppProjectHeader({
   project,
   runtime,
   previewUrl,
+  onPublish,
   onStart,
   onStop,
   onEditManifest,
@@ -184,6 +187,21 @@ export function AppProjectHeader({
       )}
 
       <div className="flex-1" />
+
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className={cn(
+          "h-7 px-2 text-xs btn-hover flex-shrink-0",
+          compact && "w-7 px-0"
+        )}
+        onClick={onPublish}
+        title="发布到应用市场"
+        aria-label="发布到应用市场">
+        <Upload className="h-3.5 w-3.5" />
+        {!compact && <span className="ml-1.5">发布</span>}
+      </Button>
 
       {}
       {hasCommand &&

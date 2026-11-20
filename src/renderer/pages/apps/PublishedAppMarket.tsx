@@ -6,19 +6,9 @@ import {
   Package,
   RefreshCw,
   Search,
-  Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/ui/use-toast";
 import { cn } from "@/lib/utils";
 import type { AppProject } from "@shared/apps/appTypes";
@@ -26,9 +16,8 @@ import type { CloudBackend, PublishedApp } from "@shared/cloud/cloudTypes";
 
 
 interface PublishedAppMarketProps {
-  selectedProject: AppProject | null;
   backend: CloudBackend;
-  onChanged?: () => void;
+  onImported?: (project: AppProject) => void;
 }
 
 const BACKEND_BADGE: Record<
@@ -48,9 +37,8 @@ const BACKEND_BADGE: Record<
 };
 
 export function PublishedAppMarket({
-  selectedProject,
   backend,
-  onChanged,
+  onImported,
 }: PublishedAppMarketProps) {
   const { toast } = useToast();
   const [apps, setApps] = React.useState<PublishedApp[]>([]);
@@ -58,8 +46,6 @@ export function PublishedAppMarket({
   const [keyword, setKeyword] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [busyId, setBusyId] = React.useState<string | null>(null);
-  const [publishOpen, setPublishOpen] = React.useState(false);
-  const [publishing, setPublishing] = React.useState(false);
 
   const reload = React.useCallback(async () => {
     setLoading(true);
@@ -89,46 +75,6 @@ export function PublishedAppMarket({
   React.useEffect(() => {
     void reload();
   }, [reload]);
-
-  const handlePublish = React.useCallback(
-    async (payload: {
-      description: string;
-      author: string;
-      repoUrl: string;
-      tags: string;
-    }) => {
-      if (!selectedProject) return;
-      setPublishing(true);
-      try {
-        const result = await window.electron.cloudPublishApp({
-          name: selectedProject.name,
-          description: payload.description || selectedProject.description || "",
-          author: payload.author,
-          manifest: selectedProject.manifestText ?? "",
-          repoUrl: payload.repoUrl,
-          tags: payload.tags,
-        });
-        if (!result.ok) {
-          toast({
-            title: "发布失败",
-            description: result.error,
-            variant: "destructive",
-          });
-          return;
-        }
-        toast({ title: "已发布", description: result.data.name });
-        setPublishOpen(false);
-        await reload();
-        onChanged?.();
-      } catch (err) {
-        console.error("发布失败", err);
-        toast({ title: "发布失败", description: String(err), variant: "destructive" });
-      } finally {
-        setPublishing(false);
-      }
-    },
-    [selectedProject, reload, onChanged, toast]
-  );
 
   const handlePull = React.useCallback(
     async (app: PublishedApp) => {
@@ -182,7 +128,7 @@ export function PublishedAppMarket({
           title: "已获取",
           description: `${app.name} —— 第一次运行前会请你确认它要执行的命令`,
         });
-        onChanged?.();
+        if (imported.project) onImported?.(imported.project);
       } catch (err) {
         console.error("获取应用失败", err);
         toast({ title: "获取失败", description: String(err), variant: "destructive" });
@@ -190,7 +136,7 @@ export function PublishedAppMarket({
         setBusyId(null);
       }
     },
-    [onChanged, toast]
+    [onImported, toast]
   );
 
   return (
@@ -235,21 +181,6 @@ export function PublishedAppMarket({
           <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
         </Button>
 
-        <Button
-          type="button"
-          size="sm"
-          onClick={() => setPublishOpen(true)}
-          disabled={!selectedProject}
-          className="h-7 text-xs shrink-0"
-          title={
-            selectedProject
-              ? "把当前选中的项目发布到应用市场"
-              : "先在左边选一个项目"
-          }
-        >
-          <Upload className="h-3.5 w-3.5 mr-1" />
-          发布
-        </Button>
       </div>
 
       {}
@@ -263,7 +194,7 @@ export function PublishedAppMarket({
             <p className="text-[11px] text-muted-foreground/50 leading-relaxed">
               {keyword
                 ? "换个关键词试试"
-                : "选中左边的项目，点右上角「发布」把它放上来"}
+                : "把项目发布上来，别人装上 QNote 就能看到"}
             </p>
           </div>
         ) : (
@@ -321,123 +252,6 @@ export function PublishedAppMarket({
       <div className="px-3 py-1.5 border-t border-border/60 text-[11px] text-muted-foreground/60">
         共 {total} 个已发布的应用
       </div>
-
-      <PublishDialog
-        open={publishOpen}
-        project={selectedProject}
-        onClose={() => setPublishOpen(false)}
-        onSubmit={handlePublish}
-        submitting={publishing}
-      />
     </div>
-  );
-}
-
-function PublishDialog({
-  open,
-  project,
-  onClose,
-  onSubmit,
-  submitting,
-}: {
-  open: boolean;
-  project: AppProject | null;
-  onClose: () => void;
-  onSubmit: (payload: {
-    description: string;
-    author: string;
-    repoUrl: string;
-    tags: string;
-  }) => void;
-  submitting: boolean;
-}) {
-  const [description, setDescription] = React.useState("");
-  const [author, setAuthor] = React.useState("");
-  const [repoUrl, setRepoUrl] = React.useState("");
-  const [tags, setTags] = React.useState("");
-
-  React.useEffect(() => {
-    if (open) {
-      setDescription(project?.description ?? "");
-      setAuthor("");
-      setRepoUrl("");
-      setTags("");
-    }
-  }, [open, project]);
-
-  return (
-    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>发布到应用市场</DialogTitle>
-          <DialogDescription>
-            发布的只有清单与简介 —— 项目代码不会被上传，
-            别人「获取」时拿到的是清单，本机的项目文件始终在你手里。
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-3">
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-foreground/80 block">应用名</label>
-            <Input value={project?.name ?? ""} disabled className="h-9 text-xs" />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-foreground/80 block">简介</label>
-            <Textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="一句话说明这个应用做什么"
-              className="text-xs min-h-[60px]"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-foreground/80 block">作者</label>
-              <Input
-                value={author}
-                onChange={(e) => setAuthor(e.target.value)}
-                placeholder="署名"
-                className="h-9 text-xs"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-foreground/80 block">标签</label>
-              <Input
-                value={tags}
-                onChange={(e) => setTags(e.target.value)}
-                placeholder="逗号分隔"
-                className="h-9 text-xs"
-              />
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-foreground/80 block">仓库地址</label>
-            <Input
-              value={repoUrl}
-              onChange={(e) => setRepoUrl(e.target.value)}
-              placeholder="https://github.com/…"
-              className="h-9 text-xs"
-            />
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button type="button" variant="ghost" onClick={onClose} className="h-9">
-            取消
-          </Button>
-          <Button
-            type="button"
-            onClick={() =>
-              onSubmit({ description, author, repoUrl, tags })
-            }
-            disabled={submitting || !project}
-            className="h-9 btn-hover"
-          >
-            {submitting && <RefreshCw className="h-4 w-4 mr-1.5 animate-spin" />}
-            {submitting ? "发布中..." : "发布"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }
