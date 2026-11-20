@@ -32,6 +32,11 @@ import type {
   StartConfirmation,
 } from "@shared/apps/appTypes";
 import type { CloudBackend } from "@shared/cloud/cloudTypes";
+import {
+  normalizeManifestPreview,
+  previewAddressOf,
+  previewToDraftText,
+} from "@shared/apps/preview";
 
 
 const LOG_COLLAPSED_KEY = "qnote-apps-log-collapsed";
@@ -63,7 +68,7 @@ function readManifestDraft(project: AppProject): Partial<ManifestDraft> {
       args: Array.isArray(raw.args) ? raw.args.map(String).join("\n") : "",
       cwd: typeof raw.cwd === "string" ? raw.cwd : "",
       env,
-      preview: typeof raw.preview === "string" ? raw.preview : "",
+      preview: previewToDraftText(raw.preview),
     };
   } catch {
     return empty;
@@ -293,7 +298,7 @@ export default function AppsPage() {
           name: selected.name,
           description: payload.description || selected.description || "",
           author: payload.author,
-          manifest: selected.manifestText ?? "",
+          manifest: normalizeManifestPreview(selected.manifestText ?? ""),
           repoUrl: payload.repoUrl,
           tags: payload.tags,
         });
@@ -408,7 +413,7 @@ export default function AppsPage() {
     if (!selected) return undefined;
     const loaded = selectedId !== null ? previewAddresses[selectedId] : undefined;
     if (loaded) return loaded;
-    if (selected.preview && /^https?:\/\//i.test(selected.preview)) return selected.preview;
+    if (selected.preview) return previewAddressOf(selected.preview);
     return undefined;
   }, [selected, selectedId, previewAddresses]);
 

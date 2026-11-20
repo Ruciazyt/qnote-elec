@@ -1,3 +1,4 @@
+import { parsePreviewSpec, previewPortUrl } from "../../../shared/apps/preview";
 import { ipcMain, dialog, shell, BrowserWindow } from "electron";
 import * as path from "node:path";
 import type { Knex } from "knex";
@@ -166,16 +167,20 @@ export function registerAppHandlers(DB: Knex): AppManager {
       const id = Number(projectId);
       const project = await appManager.getProject(id);
       if (!project) return { ok: false, error: "项目不存在" };
-      if (!project.preview) return { ok: false, error: "该项目没有配置预览页面" };
+      const spec = parsePreviewSpec(project.preview);
+      if (!spec) return { ok: false, error: "该项目没有配置预览页面" };
 
       let url: string;
       let display: string;
-      if (/^https?:\/\//i.test(project.preview)) {
-        url = project.preview;
-        display = project.preview;
+      if (spec.kind === "port") {
+        url = previewPortUrl(spec.port);
+        display = url;
+      } else if (spec.kind === "url") {
+        url = spec.url;
+        display = spec.url;
       } else {
-        url = `${APP_PREVIEW_SCHEME}://p${id}/${encodeRelativePath(project.preview)}`;
-        display = path.join(project.path, project.preview.replace(/\//g, path.sep));
+        url = `${APP_PREVIEW_SCHEME}://p${id}/${encodeRelativePath(spec.path)}`;
+        display = path.join(project.path, spec.path.replace(/\//g, path.sep));
       }
 
       const ok = loadAppPreview(url, id);

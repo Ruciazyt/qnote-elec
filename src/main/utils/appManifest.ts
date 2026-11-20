@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import type { AppManifest } from "../../shared/apps/appTypes";
+import { normalizePreviewValue } from "../../shared/apps/preview";
 
 export const APP_MANIFEST_FILENAME = "qnote.json";
 
@@ -96,11 +97,11 @@ export function parseManifestText(text: string): ManifestParseResult {
   }
 
   if (source.preview !== undefined) {
-    if (typeof source.preview !== "string") {
-      return { manifest: null, error: "preview 必须是字符串", raw };
+    if (typeof source.preview !== "string" && typeof source.preview !== "number") {
+      return { manifest: null, error: "preview 必须是端口号或字符串", raw };
     }
-    const preview = source.preview.trim();
-    if (preview) manifest.preview = preview;
+    const preview = normalizePreviewValue(source.preview);
+    if (preview !== undefined) manifest.preview = preview;
   }
 
   if (!manifest.command && !manifest.preview) {

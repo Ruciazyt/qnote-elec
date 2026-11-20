@@ -10,6 +10,7 @@ import {
   parseManifestText,
   readManifestFromDir,
 } from "../../utils/appManifest";
+import { normalizePreviewValue } from "../../../shared/apps/preview";
 import type {
   AppImportResult,
   AppLogLine,
@@ -354,8 +355,8 @@ export class AppManager {
       const cwd = payload.cwd?.trim();
       if (cwd) manifest.cwd = cwd;
       if (payload.env && Object.keys(payload.env).length > 0) manifest.env = payload.env;
-      const preview = payload.preview?.trim();
-      if (preview) manifest.preview = preview;
+      const preview = normalizePreviewValue(payload.preview);
+      if (preview !== undefined) manifest.preview = preview;
 
       const text = `${JSON.stringify(manifest, null, 2)}\n`;
       const parsed = parseManifestText(text);
@@ -660,7 +661,10 @@ export function readProjectRecord(dir: string): ProjectRecord {
     status,
     manifest_text: parsed.raw ?? null,
     command: parsed.manifest?.command ? buildCommandLine(parsed.manifest) : null,
-    preview: parsed.manifest?.preview ?? null,
+    preview:
+      parsed.manifest?.preview === undefined
+        ? null
+        : String(parsed.manifest.preview),
     description: parsed.manifest?.description ?? null,
     error: parsed.manifest ? null : parsed.error ?? "清单不可用",
   };

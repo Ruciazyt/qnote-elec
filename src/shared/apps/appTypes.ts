@@ -6,7 +6,7 @@ export interface AppManifest {
   args?: string[];
   cwd?: string;
   env?: Record<string, string>;
-  preview?: string;
+  preview?: number | string;
 }
 
 export type AppProjectStatus = "ready" | "missing-manifest" | "invalid-manifest";

@@ -28,7 +28,7 @@ describe("清单解析 parseManifestText", () => {
       args: ["--port", "3000"],
       cwd: "D:\\work\\demo",
       env: { NODE_ENV: "development" },
-      preview: "http://127.0.0.1:5173",
+      preview: 5173,
     });
     expect(result.error).toBeUndefined();
   });
@@ -59,7 +59,28 @@ describe("清单解析 parseManifestText", () => {
   it("只填 preview 也算合法（纯预览型项目）", () => {
     const result = parseManifestText(JSON.stringify({ preview: "http://127.0.0.1:5173" }));
 
-    expect(result.manifest).toEqual({ preview: "http://127.0.0.1:5173" });
+    expect(result.manifest).toEqual({ preview: 5173 });
+  });
+
+  it("preview 写端口号就原样留着（数字与字符串都认）", () => {
+    expect(parseManifestText(JSON.stringify({ preview: 5173 })).manifest).toEqual({
+      preview: 5173,
+    });
+    expect(parseManifestText(JSON.stringify({ preview: "5173" })).manifest).toEqual({
+      preview: 5173,
+    });
+  });
+
+  it("preview 写相对路径就按路径留着", () => {
+    expect(
+      parseManifestText(JSON.stringify({ preview: "dist/index.html" })).manifest
+    ).toEqual({ preview: "dist/index.html" });
+  });
+
+  it("非回环的 preview 地址原样留着（那是远程地址，不该动）", () => {
+    expect(
+      parseManifestText(JSON.stringify({ preview: "https://example.com/app" })).manifest
+    ).toEqual({ preview: "https://example.com/app" });
   });
 
   it("字段类型不对时逐个报错", () => {
@@ -70,7 +91,7 @@ describe("清单解析 parseManifestText", () => {
       "name 必须是字符串"
     );
     expect(parseManifestText(JSON.stringify({ preview: [] })).error).toContain(
-      "preview 必须是字符串"
+      "preview 必须是端口号或字符串"
     );
     expect(parseManifestText(JSON.stringify({ cwd: {} })).error).toContain(
       "cwd 必须是字符串"

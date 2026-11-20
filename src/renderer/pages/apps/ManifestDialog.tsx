@@ -199,11 +199,11 @@ export function ManifestDialog({
               id="mf-preview"
               value={draft.preview}
               onChange={(e) => set("preview", e.target.value)}
-              placeholder="index.html 或 dist/index.html，也可填 http://localhost:3000"
+              placeholder="端口号 7799，或项目内的相对路径 dist/index.html"
               className="font-mono text-xs"
             />
             <p className="text-[11px] text-muted-foreground/70 leading-relaxed">
-              相对路径按项目根目录解析；填网址则直接加载那个地址。
+              填端口号就自动打开 http://127.0.0.1:端口/；填相对路径则按项目根目录解析。
             </p>
           </div>
 
