@@ -1,3 +1,4 @@
+
 import { randomBytes } from "node:crypto";
 import type { Knex } from "knex";
 import { log } from "../../main/core/system/log";
@@ -8,9 +9,8 @@ import type {
   PublishedAppQuery,
 } from "../../shared/cloud/cloudTypes";
 
-
 export interface SharedStore {
-  readonly backend: "local" | "d1" | "public";
+  readonly backend: "local" | "catalog";
 
   init(): Promise<void>;
 
@@ -27,12 +27,7 @@ export interface SharedStore {
   check(): Promise<{ ok: boolean; error?: string; detail?: string }>;
 }
 
-export interface SqlExecutor {
-  all<T = Record<string, unknown>>(sql: string, params?: unknown[]): Promise<T[]>;
-
-  batch(statements: Array<{ sql: string; params?: unknown[] }>): Promise<void>;
-}
-
+export const PUBLISHED_APP_TABLE = "published_app";
 
 const CREATE_TABLE_SQL = `
 CREATE TABLE IF NOT EXISTS published_app (
@@ -49,13 +44,7 @@ CREATE TABLE IF NOT EXISTS published_app (
 )
 `;
 
-const CREATE_INDEX_SQL = `
-CREATE INDEX IF NOT EXISTS published_app_updated_at_idx ON published_app(updated_at DESC)
-`;
-
-export const PUBLISHED_APP_TABLE = "published_app";
-
-function rowToApp(row: Record<string, unknown>): PublishedApp {
+export function rowToApp(row: Record<string, unknown>): PublishedApp {
   return {
     id: String(row.id ?? ""),
     name: String(row.name ?? ""),
@@ -75,17 +64,30 @@ export function generateAppId(): string {
   return `app_${Date.now().toString(36)}_${random}`;
 }
 
-export class SharedStoreOnExecutor implements SharedStore {
-  constructor(
-    readonly backend: "local" | "d1" | "public",
-    private readonly executor: SqlExecutor
-  ) {}
+export function escapeKeyword(keyword: string): string {
+  return keyword
+    .replace(/\\/g, "\\\\")
+    .replace(/%/g, "\\%")
+    .replace(/_/g, "\\_");
+}
+
+export function likePattern(keyword: string): string {
+  return `%${escapeKeyword(keyword)}%`;
+}
+
+export function clampLimit(limit: number | undefined): number {
+  const value = Number(limit ?? 50);
+  if (!Number.isFinite(value)) return 50;
+  return Math.min(200, Math.max(1, Math.floor(value)));
+}
+
+export class LocalSharedStore implements SharedStore {
+  readonly backend = "local";
+
+  constructor(private readonly DB: Knex) {}
 
   async init(): Promise<void> {
-    await this.executor.batch([
-      { sql: CREATE_TABLE_SQL },
-      { sql: CREATE_INDEX_SQL },
-    ]);
+    await this.DB.raw(CREATE_TABLE_SQL);
   }
 
   async list(query: PublishedAppQuery = {}): Promise<PublishedAppListResult> {
@@ -94,41 +96,49 @@ export class SharedStoreOnExecutor implements SharedStore {
     const keyword = (query.keyword ?? "").trim();
 
     const where = keyword
-      ? "WHERE name LIKE ? ESCAPE '\\' OR description LIKE ? ESCAPE '\\' " +
-        "OR tags LIKE ? ESCAPE '\\' OR author LIKE ? ESCAPE '\\'"
+      ? `WHERE name LIKE ? ESCAPE '\\' OR description LIKE ? ESCAPE '\\' ` +
+        `OR tags LIKE ? ESCAPE '\\' OR author LIKE ? ESCAPE '\\'`
       : "";
     const params = keyword
-      ? [likePattern(keyword), likePattern(keyword), likePattern(keyword), likePattern(keyword)]
+      ? [
+          likePattern(keyword),
+          likePattern(keyword),
+          likePattern(keyword),
+          likePattern(keyword),
+        ]
       : [];
 
-    const countRows = await this.executor.all<{ n: number }>(
+    const countRows = await this.DB.raw(
       `SELECT COUNT(*) AS n FROM ${PUBLISHED_APP_TABLE} ${where}`,
-      params
+      params as never[]
     );
-    const total = Number(countRows[0]?.n ?? 0);
+    const total = Number(firstRow(countRows)?.n ?? 0);
 
-    const rows = await this.executor.all<Record<string, unknown>>(
+    const rows = await this.DB.raw(
       `SELECT * FROM ${PUBLISHED_APP_TABLE} ${where} ` +
-        `ORDER BY updated_at DESC LIMIT ? OFFSET ?`,
-      [...params, limit, offset]
+        "ORDER BY updated_at DESC LIMIT ? OFFSET ?",
+      [...params, limit, offset] as never[]
     );
 
-    return { apps: rows.map(rowToApp), total };
+    return { apps: rows.map((row) => rowToApp(row)), total };
   }
 
   async get(id: string): Promise<PublishedApp | null> {
-    const rows = await this.executor.all<Record<string, unknown>>(
+    const rows = await this.DB.raw(
       `SELECT * FROM ${PUBLISHED_APP_TABLE} WHERE id = ? LIMIT 1`,
-      [id]
+      [id] as never[]
     );
-    const row = rows[0];
+    const row = firstRow(rows);
     return row ? rowToApp(row) : null;
   }
 
-  async publish(input: PublishedAppInput, existingId?: string): Promise<PublishedApp> {
+  async publish(
+    input: PublishedAppInput,
+    existingId?: string
+  ): Promise<PublishedApp> {
     const id = existingId ?? generateAppId();
     const now = Date.now();
-    const createdAt = existingId ? await this.resolveCreatedAt(id, now) : now;
+    const existing = existingId ? await this.get(id) : null;
 
     const record = {
       id,
@@ -139,21 +149,31 @@ export class SharedStoreOnExecutor implements SharedStore {
       repo_url: (input.repoUrl ?? "").trim(),
       tags: (input.tags ?? "").trim(),
       pulls: 0,
-      created_at: createdAt,
+      created_at: existing?.createdAt ?? now,
       updated_at: now,
     };
 
-    await this.executor.batch([
-      {
-        sql:
-          `INSERT INTO ${PUBLISHED_APP_TABLE} ` +
-          `(id, name, description, author, manifest, repo_url, tags, pulls, created_at, updated_at) ` +
-          `VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ` +
-          `ON CONFLICT(id) DO UPDATE SET ` +
-          `name = excluded.name, description = excluded.description, author = excluded.author, ` +
-          `manifest = excluded.manifest, repo_url = excluded.repo_url, tags = excluded.tags, ` +
-          `updated_at = excluded.updated_at`,
-        params: [
+    if (existing) {
+      await this.DB.raw(
+        `UPDATE ${PUBLISHED_APP_TABLE} SET name = ?, description = ?, author = ?, ` +
+          "manifest = ?, repo_url = ?, tags = ?, updated_at = ? WHERE id = ?",
+        [
+          record.name,
+          record.description,
+          record.author,
+          record.manifest,
+          record.repo_url,
+          record.tags,
+          record.updated_at,
+          record.id,
+        ] as never[]
+      );
+    } else {
+      await this.DB.raw(
+        `INSERT INTO ${PUBLISHED_APP_TABLE} ` +
+          "(id, name, description, author, manifest, repo_url, tags, pulls, created_at, updated_at) " +
+          "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [
           record.id,
           record.name,
           record.description,
@@ -164,9 +184,9 @@ export class SharedStoreOnExecutor implements SharedStore {
           record.pulls,
           record.created_at,
           record.updated_at,
-        ],
-      },
-    ]);
+        ] as never[]
+      );
+    }
 
     const saved = await this.get(id);
     if (!saved) {
@@ -178,24 +198,22 @@ export class SharedStoreOnExecutor implements SharedStore {
   async remove(id: string): Promise<boolean> {
     const existing = await this.get(id);
     if (!existing) return false;
-    await this.executor.batch([
-      { sql: `DELETE FROM ${PUBLISHED_APP_TABLE} WHERE id = ?`, params: [id] },
-    ]);
+    await this.DB.raw(`DELETE FROM ${PUBLISHED_APP_TABLE} WHERE id = ?`, [
+      id,
+    ] as never[]);
     return true;
   }
 
   async incrementPulls(id: string): Promise<void> {
-    await this.executor.batch([
-      {
-        sql: `UPDATE ${PUBLISHED_APP_TABLE} SET pulls = pulls + 1 WHERE id = ?`,
-        params: [id],
-      },
-    ]);
+    await this.DB.raw(
+      `UPDATE ${PUBLISHED_APP_TABLE} SET pulls = pulls + 1 WHERE id = ?`,
+      [id] as never[]
+    );
   }
 
   async check(): Promise<{ ok: boolean; error?: string; detail?: string }> {
     try {
-      await this.executor.all(`SELECT 1 AS ok`);
+      await this.DB.raw("SELECT 1 AS ok");
       return { ok: true };
     } catch (error) {
       return {
@@ -204,70 +222,22 @@ export class SharedStoreOnExecutor implements SharedStore {
       };
     }
   }
-
-  private async resolveCreatedAt(id: string, fallback: number): Promise<number> {
-    try {
-      const existing = await this.get(id);
-      return existing?.createdAt ?? fallback;
-    } catch {
-      return fallback;
-    }
-  }
 }
 
-function clampLimit(limit: number | undefined): number {
-  const value = Number(limit ?? 50);
-  if (!Number.isFinite(value)) return 50;
-  return Math.min(200, Math.max(1, Math.floor(value)));
-}
-
-function likePattern(keyword: string): string {
-  const escaped = keyword
-    .replace(/\\/g, "\\\\")
-    .replace(/%/g, "\\%")
-    .replace(/_/g, "\\_");
-  return `%${escaped}%`;
-}
-
-
-export class LocalSqlExecutor implements SqlExecutor {
-  constructor(private readonly DB: Knex) {}
-
-  async all<T = Record<string, unknown>>(
-    sql: string,
-    params: unknown[] = []
-  ): Promise<T[]> {
-    const result = await this.DB.raw(sql, params as never[]);
-    return normalizeLocalRows(result) as T[];
-  }
-
-  async batch(
-    statements: Array<{ sql: string; params?: unknown[] }>
-  ): Promise<void> {
-    if (statements.length === 0) return;
-    await this.DB.transaction(async (trx) => {
-      for (const statement of statements) {
-        await trx.raw(statement.sql, (statement.params ?? []) as never[]);
-      }
-    });
-  }
-}
-
-function normalizeLocalRows(result: unknown): Array<Record<string, unknown>> {
+function firstRow(result: unknown): Record<string, unknown> | undefined {
   if (Array.isArray(result)) {
-    if (result.length === 0) return [];
-    if (typeof result[0] === "object" && result[0] !== null) {
-      return result as Array<Record<string, unknown>>;
-    }
-    return [];
+    const row = result[0];
+    return row && typeof row === "object"
+      ? (row as Record<string, unknown>)
+      : undefined;
   }
   if (result && typeof result === "object") {
-    return [result as Record<string, unknown>];
+    return result as Record<string, unknown>;
   }
-  return [];
+  return undefined;
 }
 
 export function createLocalSharedStore(DB: Knex): SharedStore {
   log.info("[cloud] 使用本地共享存储");
-  return new SharedStoreOnExecutor("local", new LocalSqlExecutor(DB));
+  return new LocalSharedStore(DB);
 }

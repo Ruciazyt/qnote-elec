@@ -19,7 +19,6 @@ export default defineConfig({
       "../shared/**/*.{test,spec}.{ts,tsx}",
       "../main/**/*.{test,spec}.{ts,tsx}",
       "../database/**/*.{test,spec}.{ts,tsx}",
-      "../../cloud-worker/**/*.{test,spec}.{ts,tsx}",
       "../../scripts/**/*.{test,spec}.{ts,tsx}",
     ],
     exclude: ["**/node_modules/**", "**/dist/**"],

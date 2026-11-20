@@ -1,17 +1,23 @@
 
-export type CloudBackend = "local" | "d1" | "public";
+export type CloudBackend = "local" | "catalog";
 
-export interface D1Config {
-  accountId: string;
-  databaseId: string;
-  apiToken: string;
+export interface CatalogConfig {
+  baseUrl: string;
+  appId: string;
+  publicKey: string;
+  privateKey: string;
+}
+
+export interface CatalogDefaults {
+  baseUrl: string;
+  appId: string;
 }
 
 export interface CloudStorageConfig {
   backend: CloudBackend;
-  d1: D1Config | null;
-  endpoint: string | null;
+  catalog: CatalogConfig | null;
   lastCheck?: CloudConnectionStatus | null;
+  catalogDefaults?: CatalogDefaults;
 }
 
 export interface CloudConnectionStatus {

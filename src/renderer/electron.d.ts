@@ -408,8 +408,7 @@ interface ElectronAPI {
   cloudGetConfig: () => Promise<import("@shared/cloud/cloudTypes").CloudStorageConfig>;
   cloudSaveConfig: (payload: {
     backend?: import("@shared/cloud/cloudTypes").CloudBackend;
-    d1?: import("@shared/cloud/cloudTypes").D1Config | null;
-    endpoint?: string | null;
+    catalog?: import("@shared/cloud/cloudTypes").CatalogConfig | null;
   }) => Promise<
     | { ok: true; data: import("@shared/cloud/cloudTypes").CloudStorageConfig }
     | { ok: false; error: string }
@@ -419,8 +418,7 @@ interface ElectronAPI {
     | { ok: false; error: string }
   >;
   cloudTestConnection: (payload: {
-    d1?: import("@shared/cloud/cloudTypes").D1Config;
-    endpoint?: string;
+    catalog?: import("@shared/cloud/cloudTypes").CatalogConfig;
   }) => Promise<import("@shared/cloud/cloudTypes").CloudConnectionStatus>;
   cloudListApps: (query?: import("@shared/cloud/cloudTypes").PublishedAppQuery) => Promise<
     | { ok: true; data: import("@shared/cloud/cloudTypes").PublishedAppListResult }

@@ -145,10 +145,25 @@ function buildRust() {
   return result.status === 0;
 }
 
+function injectCatalogCredentials() {
+  const script = path.join(projectRoot, "scripts", "build", "inject-catalog-credentials.js");
+  const result = spawnSync(process.execPath, [script], {
+    cwd: projectRoot,
+    encoding: "utf8",
+    stdio: "inherit",
+  });
+  return result.status === 0;
+}
+
 function main() {
   clearErrorLog();
 
   if (!generateIcons()) {
+    process.exit(1);
+  }
+
+  if (!injectCatalogCredentials()) {
+    console.error("\n❌ 公共目录凭据注入失败，打包中止。");
     process.exit(1);
   }
 

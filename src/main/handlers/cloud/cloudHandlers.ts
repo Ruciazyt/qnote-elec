@@ -1,8 +1,8 @@
+
 import { ipcMain } from "electron";
 import { log } from "../../core/system/log";
 import {
-  checkD1,
-  checkEndpoint,
+  checkCatalog,
   describeCloudError,
   getApp,
   getConfig,
@@ -13,17 +13,17 @@ import {
   switchBackend,
   updateConfig,
 } from "../../../database/cloud/cloudManager";
+import { sanitizeCatalogConfig } from "../../../database/cloud/defaults";
 import type {
+  CatalogConfig,
   CloudBackend,
   CloudConnectionStatus,
   CloudStorageConfig,
-  D1Config,
   PublishedApp,
   PublishedAppInput,
   PublishedAppListResult,
   PublishedAppQuery,
 } from "../../../shared/cloud/cloudTypes";
-
 
 type Result<T> = { ok: true; data: T } | { ok: false; error: string };
 
@@ -31,14 +31,24 @@ function fail(error: unknown): { ok: false; error: string } {
   return { ok: false, error: describeCloudError(error) };
 }
 
-export function registerCloudHandlers(): void {
+function readCatalogConfig(payload: { catalog?: CatalogConfig }): CatalogConfig {
+  return (
+    sanitizeCatalogConfig(payload?.catalog) ?? {
+      baseUrl: "",
+      appId: "",
+      publicKey: "",
+      privateKey: "",
+    }
+  );
+}
 
+export function registerCloudHandlers(): void {
   ipcMain.handle("cloud:get-config", async (): Promise<CloudStorageConfig> => {
     try {
       return await getConfig();
     } catch (error) {
       log.error("[cloud] 读取配置失败", error);
-      return { backend: "local", d1: null, endpoint: null, lastCheck: null };
+      return { backend: "local", catalog: null, lastCheck: null };
     }
   });
 
@@ -48,15 +58,13 @@ export function registerCloudHandlers(): void {
       _event,
       payload: {
         backend?: CloudBackend;
-        d1?: D1Config | null;
-        endpoint?: string | null;
+        catalog?: CatalogConfig | null;
       }
     ): Promise<Result<CloudStorageConfig>> => {
       try {
         const result = await updateConfig({
           backend: payload?.backend,
-          d1: payload?.d1,
-          endpoint: payload?.endpoint,
+          catalog: payload?.catalog,
         });
         if (!result.ok) {
           return { ok: false, error: result.error ?? "保存失败" };
@@ -73,7 +81,7 @@ export function registerCloudHandlers(): void {
     "cloud:switch-backend",
     async (_event, backend: CloudBackend): Promise<Result<CloudStorageConfig>> => {
       try {
-        const result = await switchBackend(backend === "d1" ? "d1" : backend === "public" ? "public" : "local");
+        const result = await switchBackend(backend === "catalog" ? "catalog" : "local");
         if (!result.ok) {
           return { ok: false, error: result.error ?? "切换失败" };
         }
@@ -87,26 +95,14 @@ export function registerCloudHandlers(): void {
 
   ipcMain.handle(
     "cloud:test-connection",
-    async (
-      _event,
-      payload: { d1?: D1Config; endpoint?: string }
-    ): Promise<CloudConnectionStatus> => {
+    async (_event, payload: { catalog?: CatalogConfig }): Promise<CloudConnectionStatus> => {
       try {
-        const endpoint = String(payload?.endpoint ?? "").trim();
-        if (endpoint) {
-          return await checkEndpoint(endpoint);
-        }
-        return await checkD1({
-          accountId: String(payload?.d1?.accountId ?? "").trim(),
-          databaseId: String(payload?.d1?.databaseId ?? "").trim(),
-          apiToken: String(payload?.d1?.apiToken ?? "").trim(),
-        });
+        return await checkCatalog(readCatalogConfig(payload ?? {}));
       } catch (error) {
         return { ok: false, error: describeCloudError(error) };
       }
     }
   );
-
 
   ipcMain.handle(
     "cloud:list-apps",

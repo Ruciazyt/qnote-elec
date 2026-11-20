@@ -483,11 +483,11 @@ contextBridge.exposeInMainWorld("electron", {
   },
 
   cloudGetConfig: () => ipcRenderer.invoke("cloud:get-config"),
-  cloudSaveConfig: (payload: { backend?: string; d1?: unknown; endpoint?: string | null }) =>
+  cloudSaveConfig: (payload: { backend?: string; catalog?: unknown }) =>
     ipcRenderer.invoke("cloud:save-config", payload),
   cloudSwitchBackend: (backend: string) =>
     ipcRenderer.invoke("cloud:switch-backend", backend),
-  cloudTestConnection: (payload: { d1?: unknown; endpoint?: string }) =>
+  cloudTestConnection: (payload: { catalog?: unknown }) =>
     ipcRenderer.invoke("cloud:test-connection", payload),
   cloudListApps: (query?: unknown) => ipcRenderer.invoke("cloud:list-apps", query),
   cloudGetApp: (id: string) => ipcRenderer.invoke("cloud:get-app", id),

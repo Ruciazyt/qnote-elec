@@ -1,7 +1,6 @@
 // @vitest-environment node
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import knexFactory, { type Knex } from "knex";
-import { vi } from "vitest";
 
 vi.mock("electron", () => ({
   app: {
@@ -17,25 +16,27 @@ import {
   parseCloudConfig,
   saveCloudConfig,
 } from "./config";
-import { resolveDefaultEndpoint } from "./defaults";
+import {
+  resolveCatalogDefaults,
+  resolveDefaultCatalogConfig,
+  sanitizeCatalogConfig,
+} from "./defaults";
 
+const BUILTIN = resolveDefaultCatalogConfig();
+const ZERO_CONFIG_BACKEND = BUILTIN ? "catalog" : "local";
 
-const BUILTIN_ENDPOINT = resolveDefaultEndpoint();
-
-const ZERO_CONFIG_BACKEND = BUILTIN_ENDPOINT ? "public" : "local";
+const FULL_CATALOG = {
+  baseUrl: "https://us-west-2.data.tidbcloud.com",
+  appId: "app-123",
+  publicKey: "public-key",
+  privateKey: "private-key",
+};
 
 describe("云端配置解析", () => {
-  it("没配过时用内置的公共目录 —— 零配置", () => {
+  it("没配过时用内置的公共目录 —— 没内置就退回本地", () => {
     const config = parseCloudConfig(null);
     expect(config.backend).toBe(ZERO_CONFIG_BACKEND);
-    expect(config.d1).toBeNull();
-    expect(config.endpoint).toBe(BUILTIN_ENDPOINT || null);
-  });
-
-  it("内置了公共目录地址时，装上就能用，不用填任何东西", () => {
-    expect(BUILTIN_ENDPOINT).not.toBe("");
-    expect(BUILTIN_ENDPOINT).toMatch(/^https?:\/\//);
-    expect(parseCloudConfig(null).backend).toBe("public");
+    expect(config.catalog).toEqual(BUILTIN);
   });
 
   it("空串等同于没配过", () => {
@@ -45,7 +46,7 @@ describe("云端配置解析", () => {
   it("不是合法 JSON → 退回纯本地，不抛异常", () => {
     const config = parseCloudConfig("{ 这不是 JSON");
     expect(config.backend).toBe("local");
-    expect(config.d1).toBeNull();
+    expect(config.catalog).toBeNull();
   });
 
   it("不是对象 → 退回纯本地", () => {
@@ -54,41 +55,31 @@ describe("云端配置解析", () => {
     expect(parseCloudConfig("null").backend).toBe("local");
   });
 
-  it("完整的 D1 配置能读出来", () => {
+  it("完整的公共目录配置能读出来", () => {
     const config = parseCloudConfig(
-      JSON.stringify({
-        backend: "d1",
-        d1: {
-          accountId: "acct-1",
-          databaseId: "db-2",
-          apiToken: "tok-3",
-        },
-      })
+      JSON.stringify({ backend: "catalog", catalog: FULL_CATALOG })
     );
-    expect(config.backend).toBe("d1");
-    expect(config.d1).toEqual({
-      accountId: "acct-1",
-      databaseId: "db-2",
-      apiToken: "tok-3",
-    });
+    expect(config.backend).toBe("catalog");
+    expect(config.catalog).toEqual(FULL_CATALOG);
   });
 
-  it("后端写着 d1 但配置不全 → 按 local 处理", () => {
+  it("后端写着 catalog 但配置不全 → 按 local 处理", () => {
     const config = parseCloudConfig(
-      JSON.stringify({ backend: "d1", d1: { accountId: "acct-1" } })
+      JSON.stringify({ backend: "catalog", catalog: { appId: "app-123" } })
     );
     expect(config.backend).toBe("local");
-    expect(config.d1).toBeNull();
+    expect(config.catalog).toBeNull();
   });
 
-  it("三个字段缺一不可", () => {
+  it("四个字段缺一不可", () => {
     const cases = [
-      { accountId: "", databaseId: "db", apiToken: "tok" },
-      { accountId: "acct", databaseId: "", apiToken: "tok" },
-      { accountId: "acct", databaseId: "db", apiToken: "" },
+      { ...FULL_CATALOG, baseUrl: "" },
+      { ...FULL_CATALOG, appId: "" },
+      { ...FULL_CATALOG, publicKey: "" },
+      { ...FULL_CATALOG, privateKey: "" },
     ];
-    for (const d1 of cases) {
-      const config = parseCloudConfig(JSON.stringify({ backend: "d1", d1 }));
+    for (const catalog of cases) {
+      const config = parseCloudConfig(JSON.stringify({ backend: "catalog", catalog }));
       expect(config.backend).toBe("local");
     }
   });
@@ -96,74 +87,37 @@ describe("云端配置解析", () => {
   it("字段两端的空白会被去掉", () => {
     const config = parseCloudConfig(
       JSON.stringify({
-        backend: "d1",
-        d1: {
-          accountId: "  acct-1  ",
-          databaseId: "  db-2  ",
-          apiToken: "  tok-3  ",
+        backend: "catalog",
+        catalog: {
+          baseUrl: "  https://us-west-2.data.tidbcloud.com  ",
+          appId: "  app-123  ",
+          publicKey: "  public-key  ",
+          privateKey: "  private-key  ",
         },
       })
     );
-    expect(config.d1?.accountId).toBe("acct-1");
-    expect(config.d1?.apiToken).toBe("tok-3");
+    expect(config.catalog?.baseUrl).toBe("https://us-west-2.data.tidbcloud.com");
+    expect(config.catalog?.appId).toBe("app-123");
+  });
+
+  it("站点地址会补上协议、去掉末尾斜杠", () => {
+    const config = parseCloudConfig(
+      JSON.stringify({
+        backend: "catalog",
+        catalog: { ...FULL_CATALOG, baseUrl: "us-west-2.data.tidbcloud.com/" },
+      })
+    );
+    expect(config.catalog?.baseUrl).toBe("https://us-west-2.data.tidbcloud.com");
   });
 
   it("认不出的后端值按 local 处理", () => {
-    const config = parseCloudConfig(JSON.stringify({ backend: "mysql" }));
+    const config = parseCloudConfig(JSON.stringify({ backend: "tidb" }));
     expect(config.backend).toBe("local");
   });
 
   it("默认配置就是没配过时实际生效的那份", () => {
     expect(DEFAULT_CLOUD_CONFIG.backend).toBe(ZERO_CONFIG_BACKEND);
-    expect(DEFAULT_CLOUD_CONFIG.endpoint).toBe(BUILTIN_ENDPOINT || null);
-  });
-});
-
-describe("公共目录（Worker 代理）", () => {
-  it("地址合法时认得出 public 后端", () => {
-    const config = parseCloudConfig(
-      JSON.stringify({
-        backend: "public",
-        endpoint: "https://qnote-catalog.example.workers.dev",
-      })
-    );
-    expect(config.backend).toBe("public");
-    expect(config.endpoint).toBe("https://qnote-catalog.example.workers.dev");
-  });
-
-  it("地址末尾的斜杠会被去掉 —— 拼 URL 时用得上", () => {
-    const config = parseCloudConfig(
-      JSON.stringify({
-        backend: "public",
-        endpoint: "https://qnote-catalog.example.workers.dev/",
-      })
-    );
-    expect(config.endpoint).toBe("https://qnote-catalog.example.workers.dev");
-  });
-
-  it("后端写着 public 但地址为空 → 按 local 处理", () => {
-    const config = parseCloudConfig(JSON.stringify({ backend: "public" }));
-    expect(config.backend).toBe("local");
-    expect(config.endpoint).toBeNull();
-  });
-
-  it("地址不是 http(s) → 不认（file: 之类不该被当成云端地址）", () => {
-    const config = parseCloudConfig(
-      JSON.stringify({ backend: "public", endpoint: "file:///etc/passwd" })
-    );
-    expect(config.backend).toBe("local");
-  });
-
-  it("public 后端不需要 D1 那三项", () => {
-    const config = parseCloudConfig(
-      JSON.stringify({
-        backend: "public",
-        endpoint: "https://x.workers.dev",
-        d1: null,
-      })
-    );
-    expect(config.backend).toBe("public");
-    expect(config.d1).toBeNull();
+    expect(DEFAULT_CLOUD_CONFIG.catalog).toEqual(BUILTIN);
   });
 });
 
@@ -192,26 +146,32 @@ describe("配置读写", () => {
   it("没写过配置时读到默认", async () => {
     const config = await loadCloudConfig(DB);
     expect(config.backend).toBe(ZERO_CONFIG_BACKEND);
-    expect(config.d1).toBeNull();
+    expect(config.catalog).toEqual(BUILTIN);
+  });
+
+  it("读配置时带上内置连接信息，界面可以直接预填", async () => {
+    const config = await loadCloudConfig(DB);
+    expect(config.catalogDefaults?.baseUrl).toBeTruthy();
+    expect(config.catalogDefaults?.appId).toBeTruthy();
   });
 
   it("保存之后能读回来", async () => {
     await saveCloudConfig(DB, {
-      backend: "d1",
-      d1: { accountId: "acct-1", databaseId: "db-2", apiToken: "tok-3" },
+      backend: "catalog",
+      catalog: FULL_CATALOG,
       lastCheck: null,
     });
 
     const config = await loadCloudConfig(DB);
-    expect(config.backend).toBe("d1");
-    expect(config.d1?.databaseId).toBe("db-2");
+    expect(config.backend).toBe("catalog");
+    expect(config.catalog?.appId).toBe("app-123");
   });
 
   it("反复保存不会插出多行", async () => {
     for (let i = 0; i < 3; i++) {
       await saveCloudConfig(DB, {
         backend: "local",
-        d1: null,
+        catalog: null,
         lastCheck: null,
       });
     }
@@ -221,30 +181,62 @@ describe("配置读写", () => {
 
   it("后一次保存覆盖前一次", async () => {
     await saveCloudConfig(DB, {
-      backend: "d1",
-      d1: { accountId: "a", databaseId: "b", apiToken: "c" },
+      backend: "catalog",
+      catalog: FULL_CATALOG,
       lastCheck: null,
     });
     await saveCloudConfig(DB, {
       backend: "local",
-      d1: null,
+      catalog: null,
       lastCheck: null,
     });
 
     const config = await loadCloudConfig(DB);
     expect(config.backend).toBe("local");
-    expect(config.d1).toBeNull();
+    expect(config.catalog).toBeNull();
   });
 
-  it("Token 落在本地库里 —— 它是本机的配置，不进仓库", async () => {
+  it("私钥落在本地库里 —— 它是本机的配置，不进仓库", async () => {
     await saveCloudConfig(DB, {
-      backend: "d1",
-      d1: { accountId: "a", databaseId: "b", apiToken: "secret-token" },
+      backend: "catalog",
+      catalog: { ...FULL_CATALOG, privateKey: "secret-private-key" },
       lastCheck: null,
     });
     const row = await DB("settings")
       .where("configName", "cloud_storage_config")
       .first();
-    expect(String(row.configValue)).toContain("secret-token");
+    expect(String(row.configValue)).toContain("secret-private-key");
+  });
+});
+
+describe("内置的公共目录连接信息", () => {
+  it("站点地址与 App ID 内置着，密钥不内置", () => {
+    const defaults = resolveCatalogDefaults();
+    expect(defaults.baseUrl).toBe("https://ap-northeast-1.data.tidbcloud.com");
+    expect(defaults.appId).toBe("dataapp-bPMzJOGk");
+    expect(defaults.baseUrl).not.toContain("/api/");
+  });
+
+  it("环境变量能改内置的站点地址与 App ID", () => {
+    process.env.QNOTE_CATALOG_BASE_URL = "https://example.test/";
+    process.env.QNOTE_CATALOG_APP_ID = "app-from-env";
+    try {
+      const defaults = resolveCatalogDefaults();
+      expect(defaults.baseUrl).toBe("https://example.test");
+      expect(defaults.appId).toBe("app-from-env");
+    } finally {
+      delete process.env.QNOTE_CATALOG_BASE_URL;
+      delete process.env.QNOTE_CATALOG_APP_ID;
+    }
+  });
+
+  it("四项不齐就不启用公共目录后端", () => {
+    expect(
+      sanitizeCatalogConfig({
+        baseUrl: "https://example.test",
+        appId: "app-1",
+        publicKey: "pk",
+      })
+    ).toBeNull();
   });
 });

@@ -281,7 +281,7 @@ src/renderer/pages/<功能>/       ← home/ notes/ settings/ todo/ browser/ ski
 | 拖拽重排（列表 / 行 / dock 换序的手感） | `src/renderer/hooks/ui/useDragReorder.ts`（引擎）、`src/renderer/hooks/ui/dragReorderGeometry.ts`（几何纯函数）、`src/renderer/styles/drag-reorder.css`（动效）—— 自研，别再引 dnd-kit（已移除） |
 | 上下分栏（笔记树 / 外部文件夹，默认 6:4，可拖动） | `src/renderer/components/panel/PanelHeightResizer.tsx`（纵向分割线）、`src/renderer/hooks/panel/useSplitRatio.ts`（比例持久化）、`src/renderer/pages/notes/layout.ts`（比例与收起态高度常量） |
 | 灵动岛（最小化后顶在屏幕顶边的浮层） | `src/shared/island/island.ts`（契约）、`src/main/core/window/island/island.ts`（窗口与几何）、`src/main/handlers/island/islandHandlers.ts`（IPC）、`src/renderer/pages/island/`（界面） |
-| 云端存储（共享数据放 D1，私有数据留本地） | `src/database/cloud/`（存储层）、`src/main/handlers/cloud/cloudHandlers.ts`（IPC）、`src/renderer/pages/settings/CloudStorageCard.tsx`、`src/renderer/pages/apps/PublishedAppMarket.tsx` |
+| 云端存储（共享数据放 TiDB Cloud，私有数据留本地） | `src/database/cloud/`（存储层）、`src/main/handlers/cloud/cloudHandlers.ts`（IPC）、`src/renderer/pages/settings/CloudStorageCard.tsx`、`src/renderer/pages/apps/PublishedAppMarket.tsx`、`data-app/`（Data App 配置：端点定义 + SQL） |
 | 主进程运行时路径（preload、资源、开发态仓库根） | `src/main/utils/paths.ts`（`getPreloadPath()` / `getDevRoot()`） |
 | 打包 / 发布配置 | `build/`、`scripts/`、`.github/workflows/` |
 | 静态分析 / 质量门禁 | `sonar-project.properties`（分析范围）、`eslint.config.mjs` + `tsconfig.lint.json`（本地 SonarJS 规则）、`scripts/quality/`（清单与门禁脚本）、`scripts/quality/eslint-rules/`（QNote 自定义规则，见 6.8）、`.github/workflows/sonar.yml`（扫描）、`docs/SONAR.md` + `docs/SONAR-DEBT.md`（规范与存量债台账） |
@@ -433,26 +433,25 @@ pnpm run lint:fix            # 能自动修的机械问题（未用 import、pre
 | 层 | 内容 | 存哪 |
 | --- | --- | --- |
 | **私有** | 笔记、剪贴板、Todo、AI 对话、快捷方式、书签、题单、记忆索引、设置 | **永远本地 SQLite**，零改动 |
-| **共享** | 已发布的 APP 目录（`published_app`） | 本地 SQLite / **公共目录 Worker** / 直连 D1，用户在设置页切 |
+| **共享** | 已发布的 APP 目录（`published_app`） | 本地 SQLite / **TiDB Cloud**，用户在设置页切 |
 
 
 | 后端 | 连什么 | 用户要做什么 | 凭据在哪 |
 | --- | --- | --- | --- |
 | `local` | 本地 SQLite | 什么都不用做 | 无 |
-| `public` | 公共目录 Worker 代理 | 什么都不用做（地址已内置） | **只在 Worker 侧** |
-| `d1` | 直连 Cloudflare D1 REST | 填账号 ID / 库 ID / Token | 在用户本机（是他自己的） |
+| `catalog` | **TiDB Cloud Data Service**（固定端点，HTTPS 443） | 什么都不用做（连接信息已内置） | **只在 TiDB 侧** |
 
 
-- **私有数据不上云**。别因为「反正有 D1 了」就把某个用户自有的表搬过去 ——
-- **D1 的 API Token 是账号级的，控制台里也没法只授权到单个库**
-- **共享存储是多后端的**，各后端必须给出**一样的行为**。
-- **Worker 的 SQL 白名单必须有测试**。它的地址是公开的（内置在客户端里），
-- **D1 上没有交互式事务**。每条查询包在自己的隐式事务里，
-- **写操作不重试**。D1 只自动重试只读查询；我们也不重试写 ——
+- **私有数据不上云**。别因为「反正有 TiDB 了」就把某个用户自有的表搬过去 —— 进云的只有 `published_app` 一张表。
+- **公共目录的端点 SQL 写死在服务端**。客户端只能调 Data Service 里那几个固定端点，发不了任意 SQL —— 这是「内置但不暴露」的关键，别改成能发任意 SQL 的直连。
+- **公共目录的端点定义在 `data-app/`**（Data App 声明式配置，`http_endpoints/config.json` + `http_endpoints/sql/`）。改端点先改那里再推给 TiDB Cloud 部署，客户端里的路径常量要与 `config.json` 对齐。端点路径用单段式（`/apps_list`），别用嵌套路径 —— SQL 文件名按 `<方法>-<端点路径>.sql` 落盘，多段路径的命名规则官方没写清。
+- **数据库凭据永远不在客户端**。客户端只拿 API Key（Public Key / Private Key），它只能调已定义的端点，且能在 TiDB Cloud 控制台一键作废。
+- **共享存储是多后端的**，各后端必须给出**一样的行为**。本地走 SQLite，公共目录走端点，两边对外语义要一致。
+- **端点的参数传递按官方约定**：GET 的参数进 query string，POST 的参数进 JSON body。只用 GET / POST —— 更新与删除都走 POST，别碰 PUT / DELETE。
 - **配置存在本地** `settings` 表（键名 `cloud_storage_config`）。
 - **切到云端前先做真实的连通性检查**，通不过就不切，让用户留在本地。
-- **API Token 走运行时配置**（设置页填、存本地 settings），
-- **公共目录地址是公开的**，可以内置进安装包（它不是密钥）；
+- **API Key 不进仓库**：构建期由 `scripts/build/inject-catalog-credentials.js` 注入 `resources/catalog/credentials.json`（gitignore），主进程运行时读；设置页可覆盖。
+- **内置的公共目录连接信息会跟着安装包走**，Private Key 等同公开 —— 它只能调已定义的端点，出事可以在控制台作废。
 - **共享表的 id 用字符串**，不用自增整数：自增 id 在本地库和云端库里
 - **preload 不能 import `src/shared`**：preload 的 tsconfig 把 `rootDir`
 

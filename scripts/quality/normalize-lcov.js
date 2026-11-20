@@ -10,7 +10,7 @@ const DEFAULT_FILE = path.join(ROOT, 'src', 'renderer', 'coverage', 'lcov.info')
 
 const RENDERER_PREFIX = 'src/renderer';
 
-const REPO_ROOTS = ['src', 'cloud-worker', 'scripts'];
+const REPO_ROOTS = ['src', 'scripts'];
 
 const SRC_DIRS = {
     main: 'src/main',

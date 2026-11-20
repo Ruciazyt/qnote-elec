@@ -1,0 +1,338 @@
+[
+  {
+    "name": "apps_list",
+    "description": "列出已发布的应用，支持关键词过滤与分页",
+    "method": "GET",
+    "endpoint": "/apps_list",
+    "data_source": {
+      "cluster_id": "10793486381217312394"
+    },
+    "params": [
+      {
+        "name": "keyword",
+        "type": "string",
+        "required": 0,
+        "default": "",
+        "description": "关键词，空表示不过滤"
+      },
+      {
+        "name": "limit",
+        "type": "integer",
+        "required": 0,
+        "default": "50",
+        "description": "返回条数，1-200"
+      },
+      {
+        "name": "offset",
+        "type": "integer",
+        "required": 0,
+        "default": "0",
+        "description": "偏移量"
+      }
+    ],
+    "settings": {
+      "timeout": 30000,
+      "row_limit": 200,
+      "enable_pagination": 0,
+      "cache_enabled": 0,
+      "cache_ttl": 30
+    },
+    "tag": "QNote",
+    "batch_operation": 0,
+    "sql_file": "sql/GET-apps_list.sql",
+    "type": "sql_endpoint",
+    "return_type": "json"
+  },
+  {
+    "name": "apps_count",
+    "description": "统计符合条件的应用数量",
+    "method": "GET",
+    "endpoint": "/apps_count",
+    "data_source": {
+      "cluster_id": "10793486381217312394"
+    },
+    "params": [
+      {
+        "name": "keyword",
+        "type": "string",
+        "required": 0,
+        "default": "",
+        "description": "关键词，空表示不过滤"
+      }
+    ],
+    "settings": {
+      "timeout": 30000,
+      "row_limit": 1,
+      "enable_pagination": 0,
+      "cache_enabled": 0,
+      "cache_ttl": 30
+    },
+    "tag": "QNote",
+    "batch_operation": 0,
+    "sql_file": "sql/GET-apps_count.sql",
+    "type": "sql_endpoint",
+    "return_type": "json"
+  },
+  {
+    "name": "apps_get",
+    "description": "按 id 取一条应用",
+    "method": "GET",
+    "endpoint": "/apps_get",
+    "data_source": {
+      "cluster_id": "10793486381217312394"
+    },
+    "params": [
+      {
+        "name": "id",
+        "type": "string",
+        "required": 0,
+        "default": "",
+        "description": "应用 id"
+      }
+    ],
+    "settings": {
+      "timeout": 30000,
+      "row_limit": 1,
+      "enable_pagination": 0,
+      "cache_enabled": 0,
+      "cache_ttl": 30
+    },
+    "tag": "QNote",
+    "batch_operation": 0,
+    "sql_file": "sql/GET-apps_get.sql",
+    "type": "sql_endpoint",
+    "return_type": "json"
+  },
+  {
+    "name": "apps_publish",
+    "description": "发布一个新应用",
+    "method": "POST",
+    "endpoint": "/apps_publish",
+    "data_source": {
+      "cluster_id": "10793486381217312394"
+    },
+    "params": [
+      {
+        "name": "id",
+        "type": "string",
+        "required": 0,
+        "default": "",
+        "description": "应用 id"
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "required": 0,
+        "default": "",
+        "description": "展示名"
+      },
+      {
+        "name": "description",
+        "type": "string",
+        "required": 0,
+        "default": "",
+        "description": "一句话简介"
+      },
+      {
+        "name": "author",
+        "type": "string",
+        "required": 0,
+        "default": "",
+        "description": "作者署名"
+      },
+      {
+        "name": "manifest",
+        "type": "string",
+        "required": 0,
+        "default": "",
+        "description": "清单原文"
+      },
+      {
+        "name": "repo_url",
+        "type": "string",
+        "required": 0,
+        "default": "",
+        "description": "源码地址"
+      },
+      {
+        "name": "tags",
+        "type": "string",
+        "required": 0,
+        "default": "",
+        "description": "标签，逗号分隔"
+      },
+      {
+        "name": "pulls",
+        "type": "integer",
+        "required": 0,
+        "default": "0",
+        "description": "被获取次数"
+      },
+      {
+        "name": "created_at",
+        "type": "integer",
+        "required": 0,
+        "default": "0",
+        "description": "发布时间（毫秒时间戳）"
+      },
+      {
+        "name": "updated_at",
+        "type": "integer",
+        "required": 0,
+        "default": "0",
+        "description": "最后更新时间（毫秒时间戳）"
+      }
+    ],
+    "settings": {
+      "timeout": 30000,
+      "row_limit": 100,
+      "enable_pagination": 0,
+      "cache_enabled": 0,
+      "cache_ttl": 30
+    },
+    "tag": "QNote",
+    "batch_operation": 0,
+    "sql_file": "sql/POST-apps_publish.sql",
+    "type": "sql_endpoint",
+    "return_type": "json"
+  },
+  {
+    "name": "apps_update",
+    "description": "覆盖发布一个已存在的应用",
+    "method": "POST",
+    "endpoint": "/apps_update",
+    "data_source": {
+      "cluster_id": "10793486381217312394"
+    },
+    "params": [
+      {
+        "name": "id",
+        "type": "string",
+        "required": 0,
+        "default": "",
+        "description": "应用 id"
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "required": 0,
+        "default": "",
+        "description": "展示名"
+      },
+      {
+        "name": "description",
+        "type": "string",
+        "required": 0,
+        "default": "",
+        "description": "一句话简介"
+      },
+      {
+        "name": "author",
+        "type": "string",
+        "required": 0,
+        "default": "",
+        "description": "作者署名"
+      },
+      {
+        "name": "manifest",
+        "type": "string",
+        "required": 0,
+        "default": "",
+        "description": "清单原文"
+      },
+      {
+        "name": "repo_url",
+        "type": "string",
+        "required": 0,
+        "default": "",
+        "description": "源码地址"
+      },
+      {
+        "name": "tags",
+        "type": "string",
+        "required": 0,
+        "default": "",
+        "description": "标签，逗号分隔"
+      },
+      {
+        "name": "updated_at",
+        "type": "integer",
+        "required": 0,
+        "default": "0",
+        "description": "最后更新时间（毫秒时间戳）"
+      }
+    ],
+    "settings": {
+      "timeout": 30000,
+      "row_limit": 100,
+      "enable_pagination": 0,
+      "cache_enabled": 0,
+      "cache_ttl": 30
+    },
+    "tag": "QNote",
+    "batch_operation": 0,
+    "sql_file": "sql/POST-apps_update.sql",
+    "type": "sql_endpoint",
+    "return_type": "json"
+  },
+  {
+    "name": "apps_remove",
+    "description": "删除一个应用",
+    "method": "POST",
+    "endpoint": "/apps_remove",
+    "data_source": {
+      "cluster_id": "10793486381217312394"
+    },
+    "params": [
+      {
+        "name": "id",
+        "type": "string",
+        "required": 0,
+        "default": "",
+        "description": "应用 id"
+      }
+    ],
+    "settings": {
+      "timeout": 30000,
+      "row_limit": 100,
+      "enable_pagination": 0,
+      "cache_enabled": 0,
+      "cache_ttl": 30
+    },
+    "tag": "QNote",
+    "batch_operation": 0,
+    "sql_file": "sql/POST-apps_remove.sql",
+    "type": "sql_endpoint",
+    "return_type": "json"
+  },
+  {
+    "name": "apps_mark_pulled",
+    "description": "被获取次数加一",
+    "method": "POST",
+    "endpoint": "/apps_mark_pulled",
+    "data_source": {
+      "cluster_id": "10793486381217312394"
+    },
+    "params": [
+      {
+        "name": "id",
+        "type": "string",
+        "required": 0,
+        "default": "",
+        "description": "应用 id"
+      }
+    ],
+    "settings": {
+      "timeout": 30000,
+      "row_limit": 100,
+      "enable_pagination": 0,
+      "cache_enabled": 0,
+      "cache_ttl": 30
+    },
+    "tag": "QNote",
+    "batch_operation": 0,
+    "sql_file": "sql/POST-apps_mark_pulled.sql",
+    "type": "sql_endpoint",
+    "return_type": "json"
+  }
+]

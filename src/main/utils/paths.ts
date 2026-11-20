@@ -25,3 +25,17 @@ export function getDevRoot(): string {
   const root = findUp(__dirname, "package.json");
   return root ? path.dirname(root) : path.resolve(__dirname, "..", "..", "..");
 }
+
+export function getCatalogCredentialsPath(): string {
+  const packaged = process.resourcesPath;
+  if (packaged) {
+    const candidates = [
+      path.join(packaged, "catalog", "credentials.json"),
+      path.join(packaged, "resources", "catalog", "credentials.json"),
+    ];
+    for (const candidate of candidates) {
+      if (fs.existsSync(candidate)) return candidate;
+    }
+  }
+  return path.join(getDevRoot(), "resources", "catalog", "credentials.json");
+}

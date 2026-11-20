@@ -1,6 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
-import http from "node:http";
+import { describe, it, expect, vi } from "vitest";
 
 vi.mock("electron", () => ({
   app: {
@@ -10,84 +9,75 @@ vi.mock("electron", () => ({
   },
 }));
 
-import { checkStatement } from "../../../cloud-worker/src/guard";
-import { checkEndpoint } from "./cloudManager";
+import { describeCloudError } from "./cloudManager";
+import { CatalogError } from "./catalogClient";
 
-describe("公共目录连通性检查", () => {
-  let server: http.Server;
-  let port: number;
-  const received: string[] = [];
-
-  beforeAll(async () => {
-    server = http.createServer(async (req, res) => {
-      let raw = "";
-      for await (const chunk of req) raw += chunk;
-      const body = JSON.parse(raw);
-      const statements = Array.isArray(body.batch)
-        ? body.batch
-        : [{ sql: body.sql, params: body.params }];
-
-      let failure: string | null = null;
-      for (const statement of statements) {
-        const check = checkStatement(statement.sql);
-        if (!check.ok) {
-          failure = check.reason;
-          break;
-        }
-      }
-
-      if (failure) {
-        res.writeHead(400, { "Content-Type": "application/json" });
-        res.end(
-          JSON.stringify({
-            success: false,
-            errors: [{ code: 1000, message: `语句被拒绝：${failure}` }],
-          })
-        );
-        return;
-      }
-
-      received.push(...statements.map((s: { sql: string }) => s.sql));
-
-      const result = statements.map((s: { sql: string }) => {
-        const isCount =
-          /^SELECT\s+COUNT\(\*\)\s+AS\s+n\s+FROM\s+published_app/i.test(s.sql);
-        return {
-          success: true,
-          results: isCount ? [{ n: 0 }] : [],
-          meta: { changes: 0 },
-        };
-      });
-
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ success: true, result }));
-    });
-
-    await new Promise<void>((resolve) => {
-      server.listen(0, "127.0.0.1", () => resolve());
-    });
-    port = (server.address() as { port: number }).port;
+describe("云端错误提示", () => {
+  it("401 → 认证没过", () => {
+    expect(describeCloudError(new CatalogError("auth failed", 401))).toContain(
+      "认证"
+    );
   });
 
-  afterAll(async () => {
-    await new Promise<void>((resolve) => server.close(() => resolve()));
+  it("403 → 权限不够", () => {
+    expect(describeCloudError(new CatalogError("forbidden", 403))).toContain("权限");
   });
 
-  it("检查通过 —— 发出去的语句都在 Worker 白名单内", async () => {
-    received.length = 0;
-
-    const status = await checkEndpoint(`http://127.0.0.1:${port}`);
-
-    expect(status.ok).toBe(true);
-    expect(status.error).toBeUndefined();
-    expect(status.detail).toContain("已连接公共目录");
-    expect(received.some((sql) => /sqlite_master/i.test(sql))).toBe(false);
+  it("404 → 找不到端点", () => {
+    expect(
+      describeCloudError(new CatalogError("endpoint not found", 404))
+    ).toContain("找不到");
   });
 
-  it("白名单拒绝时给出可读原因，而不是一句连不上", async () => {
-    const status = await checkEndpoint("http://127.0.0.1:1");
+  it("405 → 请求方法不对", () => {
+    expect(describeCloudError(new CatalogError("method not allowed", 405))).toContain(
+      "请求方法"
+    );
+  });
 
-    expect(status.ok).toBe(false);
-    expect(status.error).toBeTruthy();
+  it("408 → 执行超时", () => {
+    expect(describeCloudError(new CatalogError("timeout", 408))).toContain("超时");
+  });
+
+  it("429 → 请求太频繁", () => {
+    expect(describeCloudError(new CatalogError("too many", 429))).toContain("频繁");
+  });
+
+  it("5xx → 服务端出错", () => {
+    expect(describeCloudError(new CatalogError("boom", 503))).toContain("服务端");
+  });
+
+  it("1146 → 表还没建好", () => {
+    expect(
+      describeCloudError(new CatalogError("table not found", 200, 1146))
+    ).toContain("还没建好");
+  });
+
+  it("参数对不上 → 提示检查端点定义", () => {
+    expect(
+      describeCloudError(new CatalogError("param check failed!", 400, 400))
+    ).toContain("端点定义");
+  });
+
+  it("超时 → 提示查网络", () => {
+    expect(describeCloudError(new CatalogError("request timeout"))).toContain("超时");
+  });
+
+  it("连不上 → 提示查地址与网络", () => {
+    expect(describeCloudError(new CatalogError("fetch failed"))).toContain("连不上");
+  });
+
+  it("认不出来的错误原样透出，不吞掉", () => {
+    expect(describeCloudError(new CatalogError("某个说不清的原因"))).toBe(
+      "某个说不清的原因"
+    );
+  });
+
+  it("普通 Error 原样透出", () => {
+    expect(describeCloudError(new Error("本地写库失败"))).toBe("本地写库失败");
+  });
+
+  it("空错误也有一句人话", () => {
+    expect(describeCloudError(undefined)).toBe("未知错误");
   });
 });

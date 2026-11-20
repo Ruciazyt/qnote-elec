@@ -35,15 +35,10 @@ const BACKEND_BADGE: Record<
   CloudBackend,
   { label: string; className: string; title: string }
 > = {
-  public: {
-    label: "公共",
+  catalog: {
+    label: "公共目录",
     className: "bg-primary/10 text-primary-strong border-primary/25",
-    title: "公共目录（Worker 代理）—— 所有装了 QNote 的人看到同一份目录",
-  },
-  d1: {
-    label: "自建 D1",
-    className: "bg-primary/10 text-primary-strong border-primary/25",
-    title: "你自己的 Cloudflare D1 库",
+    title: "目录放在公共目录 —— 所有装了 QNote 的人看到同一份目录",
   },
   local: {
     label: "本地",

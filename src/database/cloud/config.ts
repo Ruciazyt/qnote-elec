@@ -1,14 +1,17 @@
+
 import type { Knex } from "knex";
 import { log } from "../../main/core/system/log";
 import { createLocalSharedStore, type SharedStore } from "./sharedStore";
-import { createD1SharedStore, createEndpointSharedStore } from "./d1Store";
-import { normalizeEndpoint, resolveDefaultEndpoint } from "./defaults";
+import { createCatalogSharedStore } from "./catalogStore";
+import {
+  resolveCatalogDefaults,
+  resolveDefaultCatalogConfig,
+  sanitizeCatalogConfig,
+} from "./defaults";
 import type {
   CloudBackend,
   CloudStorageConfig,
-  D1Config,
 } from "../../shared/cloud/cloudTypes";
-
 
 const SETTINGS_KEY = "cloud_storage_config";
 
@@ -28,67 +31,45 @@ export function parseCloudConfig(raw: string | null | undefined): CloudStorageCo
   }
 
   const obj = parsed as Partial<CloudStorageConfig>;
-  const d1 = sanitizeD1Config(obj.d1);
-  const endpoint = sanitizeEndpoint(obj.endpoint);
+  const catalog = sanitizeCatalogConfig(obj.catalog);
 
   let backend: CloudBackend = "local";
-  if (obj.backend === "d1" || obj.backend === "public" || obj.backend === "local") {
+  if (obj.backend === "catalog" || obj.backend === "local") {
     backend = obj.backend;
   }
 
-  if (backend === "d1" && !d1) {
-    log.warn("[cloud] 后端标为 d1 但 D1 配置不全，按本地处理");
-    return { ...fallbackConfig(), d1: null, endpoint };
+  if (backend === "catalog" && !catalog) {
+    log.warn("[cloud] 后端标为 catalog 但公共目录配置不全，按本地处理");
+    return { ...fallbackConfig(), catalog: null };
   }
 
-  if (backend === "public" && !endpoint) {
-    log.warn("[cloud] 后端标为 public 但没有公共目录地址，按本地处理");
-    return { ...fallbackConfig(), d1, endpoint: null };
-  }
-
-  return { backend, d1, endpoint, lastCheck: obj.lastCheck ?? null };
+  return { backend, catalog, lastCheck: obj.lastCheck ?? null };
 }
 
 function defaultConfig(): CloudStorageConfig {
-  const endpoint = resolveDefaultEndpoint();
+  const catalog = resolveDefaultCatalogConfig();
   return {
-    backend: endpoint ? "public" : "local",
-    d1: null,
-    endpoint: endpoint || null,
+    backend: catalog ? "catalog" : "local",
+    catalog,
     lastCheck: null,
   };
 }
 
 function fallbackConfig(): CloudStorageConfig {
-  return { backend: "local", d1: null, endpoint: null, lastCheck: null };
-}
-
-function sanitizeD1Config(input: unknown): D1Config | null {
-  if (!input || typeof input !== "object") return null;
-  const obj = input as Partial<D1Config>;
-  const accountId = typeof obj.accountId === "string" ? obj.accountId.trim() : "";
-  const databaseId = typeof obj.databaseId === "string" ? obj.databaseId.trim() : "";
-  const apiToken = typeof obj.apiToken === "string" ? obj.apiToken.trim() : "";
-  if (!accountId || !databaseId || !apiToken) return null;
-  return { accountId, databaseId, apiToken };
-}
-
-function sanitizeEndpoint(input: unknown): string | null {
-  if (typeof input !== "string") return null;
-  const trimmed = normalizeEndpoint(input);
-  if (!trimmed) return null;
-  if (!/^https?:\/\//i.test(trimmed)) return null;
-  return trimmed;
+  return { backend: "local", catalog: null, lastCheck: null };
 }
 
 export async function loadCloudConfig(DB: Knex): Promise<CloudStorageConfig> {
   try {
     const row = await DB("settings").where("configName", SETTINGS_KEY).first();
     const raw = row?.configValue;
-    return parseCloudConfig(typeof raw === "string" ? raw : null);
+    return {
+      ...parseCloudConfig(typeof raw === "string" ? raw : null),
+      catalogDefaults: resolveCatalogDefaults(),
+    };
   } catch (error) {
     log.error("[cloud] 读取云端配置失败，按纯本地处理", error);
-    return fallbackConfig();
+    return { ...fallbackConfig(), catalogDefaults: resolveCatalogDefaults() };
   }
 }
 
@@ -98,8 +79,7 @@ export async function saveCloudConfig(
 ): Promise<void> {
   const value = JSON.stringify({
     backend: config.backend,
-    d1: config.d1,
-    endpoint: config.endpoint,
+    catalog: config.catalog,
     lastCheck: config.lastCheck ?? null,
   });
   const existing = await DB("settings").where("configName", SETTINGS_KEY).first();
@@ -141,11 +121,8 @@ export async function resetSharedStore(): Promise<void> {
 }
 
 function storeKey(config: CloudStorageConfig): string {
-  if (config.backend === "d1" && config.d1) {
-    return `d1:${config.d1.accountId}:${config.d1.databaseId}`;
-  }
-  if (config.backend === "public" && config.endpoint) {
-    return `public:${config.endpoint}`;
+  if (config.backend === "catalog" && config.catalog) {
+    return `catalog:${config.catalog.baseUrl}/${config.catalog.appId}`;
   }
   return "local";
 }
@@ -154,21 +131,8 @@ async function buildStore(
   config: CloudStorageConfig,
   DB: Knex
 ): Promise<SharedStore> {
-  if (config.backend === "d1" && config.d1) {
-    const { store } = createD1SharedStore(config.d1);
-    try {
-      await store.init();
-      return store;
-    } catch (error) {
-      log.error("[cloud] D1 初始化失败，本次退回本地共享存储", error);
-      const local = createLocalSharedStore(DB);
-      await local.init();
-      return local;
-    }
-  }
-
-  if (config.backend === "public" && config.endpoint) {
-    const { store } = createEndpointSharedStore(config.endpoint);
+  if (config.backend === "catalog" && config.catalog) {
+    const { store } = createCatalogSharedStore(config.catalog);
     try {
       await store.init();
       return store;

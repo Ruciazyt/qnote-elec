@@ -13,6 +13,7 @@ src/**/*.js.map
 !src/renderer/postcss.config.js
 !src/renderer/tailwind.config.js
 build/icon.icns
+/resources/catalog/
 resources/icon.png
 resources/icon-tray.png
 resources/trayTemplate.png
@@ -51,8 +52,6 @@ coverage/
 .env.*
 *.log
 
-cloud-worker/.wrangler/
-cloud-worker/node_modules/
 
 .idea/
 .project

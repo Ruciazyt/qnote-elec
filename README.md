@@ -226,7 +226,7 @@
 - **系统托盘**：常驻托盘，菜单控制显示、设置与退出。
 - **主题**：浅色 / 深色 / 跟随系统。
 - **数据迁移**：设置页可导出 / 导入数据库，用于设备间搬家。
-- **云端共享目录**：已发布的 APP 目录可选存放于本地、公共目录 Worker 或直连 Cloudflare D1。
+- **云端共享目录**：已发布的 APP 目录可选存放于本地或公共目录（TiDB Cloud Data Service）。
 
 ---
 
@@ -270,7 +270,7 @@
 | 内嵌浏览器 | 用户访问的网站 | 用户导航到页面 |
 | 检查更新 | GitHub Releases | 用户点击「检查更新」 |
 
-> API Token 走运行时配置，只存用户本机；公共目录 Worker 的地址是公开的，内置在客户端里，但密钥只存在于 Worker 侧。
+> API Key 走运行时配置，只存用户本机；数据库凭据不出服务端。
 
 ---
 
@@ -310,7 +310,6 @@ qnote-elec/
 ├── build/                     # 打包与编译配置（electron-builder / tsconfig / macOS 权限声明）
 ├── scripts/                   # build / release / quality / git-hooks / dev / pixel-pet
 ├── docs/                      # 补充文档
-├── cloud-worker/              # Cloudflare Worker（共享目录代理）
 ├── DESIGN.md                  # 设计规范：配色、密度、组件约定
 └── AGENTS.md                  # 开发规范：提交信息、版本号、红线
 ```
@@ -440,7 +439,7 @@ sha256sum -c SHA256SUMS.txt
 | [docs/MACOS-BUILD.md](docs/MACOS-BUILD.md) | macOS 双架构打包与自动更新注意事项 |
 | [docs/PORTABLE.md](docs/PORTABLE.md) | 便携版的构成、目录结构与迁移方式 |
 | [docs/APP-MANAGEMENT.md](docs/APP-MANAGEMENT.md) | 应用清单 `qnote.json` 的字段与校验规则 |
-| [docs/CLOUD-STORAGE.md](docs/CLOUD-STORAGE.md) | 共享数据与私有数据的边界、三种云端后端 |
+| [docs/CLOUD-STORAGE.md](docs/CLOUD-STORAGE.md) | 共享数据与私有数据的边界、两种云端后端、TiDB Cloud 接入步骤 |
 | [docs/SONAR.md](docs/SONAR.md) | SonarQube Cloud 扫描与门禁配置 |
 | [更新日志](https://github.com/Ruciazyt/qnote-elec/releases) | 每个版本的完整变更 |
 
