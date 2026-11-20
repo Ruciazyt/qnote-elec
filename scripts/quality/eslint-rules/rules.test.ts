@@ -158,3 +158,129 @@ ruleTester.run("qnote/no-arbitrary-duration", rules["no-arbitrary-duration"], {
         },
     ],
 });
+ruleTester.run("qnote/page-padding", rules["page-padding"], {
+    valid: [
+        {
+            filename: file("src/renderer/pages/todo/TodoPage.tsx"),
+            languageOptions: { parserOptions: { ecmaFeatures: { jsx: true } } },
+            code: `export default function TodoPage() {
+    return (
+        <div className="flex h-full flex-col px-6 py-8 overflow-hidden">
+            <PageHeader className="mb-8 flex-shrink-0" icon={Icon} title="Todo" />
+        </div>
+    );
+}`,
+        },
+        {
+            filename: file("src/renderer/pages/settings/SettingsPage.tsx"),
+            languageOptions: { parserOptions: { ecmaFeatures: { jsx: true } } },
+            code: `export default function Settings() {
+    return (
+        <div className="px-6 py-8">
+            <div className="max-w-6xl w-full">
+                <PageHeader className="mb-8" icon={Icon} title="设置" />
+            </div>
+        </div>
+    );
+}`,
+        },
+        {
+            filename: file("src/renderer/pages/notes/NotesPage.tsx"),
+            languageOptions: { parserOptions: { ecmaFeatures: { jsx: true } } },
+            code: `export default function NotesPage() {
+    return <div className="flex h-full min-h-0 overflow-hidden"><Sidebar /></div>;
+}`,
+        },
+        {
+            filename: file("src/renderer/components/shell/PageHeader.tsx"),
+            code: 'export const a = "px-3 py-2 mb-1";',
+        },
+    ],
+    invalid: [
+        {
+            filename: file("src/renderer/pages/todo/TodoPage.tsx"),
+            languageOptions: { parserOptions: { ecmaFeatures: { jsx: true } } },
+            code: `export default function TodoPage() {
+    return (
+        <div className="flex h-full flex-col px-4 py-8 overflow-hidden">
+            <PageHeader className="mb-8" icon={Icon} title="Todo" />
+        </div>
+    );
+}`,
+            errors: [{ messageId: "pagePaddingX" }],
+        },
+        {
+            filename: file("src/renderer/pages/skills/SkillsPage.tsx"),
+            languageOptions: { parserOptions: { ecmaFeatures: { jsx: true } } },
+            code: `export default function SkillsPage() {
+    return (
+        <div className="px-6 py-6">
+            <PageHeader className="mb-8" icon={Icon} title="技能 / MCP" />
+        </div>
+    );
+}`,
+            errors: [{ messageId: "pagePaddingY" }],
+        },
+        {
+            filename: file("src/renderer/pages/skills/SkillsPage.tsx"),
+            languageOptions: { parserOptions: { ecmaFeatures: { jsx: true } } },
+            code: `export default function SkillsPage() {
+    return (
+        <div className="p-6">
+            <PageHeader className="mb-8" icon={Icon} title="技能 / MCP" />
+        </div>
+    );
+}`,
+            errors: [{ messageId: "pagePaddingAll" }],
+        },
+        {
+            filename: file("src/renderer/pages/todo/TodoPage.tsx"),
+            languageOptions: { parserOptions: { ecmaFeatures: { jsx: true } } },
+            code: `export default function TodoPage() {
+    return (
+        <div className="px-6">
+            <PageHeader className="mb-8" icon={Icon} title="Todo" />
+        </div>
+    );
+}`,
+            errors: [{ messageId: "pagePaddingMissing" }],
+        },
+        {
+            filename: file("src/renderer/pages/todo/TodoPage.tsx"),
+            languageOptions: { parserOptions: { ecmaFeatures: { jsx: true } } },
+            code: `export default function TodoPage() {
+    return (
+        <div className="px-6 py-8">
+            <PageHeader className="mb-4" icon={Icon} title="Todo" />
+        </div>
+    );
+}`,
+            errors: [{ messageId: "pageHeaderGap" }],
+        },
+        {
+            filename: file("src/renderer/pages/todo/TodoPage.tsx"),
+            languageOptions: { parserOptions: { ecmaFeatures: { jsx: true } } },
+            code: `export default function TodoPage() {
+    return (
+        <div className="px-6 py-8">
+            <PageHeader icon={Icon} title="Todo" />
+        </div>
+    );
+}`,
+            errors: [{ messageId: "pageHeaderGapMissing" }],
+        },
+        {
+            filename: file("src/renderer/pages/settings/SettingsPage.tsx"),
+            languageOptions: { parserOptions: { ecmaFeatures: { jsx: true } } },
+            code: `export default function Settings() {
+    return (
+        <div className="px-6 py-8 sm:px-8">
+            <PageHeader className="mb-8" icon={Icon} title="设置" />
+        </div>
+    );
+}`,
+            errors: [{ messageId: "pagePaddingX" }],
+        },
+    ],
+});
+

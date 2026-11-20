@@ -4,6 +4,7 @@ import preloadNoSharedImport from "./preload-no-shared-import.mjs";
 import noDirectDatabaseImport from "./no-direct-database-import.mjs";
 import noArbitraryDuration from "./no-arbitrary-duration.mjs";
 import noModuleStateInUtils from "./no-module-state-in-utils.mjs";
+import pagePadding from "./page-padding.mjs";
 
 export default {
     rules: {
@@ -13,5 +14,6 @@ export default {
         "no-direct-database-import": noDirectDatabaseImport,
         "no-arbitrary-duration": noArbitraryDuration,
         "no-module-state-in-utils": noModuleStateInUtils,
+        "page-padding": pagePadding,
     },
 };

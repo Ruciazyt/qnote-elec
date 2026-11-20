@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState, useRef } from "react";
 import { useSidebarTabs } from "@/hooks/shell/useSidebarTabs";
 import { useTheme, type Theme } from "@/hooks/shell/useTheme";
 import { Button } from "../../components/ui/button";
+import { PageHeader } from "@/components/shell/PageHeader";
 import { Switch } from "../../components/ui/switch";
 import { CardContent } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
@@ -910,23 +911,17 @@ export default function Settings() {
   };
 
   return (
-    <div className="px-6 py-6 sm:px-8 sm:py-8">
-      <div className="max-w-6xl mx-auto w-full">
+    <div className="px-6 py-8">
+      <div className="max-w-6xl w-full">
         {}
         {
 }
-        <div className="mb-8 sm:mb-10 flex items-start gap-4">
-          <div className="h-12 w-12 rounded-2xl bg-primary/10 ring-1 ring-primary/20 flex items-center justify-center shrink-0">
-            <SettingsIcon className="h-6 w-6 text-primary" />
-          </div>
-          <h1 className="text-2xl sm:text-[28px] font-bold tracking-tight leading-tight shrink-0">
-            设置
-          </h1>
-          <div className="flex-1 min-w-0 flex flex-col items-end gap-3">
-            <p className="text-sm text-muted-foreground/80 leading-relaxed text-right">
-              管理应用程序的各项服务配置、数据管理与版本信息
-            </p>
-            {}
+        <PageHeader
+          className="mb-8"
+          icon={SettingsIcon}
+          title="设置"
+          subtitle="管理应用程序的各项服务配置、数据管理与版本信息"
+          actions={
             <div className="flex flex-wrap items-center justify-end gap-2">
               <StatusChip
                 accent={ACCENTS.accent}
@@ -944,8 +939,8 @@ export default function Settings() {
                 configured={vectorCount > 0}
               />
             </div>
-          </div>
-        </div>
+          }
+        />
 
         {
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Plus, ListChecks, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/shell/PageHeader";
 import { useToast } from "@/hooks/ui/use-toast";
 import { getWeekRange, isTodoInWeek } from "@shared/todo/weekRange";
 import { TodoEditDialog } from "@/pages/todo/TodoEditDialog";
@@ -166,20 +167,19 @@ export default function TodoPage() {
   };
 
   return (
-    <div className="flex h-full flex-col px-6 py-4 overflow-hidden">
-      <div className="flex items-center justify-between mb-4 flex-shrink-0">
-        <div>
-          <h1 className="text-xl font-semibold flex items-center gap-2">
-            <ListChecks className="h-5 w-5 text-primary" />
-            Todo
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">轻量任务管理，支持优先级和截止日期</p>
-        </div>
-        <Button onClick={openCreate} size="sm" className="btn-hover">
-          <Plus className="h-4 w-4 mr-1.5" />
-          新建 Todo
-        </Button>
-      </div>
+    <div className="flex h-full flex-col px-6 py-8 overflow-hidden">
+      <PageHeader
+        className="mb-8 flex-shrink-0"
+        icon={ListChecks}
+        title="Todo"
+        subtitle="轻量任务管理，支持优先级和截止日期"
+        actions={
+          <Button onClick={openCreate} size="sm" className="btn-hover">
+            <Plus className="h-4 w-4 mr-1.5" />
+            新建 Todo
+          </Button>
+        }
+      />
 
       <div className="flex items-center gap-1 mb-3 flex-shrink-0 border-b border-border/60">
         {FILTERS.map((f) => {

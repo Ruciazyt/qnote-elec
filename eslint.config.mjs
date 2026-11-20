@@ -205,6 +205,7 @@ export default [
             'qnote/no-direct-database-import': 'error',
             'qnote/no-arbitrary-duration': 'error',
             'qnote/no-module-state-in-utils': 'error',
+            'qnote/page-padding': 'error',
         },
     },
 

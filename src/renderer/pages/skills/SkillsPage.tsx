@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { Sparkles } from "lucide-react";
+import { PageHeader } from "@/components/shell/PageHeader";
 import SkillSection from "./SkillSection";
 import McpSection from "./McpSection";
 
@@ -15,19 +16,14 @@ export default function SkillsPage() {
   const [tab, setTab] = useState<TabKey>("skills");
 
   return (
-    <div className="px-6 py-6 sm:px-8 sm:py-8">
-      <div className="max-w-5xl mx-auto w-full">
-        <div className="mb-6 sm:mb-8 flex items-start gap-4">
-          <div className="h-10 w-10 rounded-xl bg-primary/10 ring-1 ring-primary/20 flex items-center justify-center shrink-0">
-            <Sparkles className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-foreground">技能 / MCP</h1>
-            <p className="text-[13px] text-muted-foreground mt-1">
-              提示词技能一键套用，MCP 服务器把外部能力接进 AI 对话
-            </p>
-          </div>
-        </div>
+    <div className="px-6 py-8">
+      <div className="w-full">
+        <PageHeader
+          className="mb-8"
+          icon={Sparkles}
+          title="技能 / MCP"
+          subtitle="提示词技能一键套用，MCP 服务器把外部能力接进 AI 对话"
+        />
 
         <div
           role="tablist"

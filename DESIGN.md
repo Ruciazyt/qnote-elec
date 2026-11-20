@@ -86,6 +86,7 @@ spacing:
   section-gap: "32px"
   page-padding-x: "24px"
   page-padding-y: "32px"
+  page-header-gap: "32px"
 components:
   card-settings:
     backgroundColor: "{colors.card}"
@@ -235,6 +236,20 @@ components:
 - `640-1023px`（小屏 / 笔记本）：1 列（设置/笔记/题单都单列展开）
 - `≥ 1024px`（标准桌面）：3 列
 
+### 页面边距
+
+| 项 | 值 | 类名 |
+| --- | --- | --- |
+| 页面容器水平边距 | 24px | `px-6` |
+| 页面容器垂直边距 | 32px | `py-8` |
+| 页头下间距 | 32px | `mb-8` |
+
+- **适用** `src/renderer/pages/<域>/<Name>Page.tsx` 的根容器 —— Todo、技能 / MCP、设置三页已统一
+- **全宽页面**（笔记、应用、浏览器、题单、主页）根容器不写 `px-` / `py-`
+- **不写响应式变体**（`sm:px-8`）—— 页面边距是固定档，不随断点变
+- **不写四边内边距**（`p-6`）—— 水平走 `px-6`、垂直走 `py-8`
+- **机器可校验**：`qnote/page-padding`（见 AGENTS.md 6.8）
+
 
 
 ## Elevation & Depth
@@ -319,6 +334,15 @@ components:
 - **Icon color:** `text-primary`
 - **目的:** 给每个功能 / 卡片一个**视觉锚点**。所有 icon block 风格统一
 
+### PageHeader（页面页头）
+
+- **组件:** `components/shell/PageHeader.tsx` —— 页面级页头的唯一来源
+- **Icon block:** 40×40（`h-10 w-10 rounded-xl bg-primary/10 ring-1 ring-primary/20`）+ 图标 `h-5 w-5 text-primary`
+- **标题:** `text-xl font-bold tracking-tight`（Display 档，20px / 700）
+- **副标题:** `text-[13px] text-muted-foreground`（13px）
+- **右侧操作:** `actions` 插槽（如「新建 Todo」按钮、设置页的状态徽章）
+- **适用页面:** Todo、技能 / MCP、设置 —— 三页共用，标题与图标尺寸不各页自定义
+
 ### Button
 
 - **Shape:** `rounded-md`（6px）
@@ -381,7 +405,7 @@ components:
 
 - `components/ui/` —— shadcn/ui 基础件（button、dialog、popover、tooltip、toast、
 - `components/panel/` —— 通用面板件：`ResizableSidebar`（可折叠侧栏）、
-- `components/shell/` —— 应用外壳（标题栏、侧栏导航）、
+- `components/shell/` —— 应用外壳（标题栏、侧栏导航）、`PageHeader`（页面页头：图标块 + 标题 + 副标题 + 右侧操作），
 - `pages/ai/` —— AI 悬浮层与对话面板（浮窗助手、桌宠）、
 - `hooks/panel/usePanelWidth.ts` / `hooks/panel/useCollapsedState.ts` —— 宽度与折叠态的持久化
 - 其余 `pages/<域>/` —— 业务件（笔记、题单、应用、剪贴板、快捷方式、待办…），
@@ -438,6 +462,7 @@ components:
       要非 5 倍数就用方括号任意值（`bg-primary/[0.08]`）
 - **Don't** 为不同卡片挑不同强调色（之前的 6 色万花筒）—— 现在统一 accent + neutral 两套主题
 - **Don't** 让卡片标题用 1 个 18px 文字 + 巨大空白 —— 用 15px 紧凑标题 + 副标题分层
+- **Don't** 各页面自己写页面边距 —— 统一 `px-6 py-8` + 页头 `mb-8`（`qnote/page-padding` 校验）
 - **Don't** 浮框 / 卡片用多层渐变背景（`shadow-2xl shadow-primary/40` 等）—— 单层 shadow 就够
 - **Don't** 红色 success 反馈用 `--primary` 替代 —— 用户的认知期望"绿色=成功 / 红色=危险"
 - **Don't** 表单字段靠 placeholder 充当 label —— label 必须可见

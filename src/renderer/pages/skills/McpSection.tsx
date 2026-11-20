@@ -382,7 +382,7 @@ export default function McpSection() {
           <Loader2 className="h-5 w-5 animate-spin" />
         </div>
       ) : servers.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border/70 py-16 text-center">
+        <div className="max-w-2xl rounded-xl border border-dashed border-border/70 py-16 text-center">
           <div className="h-12 w-12 rounded-xl bg-muted/60 flex items-center justify-center mx-auto mb-3">
             <Server className="h-5 w-5 text-muted-foreground/50" />
           </div>

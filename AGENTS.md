@@ -272,6 +272,7 @@ src/renderer/pages/<功能>/       ← home/ notes/ settings/ todo/ browser/ ski
 | --- | --- |
 | 主进程能力、IPC、窗口、原生能力 | `src/main/`（handler 放 `src/main/handlers/<功能>/`，常驻能力与功能域放 `src/main/core/<功能>/`，纯工具放 `src/main/utils/`（扁平，不分子目录）） |
 | 渲染层界面 | 公共件放 `src/renderer/components/<公共件>/`（跨页面复用才留这儿）；业务件放 `src/renderer/pages/<功能>/` |
+| 页面页头（标题 / 图标 / 副标题 / 右侧操作） | `src/renderer/components/shell/PageHeader.tsx`（标题 20px / 700，图标 20px，页头下间距 `mb-8`） |
 | Rust 原生模块（纯逻辑单元的 Rust 移植） | crate 放在服务它的功能目录内（`src/shared/<功能>/<功能>-rs/`、`src/main/core/ai/tools/web/web-rs/`），主进程入口 `src/main/core/<功能>/native*.ts`，加载器 `src/main/core/system/nativeModules.ts`，编译 `scripts/build/build-rust.js`，见 6.10 |
 | 渲染层页面（路由级） | `src/renderer/pages/<功能>/`（页面与它的测试文件放同一个功能目录，如 `pages/notes/NotesPage.tsx` + `pages/notes/NotesPage.test.tsx`） |
 | 跨端共享类型 | `src/shared/<功能>/` |
@@ -496,6 +497,14 @@ pnpm run lint:fix            # 能自动修的机械问题（未用 import、pre
 | `qnote/no-direct-database-import` | 渲染层与共享层不得直接引数据层，数据访问走主进程 IPC | error |
 | `qnote/no-arbitrary-duration` | 禁止 `duration-[...]` 任意值时长（判歧义后规则根本不生成），改用 `tailwind.config.js` 登记的命名档位 | error |
 | `qnote/no-module-state-in-utils` | `src/main/utils/` 里不许有模块级可变状态（模块级 `let`、导出的共享实例、会被改的 Map/Set）—— 那是 `core/` 的活 | error |
+| `qnote/page-padding` | 页面根容器的边距必须是 `px-6 py-8`，`<PageHeader>` 下间距必须是 `mb-8`；全宽页面不写页面级边距 | error |
+
+**页面边距是全局一档**：`px-6 py-8`（24px / 32px）+ 页头下间距 `mb-8`。
+
+- 写新页面时根容器直接照抄 `px-6 py-8`，别自己挑 `px-4` / `py-6`，也别加 `sm:` 响应式变体
+- 全宽页面（笔记、应用、浏览器、题单、主页）根容器不写 `px-` / `py-`
+- 页头统一用 `src/renderer/components/shell/PageHeader.tsx`，下间距写在它的 `className` 上
+- 由 `qnote/page-padding` 机器校验
 
 ### 6.9 拖拽重排：自研引擎，别用 dnd-kit
 
