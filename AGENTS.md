@@ -422,6 +422,16 @@ The string is missing the terminator: ".
 - **CI 里判定要带 `--wait`**：扫描器把结果传上去之后计算任务还要跑一会儿，
 - **令牌缺失时门禁跳过，不阻断发版**。令牌来自环境变量 `SONAR_TOKEN` 或
 - **默认拦「缺陷 + 漏洞」两类**（`BUG` / `VULNERABILITY`），代码异味只报不拦。
+- **门禁是发版流水线的前置 job**（`needs: sonar-gate`）：门禁红了，Windows 与 macOS 的
+  打包和 `release` 会被整个跳过 —— tag 推上去了也不会有安装包和 Release。
+- **门禁脚本的退出码**：`0` 放行；`1` = 命中拦截项（CI 判失败）；`2` = 无法判定
+  （令牌/网络/分析没出来），CI 把 `2` 当 warning 放行。脚本只按「有没有 BUG /
+  VULNERABILITY」判，SonarCloud 自带那道门禁（比如新代码覆盖率）只是打 warning。
+- **门禁红了去哪儿看问题清单**：项目是私有的，匿名调 SonarCloud API 拿不到
+  （`issues/search` 返回 200 但 total=0）。真清单在 CI 产物 `sonar-issues` 里
+  （`.data/sonar/sonar-issues.md` + `.json`，含逐条位置与规则），门禁原始输出在
+  job logs 里。两者都要鉴权：可以用 `git credential fill` 里已存的凭据调
+  `api.github.com`（**别把令牌打印出来**）。
 - **严重级别有两套名字**：Cloud 换成了新的 impact 模型（BLOCKER / HIGH / MEDIUM / LOW），
 - **门禁放在 bump 版本号之前**（`scripts/release/release.js`）：不过就不改版本号、
 - **`.data/sonar/` 是清单落点**（`sonar-issues.md` + `sonar-issues.json`），
