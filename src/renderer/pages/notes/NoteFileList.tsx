@@ -322,7 +322,14 @@ function NoteFileList({
       const isRenaming = node.relPath === renamingRel;
       const isOpen = expanded.has(node.relPath);
       const isActiveFolder = node.kind === "folder" && node.relPath === currentFolder;
-      const pickFolder = () => onPickFolder(isActiveFolder ? "" : node.relPath);
+      const pickFolder = () => {
+        toggle(node.relPath);
+        if (isOpen) {
+          if (isActiveFolder) onPickFolder("");
+          return;
+        }
+        if (!isActiveFolder) onPickFolder(node.relPath);
+      };
       const showActions = !isRenaming && (hovered === node.relPath || node.relPath === activeRelPath);
 
       if (isRenaming) {
@@ -382,7 +389,11 @@ function NoteFileList({
                 dragRel === node.relPath && "opacity-40"
               )}
               style={{ paddingLeft: 6 + depth * 12 }}
-              title={`${node.relPath}（点击设为新建与导入的落点，再点一次取消；可拖入文件）`}
+              title={`${node.relPath}（${isOpen
+                ? isActiveFolder
+                  ? "点击收起，并取消新建位置"
+                  : "点击收起"
+                : "点击展开，并设为新建与导入的落点"}；可拖入文件）`}
               {...dragSourceProps(node.relPath)}
               {...folderDropHandlers(node.relPath, isOpen)}
             >
