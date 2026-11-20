@@ -62,8 +62,12 @@ Data App 详情页 → Authentication → **Create API Key**，角色选 `ReadAn
 但**已建好的库要手动补一次**，在 Data Service 页面中间的 SQL 编辑器里跑：
 
 ```sql
-ALTER TABLE qnote_catalog.published_app ADD COLUMN bundle MEDIUMTEXT NOT NULL;
+ALTER TABLE qnote_catalog.published_app ADD COLUMN bundle MEDIUMTEXT NULL;
 ```
+
+列必须是可空的：TiDB 不给 TEXT/BLOB 列设默认值，而老版本客户端发布时不带 `bundle` 参数，
+列要是 NOT NULL 又没默认值，严格模式下那条 INSERT 会直接报 `Field 'bundle' doesn't have a default value`。
+新建的表用 `schema.sql` 建，本来就是可空的。
 
 没补这一列也能发布 —— 客户端发现端点不认 `bundle` 就会退回「只发清单」，
 不会报错。端点定义在 `http_endpoints/`，改完推 GitHub，Auto Sync & Deployment 会自动部署。
