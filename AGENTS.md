@@ -246,24 +246,24 @@ git diff --cached | grep -nEi "sk-[A-Za-z0-9]{20,}|api[_-]?key\s*[:=]\s*['\"][^'
 
 
 ```
-src/main/handlers/notes/     src/main/handlers/ai/     src/main/handlers/apps/
+src/main/handlers/notes/     src/main/handlers/ai/     src/main/handlers/plugin/
 src/main/handlers/browser/   src/main/handlers/clipboard/  src/main/handlers/island/
 src/main/handlers/todo/      src/main/handlers/shortcut/   src/main/handlers/sticky/
 src/main/handlers/update/    src/main/handlers/cloud/      src/main/handlers/system/
-src/main/core/notes/         src/main/core/ai/        src/main/core/apps/
+src/main/core/notes/         src/main/core/ai/        src/main/core/plugin/
 src/main/core/clipboard/     src/main/core/shortcut/  src/main/core/update/
 src/main/core/system/        ← 常驻单例：settings store、退出态、config、log
-src/main/core/window/<功能>/  ← 窗口按功能分：island/ sticky/ clipboard/ browser/ apps/
+src/main/core/window/<功能>/  ← 窗口按功能分：island/ sticky/ clipboard/ browser/ plugin/
 src/main/core/ai/<模块>/      ← AI 功能域：agents/ memory/ observability/ prompts/ skills/ tools/
 src/main/utils/              ← 扁平，无子目录：只放纯工具
-src/shared/notes/            src/shared/ai/           src/shared/apps/
+src/shared/notes/            src/shared/ai/           src/shared/plugin/
 src/shared/clipboard/        src/shared/cloud/        src/shared/island/  src/shared/sticky/
 src/renderer/components/<公共件>/  ← ui/ panel/ shell/（只放跨页面复用的公共件，功能级界面归到 pages/<功能>/）
-src/renderer/pages/<功能>/        ← ai/ apps/ browser/ clipboard-popup/ home/ island/
+src/renderer/pages/<功能>/        ← ai/ browser/ clipboard-popup/ home/ island/ plugin/
                                      leetcode/ notes/ settings/ skills/ sticky/ todo/
-src/renderer/hooks/<功能>/       ← ai/ browser/ panel/ sticky/ apps/ shell/ system/ ui/
+src/renderer/hooks/<功能>/       ← ai/ browser/ panel/ plugin/ sticky/ shell/ system/ ui/
 src/renderer/utils/<功能>/       ← clipboard/ system/（只放跨页面复用的公共工具，功能级工具归到 pages/<功能>/）
-src/renderer/pages/<功能>/       ← home/ notes/ settings/ todo/ browser/ skills/ apps/
+src/renderer/pages/<功能>/       ← home/ notes/ settings/ todo/ browser/ skills/ plugin/
 ```
 
 
@@ -276,14 +276,16 @@ src/renderer/pages/<功能>/       ← home/ notes/ settings/ todo/ browser/ ski
 | 渲染层页面（路由级） | `src/renderer/pages/<功能>/`（页面与它的测试文件放同一个功能目录，如 `pages/notes/NotesPage.tsx` + `pages/notes/NotesPage.test.tsx`） |
 | 跨端共享类型 | `src/shared/<功能>/` |
 | 数据表与迁移 | `src/database/` |
-| 应用管理（项目清单、进程启停、HTML 预览） | `src/main/core/apps/appManager.ts`、`src/main/core/window/apps/appPreview.ts`、`src/main/utils/appManifest.ts`、`src/renderer/pages/apps/` |
+| 插件系统（清单、进程启停、预览、SDK） | `src/main/core/plugin/pluginManager.ts`、`src/main/core/plugin/sdk/`、`src/main/core/window/plugin/pluginPreview.ts`、`src/main/utils/pluginManifest.ts`、`src/renderer/pages/plugin/` |
 | AI 功能域（对话、Agent、记忆、提示词、工具调用、向量库） | `src/main/core/ai/`（平铺的 `aiService.ts` / `providers.ts` / `streaming.ts` / `toolContext.ts` 等 + `agents/` `memory/` `observability/` `prompts/` `skills/` `tools/` 六个子目录）、`src/main/handlers/ai/`、`src/shared/ai/`、`src/renderer/pages/ai/`（渲染层 AI 界面：浮窗助手、桌宠、对话面板） |
-| 清单命令的风险分析（市场来源项目的启动确认） | `src/shared/apps/appRisk.ts`（纯函数）、`src/main/core/apps/appManager.ts`（`checkStartConfirmation` / `confirmStart`）、`src/renderer/pages/apps/StartConfirmDialog.tsx` |
+| 清单命令的风险分析（市场来源插件的启动确认） | `src/shared/plugin/pluginRisk.ts`（纯函数）、`src/main/core/plugin/pluginManager.ts`（`checkStartConfirmation` / `confirmStart`）、`src/renderer/pages/plugin/StartConfirmDialog.tsx` |
+| 插件声明式权限的判定 | `src/main/core/plugin/capabilities.ts`（`checkCapability`）、`src/shared/plugin/pluginManifest.ts`（清单校验） |
+| 插件 SDK 通道与宿主 API | `src/main/core/plugin/sdk/rpcServer.ts`（传输）、`src/main/core/plugin/sdk/hostApi.ts`（API 面）、`resources/plugin-sdk/`（插件侧 SDK）、`src/shared/plugin/sdk/protocol.ts`（协议） |
 | 通用面板件（可折叠侧栏、拖拽分割线、宽度偏好） | `src/renderer/components/panel/`、`src/renderer/hooks/panel/usePanelWidth.ts`、`src/renderer/hooks/panel/useCoalescedStorage.ts`（合并写盘：拖拽时别每帧同步写 localStorage） |
 | 拖拽重排（列表 / 行 / dock 换序的手感） | `src/renderer/hooks/ui/useDragReorder.ts`（引擎）、`src/renderer/hooks/ui/dragReorderGeometry.ts`（几何纯函数）、`src/renderer/styles/drag-reorder.css`（动效）—— 自研，别再引 dnd-kit（已移除） |
 | 上下分栏（笔记树 / 外部文件夹，默认 6:4，可拖动） | `src/renderer/components/panel/PanelHeightResizer.tsx`（纵向分割线）、`src/renderer/hooks/panel/useSplitRatio.ts`（比例持久化）、`src/renderer/pages/notes/layout.ts`（比例与收起态高度常量） |
 | 灵动岛（最小化后顶在屏幕顶边的浮层） | `src/shared/island/island.ts`（契约）、`src/main/core/window/island/island.ts`（窗口与几何）、`src/main/handlers/island/islandHandlers.ts`（IPC）、`src/renderer/pages/island/`（界面） |
-| 云端存储（共享数据放 TiDB Cloud，私有数据留本地） | `src/database/cloud/`（存储层）、`src/main/handlers/cloud/cloudHandlers.ts`（IPC）、`src/renderer/pages/settings/CloudStorageCard.tsx`、`src/renderer/pages/apps/PublishedAppMarket.tsx`、`data-app/`（Data App 配置：端点定义 + SQL） |
+| 云端存储（共享数据放 TiDB Cloud，私有数据留本地） | `src/database/cloud/`（存储层）、`src/main/handlers/cloud/cloudHandlers.ts`（IPC）、`src/renderer/pages/settings/CloudStorageCard.tsx`、`src/renderer/pages/plugin/PublishedPluginMarket.tsx`、`data-app/`（Data App 配置：端点定义 + SQL） |
 | 主进程运行时路径（preload、资源、开发态仓库根） | `src/main/utils/paths.ts`（`getPreloadPath()` / `getDevRoot()`） |
 | 打包 / 发布配置 | `build/`、`scripts/`、`.github/workflows/` |
 | 静态分析 / 质量门禁 | `sonar-project.properties`（分析范围）、`eslint.config.mjs` + `tsconfig.lint.json`（本地 SonarJS 规则）、`scripts/quality/`（清单与门禁脚本）、`scripts/quality/eslint-rules/`（QNote 自定义规则，见 6.8）、`.github/workflows/sonar.yml`（扫描）、`docs/SONAR.md` + `docs/SONAR-DEBT.md`（规范与存量债台账） |
@@ -330,26 +332,44 @@ The string is missing the terminator: ".
 - **mac 自动更新要求应用已签名**。未签名的 mac 版能安装，但更新装不上。
 
 
-### 6.4 应用管理：项目清单规范
+### 6.4 插件系统：清单规范与 SDK
 
-
-- **导入的就是项目本身**：没有「根目录 + 扫描子目录」这层 ——
-- **清单是唯一入口**：项目根目录下必须有一份 `qnote.json`，
+- **导入的就是插件本身**：没有「根目录 + 扫描子目录」这层 ——
+- **清单是唯一入口**：插件根目录下必须有一份 `plugin.json`，名字不是 `qnote.json`
 - **不合规不落库**：导入时清单解析不过就不写进数据库，
-- **清单写在项目里，不写数据库**：应用库（`app_project`）只存索引，
+- **清单写在插件里，不写数据库**：插件库（`plugin` 表）只存索引，
+- **两个 id 各司其职**：`id` 是对外业务标识（`publisher.name`，字符串），
+  `local_id` 是本地自增号。**预览协议的 host 段 `qnote-app://p<local_id>/` 只认数字**，
+  所以内部一律用 `local_id`，别把字符串 id 塞进 URL
 - **私有协议 `qnote-app://` 不能改**：`protocol.registerSchemesAsPrivileged`
 - **清单里的 `command` 是经 shell 执行的**（`spawn(..., shell: true)`）——
-  - `app_project` 表有 `origin`（`local` / `market`）与
+  - `plugin` 表有 `origin`（`local` / `market`）与
     `confirmed_manifest_hash` 两列，**后者存的是清单内容的哈希** ——
     清单改了就对不上，确认框会再弹一次
-  - 判定逻辑在 `AppManager.checkStartConfirmation` ——
-    **单独成方法是为了能脱离 spawn 来测**，别为了省事把它塞回 startProject
-  - 风险分析在 `src/shared/apps/appRisk.ts`（纯函数）。它**不是安全边界** ——
+  - 判定逻辑在 `PluginManager.checkStartConfirmation` ——
+    **单独成方法是为了能脱离 spawn 来测**，别为了省事把它塞回 startPlugin
+  - 风险分析在 `src/shared/plugin/pluginRisk.ts`（纯函数）。它**不是安全边界** ——
     关键词匹配挡不住刻意伪装，真正的防线是「来源标记 + 运行前确认」
-  - 市场导入走 `app:import-from-market` **专用路径**：
-    目标目录已有 `qnote.json` 就拒绝，**一个字节都不动**。
-    别改回「写清单 + 导入项目」两步 —— 两步分开的话清单已经写了，
-    导入才发现失败，用户自己已有项目的清单就被换成了别人的命令
+  - 市场导入走 `plugin:import-from-market` **专用路径**：
+    目标目录已有 `plugin.json` 就拒绝，**一个字节都不动**。
+    别改回「写清单 + 导入插件」两步 —— 两步分开的话清单已经写了，
+    导入才发现失败，用户自己已有插件的清单就被换成了别人的命令
+- **没声明 `capabilities` 就是最小权限**：只能加载预览页面，不能起子进程、
+  不能读写笔记待办。**`process.spawn` 没声明时启动直接被拒**，
+  判定在 `src/main/core/plugin/capabilities.ts` 的 `checkCapability`
+- **SDK 通道是 loopback HTTP + 长轮询**（`src/main/core/plugin/sdk/rpcServer.ts`）：
+  插件进程靠 `QNOTE_PLUGIN_RPC` / `QNOTE_PLUGIN_TOKEN` 环境变量接进来。
+  **别改回 WebSocket** —— 插件的 stdout/stderr 要原样给用户看日志，
+  stdin 是单向的撑不起「插件 → 宿主」的调用
+- **宿主 API 面**在 `src/main/core/plugin/sdk/hostApi.ts`：
+  `qnote.notify` / `qnote.log` / `qnote.settings.*` / `qnote.commands.*` /
+  `qnote.todos.list` / `qnote.notes.list`。数据访问一律走主进程，
+  插件不许直接碰 SQLite
+- **插件侧 SDK** 是 `resources/plugin-sdk/qnote-plugin-sdk.js`（纯 ESM，无构建步骤）。
+  插件作者 `import` 它，导出 `activate(ctx)` / `deactivate()`
+- **老应用迁移是幂等的**：`src/main/core/plugin/legacyMigration.ts` 在插件管理器
+  初始化时跑一次，把 `app_project` 里的老记录转成插件并在插件目录补一份
+  `plugin.json`。**原 `qnote.json` 与 `app_project` 表都不删** —— 留回滚口子
 - **原生视图盖在 DOM 之上**：预览区是 `WebContentsView`，
 - **`useNativeViewCover` 是持有者集合**：多个页面各自持有原生视图时，
 - **侧栏的折叠与伸缩用 `ResizableSidebar`**：折叠、拖拽调宽、宽度上限、
@@ -506,7 +526,7 @@ pnpm run lint:fix            # 能自动修的机械问题（未用 import、pre
 | crate | 移植的 TS 单元 | 主进程入口 |
 | --- | --- | --- |
 | `src/shared/notes/notes-rs/` | 笔记内容处理 | `src/main/core/notes/nativeNotes.ts` |
-| `src/shared/apps/apps-rs/` | 清单命令风险分析 | `src/main/core/apps/nativeApps.ts` |
+| `src/shared/plugin/plugin-rs/` | 清单命令风险分析 | `src/main/core/plugin/nativePlugin.ts` |
 | `src/shared/todo/todo-rs/` | 待办时间解析与提醒判定 | `src/main/core/todo/nativeTodo.ts` |
 | `src/shared/ai/ai-rs/` | 会话摘要与块序列化 | `src/main/core/ai/nativeAi.ts` |
 | `src/main/core/ai/tools/web/web-rs/` | 网页解析与搜索结果提取 | `src/main/core/ai/tools/web/searchEngine.ts`（同文件内原地分派，避免循环依赖） |

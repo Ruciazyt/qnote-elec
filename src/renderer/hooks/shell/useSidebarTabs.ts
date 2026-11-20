@@ -5,7 +5,7 @@ export interface SidebarTabsConfig {
   todos: boolean;
   leetcode: boolean;
   browser: boolean;
-  apps: boolean;
+  plugins: boolean;
   settings: boolean;
 }
 
@@ -14,7 +14,7 @@ export const DEFAULT_SIDEBAR_TABS: SidebarTabsConfig = {
   todos: false,
   leetcode: false,
   browser: true,
-  apps: true,
+  plugins: true,
   settings: true,
 };
 
@@ -35,7 +35,10 @@ export function loadSidebarTabs(): SidebarTabsConfig {
       leetcode:
         typeof parsed.leetcode === "boolean" ? parsed.leetcode : DEFAULT_SIDEBAR_TABS.leetcode,
       browser: typeof parsed.browser === "boolean" ? parsed.browser : DEFAULT_SIDEBAR_TABS.browser,
-      apps: typeof parsed.apps === "boolean" ? parsed.apps : DEFAULT_SIDEBAR_TABS.apps,
+      plugins:
+        typeof parsed.plugins === "boolean"
+          ? parsed.plugins
+          : DEFAULT_SIDEBAR_TABS.plugins,
       settings:
         typeof parsed.settings === "boolean" ? parsed.settings : DEFAULT_SIDEBAR_TABS.settings,
     };

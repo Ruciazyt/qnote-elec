@@ -12,7 +12,7 @@ import {
   findThinFocusRings,
   makeSource,
 } from "./ui-guards";
-import { RemoveProjectDialog } from "../pages/apps/RemoveProjectDialog";
+import { RemovePluginDialog } from "../pages/plugin/RemovePluginDialog";
 
 
 
@@ -39,7 +39,7 @@ const BRAND_TEXT_CASES: Array<[string, string, string]> = [
 ];
 
 const HIDDEN_FOCUSABLE_FILES = [
-  "pages/apps/AppProjectHeader.tsx",
+  "pages/plugin/PluginHeader.tsx",
   "pages/browser/BookmarkList.tsx",
   "pages/todo/TodoEditDialog.tsx",
   "pages/browser/BrowserPage.tsx",
@@ -47,7 +47,7 @@ const HIDDEN_FOCUSABLE_FILES = [
 ];
 
 const DESTRUCTIVE_CASES: Array<[string, string]> = [
-  ["pages/apps/RemoveProjectDialog.tsx", "name"],
+  ["pages/plugin/RemovePluginDialog.tsx", "name"],
 ];
 
 function hiddenFocusableSource(_file: string): string {
@@ -239,7 +239,7 @@ describe("破坏性确认框：基线清空后守卫仍然拦得住", () => {
   });
 
   it("正文不在 DialogDescription 里也会进 added", () => {
-    const file = "pages/apps/RemoveProjectDialog.tsx";
+    const file = "pages/plugin/RemovePluginDialog.tsx";
     const spec = specOf(file, "name");
     const bad = makeSource(
       file,
@@ -256,7 +256,7 @@ describe("破坏性确认框：基线清空后守卫仍然拦得住", () => {
   });
 
   it("描述点了名就放行 —— 各域修完之后的正确形态", () => {
-    const file = "pages/apps/RemoveProjectDialog.tsx";
+    const file = "pages/plugin/RemovePluginDialog.tsx";
     const spec = specOf(file, "name");
     const ok = makeSource(
       file,
@@ -275,10 +275,10 @@ describe("破坏性确认框：基线清空后守卫仍然拦得住", () => {
   it("运行时：描述节点里确实点名了目标（按 aria-describedby 找节点，不断言文案全文）", () => {
     const projectName = "我的应用";
     render(
-      <RemoveProjectDialog
+      <RemovePluginDialog
         open
         name={projectName}
-        path="D:\\apps\\my-app"
+        path="D:\\plugins\\my-plugin"
         onClose={vi.fn()}
         onConfirm={vi.fn()}
       />

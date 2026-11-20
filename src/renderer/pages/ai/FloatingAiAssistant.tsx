@@ -8,7 +8,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useAiAssistant } from "@/hooks/ai/useAiAssistant";
-import { useNativeViewCover } from "@/hooks/apps/useNativeViewCover";
+import { useNativeViewCover } from "@/hooks/plugin/useNativeViewCover";
 import { useVoiceInput } from "@/hooks/ai/useVoiceInput";
 import { toast } from "@/hooks/ui/use-toast";
 import { AiChatPanel } from "./AiChatPanel";

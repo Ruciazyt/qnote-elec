@@ -359,36 +359,30 @@ interface ElectronAPI {
   browserBookmarkDelete: (id: number) => Promise<boolean>;
   browserBookmarkClear: () => Promise<boolean>;
 
-  appListProjects: () => Promise<import("@shared/apps/appTypes").AppProject[]>;  appImportProject: (dirPath: string) => Promise<import("@shared/apps/appTypes").AppImportResult>;
-  appRemoveProject: (id: number) => Promise<{ ok: boolean; error?: string }>;
-  appRefreshProjects: () => Promise<import("@shared/apps/appTypes").AppProject[]>;
-  appWriteManifest: (
-    projectPath: string,
-    payload: {
-      name?: string;
-      description?: string;
-      command?: string;
-      args?: string[];
-      cwd?: string;
-      env?: Record<string, string>;
-      preview?: string;
-    }
+  pluginList: () => Promise<import("@shared/plugin/pluginTypes").PluginRecord[]>;
+  pluginImport: (dirPath: string) => Promise<import("@shared/plugin/pluginTypes").PluginImportResult>;
+  pluginRemove: (id: string) => Promise<{ ok: boolean; error?: string }>;
+  pluginSetEnabled: (id: string, enabled: boolean) => Promise<{ ok: boolean; error?: string }>;
+  pluginRefresh: () => Promise<import("@shared/plugin/pluginTypes").PluginRecord[]>;
+  pluginWriteManifest: (
+    pluginPath: string,
+    payload: import("@shared/plugin/pluginTypes").PluginManifestDraft
   ) => Promise<{ ok: boolean; error?: string }>;
-  appOpenFolder: (target: string) => Promise<{ ok: boolean; error?: string }>;
-  appPickProjectDir: () => Promise<string | null>;
-  appStart: (
-    projectId: number,
+  pluginOpenFolder: (target: string) => Promise<{ ok: boolean; error?: string }>;
+  pluginPickDir: () => Promise<string | null>;
+  pluginStart: (
+    pluginId: string,
     confirmedManifestHash?: string
   ) => Promise<{
     ok: boolean;
     error?: string;
-    needsConfirmation?: import("@shared/apps/appTypes").StartConfirmation;
+    needsConfirmation?: import("@shared/plugin/pluginTypes").StartConfirmation;
   }>;
-  appImportFromMarket: (
+  pluginImportFromMarket: (
     dirPath: string,
-    payload: import("@shared/apps/appTypes").MarketImportPayload
-  ) => Promise<import("@shared/apps/appTypes").AppImportResult>;
-  appBuildBundle: (projectId: number) => Promise<{
+    payload: import("@shared/plugin/pluginTypes").MarketImportPayload
+  ) => Promise<import("@shared/plugin/pluginTypes").PluginImportResult>;
+  pluginBuildBundle: (pluginId: string) => Promise<{
     ok: boolean;
     error?: string;
     bundle?: string;
@@ -397,53 +391,53 @@ interface ElectronAPI {
     skipped?: string[];
     tooLarge?: boolean;
   }>;
-  appStop: (projectId: number) => Promise<{ ok: boolean; error?: string }>;
-  appRuntimeStates: () => Promise<import("@shared/apps/appTypes").AppRuntimeState[]>;
-  appLogs: (projectId: number) => Promise<import("@shared/apps/appTypes").AppLogLine[]>;
-  appClearLogs: (projectId: number) => Promise<boolean>;
-  appPreviewLoad: (projectId: number) => Promise<{
+  pluginStop: (id: string) => Promise<{ ok: boolean; error?: string }>;
+  pluginRuntimeStates: () => Promise<import("@shared/plugin/pluginTypes").PluginRuntimeState[]>;
+  pluginLogs: (pluginId: string) => Promise<import("@shared/plugin/pluginTypes").PluginLogLine[]>;
+  pluginClearLogs: (pluginId: string) => Promise<boolean>;
+  pluginPreviewLoad: (localId: number) => Promise<{
     ok: boolean;
     error?: string;
     url?: string;
     display?: string;
   }>;
-  appPreviewVisible: (visible: boolean) => Promise<void>;
-  appPreviewBounds: (bounds: {
+  pluginPreviewVisible: (visible: boolean) => Promise<void>;
+  pluginPreviewBounds: (bounds: {
     x: number;
     y: number;
     width: number;
     height: number;
   }) => Promise<void>;
-  onAppProjectsChanged: (
-    callback: (projects: import("@shared/apps/appTypes").AppProject[]) => void
+  onPluginPluginsChanged: (
+    callback: (plugins: import("@shared/plugin/pluginTypes").PluginRecord[]) => void
   ) => () => void;
-  onAppRuntimeChanged: (
-    callback: (state: import("@shared/apps/appTypes").AppRuntimeState) => void
+  onPluginRuntimeChanged: (
+    callback: (state: import("@shared/plugin/pluginTypes").PluginRuntimeState) => void
   ) => () => void;
-  onAppLog: (callback: (line: import("@shared/apps/appTypes").AppLogLine) => void) => () => void;
-  onAppPreviewError: (
+  onPluginLog: (callback: (line: import("@shared/plugin/pluginTypes").PluginLogLine) => void) => () => void;
+  onPluginPreviewError: (
     callback: (payload: {
-      projectId?: number;
+      localId?: number;
       url: string;
       message: string;
     }) => void
   ) => () => void;
-  onAppPreviewLoaded: (
-    callback: (payload: { projectId?: number }) => void
+  onPluginPreviewLoaded: (
+    callback: (payload: { localId?: number }) => void
   ) => () => void;
 
   dialogOpen: (context: {
-    type: import("@shared/apps/dialogTypes").DialogType;
+    type: import("@shared/plugin/dialogTypes").DialogType;
     payload?: Record<string, unknown>;
   }) => Promise<{ ok: boolean; error?: string }>;
-  dialogGetContext: () => Promise<import("@shared/apps/dialogTypes").DialogContext | null>;
+  dialogGetContext: () => Promise<import("@shared/plugin/dialogTypes").DialogContext | null>;
   dialogClose: () => Promise<{ ok: boolean }>;
-  dialogSend: (message: import("@shared/apps/dialogTypes").DialogMessage) => void;
+  dialogSend: (message: import("@shared/plugin/dialogTypes").DialogMessage) => void;
   onDialogContext: (
-    callback: (context: import("@shared/apps/dialogTypes").DialogContext) => void
+    callback: (context: import("@shared/plugin/dialogTypes").DialogContext) => void
   ) => () => void;
   onDialogMessage: (
-    callback: (message: import("@shared/apps/dialogTypes").DialogMessage) => void
+    callback: (message: import("@shared/plugin/dialogTypes").DialogMessage) => void
   ) => () => void;
 
   cloudGetConfig: () => Promise<import("@shared/cloud/cloudTypes").CloudStorageConfig>;

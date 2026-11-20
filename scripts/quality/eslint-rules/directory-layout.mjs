@@ -3,15 +3,15 @@ import { relativePath } from "./paths.mjs";
 const ROLE_DIRS = [
     {
         dir: "src/main/handlers",
-        features: ["ai", "apps", "browser", "clipboard", "cloud", "island", "leetcode", "notes", "shortcut", "sticky", "system", "todo", "update"],
+        features: ["ai", "browser", "clipboard", "cloud", "island", "leetcode", "notes", "plugin", "shortcut", "sticky", "system", "todo", "update"],
     },
     {
         dir: "src/main/core",
-        features: ["ai", "apps", "clipboard", "notes", "shortcut", "system", "todo", "update", "window"],
+        features: ["ai", "clipboard", "notes", "plugin", "shortcut", "system", "todo", "update", "window"],
     },
     {
         dir: "src/main/core/window",
-        features: ["apps", "browser", "clipboard", "island", "sticky"],
+        features: ["browser", "clipboard", "island", "plugin", "sticky"],
         topLevel: ["index.ts", "mainWindow.ts", "tray.ts"],
     },
     {
@@ -24,7 +24,7 @@ const ROLE_DIRS = [
     },
     {
         dir: "src/renderer/hooks",
-        features: ["ai", "apps", "browser", "panel", "shell", "sticky", "system", "ui"],
+        features: ["ai", "browser", "panel", "plugin", "shell", "sticky", "system", "ui"],
     },
     {
         dir: "src/renderer/utils",
@@ -32,11 +32,11 @@ const ROLE_DIRS = [
     },
     {
         dir: "src/renderer/pages",
-        features: ["ai", "apps", "browser", "clipboard-popup", "home", "island", "leetcode", "notes", "settings", "skills", "sticky", "todo"],
+        features: ["ai", "browser", "clipboard-popup", "home", "island", "leetcode", "notes", "plugin", "settings", "skills", "sticky", "todo"],
     },
     {
         dir: "src/shared",
-        features: ["ai", "apps", "clipboard", "cloud", "island", "notes", "sticky", "todo"],
+        features: ["ai", "clipboard", "cloud", "island", "notes", "plugin", "sticky", "todo"],
     },
     {
         dir: "scripts",

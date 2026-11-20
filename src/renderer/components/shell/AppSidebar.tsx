@@ -55,10 +55,10 @@ const items: SidebarItem[] = [
     tabKey: "browser",
   },
   {
-    title: "应用",
-    url: "/apps",
+    title: "插件",
+    url: "/plugins",
     icon: Boxes,
-    tabKey: "apps",
+    tabKey: "plugins",
   },
   {
     title: "技能 / MCP",

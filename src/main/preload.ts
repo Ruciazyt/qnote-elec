@@ -437,63 +437,55 @@ contextBridge.exposeInMainWorld("electron", {
   browserBookmarkDelete: (id: number) => ipcRenderer.invoke("bookmark:delete", id),
   browserBookmarkClear: () => ipcRenderer.invoke("bookmark:clear"),
 
-  appListProjects: () => ipcRenderer.invoke("app:list-projects"),
-  appImportProject: (dirPath: string) => ipcRenderer.invoke("app:import-project", dirPath),
-  appRemoveProject: (id: number) => ipcRenderer.invoke("app:remove-project", id),
-  appRefreshProjects: () => ipcRenderer.invoke("app:refresh-projects"),
-  appWriteManifest: (
-    projectPath: string,
-    payload: {
-      name?: string;
-      description?: string;
-      command?: string;
-      args?: string[];
-      cwd?: string;
-      env?: Record<string, string>;
-      preview?: string;
-    }
-  ) => ipcRenderer.invoke("app:write-manifest", projectPath, payload),
-  appOpenFolder: (target: string) => ipcRenderer.invoke("app:open-folder", target),
-  appPickProjectDir: () => ipcRenderer.invoke("app:pick-project-dir"),
-  appStart: (projectId: number, confirmedManifestHash?: string) =>
-    ipcRenderer.invoke("app:start", projectId, confirmedManifestHash),
-  appImportFromMarket: (dirPath: string, payload: unknown) =>
-    ipcRenderer.invoke("app:import-from-market", dirPath, payload),
-  appBuildBundle: (projectId: number) =>
-    ipcRenderer.invoke("app:build-bundle", projectId),
-  appStop: (projectId: number) => ipcRenderer.invoke("app:stop", projectId),
-  appRuntimeStates: () => ipcRenderer.invoke("app:runtime-states"),
-  appLogs: (projectId: number) => ipcRenderer.invoke("app:logs", projectId),
-  appClearLogs: (projectId: number) => ipcRenderer.invoke("app:clear-logs", projectId),
-  appPreviewLoad: (projectId: number) =>
-    ipcRenderer.invoke("app:preview-load", projectId),
-  appPreviewVisible: (visible: boolean) => ipcRenderer.invoke("app:preview-visible", visible),
-  appPreviewBounds: (bounds: { x: number; y: number; width: number; height: number }) =>
-    ipcRenderer.invoke("app:preview-bounds", bounds),
-  onAppProjectsChanged: (callback: (projects: any[]) => void) => {
+  pluginList: () => ipcRenderer.invoke("plugin:list"),
+  pluginImport: (dirPath: string) => ipcRenderer.invoke("plugin:import", dirPath),
+  pluginRemove: (id: string) => ipcRenderer.invoke("plugin:remove", id),
+  pluginSetEnabled: (id: string, enabled: boolean) =>
+    ipcRenderer.invoke("plugin:set-enabled", id, enabled),
+  pluginRefresh: () => ipcRenderer.invoke("plugin:refresh"),
+  pluginWriteManifest: (pluginPath: string, payload: unknown) =>
+    ipcRenderer.invoke("plugin:write-manifest", pluginPath, payload),
+  pluginOpenFolder: (target: string) => ipcRenderer.invoke("plugin:open-folder", target),
+  pluginPickDir: () => ipcRenderer.invoke("plugin:pick-dir"),
+  pluginStart: (pluginId: string, confirmedManifestHash?: string) =>
+    ipcRenderer.invoke("plugin:start", pluginId, confirmedManifestHash),
+  pluginImportFromMarket: (dirPath: string, payload: unknown) =>
+    ipcRenderer.invoke("plugin:import-from-market", dirPath, payload),
+  pluginBuildBundle: (pluginId: string) =>
+    ipcRenderer.invoke("plugin:build-bundle", pluginId),
+  pluginStop: (pluginId: string) => ipcRenderer.invoke("plugin:stop", pluginId),
+  pluginRuntimeStates: () => ipcRenderer.invoke("plugin:runtime-states"),
+  pluginLogs: (pluginId: string) => ipcRenderer.invoke("plugin:logs", pluginId),
+  pluginClearLogs: (pluginId: string) => ipcRenderer.invoke("plugin:clear-logs", pluginId),
+  pluginPreviewLoad: (localId: number) =>
+    ipcRenderer.invoke("plugin:preview-load", localId),
+  pluginPreviewVisible: (visible: boolean) => ipcRenderer.invoke("plugin:preview-visible", visible),
+  pluginPreviewBounds: (bounds: { x: number; y: number; width: number; height: number }) =>
+    ipcRenderer.invoke("plugin:preview-bounds", bounds),
+  onPluginPluginsChanged: (callback: (plugins: any[]) => void) => {
     const listener = (_event: unknown, projects: any[]) => callback(projects);
-    ipcRenderer.on("app:projects-changed", listener);
-    return () => ipcRenderer.removeListener("app:projects-changed", listener);
+    ipcRenderer.on("plugin:plugins-changed", listener);
+    return () => ipcRenderer.removeListener("plugin:plugins-changed", listener);
   },
-  onAppRuntimeChanged: (callback: (state: any) => void) => {
+  onPluginRuntimeChanged: (callback: (state: any) => void) => {
     const listener = (_event: unknown, state: any) => callback(state);
-    ipcRenderer.on("app:runtime-changed", listener);
-    return () => ipcRenderer.removeListener("app:runtime-changed", listener);
+    ipcRenderer.on("plugin:runtime-changed", listener);
+    return () => ipcRenderer.removeListener("plugin:runtime-changed", listener);
   },
-  onAppLog: (callback: (line: any) => void) => {
+  onPluginLog: (callback: (line: any) => void) => {
     const listener = (_event: unknown, line: any) => callback(line);
-    ipcRenderer.on("app:log", listener);
-    return () => ipcRenderer.removeListener("app:log", listener);
+    ipcRenderer.on("plugin:log", listener);
+    return () => ipcRenderer.removeListener("plugin:log", listener);
   },
-  onAppPreviewError: (callback: (payload: any) => void) => {
+  onPluginPreviewError: (callback: (payload: any) => void) => {
     const listener = (_event: unknown, payload: any) => callback(payload);
-    ipcRenderer.on("app:preview-error", listener);
-    return () => ipcRenderer.removeListener("app:preview-error", listener);
+    ipcRenderer.on("plugin:preview-error", listener);
+    return () => ipcRenderer.removeListener("plugin:preview-error", listener);
   },
-  onAppPreviewLoaded: (callback: (payload: any) => void) => {
+  onPluginPreviewLoaded: (callback: (payload: any) => void) => {
     const listener = (_event: unknown, payload: any) => callback(payload);
-    ipcRenderer.on("app:preview-loaded", listener);
-    return () => ipcRenderer.removeListener("app:preview-loaded", listener);
+    ipcRenderer.on("plugin:preview-loaded", listener);
+    return () => ipcRenderer.removeListener("plugin:preview-loaded", listener);
   },
 
   dialogOpen: (context: { type: string; payload?: Record<string, unknown> }) =>

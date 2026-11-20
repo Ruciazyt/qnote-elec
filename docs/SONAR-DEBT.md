@@ -19,15 +19,15 @@
 
 | 规则 | 位置 | 问题 | 处置 |
 | --- | --- | --- | --- |
-| tssecurity:S2076 | `appHandlers.ts` | 命令注入：`shell.openPath` 直接收渲染层传来的路径 | 改成**只允许已登记的项目目录**，显式 NOSONAR（污点分析认不出白名单校验） |
-| tssecurity:S2083 | `appManager.ts` ×2 | 路径穿越 | `path.join(dir, "qnote.json")` —— 拼接段是常量、目录是用户挑的，NOSONAR + 理由 |
-| tssecurity:S2083 | `appManifest.ts` | 路径穿越 | 同上 |
+| tssecurity:S2076 | `pluginHandlers.ts` | 命令注入：`shell.openPath` 直接收渲染层传来的路径 | 改成**只允许已登记的插件目录**，显式 NOSONAR（污点分析认不出白名单校验） |
+| tssecurity:S2083 | `pluginManager.ts` ×2 | 路径穿越 | `path.join(dir, "plugin.json")` —— 拼接段是常量、目录是用户挑的，NOSONAR + 理由 |
+| tssecurity:S2083 | `pluginManifest.ts` | 路径穿越 | 同上 |
 | typescript:S2083 | `projectConfig.ts` ×2 | 路径穿越 | `path.join(dir, ".mcp.json")` —— 拼接段是常量、目录是用户挑的项目目录，NOSONAR |
-| typescript:S4036 | `appManager.ts` ×2 | 命令从 PATH 解析 | `taskkill` 改用 `SystemRoot\System32\taskkill.exe` 绝对路径 |
+| typescript:S4036 | `pluginManager.ts` ×2 | 命令从 PATH 解析 | `taskkill` 改用 `SystemRoot\System32\taskkill.exe` 绝对路径 |
 | typescript:S6438 | `SideBar.tsx` | JSX 里的 `/* */` 被当**纯文本渲染**出来 | 改成 `{/* */}` |
 | typescript:S2871 | `ui-guards.ts` | 排序没带 localeCompare | 补上 |
 | typescript:S4790 | `projectConfig.ts`、`nameRegistry.ts` | 弱哈希算法 sha1 | 改成 sha256（仓库里 noteStore / shortcutIcons 本来就用 sha256） |
-| tssecurity:S2076 | `appManager.ts` | 命令注入：`spawn(commandLine, { shell: true })`，command 来自项目自己的 `qnote.json` | 清单命令本来就要走 shell，保留 `shell: true`，补 NOSONAR + 理由；市场来源另有风险分析与启动确认 |
+| tssecurity:S2076 | `pluginManager.ts` | 命令注入：`spawn(commandLine, { shell: true })`，command 来自插件自己的 `plugin.json` | 清单命令本来就要走 shell，保留 `shell: true`，补 NOSONAR + 理由；市场来源另有风险分析与启动确认 |
 
 ---
 

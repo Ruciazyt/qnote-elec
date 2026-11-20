@@ -2064,13 +2064,13 @@ export default function Settings() {
                 />
                 <SidebarTabToggle
                   icon={Boxes}
-                  title="应用"
-                  description="按文件夹管理本机项目 + 启动与预览"
-                  enabled={sidebarTabs.apps}
+                  title="插件"
+                  description="按文件夹管理本机插件 + 启动与预览"
+                  enabled={sidebarTabs.plugins}
                   onToggle={() =>
                     setSidebarTabs({
                       ...sidebarTabs,
-                      apps: !sidebarTabs.apps,
+                      plugins: !sidebarTabs.plugins,
                     })
                   }
                   accent={ACCENTS.accent}

@@ -52,17 +52,21 @@ import { registerUpdateHandlers } from "./handlers/update/updateHandlers";
 import { initUpdater } from "./core/update/updater";
 import { parseAddShortcutArg, repairContextMenu } from "./utils/shellContextMenu";
 import { registerAsrHandlers } from "./handlers/ai/asrHandlers";
-import { registerAppHandlers, teardownAppHandlers, resolveAppProjectDir } from "./handlers/apps/appHandlers";
-import { registerDialogHandlers } from "./handlers/apps/dialogHandlers";
-import { dialogWindowManager } from "./core/window/apps/dialogWindow";
+import {
+  registerPluginHandlers,
+  teardownPluginHandlers,
+  resolvePluginDir,
+} from "./handlers/plugin/pluginHandlers";
+import { registerDialogHandlers } from "./handlers/plugin/dialogHandlers";
+import { dialogWindowManager } from "./core/window/plugin/dialogWindow";
 import { registerCloudHandlers } from "./handlers/cloud/cloudHandlers";
 import { initCloudStorage } from "../database/cloud/cloudManager";
 import {
-  registerAppPreviewScheme,
-  initAppPreviewProtocol,
-  attachAppPreview,
-  disposeAppPreview,
-} from "./core/window/apps/appPreview";
+  registerPluginPreviewScheme,
+  initPluginPreviewProtocol,
+  attachPluginPreview,
+  disposePluginPreview,
+} from "./core/window/plugin/pluginPreview";
 import { createMainWindow, getMainWindow, showMainWindow, createTray } from "./core/window/index";
 import { ClipboardPopupWindow } from "./core/window/clipboard/clipboardPopup";
 import { IslandWindow } from "./core/window/island/island";
@@ -136,7 +140,7 @@ if (!app.isPackaged || process.env.QNOTE_REMOTE_DEBUG_PORT) {
 
 app.commandLine.appendSwitch("disable-features", "Autofill");
 
-registerAppPreviewScheme();
+registerPluginPreviewScheme();
 
 const existingFeatures = app.commandLine.getSwitchValue("enable-features");
 app.commandLine.appendSwitch(
@@ -195,7 +199,7 @@ function registerIpcHandlers() {
   registerShortcutHandlers(DB);
   registerAsrHandlers();
   registerUpdateHandlers();
-  registerAppHandlers(DB);
+  registerPluginHandlers(DB);
   registerDialogHandlers();
   registerCloudHandlers();
 }
@@ -205,8 +209,8 @@ function registerWindowScopedHandlers() {
   registerDatabaseTransferHandlers(DB, win);
   registerBrowserHandlers(win);
 
-  attachAppPreview(win);
-  initAppPreviewProtocol(resolveAppProjectDir);
+  attachPluginPreview(win);
+  initPluginPreviewProtocol(resolvePluginDir);
 
   const broadcastToOthers = (
     senderId: number,
@@ -385,8 +389,8 @@ app.on("will-quit", () => {
 
   teardownBrowserHandlers();
 
-  teardownAppHandlers();
-  disposeAppPreview();
+  teardownPluginHandlers();
+  disposePluginPreview();
   dialogWindowManager.dispose();
 
   tray?.destroy();

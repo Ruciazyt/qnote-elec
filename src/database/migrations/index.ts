@@ -474,73 +474,78 @@ async function ensureTable(DB: Knex, tableName: string, creator: (DB: Knex) => P
   }
 }
 
-async function createAppProjectTable(DB: Knex): Promise<void> {
+async function createPluginTable(DB: Knex): Promise<void> {
   try {
-    await DB.schema.createTable("app_project", (table: Knex.TableBuilder) => {
-      table.increments("id").primary();
+    await DB.schema.createTable("plugin", (table: Knex.TableBuilder) => {
+      table.increments("local_id").primary();
+      table.text("id").notNullable().unique();
       table.text("name").notNullable();
+      table.text("version").notNullable().defaultTo("0.0.1");
+      table.text("publisher").notNullable().defaultTo("");
+      table.text("description");
       table.text("path").notNullable().unique();
       table.string("status").notNullable().defaultTo("missing-manifest");
       table.text("manifest_text");
       table.text("command");
       table.text("preview");
-      table.text("description");
       table.text("error");
+      table.text("runtime_json");
+      table.text("capabilities_json");
+      table.text("contributes_json");
       table.string("origin").notNullable().defaultTo("local");
+      table.integer("enabled").notNullable().defaultTo(1);
       table.string("confirmed_manifest_hash").notNullable().defaultTo("");
       table.integer("sort_order").notNullable().defaultTo(0);
       table.timestamp("created_at").defaultTo(DB.fn.now());
       table.timestamp("updated_at").defaultTo(DB.fn.now());
     });
-    log.info("应用项目表创建成功");
+    log.info("插件表创建成功");
   } catch (err) {
-    log.error("创建应用项目表失败:", err);
+    log.error("创建插件表失败:", err);
     throw err;
   }
 }
 
-async function migrateAppProjectSchema(DB: Knex): Promise<void> {
+async function createPluginSettingTable(DB: Knex): Promise<void> {
   try {
-    const hasTable = await DB.schema.hasTable("app_project");
-    if (hasTable) {
-      const columns = await DB.raw("PRAGMA table_info(app_project)");
-      const isLegacy = columns.some((column: any) => column.name === "workspace_id");
-      if (isLegacy) {
-        await DB.raw("DROP TABLE app_project");
-        log.info("检测到旧版 app_project 表结构（带 workspace_id），已重建");
-      }
-    }
-
-    await ensureTable(DB, "app_project", createAppProjectTable);
-
-    await addAppProjectOriginColumns(DB);
-
-    await DB.raw("DROP TABLE IF EXISTS app_workspace");
+    await DB.schema.createTable("plugin_setting", (table: Knex.TableBuilder) => {
+      table.text("plugin_id").notNullable();
+      table.text("key").notNullable();
+      table.text("value");
+      table.primary(["plugin_id", "key"]);
+    });
+    log.info("插件设置表创建成功");
   } catch (err) {
-    log.error("迁移应用项目表结构失败:", err);
+    log.error("创建插件设置表失败:", err);
+    throw err;
   }
 }
 
-async function addAppProjectOriginColumns(DB: Knex): Promise<void> {
+async function createPluginGrantTable(DB: Knex): Promise<void> {
   try {
-    const columns = await DB.raw("PRAGMA table_info(app_project)");
-    const names = columns.map((column: any) => column.name);
-
-    if (!names.includes("origin")) {
-      await DB.raw(
-        "ALTER TABLE app_project ADD COLUMN origin TEXT NOT NULL DEFAULT 'local'"
-      );
-      log.info("已为 app_project 表添加 origin 字段");
-    }
-
-    if (!names.includes("confirmed_manifest_hash")) {
-      await DB.raw(
-        "ALTER TABLE app_project ADD COLUMN confirmed_manifest_hash TEXT NOT NULL DEFAULT ''"
-      );
-      log.info("已为 app_project 表添加 confirmed_manifest_hash 字段");
-    }
+    await DB.schema.createTable("plugin_grant", (table: Knex.TableBuilder) => {
+      table.text("plugin_id").notNullable();
+      table.text("capability").notNullable();
+      table.integer("granted").notNullable().defaultTo(0);
+      table.timestamp("granted_at");
+      table.primary(["plugin_id", "capability"]);
+    });
+    log.info("插件授权表创建成功");
   } catch (err) {
-    log.error("添加 app_project 来源字段失败:", err);
+    log.error("创建插件授权表失败:", err);
+    throw err;
+  }
+}
+
+async function migratePluginSchema(DB: Knex): Promise<void> {
+  try {
+    await ensureTable(DB, "plugin", createPluginTable);
+    await ensureTable(DB, "plugin_setting", createPluginSettingTable);
+    await ensureTable(DB, "plugin_grant", createPluginGrantTable);
+
+    await DB.raw("DROP TABLE IF EXISTS app_workspace");
+  } catch (err) {
+    log.error("迁移插件表结构失败:", err);
   }
 }
 
@@ -732,7 +737,7 @@ export async function migrateRun(path?: string): Promise<void> {
 
     await ensureTable(DB, "shortcut", createShortcutTable);
 
-    await migrateAppProjectSchema(DB);
+    await migratePluginSchema(DB);
     await addLeetcodeProblemTitleColumn(DB);
 
     await addLeetcodeProblemDifficultyColumn(DB);

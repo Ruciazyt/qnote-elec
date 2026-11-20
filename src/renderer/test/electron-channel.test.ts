@@ -106,16 +106,16 @@ const BROADCAST_WHITELIST: { channel: string; why: string }[] = [
     why: "src/main/index.ts 的 broadcastToOthers 辅助函数",
   },
   {
-    channel: "app:projects-changed",
-    why: "handlers/apps/appHandlers.ts 的 broadcast 辅助函数",
+    channel: "plugin:plugins-changed",
+    why: "handlers/plugin/pluginHandlers.ts 的 broadcast 辅助函数",
   },
   {
-    channel: "app:runtime-changed",
-    why: "handlers/apps/appHandlers.ts 的 broadcast 辅助函数",
+    channel: "plugin:runtime-changed",
+    why: "handlers/plugin/pluginHandlers.ts 的 broadcast 辅助函数",
   },
   {
-    channel: "app:log",
-    why: "handlers/apps/appHandlers.ts 的 broadcast 辅助函数",
+    channel: "plugin:log",
+    why: "handlers/plugin/pluginHandlers.ts 的 broadcast 辅助函数",
   },
   {
     channel: "browser:tabs-changed",

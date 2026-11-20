@@ -16,7 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/ui/use-toast";
-import { setNativeViewCover } from "@/hooks/apps/useNativeViewCover";
+import { setNativeViewCover } from "@/hooks/plugin/useNativeViewCover";
 import { cn } from "@/lib/utils";
 import type { BrowserState, BrowserTabState } from "@/pages/browser/types";
 import { useBookmarkState, isBookmarkable } from "@/pages/browser/BookmarkList";

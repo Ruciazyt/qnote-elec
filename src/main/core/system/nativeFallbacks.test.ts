@@ -5,10 +5,10 @@ async function loadWrappers(mode: string) {
   vi.resetModules();
   const notes = await import("../notes/nativeNotes");
   const todo = await import("../todo/nativeTodo");
-  const apps = await import("../apps/nativeApps");
+  const plugin = await import("../plugin/nativePlugin");
   const ai = await import("../ai/nativeAi");
   const web = await import("../ai/tools/web/searchEngine");
-  return { notes, todo, apps, ai, web };
+  return { notes, todo, plugin, ai, web };
 }
 
 type Wrappers = Awaited<ReturnType<typeof loadWrappers>>;
@@ -131,8 +131,8 @@ describe("TypeScript 兜底路径与原生实现结果一致", () => {
       ["rm", ["-rf", "/"]],
       ["echo", ["hello"]],
     ] as const) {
-      expect(native.apps.analyzeCommand(command, [...args])).toEqual(
-        fallback.apps.analyzeCommand(command, [...args])
+      expect(native.plugin.analyzeCommand(command, [...args])).toEqual(
+        fallback.plugin.analyzeCommand(command, [...args])
       );
     }
   });

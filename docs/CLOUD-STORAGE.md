@@ -195,7 +195,7 @@ Authorization: Basic base64(PublicKey:PrivateKey)
 | `name` | `VARCHAR(255)` | 展示名 |
 | `description` | `TEXT` | 一句话简介 |
 | `author` | `VARCHAR(128)` | 作者署名 |
-| `manifest` | `TEXT` | 清单原文（qnote.json 的内容） |
+| `manifest` | `TEXT` | 清单原文（plugin.json 的内容） |
 | `repo_url` | `VARCHAR(1024)` | 源码 / 下载地址 |
 | `tags` | `VARCHAR(512)` | 标签，逗号分隔 |
 | `pulls` | `BIGINT` | 被「获取」的次数 |

@@ -1,0 +1,36 @@
+{
+  "schema": "rust-anything/bridge@1",
+  "root": "D:\\personal-projects\\qnote-elec",
+  "unit": "src/shared/plugin/",
+  "language": "ts",
+  "kind": "napi",
+  "crate_name": "plugin-rs",
+  "exports": [
+    {
+      "name": "analyzeCommand",
+      "file": "src/shared/plugin/pluginRisk.ts",
+      "line": 114,
+      "params": [
+        {
+          "name": "command",
+          "ts_type": "string",
+          "optional": false,
+          "rest": false
+        },
+        {
+          "name": "args",
+          "ts_type": "string[]",
+          "optional": true,
+          "rest": false
+        }
+      ],
+      "returns": "RiskReport",
+      "is_async": false,
+      "is_generator": false,
+      "type_params": [],
+      "uses_instanceof": false
+    }
+  ],
+  "classes": [],
+  "js_only": []
+}
