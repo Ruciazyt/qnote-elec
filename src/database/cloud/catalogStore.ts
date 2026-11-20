@@ -88,23 +88,41 @@ export class CatalogSharedStore implements SharedStore {
       updated_at: now,
     };
 
-    if (existingId) {
-      await this.client.request({
-        method: "POST",
-        path: ENDPOINT_UPDATE,
-        body: fields,
-      });
-    } else {
-      await this.client.request({
-        method: "POST",
-        path: ENDPOINT_PUBLISH,
-        body: { ...fields, pulls: 0, created_at: now },
-      });
+    const bundle = input.bundle ?? "";
+    let bundleDropped = false;
+
+    const send = async (withBundle: boolean): Promise<void> => {
+      const body = withBundle && bundle ? { ...fields, bundle } : fields;
+      if (existingId) {
+        await this.client.request({
+          method: "POST",
+          path: ENDPOINT_UPDATE,
+          body,
+        });
+      } else {
+        await this.client.request({
+          method: "POST",
+          path: ENDPOINT_PUBLISH,
+          body: { ...body, pulls: 0, created_at: now },
+        });
+      }
+    };
+
+    try {
+      await send(true);
+    } catch (error) {
+      if (!bundle || !mentionsBundle(error)) throw error;
+      log.warn("[cloud] 公共目录还不支持资源列，本次只发布清单", error);
+      await send(false);
+      bundleDropped = true;
     }
 
     const saved = await this.get(id);
     if (!saved) {
       throw new Error("发布失败：写入后读不回来");
+    }
+    if (bundleDropped || (bundle && !saved.bundle)) {
+      saved.bundleDropped = true;
     }
     return saved;
   }
@@ -143,6 +161,11 @@ export class CatalogSharedStore implements SharedStore {
       };
     }
   }
+}
+
+function mentionsBundle(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  return /bundle/i.test(message);
 }
 
 export function createCatalogSharedStore(config: {

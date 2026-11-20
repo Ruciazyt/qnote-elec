@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS qnote_catalog.published_app (
   manifest TEXT NOT NULL,
   repo_url VARCHAR(1024) NOT NULL DEFAULT '',
   tags VARCHAR(512) NOT NULL DEFAULT '',
+  bundle MEDIUMTEXT NOT NULL,
   pulls BIGINT NOT NULL DEFAULT 0,
   created_at BIGINT NOT NULL DEFAULT 0,
   updated_at BIGINT NOT NULL DEFAULT 0,

@@ -20,10 +20,12 @@ import type {
   AppProject,
   AppProjectStatus,
   AppRuntimeState,
+  MarketImportPayload,
   StartConfirmation,
 } from "../../../shared/apps/appTypes";
 import { analyzeCommand } from "./nativeApps";
 import { contentHash } from "../notes/nativeNotes";
+import { unpackProjectBundle } from "./bundle";
 
 
 const LOG_BUFFER_LIMIT = 400;
@@ -245,7 +247,7 @@ export class AppManager {
 
   async importFromMarket(
     dirPath: string,
-    payload: Partial<AppManifest>
+    payload: MarketImportPayload
   ): Promise<AppImportResult> {
     try {
       const dir = path.resolve(String(dirPath ?? "").trim());
@@ -288,6 +290,20 @@ export class AppManager {
         }
         return imported;
       }
+
+      if (payload.bundle) {
+        try {
+          unpackProjectBundle(dir, payload.bundle);
+        } catch (err) {
+          log.error("[app] 解开资源包失败:", err);
+          return {
+            ok: false,
+            error: `清单已经装好，但资源包解开失败：${err instanceof Error ? err.message : String(err)}`,
+            reason: "invalid-manifest",
+          };
+        }
+      }
+
       return imported;
     } catch (err) {
       log.error("[app] 从市场导入项目失败:", err);

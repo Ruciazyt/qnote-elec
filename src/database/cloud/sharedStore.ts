@@ -40,7 +40,8 @@ CREATE TABLE IF NOT EXISTS published_app (
   tags TEXT NOT NULL DEFAULT '',
   pulls INTEGER NOT NULL DEFAULT 0,
   created_at INTEGER NOT NULL DEFAULT 0,
-  updated_at INTEGER NOT NULL DEFAULT 0
+  updated_at INTEGER NOT NULL DEFAULT 0,
+  bundle TEXT NOT NULL DEFAULT ''
 )
 `;
 
@@ -56,6 +57,7 @@ export function rowToApp(row: Record<string, unknown>): PublishedApp {
     pulls: Number(row.pulls ?? 0),
     createdAt: Number(row.created_at ?? 0),
     updatedAt: Number(row.updated_at ?? 0),
+    bundle: String(row.bundle ?? "") || undefined,
   };
 }
 
@@ -88,6 +90,19 @@ export class LocalSharedStore implements SharedStore {
 
   async init(): Promise<void> {
     await this.DB.raw(CREATE_TABLE_SQL);
+    await this.ensureBundleColumn();
+  }
+
+  private async ensureBundleColumn(): Promise<void> {
+    const rows = await this.DB.raw(`PRAGMA table_info(${PUBLISHED_APP_TABLE})`);
+    const columns = Array.isArray(rows)
+      ? rows.map((row) => String((row as Record<string, unknown>).name ?? ""))
+      : [];
+    if (columns.length === 0 || columns.includes("bundle")) return;
+    await this.DB.raw(
+      `ALTER TABLE ${PUBLISHED_APP_TABLE} ADD COLUMN bundle TEXT NOT NULL DEFAULT ''`
+    );
+    log.info("[cloud] 本地共享存储补上 bundle 列");
   }
 
   async list(query: PublishedAppQuery = {}): Promise<PublishedAppListResult> {
@@ -115,7 +130,8 @@ export class LocalSharedStore implements SharedStore {
     const total = Number(firstRow(countRows)?.n ?? 0);
 
     const rows = await this.DB.raw(
-      `SELECT * FROM ${PUBLISHED_APP_TABLE} ${where} ` +
+      `SELECT id, name, description, author, manifest, repo_url, tags, ` +
+        `pulls, created_at, updated_at FROM ${PUBLISHED_APP_TABLE} ${where} ` +
         "ORDER BY updated_at DESC LIMIT ? OFFSET ?",
       [...params, limit, offset] as never[]
     );
@@ -151,12 +167,13 @@ export class LocalSharedStore implements SharedStore {
       pulls: 0,
       created_at: existing?.createdAt ?? now,
       updated_at: now,
+      bundle: input.bundle ?? "",
     };
 
     if (existing) {
       await this.DB.raw(
         `UPDATE ${PUBLISHED_APP_TABLE} SET name = ?, description = ?, author = ?, ` +
-          "manifest = ?, repo_url = ?, tags = ?, updated_at = ? WHERE id = ?",
+          "manifest = ?, repo_url = ?, tags = ?, bundle = ?, updated_at = ? WHERE id = ?",
         [
           record.name,
           record.description,
@@ -164,6 +181,7 @@ export class LocalSharedStore implements SharedStore {
           record.manifest,
           record.repo_url,
           record.tags,
+          record.bundle,
           record.updated_at,
           record.id,
         ] as never[]
@@ -171,8 +189,8 @@ export class LocalSharedStore implements SharedStore {
     } else {
       await this.DB.raw(
         `INSERT INTO ${PUBLISHED_APP_TABLE} ` +
-          "(id, name, description, author, manifest, repo_url, tags, pulls, created_at, updated_at) " +
-          "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "(id, name, description, author, manifest, repo_url, tags, pulls, created_at, updated_at, bundle) " +
+          "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
           record.id,
           record.name,
@@ -184,6 +202,7 @@ export class LocalSharedStore implements SharedStore {
           record.pulls,
           record.created_at,
           record.updated_at,
+          record.bundle,
         ] as never[]
       );
     }

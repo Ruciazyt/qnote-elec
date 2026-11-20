@@ -4,6 +4,7 @@ import * as path from "node:path";
 import type { Knex } from "knex";
 import { log } from "../../core/system/log";
 import { AppManager } from "../../core/apps/appManager";
+import { packProjectBundle } from "../../core/apps/bundle";
 import {
   APP_PREVIEW_SCHEME,
   loadAppPreview,
@@ -17,6 +18,7 @@ import type {
   AppManifest,
   AppProject,
   AppRuntimeState,
+  MarketImportPayload,
   StartConfirmation,
 } from "../../../shared/apps/appTypes";
 
@@ -120,9 +122,45 @@ export function registerAppHandlers(DB: Knex): AppManager {
     async (
       _event,
       dirPath: string,
-      payload: Partial<AppManifest>
+      payload: MarketImportPayload
     ): Promise<AppImportResult> => {
       return await appManager.importFromMarket(String(dirPath ?? ""), payload ?? {});
+    }
+  );
+
+  ipcMain.handle(
+    "app:build-bundle",
+    async (
+      _event,
+      projectId: number
+    ): Promise<{
+      ok: boolean;
+      error?: string;
+      bundle?: string;
+      fileCount?: number;
+      bytes?: number;
+      skipped?: string[];
+      tooLarge?: boolean;
+    }> => {
+      const id = Number(projectId);
+      const project = await appManager.getProject(id);
+      if (!project) {
+        return { ok: false, error: "项目不存在" };
+      }
+      try {
+        const packed = packProjectBundle(project.path);
+        return {
+          ok: true,
+          bundle: packed.bundle,
+          fileCount: packed.fileCount,
+          bytes: packed.bytes,
+          skipped: packed.skipped,
+          tooLarge: packed.tooLarge,
+        };
+      } catch (err) {
+        log.error("app:build-bundle error:", err);
+        return { ok: false, error: err instanceof Error ? err.message : String(err) };
+      }
     }
   );
 

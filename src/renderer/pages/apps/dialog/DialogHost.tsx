@@ -11,6 +11,7 @@ interface PublishTarget {
   name: string;
   description: string;
   manifest: string;
+  projectId: number;
 }
 
 function readPublishTarget(payload: Record<string, unknown>): PublishTarget | null {
@@ -20,6 +21,7 @@ function readPublishTarget(payload: Record<string, unknown>): PublishTarget | nu
     name,
     description: String(payload.description ?? ""),
     manifest: String(payload.manifest ?? ""),
+    projectId: Number(payload.projectId ?? 0),
   };
 }
 

@@ -11,6 +11,14 @@ function setup(context: unknown) {
     dialogGetContext: vi.fn(async () => context),
     onDialogContext,
     dialogSend,
+    appBuildBundle: vi.fn(async () => ({
+      ok: true,
+      bundle: "Ym9ndW5sZQ==",
+      fileCount: 12,
+      bytes: 2048,
+      skipped: ["node_modules"],
+      tooLarge: false,
+    })),
     cloudPublishApp: vi.fn(async () => ({
       ok: true,
       data: { id: "app_1", name: "iChain Dev Console" },

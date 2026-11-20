@@ -386,8 +386,17 @@ interface ElectronAPI {
   }>;
   appImportFromMarket: (
     dirPath: string,
-    payload: Partial<import("@shared/apps/appTypes").AppManifest>
+    payload: import("@shared/apps/appTypes").MarketImportPayload
   ) => Promise<import("@shared/apps/appTypes").AppImportResult>;
+  appBuildBundle: (projectId: number) => Promise<{
+    ok: boolean;
+    error?: string;
+    bundle?: string;
+    fileCount?: number;
+    bytes?: number;
+    skipped?: string[];
+    tooLarge?: boolean;
+  }>;
   appStop: (projectId: number) => Promise<{ ok: boolean; error?: string }>;
   appRuntimeStates: () => Promise<import("@shared/apps/appTypes").AppRuntimeState[]>;
   appLogs: (projectId: number) => Promise<import("@shared/apps/appTypes").AppLogLine[]>;

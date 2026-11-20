@@ -148,6 +148,13 @@
         "description": "清单原文"
       },
       {
+        "name": "bundle",
+        "type": "string",
+        "required": 0,
+        "default": "",
+        "description": "项目文件资源包（base64）"
+      },
+      {
         "name": "repo_url",
         "type": "string",
         "required": 0,
@@ -239,6 +246,13 @@
         "required": 0,
         "default": "",
         "description": "清单原文"
+      },
+      {
+        "name": "bundle",
+        "type": "string",
+        "required": 0,
+        "default": "",
+        "description": "项目文件资源包（base64）"
       },
       {
         "name": "repo_url",

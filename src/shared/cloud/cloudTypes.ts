@@ -39,6 +39,8 @@ export interface PublishedApp {
   pulls: number;
   createdAt: number;
   updatedAt: number;
+  bundle?: string;
+  bundleDropped?: boolean;
 }
 
 export interface PublishedAppInput {
@@ -48,6 +50,7 @@ export interface PublishedAppInput {
   manifest: string;
   repoUrl?: string;
   tags?: string;
+  bundle?: string;
 }
 
 export interface PublishedAppQuery {

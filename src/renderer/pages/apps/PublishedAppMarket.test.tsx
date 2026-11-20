@@ -36,12 +36,17 @@ function setup() {
   const appPickProjectDir = vi.fn(async () => "D:\\apps\\travel-map");
   const appImportFromMarket = vi.fn(async () => ({ ok: true, project: IMPORTED }));
   const cloudMarkPulled = vi.fn(async () => true);
+  const cloudGetApp = vi.fn(async () => ({
+    ok: true,
+    data: { id: "app_1", name: "行程地图", bundle: "Ym9ndW5sZQ==" },
+  }));
 
   window.electron = createElectronStub({
     cloudListApps,
     appPickProjectDir,
     appImportFromMarket,
     cloudMarkPulled,
+    cloudGetApp,
   });
 
   return { cloudListApps, appPickProjectDir, appImportFromMarket };

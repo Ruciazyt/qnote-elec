@@ -8,6 +8,7 @@ SELECT
   manifest,
   repo_url,
   tags,
+  bundle,
   pulls,
   created_at,
   updated_at

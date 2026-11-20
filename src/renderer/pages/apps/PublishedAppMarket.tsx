@@ -95,6 +95,14 @@ export function PublishedAppMarket({
         const dir = await window.electron.appPickProjectDir();
         if (!dir) return;
 
+        let bundle = "";
+        try {
+          const detail = await window.electron.cloudGetApp(app.id);
+          if (detail.ok) bundle = detail.data?.bundle ?? "";
+        } catch (err) {
+          console.error("读取发布条目详情失败", err);
+        }
+
         const imported = await window.electron.appImportFromMarket(dir, {
           name: typeof manifest.name === "string" ? manifest.name : app.name,
           description:
@@ -115,6 +123,7 @@ export function PublishedAppMarket({
             typeof manifest.preview === "string" || typeof manifest.preview === "number"
               ? manifest.preview
               : undefined,
+          bundle,
         });
 
         if (!imported.ok) {

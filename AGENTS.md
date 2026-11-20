@@ -454,7 +454,9 @@ pnpm run lint:fix            # 能自动修的机械问题（未用 import、pre
 - **切到云端前先做真实的连通性检查**，通不过就不切，让用户留在本地。
 - **API Key 不进仓库**：构建期由 `scripts/build/inject-catalog-credentials.js` 注入 `resources/catalog/credentials.json`（gitignore），主进程运行时读。**设置页不提供覆盖入口** —— 公共目录的连接信息固定跟着安装包走，用户那边不用填任何东西。
 - **内置的公共目录连接信息会跟着安装包走**，Private Key 等同公开 —— 它只能调已定义的端点，出事可以在控制台作废。
-- **公共目录前面的网关会拦「内容里带具体 IP 地址」的请求**：TiDB Cloud Data Service 前面挂的是 AWS ALB，它扫整个请求（URL、query、body），只要出现 `http://127.0.0.1:7799/`、`http://10.0.0.1` 这类**指向 IP 字面量的链接**就返回 `403 Forbidden`（HTML，`server: awselb/2.0`，不是 JSON）。纯主机名 `http://localhost` 与不带 scheme 的 `127.0.0.1:7799` 不受影响。QNote 自己的应用清单普遍带 `preview: http://127.0.0.1:<端口>/`，发布到公共目录就会撞上这条。
+- **公共目录前面的网关会拦「内容里带具体 IP 地址」的请求**：TiDB Cloud Data Service 前面挂的是 AWS ALB，它扫整个请求（URL、query、body），只要出现 `http://127.0.0.1:7799/`、`http://10.0.0.1` 这类**指向 IP 字面量的链接**就返回 `403 Forbidden`（HTML，`server: awselb/2.0`，不是 JSON）。纯主机名 `http://localhost` 与不带 scheme 的 `127.0.0.1:7799` 不受影响。清单里的 `preview` 现在只写端口号（`"preview": 7799`），不带 IP 字面量，发布不会被拦。
+- **发布的应用带项目文件**：清单之外还有一列 `bundle` 存资源包（base64 的 deflate 包，打包与解开在 `src/main/core/apps/bundle.ts`）。发布时把项目目录一起传上去，别人「获取」时直接能跑。依赖目录、缓存与密钥文件不上传，单个应用超过 8MB 就不打包。
+- **`bundle` 列要手动补一次**：公共目录在 Data Service 的 SQL 编辑器里跑 `ALTER TABLE qnote_catalog.published_app ADD COLUMN bundle MEDIUMTEXT NOT NULL;`，端点定义改 `data-app/http_endpoints/` 后推 GitHub 自动部署。没补之前客户端会退回「只发清单」（读回发现没有 bundle 就标 `bundleDropped`），不会报错 —— 端点不认的未知参数会被静默忽略，不能靠报错来判断。
 - **共享表的 id 用字符串**，不用自增整数：自增 id 在本地库和云端库里
 - **preload 不能 import `src/shared`**：preload 的 tsconfig 把 `rootDir`
 

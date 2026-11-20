@@ -313,6 +313,7 @@ export default function AppsPage() {
         name: selected.name,
         description: selected.description,
         manifest: normalizeManifestPreview(selected.manifestText ?? ""),
+        projectId: selected.id,
       },
     });
     if (!opened?.ok) {

@@ -459,6 +459,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("app:start", projectId, confirmedManifestHash),
   appImportFromMarket: (dirPath: string, payload: unknown) =>
     ipcRenderer.invoke("app:import-from-market", dirPath, payload),
+  appBuildBundle: (projectId: number) =>
+    ipcRenderer.invoke("app:build-bundle", projectId),
   appStop: (projectId: number) => ipcRenderer.invoke("app:stop", projectId),
   appRuntimeStates: () => ipcRenderer.invoke("app:runtime-states"),
   appLogs: (projectId: number) => ipcRenderer.invoke("app:logs", projectId),

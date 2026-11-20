@@ -56,12 +56,26 @@ Data App 详情页 → Authentication → **Create API Key**，角色选 `ReadAn
 站点地址是区域站点，形如 `https://us-west-2.data.tidbcloud.com`，
 从端点详情页的 Endpoint URL 里取前半段。
 
-### 6. 已知限制：清单里的本机地址发不出去
+### 6. 补一列：资源包 `bundle`
+
+发布时可以把项目文件一起传上去（别人「获取」时直接能跑）。这一列建表脚本里已经有了，
+但**已建好的库要手动补一次**，在 Data Service 页面中间的 SQL 编辑器里跑：
+
+```sql
+ALTER TABLE qnote_catalog.published_app ADD COLUMN bundle MEDIUMTEXT NOT NULL;
+```
+
+没补这一列也能发布 —— 客户端发现端点不认 `bundle` 就会退回「只发清单」，
+不会报错。端点定义在 `http_endpoints/`，改完推 GitHub，Auto Sync & Deployment 会自动部署。
+
+### 7. 已知限制：清单里的本机地址发不出去
 
 公共目录前面挂的是 AWS ALB，它会扫整个请求，只要出现**指向 IP 字面量的链接**
 （`http://127.0.0.1:7799/`、`http://10.0.0.1`）就返回 `403 Forbidden`（HTML，不是 JSON）。
-QNote 自己的应用清单普遍带 `preview: http://127.0.0.1:<端口>/`，直接发布会被拦下。
 纯主机名 `http://localhost` 与不带 scheme 的 `127.0.0.1:7799` 不受影响。
+
+QNote 自己的清单现在把 `preview` 写成端口号（`"preview": 7799`），不带 IP 字面量，
+所以发布不会被拦。
 
 ---
 
@@ -74,8 +88,8 @@ QNote 自己的应用清单普遍带 `preview: http://127.0.0.1:<端口>/`，直
 | `/apps_list` | GET | keyword(string) limit(int) offset(int) | 列目录 |
 | `/apps_count` | GET | keyword(string) | 总数 |
 | `/apps_get` | GET | id(string) | 取一条 |
-| `/apps_publish` | POST | id name description author manifest repo_url tags(string) pulls created_at updated_at(int) | 新发布 |
-| `/apps_update` | POST | id name description author manifest repo_url tags(string) updated_at(int) | 覆盖发布 |
+| `/apps_publish` | POST | id name description author manifest repo_url tags bundle(string) pulls created_at updated_at(int) | 新发布 |
+| `/apps_update` | POST | id name description author manifest repo_url tags bundle(string) updated_at(int) | 覆盖发布 |
 | `/apps_remove` | POST | id(string) | 删除 |
 | `/apps_mark_pulled` | POST | id(string) | 被获取次数 +1 |
 
@@ -109,6 +123,7 @@ QNote 自己的应用清单普遍带 `preview: http://127.0.0.1:<端口>/`，直
 | `manifest` | TEXT | 清单原文 |
 | `repo_url` | VARCHAR(1024) | 源码 / 下载地址 |
 | `tags` | VARCHAR(512) | 标签，逗号分隔 |
+| `bundle` | MEDIUMTEXT | 项目文件资源包（base64），空串表示只发清单 |
 | `pulls` | BIGINT | 被获取次数 |
 | `created_at` | BIGINT | 发布时间（毫秒时间戳） |
 | `updated_at` | BIGINT | 最后更新时间（毫秒时间戳） |

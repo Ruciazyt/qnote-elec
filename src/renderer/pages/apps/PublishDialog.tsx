@@ -1,5 +1,5 @@
 import * as React from "react";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,11 +16,26 @@ export interface PublishTarget {
   name: string;
   description: string;
   manifest: string;
+  projectId: number;
 }
 
 interface PublishDialogProps {
   target: PublishTarget | null;
   onClose: () => void;
+}
+
+interface BundlePreview {
+  bundle: string;
+  fileCount: number;
+  bytes: number;
+  skipped: string[];
+  tooLarge: boolean;
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
 export function PublishDialog({ target, onClose }: PublishDialogProps) {
@@ -30,6 +45,8 @@ export function PublishDialog({ target, onClose }: PublishDialogProps) {
   const [tags, setTags] = React.useState("");
   const [publishing, setPublishing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [note, setNote] = React.useState<string | null>(null);
+  const [packed, setPacked] = React.useState<BundlePreview | null>(null);
 
   React.useEffect(() => {
     setDescription(target?.description ?? "");
@@ -37,6 +54,35 @@ export function PublishDialog({ target, onClose }: PublishDialogProps) {
     setRepoUrl("");
     setTags("");
     setError(null);
+    setNote(null);
+    setPacked(null);
+  }, [target]);
+
+  React.useEffect(() => {
+    if (!target) return;
+    let alive = true;
+    void (async () => {
+      try {
+        const res = await window.electron.appBuildBundle(target.projectId);
+        if (!alive) return;
+        if (!res.ok) {
+          setError(res.error ?? "读取项目文件失败");
+          return;
+        }
+        setPacked({
+          bundle: res.bundle ?? "",
+          fileCount: res.fileCount ?? 0,
+          bytes: res.bytes ?? 0,
+          skipped: res.skipped ?? [],
+          tooLarge: Boolean(res.tooLarge),
+        });
+      } catch (err) {
+        if (alive) setError(err instanceof Error ? err.message : String(err));
+      }
+    })();
+    return () => {
+      alive = false;
+    };
   }, [target]);
 
   const handleSubmit = async () => {
@@ -51,11 +97,15 @@ export function PublishDialog({ target, onClose }: PublishDialogProps) {
         manifest: target.manifest,
         repoUrl,
         tags,
+        bundle: packed && !packed.tooLarge ? packed.bundle : "",
       });
       if (!result.ok) {
         setError(result.error ?? "发布失败");
         setPublishing(false);
         return;
+      }
+      if (result.data.bundleDropped) {
+        setNote("公共目录还不支持上传资源，本次只发布了清单");
       }
       window.electron.dialogSend({
         action: "published",
@@ -73,8 +123,8 @@ export function PublishDialog({ target, onClose }: PublishDialogProps) {
         <DialogHeader>
           <DialogTitle>发布到应用市场</DialogTitle>
           <DialogDescription>
-            发布的只有清单与简介 —— 项目代码不会被上传，
-            别人「获取」时拿到的是清单，本机的项目文件始终在你手里。
+            发布的是清单与项目文件 —— 别人「获取」时会把两者一起装到本地，
+            装完就能直接运行。依赖目录、缓存与密钥文件不会上传。
           </DialogDescription>
         </DialogHeader>
 
@@ -121,6 +171,28 @@ export function PublishDialog({ target, onClose }: PublishDialogProps) {
               className="h-9 text-xs"
             />
           </div>
+
+          <div className="rounded-md border border-border/60 bg-muted/30 px-3 py-2 space-y-1">
+            <p className="text-[12px] text-foreground/85 flex items-center gap-1.5">
+              <Upload className="h-3.5 w-3.5 text-muted-foreground" />
+              {packed
+                ? packed.tooLarge
+                  ? "项目文件超过 8MB，本次只发布清单"
+                  : `会一起上传 ${packed.fileCount} 个文件（${formatBytes(packed.bytes)}）`
+                : "正在统计项目文件…"}
+            </p>
+            {packed && packed.skipped.length > 0 && (
+              <p className="text-[11px] text-muted-foreground/75 leading-relaxed">
+                已跳过 {packed.skipped.length} 项（依赖目录、缓存与密钥文件不上传）
+              </p>
+            )}
+          </div>
+
+          {note && (
+            <p className="text-[12px] text-amber-700 dark:text-amber-400 leading-relaxed">
+              {note}
+            </p>
+          )}
           {error && (
             <p className="text-[12px] text-destructive leading-relaxed" role="alert">
               {error}

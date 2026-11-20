@@ -13,6 +13,10 @@ export type AppProjectStatus = "ready" | "missing-manifest" | "invalid-manifest"
 
 export type AppOrigin = "local" | "market";
 
+export interface MarketImportPayload extends Partial<AppManifest> {
+  bundle?: string;
+}
+
 export interface AppProject {
   id: number;
   name: string;

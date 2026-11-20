@@ -158,6 +158,7 @@ export function registerCloudHandlers(): void {
               manifest,
               repoUrl: String(input?.repoUrl ?? ""),
               tags: String(input?.tags ?? ""),
+              bundle: String(input?.bundle ?? ""),
             },
             existingId ? String(existingId) : undefined
           ),

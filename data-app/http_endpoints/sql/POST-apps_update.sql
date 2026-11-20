@@ -7,5 +7,6 @@ SET name = ${name},
     manifest = ${manifest},
     repo_url = ${repo_url},
     tags = ${tags},
+    bundle = ${bundle},
     updated_at = ${updated_at}
 WHERE id = ${id};
