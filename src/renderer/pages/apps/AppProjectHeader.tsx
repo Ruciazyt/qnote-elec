@@ -39,13 +39,6 @@ const LINE = "inline-flex items-center h-5 leading-none min-w-0";
 const COMPACT_AT = 620;
 const PATH_AT = 760;
 
-function compactAddress(url: string): string {
-  const m = /^https?:\/\/(?:[^/:]+)(?::(\d+))?/i.exec(url);
-  if (m) return m[1] ? `端口 ${m[1]}` : "默认端口";
-  const parts = url.split(/[\\/]/).filter(Boolean);
-  return parts[parts.length - 1] ?? url;
-}
-
 export function AppProjectHeader({
   project,
   runtime,
@@ -80,7 +73,7 @@ export function AppProjectHeader({
   const compact = available > 0 && available < COMPACT_AT;
   const showPath = available === 0 || available >= PATH_AT;
 
-  const addressText = compact ? compactAddress(previewUrl ?? "") : previewUrl;
+  const addressText = previewUrl;
 
   const secondaryAction = (
     label: string,
@@ -112,7 +105,7 @@ export function AppProjectHeader({
       {
 }
       <span
-        style={{ minWidth: 64 }}
+        style={{ minWidth: compact ? 0 : 64 }}
         className={cn(
           LINE,
           "flex-shrink",
@@ -152,9 +145,9 @@ export function AppProjectHeader({
 
       {
 }
-      {previewUrl && addressText && (
+      {previewUrl && addressText && !compact && (
         <span
-          style={{ minWidth: compact ? 100 : 80 }}
+          style={{ minWidth: 80 }}
           className={cn(
             LINE,
             "group text-[12px] font-mono text-muted-foreground/85 max-w-[340px] flex-shrink gap-1.5"
@@ -192,15 +185,12 @@ export function AppProjectHeader({
         type="button"
         variant="outline"
         size="sm"
-        className={cn(
-          "h-7 px-2 text-xs btn-hover flex-shrink-0",
-          compact && "w-7 px-0"
-        )}
+        className="h-7 px-2 text-xs btn-hover flex-shrink-0"
         onClick={onPublish}
         title="发布到应用市场"
         aria-label="发布到应用市场">
-        <Upload className="h-3.5 w-3.5" />
-        {!compact && <span className="ml-1.5">发布</span>}
+        <Upload className="h-3.5 w-3.5 mr-1" />
+        发布
       </Button>
 
       {}
