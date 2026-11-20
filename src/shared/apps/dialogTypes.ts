@@ -10,4 +10,4 @@ export interface DialogMessage {
   payload?: Record<string, unknown>;
 }
 
-export const DIALOG_CLOSE_ACTIONS = ["cancelled", "published", "closed"];
+export const DIALOG_CLOSE_ACTIONS = ["cancelled", "confirm", "published", "closed"];
