@@ -48,7 +48,7 @@ export class PluginRpcServer {
   private port = 0;
   private readonly byToken = new Map<string, RpcSession>();
   private readonly byPluginId = new Map<string, RpcSession>();
-  private readonly queued = new Map<string, RpcRequest>();
+  private readonly queued = new Map<string, RpcRequest[]>();
   private readonly waiters = new Map<string, Waiter[]>();
   private readonly pendingCalls = new Map<number, PendingCall>();
   private nextRequestId = 1;
@@ -162,7 +162,9 @@ export class PluginRpcServer {
       waiter.resolve(request);
       return;
     }
-    this.queued.set(pluginId, request);
+    const list = this.queued.get(pluginId) ?? [];
+    list.push(request);
+    this.queued.set(pluginId, list);
   }
 
   private async handleRequest(
@@ -203,10 +205,13 @@ export class PluginRpcServer {
     }
 
     const queued = this.queued.get(session.pluginId);
-    if (queued) {
-      this.queued.delete(session.pluginId);
+    const next = queued?.shift();
+    if (next) {
+      if (queued && queued.length === 0) {
+        this.queued.delete(session.pluginId);
+      }
       res.writeHead(200, { "content-type": "application/json" });
-      res.end(JSON.stringify(queued));
+      res.end(JSON.stringify(next));
       return;
     }
 
