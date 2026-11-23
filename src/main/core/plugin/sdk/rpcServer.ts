@@ -4,13 +4,12 @@ import { log } from "../../system/log";
 import {
   RPC_ERROR,
   isRpcRequest,
-  type RpcRequest,
   type RpcResponse,
 } from "../../../../shared/plugin/sdk/protocol";
 import type { PluginManifest } from "../../../../shared/plugin/manifest/pluginTypes";
 
-const POLL_TIMEOUT_MS = 25000;
 const MAX_BODY_BYTES = 1024 * 1024;
+const CALLBACK_PATH = "/host-call";
 
 export interface RpcSession {
   pluginId: string;
@@ -18,6 +17,7 @@ export interface RpcSession {
   manifest: PluginManifest;
   createdAt: number;
   connected: boolean;
+  callbackUrl: string | null;
 }
 
 export interface PluginRpcHost {
@@ -32,27 +32,13 @@ export interface PluginRpcHost {
   ): void;
 }
 
-interface Waiter {
-  resolve: (value: RpcRequest | null) => void;
-  timer: NodeJS.Timeout;
-}
-
-interface PendingCall {
-  pluginId: string;
-  resolve: (response: RpcResponse) => void;
-  reject: (error: Error) => void;
-  timer: NodeJS.Timeout;
-}
-
 export class PluginRpcServer {
   private server: http.Server | null = null;
   private port = 0;
   private readonly byToken = new Map<string, RpcSession>();
   private readonly byPluginId = new Map<string, RpcSession>();
-  private readonly queued = new Map<string, RpcRequest[]>();
-  private readonly waiters = new Map<string, Waiter[]>();
-  private readonly pendingCalls = new Map<number, PendingCall>();
-  private nextRequestId = 1;
+  private readonly readyWaiters = new Map<string, Array<() => void>>();
+  private readonly pending = new Map<string, Set<AbortController>>();
 
   constructor(private readonly host: PluginRpcHost) {}
 
@@ -84,6 +70,7 @@ export class PluginRpcServer {
       manifest,
       createdAt: Date.now(),
       connected: false,
+      callbackUrl: null,
     };
     this.byToken.set(session.token, session);
     this.byPluginId.set(pluginId, session);
@@ -95,20 +82,16 @@ export class PluginRpcServer {
     if (!session) return;
     this.byToken.delete(session.token);
     this.byPluginId.delete(pluginId);
-    this.queued.delete(pluginId);
 
-    for (const [id, call] of this.pendingCalls) {
-      if (call.pluginId !== pluginId) continue;
-      clearTimeout(call.timer);
-      this.pendingCalls.delete(id);
-      call.reject(new Error(`插件 ${pluginId} 已断开`));
+    for (const controller of this.pending.get(pluginId) ?? []) {
+      controller.abort();
     }
+    this.pending.delete(pluginId);
 
-    const waiters = this.waiters.get(pluginId) ?? [];
-    this.waiters.delete(pluginId);
+    const waiters = this.readyWaiters.get(pluginId) ?? [];
+    this.readyWaiters.delete(pluginId);
     for (const waiter of waiters) {
-      clearTimeout(waiter.timer);
-      waiter.resolve(null);
+      waiter();
     }
   }
 
@@ -120,32 +103,82 @@ export class PluginRpcServer {
     return this.byPluginId.get(pluginId)?.connected === true;
   }
 
+  async waitForCallback(pluginId: string, timeoutMs: number): Promise<boolean> {
+    const session = this.byPluginId.get(pluginId);
+    if (!session) return false;
+    if (session.connected) return true;
+    return new Promise<boolean>((resolve) => {
+      let settled = false;
+      const drop = (): void => {
+        const current = this.readyWaiters.get(pluginId) ?? [];
+        this.readyWaiters.set(
+          pluginId,
+          current.filter((item) => item !== onReady)
+        );
+      };
+      const onReady = (): void => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        drop();
+        resolve(this.isConnected(pluginId));
+      };
+      const list = this.readyWaiters.get(pluginId) ?? [];
+      list.push(onReady);
+      this.readyWaiters.set(pluginId, list);
+      const timer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        drop();
+        resolve(false);
+      }, timeoutMs);
+    });
+  }
+
   async callPlugin(
     pluginId: string,
     method: string,
     params: Record<string, unknown> = {},
     timeoutMs = 10000
   ): Promise<unknown> {
-    if (!this.byPluginId.has(pluginId)) {
-      throw new Error(`插件 ${pluginId} 没有连接 RPC 通道`);
+    const session = this.byPluginId.get(pluginId);
+    if (!session?.callbackUrl) {
+      throw new Error(`插件 ${pluginId} 没有注册回调地址`);
     }
 
-    const id = this.nextRequestId++;
-    const request: RpcRequest = { jsonrpc: "2.0", id, method, params };
+    const controller = new AbortController();
+    const controllers = this.pending.get(pluginId) ?? new Set<AbortController>();
+    controllers.add(controller);
+    this.pending.set(pluginId, controllers);
 
-    const response = await new Promise<RpcResponse>((resolve, reject) => {
-      const timer = setTimeout(() => {
-        this.pendingCalls.delete(id);
-        reject(new Error(`插件 ${pluginId} 没有回应 ${method}`));
-      }, timeoutMs);
-      this.pendingCalls.set(id, { pluginId, resolve, reject, timer });
-      this.enqueue(pluginId, request);
-    });
-
-    if ("error" in response) {
-      throw new Error(response.error.message);
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(session.callbackUrl, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-qnote-token": session.token,
+        },
+        body: JSON.stringify({ jsonrpc: "2.0", method, params }),
+        signal: controller.signal,
+      });
+      const payload = (await res.json()) as RpcResponse;
+      if ("error" in payload) {
+        throw new Error(payload.error.message);
+      }
+      return payload.result;
+    } catch (err) {
+      if (controller.signal.aborted) {
+        if (!this.byPluginId.has(pluginId)) {
+          throw new Error(`插件 ${pluginId} 已断开`);
+        }
+        throw new Error(`插件 ${pluginId} 没有回应 ${method}`);
+      }
+      throw err;
+    } finally {
+      clearTimeout(timer);
+      controllers.delete(controller);
     }
-    return response.result;
   }
 
   async dispose(): Promise<void> {
@@ -159,20 +192,6 @@ export class PluginRpcServer {
     await new Promise<void>((resolve) => server.close(() => resolve()));
   }
 
-  private enqueue(pluginId: string, request: RpcRequest): void {
-    const waiters = this.waiters.get(pluginId) ?? [];
-    const waiter = waiters.shift();
-    if (waiter) {
-      this.waiters.set(pluginId, waiters);
-      clearTimeout(waiter.timer);
-      waiter.resolve(request);
-      return;
-    }
-    const list = this.queued.get(pluginId) ?? [];
-    list.push(request);
-    this.queued.set(pluginId, list);
-  }
-
   private async handleRequest(
     req: http.IncomingMessage,
     res: http.ServerResponse
@@ -181,8 +200,8 @@ export class PluginRpcServer {
       const url = new URL(req.url ?? "/", "http://127.0.0.1");
       const token = url.searchParams.get("token") ?? headerToken(req);
 
-      if (url.pathname === "/poll") {
-        this.handlePoll(token, res);
+      if (url.pathname === "/register-callback" && req.method === "POST") {
+        await this.handleRegister(token, req, res);
         return;
       }
 
@@ -202,7 +221,11 @@ export class PluginRpcServer {
     }
   }
 
-  private handlePoll(token: string | null, res: http.ServerResponse): void {
+  private async handleRegister(
+    token: string | null,
+    req: http.IncomingMessage,
+    res: http.ServerResponse
+  ): Promise<void> {
     const session = token ? this.byToken.get(token) : undefined;
     if (!session) {
       res.writeHead(401, { "content-type": "application/json" });
@@ -210,55 +233,34 @@ export class PluginRpcServer {
       return;
     }
 
-    session.connected = true;
-
-    const queued = this.queued.get(session.pluginId);
-    const next = queued?.shift();
-    if (next) {
-      if (queued && queued.length === 0) {
-        this.queued.delete(session.pluginId);
-      }
-      res.writeHead(200, { "content-type": "application/json" });
-      res.end(JSON.stringify(next));
+    let port = 0;
+    try {
+      const parsed = JSON.parse(await readBody(req)) as { port?: unknown };
+      port = Number(parsed.port);
+    } catch {
+      port = 0;
+    }
+    if (!Number.isInteger(port) || port <= 0 || port > 65535) {
+      res.writeHead(400, { "content-type": "application/json" });
+      res.end(JSON.stringify({ error: "bad port" }));
       return;
     }
 
-    const waiter: Waiter = {
-      resolve: (request) => {
-        if (res.writableEnded) return;
-        if (request) {
-          res.writeHead(200, { "content-type": "application/json" });
-          res.end(JSON.stringify(request));
-        } else {
-          res.writeHead(204);
-          res.end();
-        }
-      },
-      timer: setTimeout(() => {
-        const list = this.waiters.get(session.pluginId) ?? [];
-        this.waiters.set(
-          session.pluginId,
-          list.filter((item) => item !== waiter)
-        );
-        if (!res.writableEnded) {
-          res.writeHead(204);
-          res.end();
-        }
-      }, POLL_TIMEOUT_MS),
-    };
+    session.callbackUrl = `http://127.0.0.1:${port}${CALLBACK_PATH}`;
+    session.connected = true;
 
-    const list = this.waiters.get(session.pluginId) ?? [];
-    list.push(waiter);
-    this.waiters.set(session.pluginId, list);
+    const waiters = this.readyWaiters.get(session.pluginId) ?? [];
+    this.readyWaiters.delete(session.pluginId);
+    for (const waiter of waiters) {
+      waiter();
+    }
 
-    res.on("close", () => {
-      clearTimeout(waiter.timer);
-      const current = this.waiters.get(session.pluginId) ?? [];
-      this.waiters.set(
-        session.pluginId,
-        current.filter((item) => item !== waiter)
-      );
+    log.info("[plugin] 插件已注册回调地址", {
+      pluginId: session.pluginId,
+      port,
     });
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({ ok: true, port }));
   }
 
   private async handleRpc(
@@ -268,7 +270,7 @@ export class PluginRpcServer {
   ): Promise<void> {
     const session = token ? this.byToken.get(token) : undefined;
     if (!session) {
-      res.writeHead(401, { "content-type": "application/json" });
+      res.writeHead(200, { "content-type": "application/json" });
       res.end(
         JSON.stringify({
           jsonrpc: "2.0",
@@ -308,45 +310,12 @@ export class PluginRpcServer {
     }
 
     const payload = parsed as Record<string, unknown>;
-    const hasMethod = typeof payload.method === "string" && payload.method.length > 0;
-
-    if (!hasMethod) {
-      const id = Number(payload.id);
-      const call = Number.isFinite(id) ? this.pendingCalls.get(id) : undefined;
-      if (!call) {
-        res.writeHead(200, { "content-type": "application/json" });
-        res.end(
-          JSON.stringify({
-            jsonrpc: "2.0",
-            id: payload.id ?? null,
-            error: { code: RPC_ERROR.invalidRequest, message: "找不到对应的请求" },
-          })
-        );
-        return;
-      }
-      clearTimeout(call.timer);
-      this.pendingCalls.delete(id);
-      const responseId = (payload.id ?? null) as string | number | null;
-      const response: RpcResponse =
-        payload.error && typeof payload.error === "object"
-          ? {
-              jsonrpc: "2.0",
-              id: responseId,
-              error: payload.error as { code: number; message: string },
-            }
-          : { jsonrpc: "2.0", id: responseId, result: payload.result ?? null };
-      call.resolve(response);
-      res.writeHead(200, { "content-type": "application/json" });
-      res.end(JSON.stringify({ jsonrpc: "2.0", id: payload.id ?? null, result: true }));
-      return;
-    }
-
     if (!isRpcRequest(parsed)) {
       res.writeHead(200, { "content-type": "application/json" });
       res.end(
         JSON.stringify({
           jsonrpc: "2.0",
-          id: null,
+          id: payload.id ?? null,
           error: { code: RPC_ERROR.invalidRequest, message: "请求格式不对" },
         })
       );

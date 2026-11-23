@@ -245,6 +245,21 @@ export class PluginManager {
   }
 
   private async activatePlugin(pluginId: string): Promise<void> {
+    const registered = await this.rpcServer.waitForCallback(pluginId, 5000);
+    if (!registered) {
+      const state = this.getRuntimeState(pluginId);
+      if (!state || state.status !== "activating") return;
+      this.setRunStatus(pluginId, "active");
+      this.pushLog({
+        pluginId,
+        stream: "system",
+        text: "这个插件没有接入 SDK，按普通程序运行",
+        at: Date.now(),
+      });
+      log.info(`[plugin] ${pluginId} 没有接入 SDK，按普通程序运行`);
+      return;
+    }
+
     try {
       const result = (await this.rpcServer.callPlugin(
         pluginId,
@@ -266,26 +281,13 @@ export class PluginManager {
       log.info(`[plugin] ${pluginId} 已激活`, { commands });
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
-      if (this.rpcServer.isConnected(pluginId)) {
-        this.setRunStatus(pluginId, "failed", `SDK 握手失败：${reason}`);
-        this.pushLog({
-          pluginId,
-          stream: "system",
-          text: `SDK 握手失败：${reason}`,
-          at: Date.now(),
-        });
-        return;
-      }
-      this.setRunStatus(pluginId, "active");
+      this.setRunStatus(pluginId, "failed", `SDK 握手失败：${reason}`);
       this.pushLog({
         pluginId,
         stream: "system",
-        text: "这个插件没有接入 SDK，按普通程序运行",
+        text: `SDK 握手失败：${reason}`,
         at: Date.now(),
       });
-      log.info(
-        `[plugin] ${pluginId} 没有接入 SDK，按普通程序运行：${reason}`
-      );
     }
   }
 
@@ -969,6 +971,21 @@ export class PluginManager {
       entry.stopping = true;
       entry.state = { ...entry.state, status: "deactivating" };
       this.emitRuntime(entry.state);
+
+      if (this.rpcServer.isConnected(pluginId)) {
+        try {
+          await this.rpcServer.callPlugin(pluginId, "plugin.deactivate", {}, 5000);
+        } catch (err) {
+          const reason = err instanceof Error ? err.message : String(err);
+          this.pushLog({
+            pluginId,
+            stream: "system",
+            text: `插件没有完成收尾，直接结束进程：${reason}`,
+            at: Date.now(),
+          });
+        }
+      }
+
       if (pid) {
         if (process.platform === "win32") {
           await new Promise<void>((resolve) => {

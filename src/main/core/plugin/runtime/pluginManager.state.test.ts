@@ -343,6 +343,47 @@ createPlugin({
     await manager.stopPlugin(id);
     expect(await waitForStatus(id, "inactive")).toBe("inactive");
   });
+
+  it("停插件时先让插件自己收尾，再结束进程", async () => {
+    const markerPath = path.join(dir, "deactivated.txt");
+    const scriptPath = path.join(dir, "plugin.mjs");
+    fs.writeFileSync(
+      scriptPath,
+      `import { writeFileSync } from "node:fs";
+import { createPlugin } from "${pathToFileUrl(SDK_PATH)}";
+
+createPlugin({
+  async activate(ctx) {
+    ctx.commands.register("demo.ping", async () => "pong");
+  },
+  async deactivate() {
+    writeFileSync(${JSON.stringify(markerPath)}, "bye");
+  },
+});
+`,
+      "utf-8"
+    );
+
+    const manifest = manifestOf({
+      runtime: { command: `node "${scriptPath}"` },
+    });
+    fs.writeFileSync(
+      path.join(dir, "plugin.json"),
+      JSON.stringify(manifest, null, 2),
+      "utf-8"
+    );
+
+    const imported = await manager.importPlugin(dir, "local");
+    expect(imported.ok).toBe(true);
+    const id = imported.plugin!.id;
+
+    await manager.startPlugin(id);
+    expect(await waitForStatus(id, "active")).toBe("active");
+
+    await manager.stopPlugin(id);
+    expect(await waitForStatus(id, "inactive")).toBe("inactive");
+    expect(fs.existsSync(markerPath)).toBe(true);
+  });
 });
 
 function pathToFileUrl(filePath: string): string {

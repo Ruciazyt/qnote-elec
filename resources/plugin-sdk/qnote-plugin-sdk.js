@@ -1,3 +1,5 @@
+import * as http from "node:http";
+
 const ENDPOINT = process.env.QNOTE_PLUGIN_RPC || "";
 const TOKEN = process.env.QNOTE_PLUGIN_TOKEN || "";
 const PLUGIN_ID = process.env.QNOTE_PLUGIN_ID || "";
@@ -5,7 +7,6 @@ const PLUGIN_ID = process.env.QNOTE_PLUGIN_ID || "";
 const handlers = new Map();
 const commands = new Map();
 let nextId = 1;
-let running = true;
 
 function post(payload) {
   return fetch(ENDPOINT + "/rpc", {
@@ -27,36 +28,95 @@ function call(method, params) {
   });
 }
 
-async function poll() {
-  while (running) {
-    try {
-      const res = await fetch(ENDPOINT + "/poll?token=" + encodeURIComponent(TOKEN));
-      if (res.status === 204) continue;
-      const request = await res.json();
-      if (!request || !request.method) continue;
-      const handler = handlers.get(request.method);
-      if (!handler) {
-        await post({
-          jsonrpc: "2.0",
-          id: request.id,
-          error: { code: -32601, message: "插件没有实现 " + request.method },
-        });
-        continue;
-      }
-      try {
-        const result = await handler(request.params || {});
-        await post({ jsonrpc: "2.0", id: request.id, result: result ?? null });
-      } catch (err) {
-        await post({
-          jsonrpc: "2.0",
-          id: request.id,
-          error: { code: -32003, message: String(err && err.message ? err.message : err) },
-        });
-      }
-    } catch {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-    }
+function readBody(req) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    req.on("data", (chunk) => chunks.push(chunk));
+    req.on("end", () => resolve(Buffer.concat(chunks).toString("utf-8")));
+    req.on("error", reject);
+  });
+}
+
+async function handleHostRequest(payload) {
+  const handler = handlers.get(payload.method);
+  if (!handler) {
+    return {
+      jsonrpc: "2.0",
+      id: payload.id ?? null,
+      error: { code: -32601, message: "插件没有实现 " + payload.method },
+    };
   }
+  try {
+    const result = await handler(payload.params || {});
+    return { jsonrpc: "2.0", id: payload.id ?? null, result: result ?? null };
+  } catch (err) {
+    return {
+      jsonrpc: "2.0",
+      id: payload.id ?? null,
+      error: {
+        code: -32003,
+        message: String(err && err.message ? err.message : err),
+      },
+    };
+  }
+}
+
+function startCallbackServer() {
+  const server = http.createServer((req, res) => {
+    if (req.method !== "POST") {
+      res.writeHead(405, { "content-type": "application/json" });
+      res.end(JSON.stringify({ error: "method not allowed" }));
+      return;
+    }
+    if (req.headers["x-qnote-token"] !== TOKEN) {
+      res.writeHead(401, { "content-type": "application/json" });
+      res.end(JSON.stringify({ error: "unauthorized" }));
+      return;
+    }
+    void readBody(req)
+      .then((raw) => {
+        let payload = {};
+        try {
+          payload = JSON.parse(raw);
+        } catch {
+          payload = {};
+        }
+        return handleHostRequest(payload);
+      })
+      .then((reply) => {
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify(reply));
+      })
+      .catch((err) => {
+        res.writeHead(500, { "content-type": "application/json" });
+        res.end(
+          JSON.stringify({
+            jsonrpc: "2.0",
+            id: null,
+            error: {
+              code: -32603,
+              message: String(err && err.message ? err.message : err),
+            },
+          })
+        );
+      });
+  });
+
+  server.on("error", (err) => {
+    console.error("[qnote-plugin] 回调服务启动失败:", err);
+  });
+
+  server.listen(0, "127.0.0.1", () => {
+    const address = server.address();
+    const port = typeof address === "object" && address ? address.port : 0;
+    void fetch(ENDPOINT + "/register-callback", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-qnote-token": TOKEN },
+      body: JSON.stringify({ port }),
+    }).catch((err) => {
+      console.error("[qnote-plugin] 回调地址注册失败:", err);
+    });
+  });
 }
 
 function buildContext() {
@@ -140,7 +200,7 @@ export function createPlugin(definition) {
     return handler(params && params.args);
   });
 
-  void poll();
+  startCallbackServer();
 
   return { definition, commands };
 }

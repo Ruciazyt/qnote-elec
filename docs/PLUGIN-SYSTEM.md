@@ -13,7 +13,7 @@
 | 老应用幂等迁移（`qnote.json` → `plugin.json`） | ✅ 已实现（`src/main/core/plugin/migration/legacyMigration.ts`） |
 | 进程启停、日志流、预览面板 | ✅ 已实现（预览协议 host 段仍用本地自增号） |
 | 声明式权限判定 | ✅ 已实现（`capabilities.ts`），数据类调用逐个校验 |
-| SDK 通道与宿主 API | ✅ 已实现，**传输用 loopback HTTP + 长轮询**（不是 WebSocket） |
+| SDK 通道与宿主 API | ✅ 已实现，**传输用 loopback HTTP + 插件注册回调地址**（不是 WebSocket） |
 | 插件侧 SDK | ✅ 已实现（`resources/plugin-sdk/qnote-plugin-sdk.js`，纯 ESM 无构建） |
 | 命令面板、侧栏动态入口、插件设置页 | ✅ 已实现（`Ctrl+Shift+P` 唤起命令面板，侧栏按 `contributes.sidebar` 生成入口，插件页可读写清单声明的设置项） |
 | 插件通知（宿主 toast） | ✅ 已实现（`plugin:notify` 事件，插件经 SDK 发通知） |
@@ -209,7 +209,7 @@ installed ──▶ inactive ──activate()──▶ activating ──▶ acti
 
 1. 宿主按 `runtime` 起进程（`spawn(commandLine, { shell: true })`）
 2. 宿主在 127.0.0.1 随机端口起 RPC 服务，把地址与令牌注入环境变量（见 4.2）
-3. 插件用 SDK 接上 —— `GET /poll` 挂上来即视为接通，宿主按令牌认人
+3. 插件用 SDK 起自己的回调服务，向宿主 `POST /register-callback` 报端口 —— 注册成功即视为接通
 4. 宿主调 `plugin.activate` → 插件跑 `activate(ctx)`，返回它注册的命令
 5. 宿主把命令写入命令表，状态置 `active`
 6. 握手超时（5s）→ 插件压根没接过 RPC 就按普通程序运行；接过却没回应 → 激活失败，记日志，状态 `failed`
@@ -231,35 +231,34 @@ installed ──▶ inactive ──activate()──▶ activating ──▶ acti
 
 ## 四、SDK 与 RPC 通道
 
-### 4.1 为什么用 loopback HTTP + 长轮询，不用 WebSocket
+### 4.1 为什么用 loopback HTTP + 回调注册，不用 WebSocket
 
 - 插件的 **stdout / stderr 要原样给用户看**（运行控制台是现成功能，不能丢）
 - **stdin 是单向的**，撑不起「插件 → 宿主」的调用
 - Windows 上不可靠地继承额外 fd（fd 3+）
 - **不引新依赖** —— Node 内置 `http` 模块就能起一个只监听 127.0.0.1 的服务，
   WebSocket 得自己实现 RFC 6455 握手与帧编码，或者多一个 `ws` 依赖
-- **插件作者未必用 JS** —— HTTP 客户端是各语言标准库都有的东西（Python `urllib`、
-  Go `net/http`、Rust `reqwest`）；WebSocket 客户端每种语言都得额外装库
+- **插件作者未必用 JS** —— HTTP 是各语言标准库都有的东西（Python `http.server`、
+  Go `net/http`、Rust `axum`）；WebSocket 客户端每种语言都得额外装库
 
-**双向怎么做的**：宿主是服务方、插件是客户端 —— **两个方向都是插件主动发起**的，
-只有「宿主 → 插件」这一路需要一条插件持续挂着的通道：
+**双向怎么做的**：宿主是服务方、插件是客户端 —— **两个方向都是一次 HTTP 往返**，
+请求与结果装在同一个响应里：
 
 | 方向 | 通道 | 谁发起 |
 | --- | --- | --- |
-| 插件 → 宿主 | `POST /rpc`（JSON-RPC 2.0，请求/响应一次一个来回） | 插件 |
-| 宿主 → 插件 | `GET /poll`（长轮询，最长挂 25 秒；插件拿到请求后用同一个 `POST /rpc` 回传结果） | 插件 |
+| 插件 → 宿主 | `POST /rpc`（JSON-RPC 2.0） | 插件 |
+| 宿主 → 插件 | `POST http://127.0.0.1:<插件端口>/host-call`（JSON-RPC 2.0） | 宿主 |
 
-**为什么宿主不能也主动发起**：宿主拿不到插件的回调地址。插件是被 spawn 起来的
-独立进程，没人告诉宿主「它监听在哪个端口」；要拿到这个地址，插件还是得先主动
-报一次。既然插件本来就在往外发请求，那条「插件持续挂着等指令」的通道就由插件自己
-维持 —— 这就是长轮询在做的事：**一条反向的常驻通道**。
+**注册这一步**：插件起来后自己 `listen(0, "127.0.0.1")` 起一个 HTTP 服务，
+拿到端口后向宿主 `POST /register-callback` 报备（带令牌）。注册成功即视为接通，
+宿主之后直接 POST 那个端口就行。
 
-25 秒是**空闲超时，不是投递延迟**。插件挂着 `/poll` 的时候，宿主一发请求就立刻
-`writeHead` + `end` 送出去，端到端就是一次本机回环 RTT；只有插件正忙着处理上一个
-请求、没挂在 `/poll` 上时，请求才会进队列等它下一次轮询。
+这样换来的是：**不需要 id 配对、不需要常驻连接、不需要 pending 表**。
+宿主侧只留一张「插件 id → 回调地址」的表，调用就是一次普通的 HTTP 请求。
 
-宿主发起的调用靠 **请求 id 配对**：宿主记下 `id → pending`，
-插件回传带同一个 `id` 的响应时，宿主兑现那个 Promise。
+插件也可以完全不接 SDK（不起服务、不注册）—— 那种插件按普通程序运行，
+宿主只收它的日志和预览页。**注册成功与否就是「接没接 SDK」的判据**，
+不用再靠「调用超时」反推。
 
 ### 4.2 环境变量契约
 
@@ -276,13 +275,14 @@ installed ──▶ inactive ──activate()──▶ activating ──▶ acti
 
 ### 4.3 消息格式
 
-JSON-RPC 2.0。握手：
+JSON-RPC 2.0。插件注册回调地址：
 
 ```json
-{ "type": "hello", "token": "<token>", "pluginId": "ichain.dev-console" }
+POST /register-callback
+{ "port": 54321 }
 ```
 
-之后：
+之后两个方向都是 JSON-RPC 2.0 的请求/响应：
 
 ```json
 { "jsonrpc": "2.0", "id": 7, "method": "qnote.notes.list", "params": {} }

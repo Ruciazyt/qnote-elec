@@ -9,7 +9,7 @@
 
 **插件 = 一个文件夹 + 一份 `plugin.json`。**
 
-QNote 只做三件事：读清单、跑进程、管权限。插件想扩展能力，必须以**独立进程**启动，通过 **loopback HTTP + 长轮询** 的 SDK 通道跟宿主对话；界面通过 `WebContentsView` 挂在现有预览面板上，不开新页签。
+QNote 只做三件事：读清单、跑进程、管权限。插件想扩展能力，必须以**独立进程**启动，通过 **loopback HTTP + 回调注册** 的 SDK 通道跟宿主对话；界面通过 `WebContentsView` 挂在现有预览面板上，不开新页签。
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -21,7 +21,7 @@ QNote 只做三件事：读清单、跑进程、管权限。插件想扩展能�
 │ 主进程  src/main/core/plugin/                                │
 │   PluginManager ── 进程启停 / 日志 / 权限校验 / 清单哈希      │
 │   capabilities  ── 声明式权限判定                            │
-│   sdk/rpcServer ── loopback HTTP + 长轮询                    │
+│   sdk/rpcServer ── loopback HTTP + 回调注册                   │
 │   sdk/hostApi  ── 宿主 API 面（notes/todos/settings/...）    │
 │   core/window/plugin/pluginPreview ── qnote-app:// 预览协议   │
 └──────┬────────────────────────────┬─────────────────────────┘
@@ -466,19 +466,21 @@ plugin:preview-bounds(rect)    → 设置边界
 plugin:preview-loaded / plugin:preview-error → 回传渲染层
 ```
 
-### 6.4 SDK 通道：loopback HTTP + 长轮询
+### 6.4 SDK 通道：loopback HTTP + 回调注册
 
 **为什么不用 WebSocket**：插件的 stdout/stderr 要原样给用户看日志，stdin 是单向的撑不起「插件 → 宿主」的调用；WebSocket 要自己实现 RFC 6455 或者多引一个 `ws` 依赖。
 
 **为什么不用 stdio JSON-RPC**：同上，stdio 已经被日志占用了。
 
+**为什么不用长轮询**：长轮询把一次请求拆成两半 —— 请求走插件挂着的那条连接，响应再另开一次 `POST /rpc` 送回来，宿主得靠 id 配对兑现 Promise，多养一套 pending 表，插件侧还得串行轮询。回调注册让两个方向都变成一次 HTTP 往返。
+
 协议：
 
 | 方向 | 通道 | 说明 |
 | --- | --- | --- |
+| 插件注册 | `POST /register-callback` | 插件报上自己监听的端口，`x-qnote-token` 头带令牌；注册成功即视为接通 |
 | 插件 → 宿主 | `POST /rpc` | JSON-RPC 2.0，`x-qnote-token` 头带令牌 |
-| 宿主 → 插件 | `GET /poll?token=…` | **长轮询，挂 25 秒**；有请求立刻返回，没请求 25 秒后返回 204，插件立刻重连 |
-| 宿主等插件回话 | 内存中的 pending 表 | 按请求 `id` 配对 |
+| 宿主 → 插件 | `POST http://127.0.0.1:<插件端口>/host-call` | JSON-RPC 2.0，令牌走 `x-qnote-token` 头 |
 
 消息时序：
 
@@ -486,18 +488,20 @@ plugin:preview-loaded / plugin:preview-error → 回传渲染层
 宿主                                   插件
  │  spawn + 注入 RPC/TOKEN/ID/VERSION     │
  │──────────────────────────────────────→│
- │  GET /poll ──────────────────────────→│  挂住 25 秒
+ │                                       │  listen(0, 127.0.0.1) 起回调服务
+ │  POST /register-callback { port } ───→│
+ │◀──────────────────────────────────────│  { ok: true }
  │                                       │
- │  POST /rpc  plugin.activate ─────────→│
- │◀──────────────────────────────────────│  { jsonrpc, id, method:"plugin.activate" }
- │  宿主等 5 秒                          │
- │  POST /rpc  { id, result:{commands} } │  ← 插件回传同一个 id
- │◀──────────────────────────────────────│
+ │  POST /host-call  plugin.activate ──→│
+ │◀──────────────────────────────────────│  { jsonrpc, id, result:{commands} }
  │                                       │
  │  POST /rpc  qnote.notify ────────────→│  插件主动调宿主
  │  POST /rpc  { id, result } ──────────→│
  │◀──────────────────────────────────────│
 ```
+
+两个方向都是**一次 HTTP 往返**，请求与结果在同一个响应里，不需要 id 配对。
+宿主侧只留一张「插件 id → 回调地址」的表。
 
 宿主 → 插件只有三个方法：`plugin.activate`、`plugin.deactivate`、`qnote.command.invoke`。
 
@@ -871,7 +875,7 @@ createPlugin({
 - 老应用幂等迁移（1.x → 2.0），也有独立入口 `pnpm run migrate:plugins`
 - 进程启停、日志流、预览面板（三种 preview 形态）
 - 声明式权限判定，数据类调用逐个校验
-- SDK 通道（loopback HTTP + 长轮询）+ 宿主 API 面 + 插件侧 SDK
+- SDK 通道（loopback HTTP + 回调注册）+ 宿主 API 面 + 插件侧 SDK
 - 市场发布 / 获取全链路（清单 + 资源包）
 - 静态命令注册（`contributes.commands`）
 - 命令面板（`Ctrl+Shift+P`）、侧栏动态入口、插件设置页

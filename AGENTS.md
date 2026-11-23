@@ -363,10 +363,14 @@ The string is missing the terminator: ".
 - **没声明 `capabilities` 就是最小权限**：只能加载预览页面，不能起子进程、
   不能读写笔记待办。**`process.spawn` 没声明时启动直接被拒**，
   判定在 `src/main/core/plugin/permissions/capabilities.ts` 的 `checkCapability`
-- **SDK 通道是 loopback HTTP + 长轮询**（`src/main/core/plugin/sdk/rpcServer.ts`）：
-  插件进程靠 `QNOTE_PLUGIN_RPC` / `QNOTE_PLUGIN_TOKEN` 环境变量接进来。
+- **SDK 通道是 loopback HTTP + 插件注册回调地址**（`src/main/core/plugin/sdk/rpcServer.ts`）：
+  插件进程靠 `QNOTE_PLUGIN_RPC` / `QNOTE_PLUGIN_TOKEN` 环境变量接进来，
+  起来后自己 `listen(0, "127.0.0.1")` 起回调服务，向宿主 `POST /register-callback`
+  报端口。两个方向都是**一次 HTTP 往返**，请求与结果装在同一个响应里。
   **别改回 WebSocket** —— 插件的 stdout/stderr 要原样给用户看日志，
-  stdin 是单向的撑不起「插件 → 宿主」的调用
+  stdin 是单向的撑不起「插件 → 宿主」的调用；
+  **也别改回长轮询** —— 请求与响应拆成两半要靠 id 配对，
+  宿主侧得多养一套 pending 表，插件侧还得串行轮询
 - **宿主 API 面**在 `src/main/core/plugin/sdk/hostApi.ts`：
   `qnote.notify` / `qnote.log` / `qnote.settings.*` / `qnote.commands.*` /
   `qnote.todos.list` / `qnote.notes.list`。数据访问一律走主进程，

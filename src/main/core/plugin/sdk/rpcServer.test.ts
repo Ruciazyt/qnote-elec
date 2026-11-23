@@ -1,5 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import * as http from "node:http";
+import type { AddressInfo } from "node:net";
 
 vi.mock("../../system/log", () => ({
   log: {
@@ -11,7 +13,6 @@ vi.mock("../../system/log", () => ({
 
 import { PluginRpcServer } from "./rpcServer";
 import type { PluginManifest } from "../../../../shared/plugin/manifest/pluginTypes";
-import type { RpcRequest } from "../../../../shared/plugin/sdk/protocol";
 
 const MANIFEST: PluginManifest = {
   id: "demo.plugin",
@@ -26,6 +27,13 @@ const PLUGIN_ID = "demo.plugin";
 
 let server: PluginRpcServer;
 let token: string;
+let pluginServer: http.Server;
+let pluginPort = 0;
+let lastCall: { method: string; params: Record<string, unknown> } | null = null;
+let pluginHandler: (
+  payload: { method: string; params?: Record<string, unknown> }
+) => unknown = (payload) =>
+  payload.method ? { ok: true } : { ok: false };
 
 beforeEach(async () => {
   server = new PluginRpcServer({
@@ -34,75 +42,139 @@ beforeEach(async () => {
   });
   await server.ensureStarted();
   token = server.createSession(PLUGIN_ID, MANIFEST).token;
+
+  lastCall = null;
+  pluginHandler = (payload) => {
+    lastCall = { method: payload.method, params: payload.params ?? {} };
+    return { ok: true };
+  };
+  pluginServer = http.createServer((req, res) => {
+    if (req.headers["x-qnote-token"] !== token) {
+      res.writeHead(401, { "content-type": "application/json" });
+      res.end(JSON.stringify({ error: "unauthorized" }));
+      return;
+    }
+    const chunks: Buffer[] = [];
+    req.on("data", (chunk: Buffer) => chunks.push(chunk));
+    req.on("end", () => {
+      const payload = JSON.parse(
+        Buffer.concat(chunks).toString("utf-8")
+      ) as { id?: number; method: string; params?: Record<string, unknown> };
+      Promise.resolve()
+        .then(() => pluginHandler(payload))
+        .then(
+        (result) => {
+          res.writeHead(200, { "content-type": "application/json" });
+          res.end(
+            JSON.stringify({
+              jsonrpc: "2.0",
+              id: payload.id ?? null,
+              result: result ?? null,
+            })
+          );
+        },
+        (err: unknown) => {
+          res.writeHead(200, { "content-type": "application/json" });
+          res.end(
+            JSON.stringify({
+              jsonrpc: "2.0",
+              id: payload.id ?? null,
+              error: {
+                code: -32003,
+                message: String(
+                  err instanceof Error ? err.message : err
+                ),
+              },
+            })
+          );
+        }
+      );
+    });
+  });
+  await new Promise<void>((resolve) => {
+    pluginServer.listen(0, "127.0.0.1", () => {
+      pluginPort = (pluginServer.address() as AddressInfo).port;
+      resolve();
+    });
+  });
 });
 
 afterEach(async () => {
   await server.dispose();
+  await new Promise<void>((resolve) => {
+    pluginServer.close(() => resolve());
+  });
 });
 
-function poll(): Promise<Response> {
-  return fetch(`${server.endpoint}/poll?token=${encodeURIComponent(token)}`);
-}
-
-async function respond(id: number, result: unknown): Promise<void> {
-  const res = await fetch(`${server.endpoint}/rpc`, {
+function register(port = pluginPort, useToken = token): Promise<Response> {
+  return fetch(`${server.endpoint}/register-callback`, {
     method: "POST",
-    headers: { "content-type": "application/json", "x-qnote-token": token },
-    body: JSON.stringify({ jsonrpc: "2.0", id, result }),
+    headers: { "content-type": "application/json", "x-qnote-token": useToken },
+    body: JSON.stringify({ port }),
   });
-  expect(res.status).toBe(200);
 }
 
 describe("PluginRpcServer", () => {
-  it("插件没在轮询时连续两次调用都进队列，先来的请求不被覆盖", async () => {
-    const first = server.callPlugin(PLUGIN_ID, "plugin.activate", {}, 5000);
-    const second = server.callPlugin(
+  it("插件注册回调地址后，宿主能调到插件的方法", async () => {
+    expect((await register()).status).toBe(200);
+
+    const result = await server.callPlugin(
       PLUGIN_ID,
-      "qnote.command.invoke",
-      { command: "demo.run" },
+      "plugin.activate",
+      { hello: 1 },
       5000
     );
 
-    const res1 = await poll();
-    expect(res1.status).toBe(200);
-    const body1 = (await res1.json()) as RpcRequest;
-    expect(body1.method).toBe("plugin.activate");
-
-    const res2 = await poll();
-    expect(res2.status).toBe(200);
-    const body2 = (await res2.json()) as RpcRequest;
-    expect(body2.method).toBe("qnote.command.invoke");
-    expect(body2.id).not.toBe(body1.id);
-
-    await respond(body1.id, { activated: true });
-    await respond(body2.id, { invoked: true });
-
-    await expect(first).resolves.toEqual({ activated: true });
-    await expect(second).resolves.toEqual({ invoked: true });
+    expect(result).toEqual({ ok: true });
+    expect(lastCall?.method).toBe("plugin.activate");
+    expect(lastCall?.params).toEqual({ hello: 1 });
   });
 
-  it("插件挂在轮询上时调用立刻送达", async () => {
-    const pending = poll();
-    await new Promise((resolve) => setTimeout(resolve, 50));
-
-    const call = server.callPlugin(PLUGIN_ID, "plugin.activate", {}, 5000);
-
-    const res = await pending;
-    expect(res.status).toBe(200);
-    const body = (await res.json()) as RpcRequest;
-    expect(body.method).toBe("plugin.activate");
-
-    await respond(body.id, { ok: true });
-    await expect(call).resolves.toEqual({ ok: true });
+  it("插件没注册回调地址时调用直接失败", async () => {
+    await expect(
+      server.callPlugin(PLUGIN_ID, "plugin.activate", {}, 1000)
+    ).rejects.toThrow(/没有注册回调地址/);
   });
 
-  it("令牌不对一律拒绝", async () => {
-    const res = await fetch(`${server.endpoint}/poll?token=wrong`);
+  it("令牌不对时注册被拒", async () => {
+    const res = await register(pluginPort, "wrong-token");
     expect(res.status).toBe(401);
+    expect(server.isConnected(PLUGIN_ID)).toBe(false);
+  });
+
+  it("端口不合法时注册被拒", async () => {
+    const res = await register(0);
+    expect(res.status).toBe(400);
+    expect(server.isConnected(PLUGIN_ID)).toBe(false);
+  });
+
+  it("等回调注册：注册之后立刻返回", async () => {
+    const waiting = server.waitForCallback(PLUGIN_ID, 5000);
+    await register();
+    await expect(waiting).resolves.toBe(true);
+    expect(server.isConnected(PLUGIN_ID)).toBe(true);
+  });
+
+  it("等回调注册：插件不注册就等到超时", async () => {
+    await expect(
+      server.waitForCallback(PLUGIN_ID, 300)
+    ).resolves.toBe(false);
+  });
+
+  it("插件回错误时宿主把错误抛出来", async () => {
+    await register();
+    pluginHandler = () => {
+      throw new Error("命令没注册");
+    };
+    await expect(
+      server.callPlugin(PLUGIN_ID, "qnote.command.invoke", {}, 5000)
+    ).rejects.toThrow("命令没注册");
   });
 
   it("插件断开时未兑现的调用立刻失败", async () => {
-    const call = server.callPlugin(PLUGIN_ID, "plugin.activate", {}, 5000);
+    await register();
+    pluginHandler = () => new Promise(() => undefined);
+    const call = server.callPlugin(PLUGIN_ID, "plugin.activate", {}, 10000);
     await new Promise((resolve) => setTimeout(resolve, 50));
     server.destroySession(PLUGIN_ID);
     await expect(call).rejects.toThrow(/已断开/);
