@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>QNote 插件系统 · 全链路流程图</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#f7f5f0;
+    --card:#ffffff;
+    --line:#e9e3d6;
+    --line-soft:#f0ebe1;
+    --ink:#14171e;
+    --ink-2:#3a4256;
+    --muted:#7c7a72;
+    --primary:#2f6f5e;
+    --primary-soft:rgba(47,111,94,.09);
+    --primary-line:rgba(47,111,94,.26);
+    --warm:#c97b3f;
+    --warm-soft:rgba(201,123,63,.10);
+    --rose:#b06367;
+    --rose-soft:rgba(176,99,103,.10);
+    --radius:16px;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Outfit','PingFang SC','Microsoft YaHei',sans-serif;
+    font-size:15px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background:
+      radial-gradient(520px 320px at 88% -6%, rgba(47,111,94,.05), transparent 70%),
+      radial-gradient(420px 300px at 4% 102%, rgba(201,123,63,.05), transparent 70%);
+  }
+  .wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:56px 24px 80px}
+  h1{
+    font-family:'DM Serif Display',serif;font-weight:400;
+    font-size:34px;line-height:1.25;letter-spacing:-.01em;margin:0 0 10px;
+  }
+  h2{
+    font-family:'DM Serif Display',serif;font-weight:400;
+    font-size:23px;line-height:1.3;margin:0 0 6px;
+  }
+  .lede{color:var(--ink-2);max-width:64ch;margin:0 0 26px;font-size:15px}
+  .eyebrow{
+    font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--primary);margin:0 0 10px;
+  }
+  section{margin-top:52px}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 18px}
+  code,.mono{font-family:'JetBrains Mono',monospace;font-size:.9em}
+  .path{
+    font-family:'JetBrains Mono',monospace;font-size:11.5px;
+    color:var(--primary);background:var(--primary-soft);
+    border:1px solid var(--primary-line);border-radius:6px;
+    padding:1px 6px;white-space:nowrap;
+  }
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.035);
+  }
+  .grid{display:grid;gap:14px}
+  .g4{grid-template-columns:repeat(4,1fr)}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .stat{text-align:left}
+  .stat .n{font-family:'DM Serif Display',serif;font-size:29px;line-height:1.1;color:var(--primary)}
+  .stat .l{font-size:13px;color:var(--muted);margin-top:3px}
+  .figure{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:20px 18px;box-shadow:0 2px 8px rgba(0,0,0,.035);overflow-x:auto;
+  }
+  .figure .mermaid{display:flex;justify-content:center}
+  .cap{font-size:12.5px;color:var(--muted);margin-top:12px;text-align:center}
+  /* 闸门 */
+  .gate{display:grid;grid-template-columns:44px 1fr;gap:14px;align-items:start;padding:16px 0;border-bottom:1px dashed var(--line)}
+  .gate:last-child{border-bottom:0;padding-bottom:0}
+  .gate:first-child{padding-top:0}
+  .gate .ico{
+    width:44px;height:44px;border-radius:12px;display:grid;place-items:center;
+    background:var(--primary-soft);color:var(--primary);border:1px solid var(--primary-line);
+  }
+  .gate h3{margin:0 0 4px;font-size:15px;font-weight:600}
+  .gate p{margin:0;color:var(--ink-2);font-size:14px}
+  .gate .where{margin-top:7px;font-size:12.5px;color:var(--muted)}
+  /* 模块表 */
+  .mod{
+    background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:15px 16px;box-shadow:0 2px 8px rgba(0,0,0,.035);
+    transition:transform .2s,box-shadow .2s;
+  }
+  .mod:hover{transform:translateY(-2px);box-shadow:0 8px 22px -6px rgba(0,0,0,.10)}
+  .mod h3{margin:0 0 3px;font-size:14.5px;font-weight:600;font-family:'JetBrains Mono',monospace;color:var(--primary)}
+  .mod ul{margin:8px 0 0;padding-left:16px;color:var(--ink-2);font-size:12.5px;line-height:1.55}
+  .mod li{margin-bottom:3px}
+  /* KV */
+  .kv{display:grid;grid-template-columns:132px 1fr;row-gap:0;margin:0;font-size:14px}
+  .kv dt{
+    color:var(--muted);padding:9px 12px 9px 0;border-bottom:1px solid var(--line-soft);
+    font-family:'JetBrains Mono',monospace;font-size:12.5px;
+  }
+  .kv dd{margin:0;padding:9px 0;border-bottom:1px solid var(--line-soft);color:var(--ink-2)}
+  .kv dt:last-of-type,.kv dd:last-of-type{border-bottom:0}
+  .note{
+    margin-top:14px;font-size:13px;color:var(--muted);
+    border-left:2px solid var(--primary-line);padding-left:12px;
+  }
+  footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px}
+  @media (max-width:860px){
+    .g4{grid-template-columns:repeat(2,1fr)}
+    .g3{grid-template-columns:1fr}
+    .g2{grid-template-columns:1fr}
+    .wrap{padding:36px 16px 60px}
+    h1{font-size:27px}
+    h2{font-size:20px}
+    .kv{grid-template-columns:1fr}
+    .kv dt{border-bottom:0;padding-bottom:0}
+    .kv dd{padding-top:2px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">QNote · 插件系统</p>
+    <h1>一个插件从文件夹到市场分发，要过哪几道闸</h1>
+    <p class="lede">
+      插件 = 一个文件夹 + 一份 <code>plugin.json</code>。宿主只做三件事：读清单、跑进程、管权限。
+      下面这条链路把「创建 → 导入注册 → 启动运行 → SDK 交互 → 发布分发」串起来，
+      标出每一段的判定点与落点文件。
+    </p>
+    <div class="grid g4">
+      <div class="card stat"><div class="n">8</div><div class="l">功能模块目录</div></div>
+      <div class="card stat"><div class="n">16</div><div class="l">宿主 API 方法</div></div>
+      <div class="card stat"><div class="n">5</div><div class="l">运行状态</div></div>
+      <div class="card stat"><div class="n">3</div><div class="l">权限闸门</div></div>
+    </div>
+  </header>
+
+  <section>
+    <p class="eyebrow">主链路</p>
+    <h2>五段流程</h2>
+    <p class="sub">每一段都有独立落点；插件进程跑起来之后才会进入 SDK 交互与发布环节。</p>
+    <div class="figure">
+      <pre class="mermaid">
+flowchart TD
+  A["<b>① 创建</b><br/>插件目录 + plugin.json<br/><i>id / version / engines / runtime / capabilities</i>"]
+  B["<b>② 导入注册</b><br/>校验清单 → 写 plugin 表<br/>同步 plugin_grant 授权项"]
+  C["<b>③ 启动运行</b><br/>确认 → 依赖 → spawn<br/>activating → active"]
+  D["<b>④ SDK 交互</b><br/>loopback HTTP + 回调注册<br/>宿主 API 面 16 个方法"]
+  E["<b>⑤ 发布分发</b><br/>publishCheck → published_app<br/>市场安装 / 升级"]
+  A --> B --> C --> D --> E
+  E -.->|"别人装上 QNote 就能看到"| A
+      </pre>
+      <div class="cap">虚线是回流：市场装回来的插件会再走一遍 ② 导入注册</div>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">③ 启动运行</p>
+    <h2>判定顺序 —— 任何一步不过就不起进程</h2>
+    <p class="sub">代码在 <span class="path">core/plugin/runtime/pluginManager.ts</span> 的 <code>startPlugin</code>，顺序是硬约束。</p>
+    <div class="figure">
+      <pre class="mermaid">
+flowchart TD
+  S(["startPlugin"]) --> R["读清单 + 校验 cwd / 命令行"]
+  R --> G1{"plugin_grant 里<br/>process.spawn 被撤销 ?"}
+  G1 -->|"是"| X1(["拒绝 · 提示权限已撤销"])
+  G1 -->|"否"| G2{"extensionDependencies<br/>装齐了且版本对得上 ?"}
+  G2 -->|"否"| X2(["拒绝 · 指明缺哪个插件"])
+  G2 -->|"是"| G3{"origin = market ?"}
+  G3 -->|"是"| G4{"清单指纹<br/>已确认过 ?"}
+  G4 -->|"否"| X3(["返回 needsConfirmation<br/>弹确认框 · 不起进程"])
+  G4 -->|"是"| SP
+  G3 -->|"否（local）"| SP
+  SP["spawn(shell: true)<br/>注入 RPC / TOKEN / ID / VERSION"] --> ST["状态 activating"]
+  ST --> HS{"SDK 握手<br/>连上了 ?"}
+  HS -->|"是"| OK(["active"])
+  HS -->|"没连上"| OK2(["active · 按普通程序运行"])
+  X1 --> ST2["状态机"]
+  X2 --> ST2
+  X3 --> ST2
+      </pre>
+      <div class="cap">「市场来源 + 指纹比对」这一步就是权限闸门 ①</div>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">权限模型</p>
+    <h2>三道闸门，越往后越即时</h2>
+    <p class="sub">前两道是「插件是不是可信」，第三道是「用户此刻还允不允许」。</p>
+    <div class="card">
+      <div class="gate">
+        <div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+        <div>
+          <h3>闸门 ① · 市场来源的启动确认</h3>
+          <p>只有 <code>origin = market</code> 的插件才要确认。确认框展示插件名、完整命令行、风险分析、声明的权限；确认后把清单指纹写进 <code>confirmed_manifest_hash</code>。</p>
+          <div class="where">清单一改，指纹对不上，<strong>下次启动再问一次</strong> · <span class="path">core/plugin/runtime/pluginManager.ts</span> · <span class="path">pages/plugin/runtime/StartConfirmDialog.tsx</span></div>
+        </div>
+      </div>
+      <div class="gate">
+        <div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+        <div>
+          <h3>闸门 ② · 清单声明的 capabilities</h3>
+          <p>没声明就是最小权限 —— 只能加载预览页面，起不了子进程、读不了笔记待办。<code>checkCapability</code> 是纯函数，每次数据类调用现判，不做启动时的一次性放行。</p>
+          <div class="where">越权调用 → 拒绝 + 写进插件自己的日志，<strong>不弹窗打断</strong> · <span class="path">core/plugin/permissions/capabilities.ts</span></div>
+        </div>
+      </div>
+      <div class="gate">
+        <div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+        <div>
+          <h3>闸门 ③ · 用户逐项授权（plugin_grant）</h3>
+          <p>清单里声明的权限拆成一项一项（读笔记 / 写笔记 / 读待办 …），存进 <code>plugin_grant</code>。设置页能逐项查看与撤销，<strong>撤销后下一次调用立刻失败</strong>，不用重启插件。</p>
+          <div class="where">判定收在 <code>hostApi.requireCapability</code> 一处 —— 清单声明 + 用户授权两道都要过 · <span class="path">core/plugin/permissions/pluginGrants.ts</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">运行态</p>
+    <h2>状态机</h2>
+    <div class="figure">
+      <pre class="mermaid">
+stateDiagram-v2
+  [*] --> inactive
+  inactive --> activating : startPlugin
+  activating --> active : SDK 握手成功
+  activating --> active : 没接 SDK · 按普通程序跑
+  activating --> failed : 握手失败
+  active --> deactivating : stopPlugin
+  deactivating --> inactive : 进程已收
+  active --> failed : 异常退出
+  failed --> inactive : 重启
+      </pre>
+      <div class="cap">「没接 SDK」单独一条：很多插件只是普通程序，不该被标成启动失败</div>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">④ SDK 交互</p>
+    <h2>插件怎么跟宿主说话</h2>
+    <p class="sub">插件是独立进程，跟宿主之间只有一条 loopback HTTP + 回调注册通道，插件碰不到 SQLite。</p>
+    <div class="figure">
+      <pre class="mermaid">
+sequenceDiagram
+  participant P as 插件进程
+  participant SDK as plugin-sdk.js
+  participant R as rpcServer
+  participant A as hostApi
+  participant DB as SQLite / QNote 数据
+  P->>SDK: 进程起来
+  SDK->>SDK: listen(0, 127.0.0.1) 起回调服务
+  SDK->>R: POST /register-callback { port }
+  R-->>SDK: { ok: true } ← 注册成功即接通
+  P->>SDK: ctx.notes.list()
+  SDK->>R: POST /rpc (x-qnote-token)
+  R->>A: handlePluginCall(method, params)
+  A->>A: checkCapability 清单声明
+  A->>DB: 读 plugin_grant
+  alt 声明了 且 没被撤销
+    A->>DB: 读笔记 / 待办 / 剪贴板
+    A-->>R: 结果
+  else 越权 或 已撤销
+    A-->>R: error + 写插件日志
+  end
+  R-->>SDK: JSON-RPC 响应
+  SDK-->>P: 返回值
+      </pre>
+      <div class="cap">宿主主动调插件只有三个方法：plugin.activate / plugin.deactivate / qnote.command.invoke</div>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">⑤ 发布分发</p>
+    <h2>发布前先拦一道网关约束</h2>
+    <div class="grid g2">
+      <div class="card">
+        <h3 style="margin:0 0 6px;font-size:15px;font-weight:600">发布前检查</h3>
+        <p style="margin:0 0 10px;color:var(--ink-2);font-size:14px">
+          公共目录前面挂的是 AWS ALB，它扫整个请求，URL / query / body 里出现<b>带 scheme 的 IP 字面量</b>就返回 403。
+          本地先拦比发布后吃 403 好。
+        </p>
+        <div class="kv" style="font-size:13px">
+          <dt>preview.url</dt><dd>有 IP 字面量 → 拒发，提示改用 <code>type: "port"</code></dd>
+          <dt>runtime.env</dt><dd>值里有 IP 字面量 → 拒发</dd>
+          <dt>capabilities.network</dt><dd>模式里有 IP 字面量 → 拒发</dd>
+          <dt>放行边界</dt><dd><code>http://localhost</code>、不带 scheme 的 <code>127.0.0.1:7799</code> 都放行</dd>
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="margin:0 0 6px;font-size:15px;font-weight:600">市场条目</h3>
+        <p style="margin:0 0 10px;color:var(--ink-2);font-size:14px">
+          <code>published_app</code> 存三样：清单、资源包、版本信息。本地 SQLite 与 TiDB Cloud 两套后端语义一致。
+        </p>
+        <div class="kv" style="font-size:13px">
+          <dt>version</dt><dd>插件版本 —— 装的是<b>指定版本</b>，不是「最新版」</dd>
+          <dt>dependencies</dt><dd>JSON 数组 —— 依赖的插件 id 与版本范围</dd>
+          <dt>bundle</dt><dd>资源包（base64 + deflateRaw），清单单独走 manifest 字段</dd>
+          <dt>升级</dt><dd>覆盖清单与资源包 → 清掉确认指纹 → <b>下次运行重走一次权限确认</b></dd>
+        </div>
+      </div>
+    </div>
+    <div class="note">
+      依赖缺失或版本不满足 → 拒绝激活并指明缺哪个，<b>不做自动安装</b>（避免装一个插件顺手装一堆东西），错误文案里带「请到插件市场手动装好依赖」的指引。
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">目录</p>
+    <h2>跨四层，同一套模块名</h2>
+    <p class="sub">同域文件不堆在一个目录里 —— 共享层、主进程、IPC、渲染层各自分子目录，模块名一一对应。</p>
+    <div class="grid g3">
+      <div class="mod">
+        <h3>manifest</h3>
+        <ul><li>shared/plugin/manifest/ — 类型、清单解析校验、preview 形态</li><li>core/plugin/manifest/ — 清单读写落盘</li><li>pages/plugin/manifest/ — 清单编辑器</li></ul>
+      </div>
+      <div class="mod">
+        <h3>runtime</h3>
+        <ul><li>core/plugin/runtime/ — pluginManager、状态机、资源包</li><li>pages/plugin/runtime/ — 插件列表、日志台、预览面板</li><li>core/window/plugin/runtime/ — 预览协议</li></ul>
+      </div>
+      <div class="mod">
+        <h3>permissions</h3>
+        <ul><li>shared/plugin/permissions/ — 授权词表、风险分析</li><li>core/plugin/permissions/ — checkCapability、plugin_grant</li><li>pages/plugin/permissions/ — 授权面板</li></ul>
+      </div>
+      <div class="mod">
+        <h3>dependencies</h3>
+        <ul><li>core/plugin/dependencies/ — extensionDependencies 解析与比对</li><li>版本比对复用 <code>satisfiesRange</code></li></ul>
+      </div>
+      <div class="mod">
+        <h3>sdk</h3>
+        <ul><li>shared/plugin/sdk/ — 协议类型</li><li>core/plugin/sdk/ — rpcServer 传输层、hostApi API 面</li><li>resources/plugin-sdk/ — 插件侧纯 ESM SDK</li></ul>
+      </div>
+      <div class="mod">
+        <h3>market</h3>
+        <ul><li>shared/plugin/market/ — 版本比较</li><li>core/plugin/market/ — 发布前检查、版本与依赖读写</li><li>pages/plugin/market/ — 市场列表、发布框</li></ul>
+      </div>
+      <div class="mod">
+        <h3>migration</h3>
+        <ul><li>core/plugin/migration/ — 1.x 老应用幂等迁移</li><li><code>pnpm run migrate:plugins</code> 可单独跑</li></ul>
+      </div>
+      <div class="mod">
+        <h3>dialog</h3>
+        <ul><li>shared/plugin/dialog/ — 弹框协议类型</li><li>handlers/plugin/dialog/ + core/window/plugin/dialog/</li><li>pages/plugin/dialog/ — 弹框宿主页面</li></ul>
+      </div>
+      <div class="mod" style="background:var(--primary-soft);border-color:var(--primary-line)">
+        <h3 style="color:var(--primary)">入口留根</h3>
+        <ul><li>渲染层路由页 <code>pages/plugin/PluginsPage.tsx</code></li><li>主进程主控 <code>core/plugin/runtime/pluginManager.ts</code></li><li>其余全部下沉到模块子目录</li></ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">落点</p>
+    <h2>关键文件</h2>
+    <div class="card">
+      <dl class="kv">
+        <dt>manifest/pluginTypes.ts</dt><dd>所有跨端类型（Manifest / Record / Capabilities / Contributes / RuntimeState）</dd>
+        <dt>manifest/pluginManifest.ts</dt><dd>清单解析与逐字段校验 + 自实现 semver 范围匹配</dd>
+        <dt>runtime/pluginManager.ts</dt><dd>插件管理器：导入 / 启停 / 状态机 / 权限 / 命令注册表</dd>
+        <dt>permissions/capabilities.ts</dt><dd>checkCapability 权限判定（纯函数，不查库）</dd>
+        <dt>permissions/pluginGrants.ts</dt><dd>plugin_grant 读写 —— 逐项授权、撤销即生效</dd>
+        <dt>dependencies/pluginDependencies.ts</dt><dd>依赖解析与版本比对</dd>
+        <dt>sdk/rpcServer.ts</dt><dd>loopback HTTP + 回调注册传输层</dd>
+        <dt>sdk/hostApi.ts</dt><dd>宿主 API 面 + requireCapability 唯一权限入口</dd>
+        <dt>market/publishCheck.ts</dt><dd>发布前 IP 字面量检查</dd>
+        <dt>migration/legacyMigration.ts</dt><dd>1.x 老应用 → 插件的幂等迁移</dd>
+      </dl>
+    </div>
+  </section>
+
+  <footer>
+    QNote 插件系统全链路 · 对应设计文档 <code>docs/PLUGIN-SYSTEM.md</code> 与现行架构 <code>docs/PLUGIN-ARCHITECTURE.md</code>
+  </footer>
+</div>
+
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: "base",
+    themeVariables: {
+      primaryColor: "#e8f0ec",
+      primaryTextColor: "#14171e",
+      primaryBorderColor: "#2f6f5e",
+      secondaryColor: "#f6efe5",
+      tertiaryColor: "#ffffff",
+      lineColor: "#8d8a80",
+      textColor: "#14171e",
+      fontFamily: "'Outfit','PingFang SC','Microsoft YaHei',sans-serif",
+      fontSize: "13px",
+    },
+    flowchart: { curve: "basis", nodeSpacing: 46, rankSpacing: 52, padding: 14 },
+    sequence: { actorMargin: 46, useMaxWidth: true },
+  });
+  await mermaid.run({ querySelector: "pre.mermaid" });
+</script>
+</body>
+</html>
