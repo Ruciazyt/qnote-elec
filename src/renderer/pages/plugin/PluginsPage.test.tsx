@@ -104,6 +104,28 @@ describe("插件管理页", () => {
     ).toBeInTheDocument();
   });
 
+  it("「插件管理」和「插件市场」是两个按钮，各自切到自己的面板", async () => {
+    setup();
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText("插件管理")).toBeInTheDocument());
+    const manage = screen.getByRole("button", { name: /插件管理/ });
+    const market = screen.getByRole("button", { name: /插件市场/ });
+
+    expect(manage).toHaveAttribute("aria-pressed", "true");
+    expect(market).toHaveAttribute("aria-pressed", "false");
+
+    await userEvent.click(market);
+    await waitFor(() => expect(market).toHaveAttribute("aria-pressed", "true"));
+    expect(manage).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByText("行程地图")).toBeInTheDocument();
+
+    await userEvent.click(manage);
+    await waitFor(() => expect(manage).toHaveAttribute("aria-pressed", "true"));
+    expect(market).toHaveAttribute("aria-pressed", "false");
+    expect(screen.queryByText("行程地图")).toBeNull();
+  });
+
   it("市场里拉到的插件落到左侧的插件列表里，并被选中", async () => {
     setup();
     renderPage();

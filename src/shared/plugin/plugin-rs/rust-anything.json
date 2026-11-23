@@ -1,14 +1,14 @@
 {
   "schema": "rust-anything/bridge@1",
   "root": "D:\\personal-projects\\qnote-elec",
-  "unit": "src/shared/plugin/",
+  "unit": "src/shared/plugin/permissions/",
   "language": "ts",
   "kind": "napi",
   "crate_name": "plugin-rs",
   "exports": [
     {
       "name": "analyzeCommand",
-      "file": "src/shared/plugin/pluginRisk.ts",
+      "file": "src/shared/plugin/permissions/pluginRisk.ts",
       "line": 114,
       "params": [
         {

@@ -1,4 +1,4 @@
-import { createPlugin } from "../../../resources/plugin-sdk/qnote-plugin-sdk.js";
+import { createPlugin } from "../../../resources/plugin-sdk/qnote-plugin-sdk";
 
 export default createPlugin({
   async activate(ctx) {

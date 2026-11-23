@@ -3,11 +3,11 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { getDevRoot } from "../../utils/paths";
 import { nativeStatus } from "../notes/nativeNotes";
-import { analyzeCommand } from "../plugin/nativePlugin";
+import { analyzeCommand } from "../plugin/permissions/nativePlugin";
 import { formatReminderLabel, pickDueReminders, resolveReminderTime } from "../todo/nativeTodo";
 import { buildSessionPreview } from "../ai/nativeAi";
 import { htmlToText, parseBingResults } from "../ai/tools/web/searchEngine";
-import { analyzeCommand as tsAnalyzeCommand } from "../../../shared/plugin/pluginRisk";
+import { analyzeCommand as tsAnalyzeCommand } from "../../../shared/plugin/permissions/pluginRisk";
 import {
   formatReminderLabel as tsFormatReminderLabel,
   resolveReminderTime as tsResolveReminderTime,

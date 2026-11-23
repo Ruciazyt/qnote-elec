@@ -79,7 +79,25 @@ ALTER TABLE qnote_catalog.published_app ADD COLUMN bundle MEDIUMTEXT NULL;
 线上那个公共目录（集群 `public-apps`）的这一列已在 2026-11-20 补好，上面那条只在新建库时才需要再跑一次。
 **建列要排在部署端点之前** —— 端点 SQL 里 `bundle` 进了 INSERT 的列清单，列还不存在时发布会整个失败。
 
-### 7. 已知限制：清单里的本机地址发不出去
+### 7. 补两列：版本 `version` 与依赖 `dependencies`
+
+市场条目要带上插件版本与依赖（清单里的 `extensionDependencies`），这两列在已建好的库里要手动补一次，
+在 Data Service 页面中间的 SQL 编辑器里跑：
+
+```sql
+ALTER TABLE qnote_catalog.published_app ADD COLUMN version VARCHAR(32) NULL;
+ALTER TABLE qnote_catalog.published_app ADD COLUMN dependencies TEXT NULL;
+```
+
+两列都**必须可空**：TiDB 不给 TEXT 列设默认值，而老客户端发布时不带这两个参数，
+列要是 NOT NULL 又没默认值，严格模式下那条 INSERT 会直接报 `Field 'version' doesn't have a default value`。
+
+**建列要排在部署端点之前** —— 端点 SQL 里 `version` 与 `dependencies` 进了 INSERT 的列清单，
+列还不存在时发布会整个失败，客户端的退回逻辑救不回来。
+
+老记录没有这两列时，客户端按空版本、空依赖处理。
+
+### 8. 已知限制：清单里的本机地址发不出去
 
 公共目录前面挂的是 AWS ALB，它会扫整个请求，只要出现**指向 IP 字面量的链接**
 （`http://127.0.0.1:7799/`、`http://10.0.0.1`）就返回 `403 Forbidden`（HTML，不是 JSON）。
@@ -99,8 +117,8 @@ QNote 自己的清单现在把 `preview` 写成端口号（`"preview": 7799`）�
 | `/apps_list` | GET | keyword(string) limit(int) offset(int) | 列目录 |
 | `/apps_count` | GET | keyword(string) | 总数 |
 | `/apps_get` | GET | id(string) | 取一条 |
-| `/apps_publish` | POST | id name description author manifest repo_url tags bundle(string) pulls created_at updated_at(int) | 新发布 |
-| `/apps_update` | POST | id name description author manifest repo_url tags bundle(string) updated_at(int) | 覆盖发布 |
+| `/apps_publish` | POST | id name description author manifest repo_url tags bundle version dependencies(string) pulls created_at updated_at(int) | 新发布 |
+| `/apps_update` | POST | id name description author manifest repo_url tags bundle version dependencies(string) updated_at(int) | 覆盖发布 |
 | `/apps_remove` | POST | id(string) | 删除 |
 | `/apps_mark_pulled` | POST | id(string) | 被获取次数 +1 |
 
@@ -135,6 +153,8 @@ QNote 自己的清单现在把 `preview` 写成端口号（`"preview": 7799`）�
 | `repo_url` | VARCHAR(1024) | 源码 / 下载地址 |
 | `tags` | VARCHAR(512) | 标签，逗号分隔 |
 | `bundle` | MEDIUMTEXT | 项目文件资源包（base64），空串表示只发清单 |
+| `version` | VARCHAR(32) NULL | 插件版本，可空（老发布记录没有） |
+| `dependencies` | TEXT NULL | 依赖列表，JSON 数组，如 `[{"id":"a.b","range":"^1.0.0"}]` |
 | `pulls` | BIGINT | 被获取次数 |
 | `created_at` | BIGINT | 发布时间（毫秒时间戳） |
 | `updated_at` | BIGINT | 最后更新时间（毫秒时间戳） |

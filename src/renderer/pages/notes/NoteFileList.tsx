@@ -29,7 +29,12 @@ function relativeTime(mtime: number): string {
   if (hour < 24) return `${hour} 小时前`;
   const day = Math.floor(hour / 24);
   if (day < 30) return `${day} 天前`;
-  return new Date(mtime).toLocaleDateString("zh-CN");
+  const date = new Date(mtime);
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  return date.getFullYear() === new Date().getFullYear()
+    ? `${mm}-${dd}`
+    : `${String(date.getFullYear()).slice(2)}-${mm}-${dd}`;
 }
 
 interface NoteFileListProps {
@@ -498,7 +503,7 @@ function NoteFileList({
           <span className="flex-1 min-w-0 truncate text-xs">{stripExt(node.name)}</span>
           <span className="text-[10px] text-muted-foreground/55 flex-shrink-0">{label}</span>
           {}
-          <div className="w-[46px] flex justify-end flex-shrink-0">
+          <div className="w-[52px] flex justify-end flex-shrink-0 overflow-hidden">
             {showActions ? (
               <RowActions
                 name={node.name}
@@ -506,7 +511,7 @@ function NoteFileList({
                 onDelete={() => onDelete(node)}
               />
             ) : (
-              <span className="text-[10px] text-muted-foreground/50 tabular-nums">
+              <span className="text-[10px] text-muted-foreground/50 tabular-nums truncate">
                 {relativeTime(node.mtime)}
               </span>
             )}

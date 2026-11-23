@@ -1,6 +1,8 @@
 
 import { ipcMain } from "electron";
 import { log } from "../../core/system/log";
+import { readPublishMetadata } from "../../core/plugin/market/marketVersion";
+import { checkPublishCompatibility } from "../../core/plugin/market/publishCheck";
 import {
   checkCatalog,
   describeCloudError,
@@ -148,6 +150,21 @@ export function registerCloudHandlers(): void {
         if (!manifest.trim()) {
           return { ok: false, error: "清单内容不能为空" };
         }
+
+        const check = checkPublishCompatibility(manifest);
+        if (!check.ok) {
+          log.warn("[cloud] 发布前的网关兼容检查没通过", {
+            issues: check.issues.length,
+          });
+          return { ok: false, error: check.message };
+        }
+
+        const metadata = readPublishMetadata(manifest);
+        const dependencies =
+          metadata.dependencies.length > 0
+            ? metadata.dependencies
+            : (input?.dependencies ?? []);
+
         return {
           ok: true,
           data: await publishApp(
@@ -159,6 +176,8 @@ export function registerCloudHandlers(): void {
               repoUrl: String(input?.repoUrl ?? ""),
               tags: String(input?.tags ?? ""),
               bundle: String(input?.bundle ?? ""),
+              version: metadata.version || String(input?.version ?? "").trim(),
+              dependencies,
             },
             existingId ? String(existingId) : undefined
           ),

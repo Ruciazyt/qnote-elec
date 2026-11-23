@@ -7,7 +7,7 @@ import {
   type RpcRequest,
   type RpcResponse,
 } from "../../../../shared/plugin/sdk/protocol";
-import type { PluginManifest } from "../../../../shared/plugin/pluginTypes";
+import type { PluginManifest } from "../../../../shared/plugin/manifest/pluginTypes";
 
 const POLL_TIMEOUT_MS = 25000;
 const MAX_BODY_BYTES = 1024 * 1024;
@@ -17,6 +17,7 @@ export interface RpcSession {
   token: string;
   manifest: PluginManifest;
   createdAt: number;
+  connected: boolean;
 }
 
 export interface PluginRpcHost {
@@ -82,6 +83,7 @@ export class PluginRpcServer {
       token: randomBytes(24).toString("hex"),
       manifest,
       createdAt: Date.now(),
+      connected: false,
     };
     this.byToken.set(session.token, session);
     this.byPluginId.set(pluginId, session);
@@ -112,6 +114,10 @@ export class PluginRpcServer {
 
   hasSession(pluginId: string): boolean {
     return this.byPluginId.has(pluginId);
+  }
+
+  isConnected(pluginId: string): boolean {
+    return this.byPluginId.get(pluginId)?.connected === true;
   }
 
   async callPlugin(
@@ -203,6 +209,8 @@ export class PluginRpcServer {
       res.end(JSON.stringify({ error: "unauthorized" }));
       return;
     }
+
+    session.connected = true;
 
     const queued = this.queued.get(session.pluginId);
     const next = queued?.shift();

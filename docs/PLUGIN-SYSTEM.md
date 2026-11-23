@@ -8,17 +8,21 @@
 
 | 能力 | 状态 |
 | --- | --- |
-| `plugin.json` 清单与逐字段校验 | ✅ 已实现（`src/shared/plugin/pluginManifest.ts`） |
+| `plugin.json` 清单与逐字段校验 | ✅ 已实现（`src/shared/plugin/manifest/pluginManifest.ts`） |
 | `plugin` / `plugin_setting` / `plugin_grant` 三表 | ✅ 已实现 |
-| 老应用幂等迁移（`qnote.json` → `plugin.json`） | ✅ 已实现（`src/main/core/plugin/legacyMigration.ts`） |
+| 老应用幂等迁移（`qnote.json` → `plugin.json`） | ✅ 已实现（`src/main/core/plugin/migration/legacyMigration.ts`） |
 | 进程启停、日志流、预览面板 | ✅ 已实现（预览协议 host 段仍用本地自增号） |
 | 声明式权限判定 | ✅ 已实现（`capabilities.ts`），数据类调用逐个校验 |
 | SDK 通道与宿主 API | ✅ 已实现，**传输用 loopback HTTP + 长轮询**（不是 WebSocket） |
 | 插件侧 SDK | ✅ 已实现（`resources/plugin-sdk/qnote-plugin-sdk.js`，纯 ESM 无构建） |
 | 命令面板、侧栏动态入口、插件设置页 | ✅ 已实现（`Ctrl+Shift+P` 唤起命令面板，侧栏按 `contributes.sidebar` 生成入口，插件页可读写清单声明的设置项） |
 | 插件通知（宿主 toast） | ✅ 已实现（`plugin:notify` 事件，插件经 SDK 发通知） |
-| 市场版本与依赖、逐项授权撤销 | ⏳ 未实现 —— `extensionDependencies` 已在清单里声明，解析器还没做 |
-| `qnote.clipboard.list` / `qnote.ai.chat` | ⏳ 未实现 |
+| 市场版本与依赖、逐项授权撤销 | ✅ 已实现（`published_app` 加 `version`/`dependencies`；授权项存在 `plugin_grant`，设置页逐项撤销，撤销后下次调用立刻失败） |
+| `qnote.clipboard.list` / `qnote.ai.chat` | ✅ 已实现（宿主 API 面补齐到 16 个方法） |
+| 依赖解析（`extensionDependencies`） | ✅ 已实现（`id` 或 `id@^1.0.0`；缺失或版本不满足时拒绝激活并指明缺哪个，不自动安装） |
+| 运行状态机 | ✅ 已实现（`inactive` / `activating` / `active` / `deactivating` / `failed`） |
+| 发布前网关兼容检查 | ✅ 已实现（`preview` / `env` / `capabilities.network` 里的 IP 字面量在发布前就拦下） |
+| 迁移脚本独立入口 | ✅ 已实现（`pnpm run migrate:plugins`，幂等） |
 
 ---
 
@@ -204,12 +208,11 @@ installed ──▶ inactive ──activate()──▶ activating ──▶ acti
 ### 3.2 激活流程
 
 1. 宿主按 `runtime` 起进程（`spawn(commandLine, { shell: true })`）
-2. 宿主为该插件实例开一个 **loopback WebSocket**（127.0.0.1，随机端口）
-3. 宿主把连接信息注入环境变量（见 4.2）
-4. 插件用 SDK 连上，发 `hello` 帧（带令牌）→ 宿主校验令牌与插件 id
-5. 宿主调 `plugin.activate` → 插件跑 `activate(ctx)`，返回它注册的命令
-6. 宿主把命令写入命令表，状态置 `active`
-7. 握手超时（默认 10s）→ 视为激活失败，记日志，进程收掉，状态 `failed`
+2. 宿主在 127.0.0.1 随机端口起 RPC 服务，把地址与令牌注入环境变量（见 4.2）
+3. 插件用 SDK 接上 —— `GET /poll` 挂上来即视为接通，宿主按令牌认人
+4. 宿主调 `plugin.activate` → 插件跑 `activate(ctx)`，返回它注册的命令
+5. 宿主把命令写入命令表，状态置 `active`
+6. 握手超时（5s）→ 插件压根没接过 RPC 就按普通程序运行；接过却没回应 → 激活失败，记日志，状态 `failed`
 
 ### 3.3 停用流程
 
@@ -235,13 +238,25 @@ installed ──▶ inactive ──activate()──▶ activating ──▶ acti
 - Windows 上不可靠地继承额外 fd（fd 3+）
 - **不引新依赖** —— Node 内置 `http` 模块就能起一个只监听 127.0.0.1 的服务，
   WebSocket 得自己实现 RFC 6455 握手与帧编码，或者多一个 `ws` 依赖
+- **插件作者未必用 JS** —— HTTP 客户端是各语言标准库都有的东西（Python `urllib`、
+  Go `net/http`、Rust `reqwest`）；WebSocket 客户端每种语言都得额外装库
 
-**双向怎么做的**：
+**双向怎么做的**：宿主是服务方、插件是客户端 —— **两个方向都是插件主动发起**的，
+只有「宿主 → 插件」这一路需要一条插件持续挂着的通道：
 
-| 方向 | 通道 |
-| --- | --- |
-| 插件 → 宿主 | `POST /rpc`（JSON-RPC 2.0，请求/响应一次一个来回） |
-| 宿主 → 插件 | `GET /poll`（长轮询，最长挂 25 秒；插件拿到请求后用同一个 `POST /rpc` 回传结果） |
+| 方向 | 通道 | 谁发起 |
+| --- | --- | --- |
+| 插件 → 宿主 | `POST /rpc`（JSON-RPC 2.0，请求/响应一次一个来回） | 插件 |
+| 宿主 → 插件 | `GET /poll`（长轮询，最长挂 25 秒；插件拿到请求后用同一个 `POST /rpc` 回传结果） | 插件 |
+
+**为什么宿主不能也主动发起**：宿主拿不到插件的回调地址。插件是被 spawn 起来的
+独立进程，没人告诉宿主「它监听在哪个端口」；要拿到这个地址，插件还是得先主动
+报一次。既然插件本来就在往外发请求，那条「插件持续挂着等指令」的通道就由插件自己
+维持 —— 这就是长轮询在做的事：**一条反向的常驻通道**。
+
+25 秒是**空闲超时，不是投递延迟**。插件挂着 `/poll` 的时候，宿主一发请求就立刻
+`writeHead` + `end` 送出去，端到端就是一次本机回环 RTT；只有插件正忙着处理上一个
+请求、没挂在 `/poll` 上时，请求才会进队列等它下一次轮询。
 
 宿主发起的调用靠 **请求 id 配对**：宿主记下 `id → pending`，
 插件回传带同一个 `id` 的响应时，宿主兑现那个 Promise。
@@ -510,7 +525,7 @@ CREATE TABLE plugin_grant (
 
 | 项 | 内容 |
 | --- | --- |
-| 改哪 | 新增 `src/shared/plugin/pluginTypes.ts`、`src/main/utils/pluginManifest.ts`（新清单解析器）；`src/database/migrations/index.ts` 加三张表；新增迁移脚本 `scripts/migrate/` |
+| 改哪 | 新增 `src/shared/plugin/manifest/pluginTypes.ts`、`src/main/core/plugin/manifest/pluginManifest.ts`（新清单解析器）；`src/database/migrations/index.ts` 加三张表；新增迁移脚本 `scripts/migrate/` |
 | 交付 | 清单 schema 与校验器；新表；`qnote.json` → `plugin.json` 迁移脚本 |
 
 **验收标准**
@@ -525,7 +540,7 @@ CREATE TABLE plugin_grant (
 
 | 项 | 内容 |
 | --- | --- |
-| 改哪 | `src/main/core/apps/appManager.ts` → `src/main/core/plugin/pluginManager.ts`；新增 `src/main/core/plugin/rpcServer.ts`、`src/main/core/plugin/hostApi.ts`；`src/shared/plugin/sdk/`；`src/main/handlers/apps/appHandlers.ts` → `src/main/handlers/plugin/pluginHandlers.ts` |
+| 改哪 | `src/main/core/apps/appManager.ts` → `src/main/core/plugin/runtime/pluginManager.ts`；新增 `src/main/core/plugin/rpcServer.ts`、`src/main/core/plugin/hostApi.ts`；`src/shared/plugin/sdk/`；`src/main/handlers/apps/appHandlers.ts` → `src/main/handlers/plugin/runtime/pluginHandlers.ts` |
 | 交付 | 插件进程生命周期；WebSocket RPC 服务；Node SDK |
 
 **验收标准**
@@ -541,7 +556,7 @@ CREATE TABLE plugin_grant (
 
 | 项 | 内容 |
 | --- | --- |
-| 改哪 | 新增 `src/renderer/components/panel/CommandPalette.tsx`；`src/renderer/pages/plugin/PluginSettingsPanel.tsx`；`src/renderer/components/shell/AppSidebar.tsx` 改动态挂载 |
+| 改哪 | 新增 `src/renderer/components/panel/CommandPalette.tsx`；`src/renderer/pages/plugin/runtime/PluginSettingsPanel.tsx`；`src/renderer/components/shell/AppSidebar.tsx` 改动态挂载 |
 | 交付 | 命令面板；插件设置项落设置页；侧栏动态入口 |
 | 状态 | ✅ 已落地（2.1.0） |
 
@@ -557,7 +572,7 @@ CREATE TABLE plugin_grant (
 
 | 项 | 内容 |
 | --- | --- |
-| 改哪 | `src/main/core/plugin/capabilities.ts`；`src/renderer/pages/plugin/PluginPermissions.tsx`；`src/database/cloud/` + `data-app/http_endpoints/sql/` 加 `version`/`dependencies` 列；发布流程加网关兼容检查 |
+| 改哪 | `src/main/core/plugin/permissions/capabilities.ts`；`src/renderer/pages/plugin/PluginPermissions.tsx`；`src/database/cloud/` + `data-app/http_endpoints/sql/` 加 `version`/`dependencies` 列；发布流程加网关兼容检查 |
 | 交付 | 声明式权限校验；授权管理页；市场版本与依赖 |
 
 **验收标准**
@@ -577,12 +592,12 @@ CREATE TABLE plugin_grant (
 
 | 文件 | 改动 |
 | --- | --- |
-| `src/main/utils/appManifest.ts` | **废弃**，换成 `src/main/utils/pluginManifest.ts` |
-| `src/main/core/apps/appManager.ts` | **重写**为 `src/main/core/plugin/pluginManager.ts` |
-| `src/main/core/apps/bundle.ts` | → `src/main/core/plugin/bundle.ts`；跳过列表 `qnote.json` → `plugin.json`；打包规则按新清单结构调整 |
-| `src/main/core/apps/nativeApps.ts` | → `src/main/core/plugin/nativePlugin.ts`；保留（风险分析），调用点跟着换 |
-| `src/main/handlers/apps/appHandlers.ts` | **重命名**为 `src/main/handlers/plugin/pluginHandlers.ts`，channel 前缀 `app:` → `plugin:` |
-| `src/main/core/window/apps/appPreview.ts` | → `src/main/core/window/plugin/pluginPreview.ts`；基本不动；按 `local_id`（本地自增号）查目录，不是按字符串 id；协议 host 段仍是 `p<local_id>` |
+| `src/main/utils/appManifest.ts` | **废弃**，换成 `src/main/core/plugin/manifest/pluginManifest.ts` |
+| `src/main/core/apps/appManager.ts` | **重写**为 `src/main/core/plugin/runtime/pluginManager.ts` |
+| `src/main/core/apps/bundle.ts` | → `src/main/core/plugin/runtime/bundle.ts`；跳过列表 `qnote.json` → `plugin.json`；打包规则按新清单结构调整 |
+| `src/main/core/apps/nativeApps.ts` | → `src/main/core/plugin/permissions/nativePlugin.ts`；保留（风险分析），调用点跟着换 |
+| `src/main/handlers/apps/appHandlers.ts` | **重命名**为 `src/main/handlers/plugin/runtime/pluginHandlers.ts`，channel 前缀 `app:` → `plugin:` |
+| `src/main/core/window/apps/appPreview.ts` | → `src/main/core/window/plugin/runtime/pluginPreview.ts`；基本不动；按 `local_id`（本地自增号）查目录，不是按字符串 id；协议 host 段仍是 `p<local_id>` |
 | `src/main/preload.ts` | `app*` 系列暴露 → `plugin*` |
 | `src/main/core/system/nativeModules.ts` | plugin-rs crate 的入口路径跟着换目录 |
 
@@ -590,7 +605,7 @@ CREATE TABLE plugin_grant (
 
 | 文件 | 改动 |
 | --- | --- |
-| `src/shared/apps/appTypes.ts` | → `src/shared/plugin/pluginTypes.ts` |
+| `src/shared/apps/appTypes.ts` | → `src/shared/plugin/manifest/pluginTypes.ts` |
 | `src/shared/apps/appRisk.ts` | 迁到 `src/shared/plugin/`，保留逻辑 |
 | `src/shared/apps/preview.ts` | 迁到 `src/shared/plugin/`，改成对象形式的 preview |
 | `src/database/migrations/index.ts` | 新增 `plugin` / `plugin_setting` / `plugin_grant` 三表 |

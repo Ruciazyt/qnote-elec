@@ -359,14 +359,14 @@ interface ElectronAPI {
   browserBookmarkDelete: (id: number) => Promise<boolean>;
   browserBookmarkClear: () => Promise<boolean>;
 
-  pluginList: () => Promise<import("@shared/plugin/pluginTypes").PluginRecord[]>;
-  pluginImport: (dirPath: string) => Promise<import("@shared/plugin/pluginTypes").PluginImportResult>;
+  pluginList: () => Promise<import("@shared/plugin/manifest/pluginTypes").PluginRecord[]>;
+  pluginImport: (dirPath: string) => Promise<import("@shared/plugin/manifest/pluginTypes").PluginImportResult>;
   pluginRemove: (id: string) => Promise<{ ok: boolean; error?: string }>;
   pluginSetEnabled: (id: string, enabled: boolean) => Promise<{ ok: boolean; error?: string }>;
-  pluginRefresh: () => Promise<import("@shared/plugin/pluginTypes").PluginRecord[]>;
+  pluginRefresh: () => Promise<import("@shared/plugin/manifest/pluginTypes").PluginRecord[]>;
   pluginWriteManifest: (
     pluginPath: string,
-    payload: import("@shared/plugin/pluginTypes").PluginManifestDraft
+    payload: import("@shared/plugin/manifest/pluginTypes").PluginManifestDraft
   ) => Promise<{ ok: boolean; error?: string }>;
   pluginOpenFolder: (target: string) => Promise<{ ok: boolean; error?: string }>;
   pluginPickDir: () => Promise<string | null>;
@@ -376,12 +376,16 @@ interface ElectronAPI {
   ) => Promise<{
     ok: boolean;
     error?: string;
-    needsConfirmation?: import("@shared/plugin/pluginTypes").StartConfirmation;
+    needsConfirmation?: import("@shared/plugin/manifest/pluginTypes").StartConfirmation;
   }>;
   pluginImportFromMarket: (
     dirPath: string,
-    payload: import("@shared/plugin/pluginTypes").MarketImportPayload
-  ) => Promise<import("@shared/plugin/pluginTypes").PluginImportResult>;
+    payload: import("@shared/plugin/manifest/pluginTypes").MarketImportPayload
+  ) => Promise<import("@shared/plugin/manifest/pluginTypes").PluginImportResult>;
+  pluginUpgradeFromMarket: (
+    pluginId: string,
+    payload: import("@shared/plugin/manifest/pluginTypes").MarketImportPayload
+  ) => Promise<import("@shared/plugin/manifest/pluginTypes").PluginImportResult>;
   pluginBuildBundle: (pluginId: string) => Promise<{
     ok: boolean;
     error?: string;
@@ -392,18 +396,26 @@ interface ElectronAPI {
     tooLarge?: boolean;
   }>;
   pluginStop: (id: string) => Promise<{ ok: boolean; error?: string }>;
-  pluginRuntimeStates: () => Promise<import("@shared/plugin/pluginTypes").PluginRuntimeState[]>;
-  pluginLogs: (pluginId: string) => Promise<import("@shared/plugin/pluginTypes").PluginLogLine[]>;
+  pluginRuntimeStates: () => Promise<import("@shared/plugin/manifest/pluginTypes").PluginRuntimeState[]>;
+  pluginLogs: (pluginId: string) => Promise<import("@shared/plugin/manifest/pluginTypes").PluginLogLine[]>;
   pluginClearLogs: (pluginId: string) => Promise<boolean>;
-  pluginListCommands: () => Promise<import("@shared/plugin/pluginTypes").PluginCommandEntry[]>;
+  pluginListCommands: () => Promise<import("@shared/plugin/manifest/pluginTypes").PluginCommandEntry[]>;
+  pluginListGrants: (
+    pluginId: string
+  ) => Promise<import("@shared/plugin/manifest/pluginTypes").PluginGrantRecord[]>;
+  pluginSetGrant: (
+    pluginId: string,
+    capability: string,
+    granted: boolean
+  ) => Promise<{ ok: boolean; error?: string }>;
   pluginExecuteCommand: (command: string) => Promise<{
     ok: boolean;
     error?: string;
-    needsConfirmation?: import("@shared/plugin/pluginTypes").StartConfirmation;
+    needsConfirmation?: import("@shared/plugin/manifest/pluginTypes").StartConfirmation;
   }>;
   pluginGetSettings: (
     pluginId: string
-  ) => Promise<import("@shared/plugin/pluginTypes").PluginSettingValue[]>;
+  ) => Promise<import("@shared/plugin/manifest/pluginTypes").PluginSettingValue[]>;
   pluginSetSetting: (
     pluginId: string,
     key: string,
@@ -423,14 +435,14 @@ interface ElectronAPI {
     height: number;
   }) => Promise<void>;
   onPluginPluginsChanged: (
-    callback: (plugins: import("@shared/plugin/pluginTypes").PluginRecord[]) => void
+    callback: (plugins: import("@shared/plugin/manifest/pluginTypes").PluginRecord[]) => void
   ) => () => void;
   onPluginRuntimeChanged: (
-    callback: (state: import("@shared/plugin/pluginTypes").PluginRuntimeState) => void
+    callback: (state: import("@shared/plugin/manifest/pluginTypes").PluginRuntimeState) => void
   ) => () => void;
-  onPluginLog: (callback: (line: import("@shared/plugin/pluginTypes").PluginLogLine) => void) => () => void;
+  onPluginLog: (callback: (line: import("@shared/plugin/manifest/pluginTypes").PluginLogLine) => void) => () => void;
   onPluginNotify: (
-    callback: (payload: import("@shared/plugin/pluginTypes").PluginNotification) => void
+    callback: (payload: import("@shared/plugin/manifest/pluginTypes").PluginNotification) => void
   ) => () => void;
   onPluginPreviewError: (
     callback: (payload: {
@@ -444,17 +456,17 @@ interface ElectronAPI {
   ) => () => void;
 
   dialogOpen: (context: {
-    type: import("@shared/plugin/dialogTypes").DialogType;
+    type: import("@shared/plugin/dialog/dialogTypes").DialogType;
     payload?: Record<string, unknown>;
   }) => Promise<{ ok: boolean; error?: string }>;
-  dialogGetContext: () => Promise<import("@shared/plugin/dialogTypes").DialogContext | null>;
+  dialogGetContext: () => Promise<import("@shared/plugin/dialog/dialogTypes").DialogContext | null>;
   dialogClose: () => Promise<{ ok: boolean }>;
-  dialogSend: (message: import("@shared/plugin/dialogTypes").DialogMessage) => void;
+  dialogSend: (message: import("@shared/plugin/dialog/dialogTypes").DialogMessage) => void;
   onDialogContext: (
-    callback: (context: import("@shared/plugin/dialogTypes").DialogContext) => void
+    callback: (context: import("@shared/plugin/dialog/dialogTypes").DialogContext) => void
   ) => () => void;
   onDialogMessage: (
-    callback: (message: import("@shared/plugin/dialogTypes").DialogMessage) => void
+    callback: (message: import("@shared/plugin/dialog/dialogTypes").DialogMessage) => void
   ) => () => void;
 
   cloudGetConfig: () => Promise<import("@shared/cloud/cloudTypes").CloudStorageConfig>;

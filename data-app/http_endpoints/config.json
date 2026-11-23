@@ -188,6 +188,20 @@
         "required": 0,
         "default": "0",
         "description": "最后更新时间（毫秒时间戳）"
+      },
+      {
+        "name": "version",
+        "type": "string",
+        "required": 0,
+        "default": "",
+        "description": "插件版本（可空）"
+      },
+      {
+        "name": "dependencies",
+        "type": "string",
+        "required": 0,
+        "default": "",
+        "description": "依赖列表（JSON 数组：依赖的插件 id 与版本范围）"
       }
     ],
     "settings": {
@@ -274,6 +288,20 @@
         "required": 0,
         "default": "0",
         "description": "最后更新时间（毫秒时间戳）"
+      },
+      {
+        "name": "version",
+        "type": "string",
+        "required": 0,
+        "default": "",
+        "description": "插件版本（可空）"
+      },
+      {
+        "name": "dependencies",
+        "type": "string",
+        "required": 0,
+        "default": "",
+        "description": "依赖列表（JSON 数组：依赖的插件 id 与版本范围）"
       }
     ],
     "settings": {

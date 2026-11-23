@@ -2,6 +2,10 @@
 import { randomBytes } from "node:crypto";
 import type { Knex } from "knex";
 import { log } from "../../main/core/system/log";
+import {
+  parseDependencies,
+  serializeDependencies,
+} from "../../main/core/plugin/market/marketVersion";
 import type {
   PublishedApp,
   PublishedAppInput,
@@ -41,9 +45,17 @@ CREATE TABLE IF NOT EXISTS published_app (
   pulls INTEGER NOT NULL DEFAULT 0,
   created_at INTEGER NOT NULL DEFAULT 0,
   updated_at INTEGER NOT NULL DEFAULT 0,
-  bundle TEXT NOT NULL DEFAULT ''
+  bundle TEXT NOT NULL DEFAULT '',
+  version TEXT NOT NULL DEFAULT '',
+  dependencies TEXT NOT NULL DEFAULT '[]'
 )
 `;
+
+const OPTIONAL_COLUMNS: Array<[string, string]> = [
+  ["bundle", "TEXT NOT NULL DEFAULT ''"],
+  ["version", "TEXT NOT NULL DEFAULT ''"],
+  ["dependencies", "TEXT NOT NULL DEFAULT '[]'"],
+];
 
 export function rowToApp(row: Record<string, unknown>): PublishedApp {
   return {
@@ -57,6 +69,8 @@ export function rowToApp(row: Record<string, unknown>): PublishedApp {
     pulls: Number(row.pulls ?? 0),
     createdAt: Number(row.created_at ?? 0),
     updatedAt: Number(row.updated_at ?? 0),
+    version: String(row.version ?? "") || undefined,
+    dependencies: parseDependencies(row.dependencies),
     bundle: String(row.bundle ?? "") || undefined,
   };
 }
@@ -90,19 +104,22 @@ export class LocalSharedStore implements SharedStore {
 
   async init(): Promise<void> {
     await this.DB.raw(CREATE_TABLE_SQL);
-    await this.ensureBundleColumn();
+    await this.ensureOptionalColumns();
   }
 
-  private async ensureBundleColumn(): Promise<void> {
+  private async ensureOptionalColumns(): Promise<void> {
     const rows = await this.DB.raw(`PRAGMA table_info(${PUBLISHED_APP_TABLE})`);
     const columns = Array.isArray(rows)
       ? rows.map((row) => String((row as Record<string, unknown>).name ?? ""))
       : [];
-    if (columns.length === 0 || columns.includes("bundle")) return;
-    await this.DB.raw(
-      `ALTER TABLE ${PUBLISHED_APP_TABLE} ADD COLUMN bundle TEXT NOT NULL DEFAULT ''`
-    );
-    log.info("[cloud] 本地共享存储补上 bundle 列");
+    if (columns.length === 0) return;
+    for (const [name, definition] of OPTIONAL_COLUMNS) {
+      if (columns.includes(name)) continue;
+      await this.DB.raw(
+        `ALTER TABLE ${PUBLISHED_APP_TABLE} ADD COLUMN ${name} ${definition}`
+      );
+      log.info(`[cloud] 本地共享存储补上 ${name} 列`);
+    }
   }
 
   async list(query: PublishedAppQuery = {}): Promise<PublishedAppListResult> {
@@ -131,7 +148,8 @@ export class LocalSharedStore implements SharedStore {
 
     const rows = await this.DB.raw(
       `SELECT id, name, description, author, manifest, repo_url, tags, ` +
-        `pulls, created_at, updated_at FROM ${PUBLISHED_APP_TABLE} ${where} ` +
+        `pulls, created_at, updated_at, version, dependencies ` +
+        `FROM ${PUBLISHED_APP_TABLE} ${where} ` +
         "ORDER BY updated_at DESC LIMIT ? OFFSET ?",
       [...params, limit, offset] as never[]
     );
@@ -168,12 +186,15 @@ export class LocalSharedStore implements SharedStore {
       created_at: existing?.createdAt ?? now,
       updated_at: now,
       bundle: input.bundle ?? "",
+      version: (input.version ?? "").trim(),
+      dependencies: serializeDependencies(input.dependencies ?? []),
     };
 
     if (existing) {
       await this.DB.raw(
         `UPDATE ${PUBLISHED_APP_TABLE} SET name = ?, description = ?, author = ?, ` +
-          "manifest = ?, repo_url = ?, tags = ?, bundle = ?, updated_at = ? WHERE id = ?",
+          "manifest = ?, repo_url = ?, tags = ?, bundle = ?, " +
+          "version = ?, dependencies = ?, updated_at = ? WHERE id = ?",
         [
           record.name,
           record.description,
@@ -182,6 +203,8 @@ export class LocalSharedStore implements SharedStore {
           record.repo_url,
           record.tags,
           record.bundle,
+          record.version,
+          record.dependencies,
           record.updated_at,
           record.id,
         ] as never[]
@@ -189,8 +212,9 @@ export class LocalSharedStore implements SharedStore {
     } else {
       await this.DB.raw(
         `INSERT INTO ${PUBLISHED_APP_TABLE} ` +
-          "(id, name, description, author, manifest, repo_url, tags, pulls, created_at, updated_at, bundle) " +
-          "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "(id, name, description, author, manifest, repo_url, tags, pulls, " +
+          "created_at, updated_at, bundle, version, dependencies) " +
+          "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
           record.id,
           record.name,
@@ -203,6 +227,8 @@ export class LocalSharedStore implements SharedStore {
           record.created_at,
           record.updated_at,
           record.bundle,
+          record.version,
+          record.dependencies,
         ] as never[]
       );
     }

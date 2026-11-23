@@ -12,7 +12,7 @@ import {
   findThinFocusRings,
   makeSource,
 } from "./ui-guards";
-import { RemovePluginDialog } from "../pages/plugin/RemovePluginDialog";
+import { RemovePluginDialog } from "../pages/plugin/runtime/RemovePluginDialog";
 
 
 
@@ -39,7 +39,7 @@ const BRAND_TEXT_CASES: Array<[string, string, string]> = [
 ];
 
 const HIDDEN_FOCUSABLE_FILES = [
-  "pages/plugin/PluginHeader.tsx",
+  "pages/plugin/runtime/PluginHeader.tsx",
   "pages/browser/BookmarkList.tsx",
   "pages/todo/TodoEditDialog.tsx",
   "pages/browser/BrowserPage.tsx",

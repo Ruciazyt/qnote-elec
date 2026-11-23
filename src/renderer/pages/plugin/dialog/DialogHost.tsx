@@ -1,8 +1,8 @@
 import * as React from "react";
-import { PublishDialog } from "../PublishDialog";
-import { StartConfirmDialog } from "../StartConfirmDialog";
-import type { DialogContext, DialogMessage } from "@shared/plugin/dialogTypes";
-import type { StartConfirmation } from "@shared/plugin/pluginTypes";
+import { PublishDialog } from "../market/PublishDialog";
+import { StartConfirmDialog } from "../runtime/StartConfirmDialog";
+import type { DialogContext, DialogMessage } from "@shared/plugin/dialog/dialogTypes";
+import type { StartConfirmation } from "@shared/plugin/manifest/pluginTypes";
 
 interface PublishTarget {
   name: string;

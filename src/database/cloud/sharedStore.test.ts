@@ -16,6 +16,7 @@ import {
   escapeKeyword,
   generateAppId,
   likePattern,
+  rowToApp,
   type SharedStore,
 } from "./sharedStore";
 
@@ -209,5 +210,103 @@ describe("本地实现", () => {
     const db = makeDb();
     const store = new LocalSharedStore(db);
     expect(store.backend).toBe("local");
+  });
+});
+
+describe("版本与依赖", () => {
+  it("写入之后读回来一致", async () => {
+    const db = makeDb();
+    const store = createLocalSharedStore(db);
+    await store.init();
+
+    const published = await store.publish({
+      ...SAMPLE,
+      version: "1.2.3",
+      dependencies: [{ id: "a.b" }, { id: "c.d", range: "^2.0.0" }],
+    });
+
+    expect(published.version).toBe("1.2.3");
+    expect(published.dependencies).toEqual([
+      { id: "a.b" },
+      { id: "c.d", range: "^2.0.0" },
+    ]);
+
+    const fetched = await store.get(published.id);
+    expect(fetched?.version).toBe("1.2.3");
+    expect(fetched?.dependencies).toEqual([
+      { id: "a.b" },
+      { id: "c.d", range: "^2.0.0" },
+    ]);
+
+    const listed = await store.list();
+    expect(listed.apps[0].version).toBe("1.2.3");
+    expect(listed.apps[0].dependencies).toEqual([
+      { id: "a.b" },
+      { id: "c.d", range: "^2.0.0" },
+    ]);
+
+    await db.destroy();
+  });
+
+  it("没有版本与依赖 —— 按空值处理", async () => {
+    const db = makeDb();
+    const store = createLocalSharedStore(db);
+    await store.init();
+
+    const published = await store.publish(SAMPLE);
+    expect(published.version).toBeUndefined();
+    expect(published.dependencies).toEqual([]);
+
+    await db.destroy();
+  });
+
+  it("老记录没有这两列 —— 读取不炸", async () => {
+    const db = makeDb();
+    await db.raw(`CREATE TABLE published_app (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      author TEXT NOT NULL DEFAULT '',
+      manifest TEXT NOT NULL DEFAULT '',
+      repo_url TEXT NOT NULL DEFAULT '',
+      tags TEXT NOT NULL DEFAULT '',
+      pulls INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL DEFAULT 0,
+      updated_at INTEGER NOT NULL DEFAULT 0,
+      bundle TEXT NOT NULL DEFAULT ''
+    )`);
+    await db.raw(
+      `INSERT INTO published_app
+        (id, name, description, author, manifest, repo_url, tags, pulls, created_at, updated_at, bundle)
+       VALUES ('app_old', '老条目', '', '', '{}', '', '', 0, 1, 1, '')`
+    );
+
+    const store = createLocalSharedStore(db);
+    await store.init();
+
+    const fetched = await store.get("app_old");
+    expect(fetched?.name).toBe("老条目");
+    expect(fetched?.version).toBeUndefined();
+    expect(fetched?.dependencies).toEqual([]);
+
+    const listed = await store.list();
+    expect(listed.apps[0].dependencies).toEqual([]);
+
+    await db.destroy();
+  });
+
+  it("行里没有版本与依赖 —— 按空值处理", () => {
+    const app = rowToApp({ id: "app_1", name: "老条目" });
+    expect(app.version).toBeUndefined();
+    expect(app.dependencies).toEqual([]);
+  });
+
+  it("依赖列里的内容不是合法 JSON —— 不炸", () => {
+    const app = rowToApp({
+      id: "app_1",
+      name: "坏条目",
+      dependencies: "{不是 json",
+    });
+    expect(app.dependencies).toEqual([]);
   });
 });

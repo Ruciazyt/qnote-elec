@@ -1,9 +1,25 @@
 import { RPC_ERROR } from "../../../../shared/plugin/sdk/protocol";
-import { checkCapability } from "../capabilities";
+import {
+  checkCapability,
+  grantKeyForRequest,
+  type CapabilityRequest,
+} from "../permissions/capabilities";
+import { describeCapabilityEntries } from "../../../../shared/plugin/permissions/pluginCapabilities";
+import { isGrantActive } from "../permissions/pluginGrants";
 import type { PluginRpcHost, RpcSession } from "./rpcServer";
-import type { PluginManager } from "../pluginManager";
-import { getToolContext } from "../../ai/toolContext";
-import { NoteStore } from "../../notes/noteStore";
+import type { PluginManager } from "../runtime/pluginManager";
+import {
+  chatWithAi,
+  createNote,
+  createTodo,
+  getNote,
+  listClipboard,
+  listNotes,
+  listTodos,
+  resolveNoteRoot,
+  updateNote,
+  updateTodo,
+} from "./hostServices";
 
 export class HostApiError extends Error {
   constructor(
@@ -71,8 +87,29 @@ export class PluginHostApi implements PluginRpcHost {
       case "qnote.todos.list":
         return await this.listTodos(session, params);
 
+      case "qnote.todos.create":
+        return await this.createTodo(session, params);
+
+      case "qnote.todos.update":
+        return await this.updateTodo(session, params);
+
       case "qnote.notes.list":
         return await this.listNotes(session, params);
+
+      case "qnote.notes.get":
+        return await this.getNote(session, params);
+
+      case "qnote.notes.create":
+        return await this.createNote(session, params);
+
+      case "qnote.notes.update":
+        return await this.updateNote(session, params);
+
+      case "qnote.clipboard.list":
+        return await this.listClipboard(session, params);
+
+      case "qnote.ai.chat":
+        return await this.chat(session, params);
 
       default:
         throw new HostApiError(
@@ -89,6 +126,54 @@ export class PluginHostApi implements PluginRpcHost {
     return new Set(
       (session.manifest.contributes?.settings ?? []).map((item) => item.key)
     );
+  }
+
+  private async requireCapability(
+    session: RpcSession,
+    request: CapabilityRequest,
+    method: string
+  ): Promise<void> {
+    const decision = checkCapability(session.manifest.capabilities, request);
+    if (!decision.allowed) {
+      const reason = decision.reason ?? "没有权限";
+      this.manager.logFromPlugin(
+        session.pluginId,
+        "error",
+        `${reason}，拒绝调用 ${method}`
+      );
+      throw denied(reason);
+    }
+
+    const grantKey = grantKeyForRequest(request);
+    const active = await isGrantActive(
+      this.manager.DB,
+      session.pluginId,
+      grantKey
+    );
+    if (active) return;
+
+    const label =
+      describeCapabilityEntries(session.manifest.capabilities).find(
+        (entry) => entry.key === grantKey
+      )?.detail ?? grantKey;
+    this.manager.logFromPlugin(
+      session.pluginId,
+      "error",
+      `权限「${label}」已被撤销，拒绝调用 ${method}`
+    );
+    throw denied(`这个插件的「${label}」权限已被撤销`);
+  }
+
+  private async run<T>(fn: () => Promise<T>): Promise<T> {
+    try {
+      return await fn();
+    } catch (err) {
+      if (err instanceof HostApiError) throw err;
+      throw new HostApiError(
+        RPC_ERROR.internal,
+        err instanceof Error ? err.message : String(err)
+      );
+    }
   }
 
   private async getSetting(
@@ -155,56 +240,119 @@ export class PluginHostApi implements PluginRpcHost {
     session: RpcSession,
     params: Record<string, unknown>
   ): Promise<{ count: number; items: unknown[] }> {
-    const decision = checkCapability(session.manifest.capabilities, {
-      kind: "data",
-      area: "todos",
-      access: "read",
-    });
-    if (!decision.allowed) throw denied(decision.reason ?? "没有权限");
+    await this.requireCapability(
+      session,
+      { kind: "data", area: "todos", access: "read" },
+      "qnote.todos.list"
+    );
+    return await this.run(() => listTodos(this.manager.DB, params));
+  }
 
-    const limit = Math.min(Math.max(Number(params.limit ?? 20) || 20, 1), 100);
-    const rows = await this.manager.DB("todo")
-      .select("id", "title", "notes", "priority", "completed", "due_date", "created_at")
-      .whereNull("archived_at")
-      .orderBy("created_at", "desc")
-      .limit(limit);
-    return { count: rows.length, items: rows };
+  private async createTodo(
+    session: RpcSession,
+    params: Record<string, unknown>
+  ): Promise<{ id: number; title: string }> {
+    await this.requireCapability(
+      session,
+      { kind: "data", area: "todos", access: "write" },
+      "qnote.todos.create"
+    );
+    return await this.run(() => createTodo(this.manager.DB, params));
+  }
+
+  private async updateTodo(
+    session: RpcSession,
+    params: Record<string, unknown>
+  ): Promise<{ id: number; updated: boolean }> {
+    await this.requireCapability(
+      session,
+      { kind: "data", area: "todos", access: "write" },
+      "qnote.todos.update"
+    );
+    return await this.run(() => updateTodo(this.manager.DB, params));
   }
 
   private async listNotes(
     session: RpcSession,
     params: Record<string, unknown>
   ): Promise<{ count: number; items: unknown[]; root?: string }> {
-    const decision = checkCapability(session.manifest.capabilities, {
-      kind: "data",
-      area: "notes",
-      access: "read",
+    await this.requireCapability(
+      session,
+      { kind: "data", area: "notes", access: "read" },
+      "qnote.notes.list"
+    );
+    return await this.run(async () => {
+      const root = await resolveNoteRoot();
+      return await listNotes(root, params);
     });
-    if (!decision.allowed) throw denied(decision.reason ?? "没有权限");
+  }
 
-    let root: string;
-    try {
-      root = await getToolContext().notes?.getFilePath();
-    } catch {
-      throw denied("笔记功能还没初始化");
-    }
-    if (!root) throw denied("用户还没有设置笔记保存目录");
-
-    const limit = Math.min(Math.max(Number(params.limit ?? 50) || 50, 1), 500);
-    const store = new NoteStore();
-    const all = await store.scanFiles(root, {
-      maxDirs: 2000,
-      maxFiles: 5000,
-      deadlineMs: 5000,
+  private async getNote(
+    session: RpcSession,
+    params: Record<string, unknown>
+  ): Promise<{ relPath: string; name: string; type: string; content: string }> {
+    await this.requireCapability(
+      session,
+      { kind: "data", area: "notes", access: "read" },
+      "qnote.notes.get"
+    );
+    return await this.run(async () => {
+      const root = await resolveNoteRoot();
+      return await getNote(root, String(params.path ?? ""));
     });
-    const items = all.slice(0, limit).map((note) => ({
-      relPath: note.relPath,
-      name: note.name,
-      type: note.type,
-      ext: note.ext,
-      size: note.size,
-      mtime: note.mtime,
-    }));
-    return { count: items.length, items, root };
+  }
+
+  private async createNote(
+    session: RpcSession,
+    params: Record<string, unknown>
+  ): Promise<unknown> {
+    await this.requireCapability(
+      session,
+      { kind: "data", area: "notes", access: "write" },
+      "qnote.notes.create"
+    );
+    return await this.run(async () => {
+      const root = await resolveNoteRoot();
+      return await createNote(root, params);
+    });
+  }
+
+  private async updateNote(
+    session: RpcSession,
+    params: Record<string, unknown>
+  ): Promise<unknown> {
+    await this.requireCapability(
+      session,
+      { kind: "data", area: "notes", access: "write" },
+      "qnote.notes.update"
+    );
+    return await this.run(async () => {
+      const root = await resolveNoteRoot();
+      return await updateNote(root, params);
+    });
+  }
+
+  private async listClipboard(
+    session: RpcSession,
+    params: Record<string, unknown>
+  ): Promise<{ count: number; items: unknown[] }> {
+    await this.requireCapability(
+      session,
+      { kind: "data", area: "clipboard", access: "read" },
+      "qnote.clipboard.list"
+    );
+    return await this.run(() => listClipboard(this.manager.DB, params));
+  }
+
+  private async chat(
+    session: RpcSession,
+    params: Record<string, unknown>
+  ): Promise<{ content: string; model?: string; usage?: unknown }> {
+    await this.requireCapability(
+      session,
+      { kind: "data", area: "ai", access: "read" },
+      "qnote.ai.chat"
+    );
+    return await this.run(() => chatWithAi(params));
   }
 }

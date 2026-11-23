@@ -14,7 +14,7 @@
 | 数据层 | `src/database`（Knex + SQLite，笔记、剪贴板、待办等） |
 | Rust 原生模块 | 各功能目录内的 `*-rs/` crate（纯逻辑单元的 Rust 移植，napi 绑定），主进程按需加载 |
 | 构建配置 | `build/electron-builder.json`（打包）、`build/tsconfig.*.json`（编译）、`build/entitlements.mac.plist`（macOS 权限声明） |
-| 脚本 | `scripts/`（按用途分目录：`build/` 构建后处理、`release/` 发版、`git-hooks/` 提交规范、`dev/` 开发期辅助） |
+| 脚本 | `scripts/`（按用途分目录：`build/` 构建后处理、`release/` 发版、`git-hooks/` 提交规范、`dev/` 开发期辅助、`migrate/` 数据迁移） |
 | CI | `.github/workflows/`（`build-and-release.yml` 正式发布 / `auto-build.yml` 提交验证） |
 | 运行时要求 | Node.js >= 18，pnpm 10.32.0（勿改用 npm / yarn） |
 
@@ -282,16 +282,16 @@ src/renderer/pages/<功能>/       ← home/ notes/ settings/ todo/ browser/ ski
 | 渲染层页面（路由级） | `src/renderer/pages/<功能>/`（页面与它的测试文件放同一个功能目录，如 `pages/notes/NotesPage.tsx` + `pages/notes/NotesPage.test.tsx`） |
 | 跨端共享类型 | `src/shared/<功能>/` |
 | 数据表与迁移 | `src/database/` |
-| 插件系统（清单、进程启停、预览、SDK） | `src/main/core/plugin/pluginManager.ts`、`src/main/core/plugin/sdk/`、`src/main/core/window/plugin/pluginPreview.ts`、`src/main/utils/pluginManifest.ts`、`src/renderer/pages/plugin/` |
+| 插件系统（清单、进程启停、预览、SDK） | `src/main/core/plugin/`（按模块分子目录：`runtime/` `permissions/` `dependencies/` `market/` `migration/` `manifest/` `sdk/`）、`src/main/handlers/plugin/`、`src/main/core/window/plugin/`、`src/shared/plugin/`、`src/renderer/pages/plugin/` |
 | AI 功能域（对话、Agent、记忆、提示词、工具调用、向量库） | `src/main/core/ai/`（平铺的 `aiService.ts` / `providers.ts` / `streaming.ts` / `toolContext.ts` 等 + `agents/` `memory/` `observability/` `prompts/` `skills/` `tools/` 六个子目录）、`src/main/handlers/ai/`、`src/shared/ai/`、`src/renderer/pages/ai/`（渲染层 AI 界面：浮窗助手、桌宠、对话面板） |
-| 清单命令的风险分析（市场来源插件的启动确认） | `src/shared/plugin/pluginRisk.ts`（纯函数）、`src/main/core/plugin/pluginManager.ts`（`checkStartConfirmation` / `confirmStart`）、`src/renderer/pages/plugin/StartConfirmDialog.tsx` |
-| 插件声明式权限的判定 | `src/main/core/plugin/capabilities.ts`（`checkCapability`）、`src/shared/plugin/pluginManifest.ts`（清单校验） |
+| 清单命令的风险分析（市场来源插件的启动确认） | `src/shared/plugin/permissions/pluginRisk.ts`（纯函数）、`src/main/core/plugin/runtime/pluginManager.ts`（`checkStartConfirmation` / `confirmStart`）、`src/renderer/pages/plugin/runtime/StartConfirmDialog.tsx` |
+| 插件声明式权限的判定 | `src/main/core/plugin/permissions/capabilities.ts`（`checkCapability`）、`src/shared/plugin/manifest/pluginManifest.ts`（清单校验） |
 | 插件 SDK 通道与宿主 API | `src/main/core/plugin/sdk/rpcServer.ts`（传输）、`src/main/core/plugin/sdk/hostApi.ts`（API 面）、`resources/plugin-sdk/`（插件侧 SDK）、`src/shared/plugin/sdk/protocol.ts`（协议） |
 | 通用面板件（可折叠侧栏、拖拽分割线、宽度偏好） | `src/renderer/components/panel/`、`src/renderer/hooks/panel/usePanelWidth.ts`、`src/renderer/hooks/panel/useCoalescedStorage.ts`（合并写盘：拖拽时别每帧同步写 localStorage） |
 | 拖拽重排（列表 / 行 / dock 换序的手感） | `src/renderer/hooks/ui/useDragReorder.ts`（引擎）、`src/renderer/hooks/ui/dragReorderGeometry.ts`（几何纯函数）、`src/renderer/styles/drag-reorder.css`（动效）—— 自研，别再引 dnd-kit（已移除） |
 | 上下分栏（笔记树 / 外部文件夹，默认 6:4，可拖动） | `src/renderer/components/panel/PanelHeightResizer.tsx`（纵向分割线）、`src/renderer/hooks/panel/useSplitRatio.ts`（比例持久化）、`src/renderer/pages/notes/layout.ts`（比例与收起态高度常量） |
 | 灵动岛（最小化后顶在屏幕顶边的浮层） | `src/shared/island/island.ts`（契约）、`src/main/core/window/island/island.ts`（窗口与几何）、`src/main/handlers/island/islandHandlers.ts`（IPC）、`src/renderer/pages/island/`（界面） |
-| 云端存储（共享数据放 TiDB Cloud，私有数据留本地） | `src/database/cloud/`（存储层）、`src/main/handlers/cloud/cloudHandlers.ts`（IPC）、`src/renderer/pages/settings/CloudStorageCard.tsx`、`src/renderer/pages/plugin/PublishedPluginMarket.tsx`、`data-app/`（Data App 配置：端点定义 + SQL） |
+| 云端存储（共享数据放 TiDB Cloud，私有数据留本地） | `src/database/cloud/`（存储层）、`src/main/handlers/cloud/cloudHandlers.ts`（IPC）、`src/renderer/pages/settings/CloudStorageCard.tsx`、`src/renderer/pages/plugin/market/PublishedPluginMarket.tsx`、`data-app/`（Data App 配置：端点定义 + SQL） |
 | 主进程运行时路径（preload、资源、开发态仓库根） | `src/main/utils/paths.ts`（`getPreloadPath()` / `getDevRoot()`） |
 | 打包 / 发布配置 | `build/`、`scripts/`、`.github/workflows/` |
 | 静态分析 / 质量门禁 | `sonar-project.properties`（分析范围）、`eslint.config.mjs` + `tsconfig.lint.json`（本地 SonarJS 规则）、`scripts/quality/`（清单与门禁脚本）、`scripts/quality/eslint-rules/`（QNote 自定义规则，见 6.8）、`.github/workflows/sonar.yml`（扫描）、`docs/SONAR.md` + `docs/SONAR-DEBT.md`（规范与存量债台账） |
@@ -354,7 +354,7 @@ The string is missing the terminator: ".
     清单改了就对不上，确认框会再弹一次
   - 判定逻辑在 `PluginManager.checkStartConfirmation` ——
     **单独成方法是为了能脱离 spawn 来测**，别为了省事把它塞回 startPlugin
-  - 风险分析在 `src/shared/plugin/pluginRisk.ts`（纯函数）。它**不是安全边界** ——
+  - 风险分析在 `src/shared/plugin/permissions/pluginRisk.ts`（纯函数）。它**不是安全边界** ——
     关键词匹配挡不住刻意伪装，真正的防线是「来源标记 + 运行前确认」
   - 市场导入走 `plugin:import-from-market` **专用路径**：
     目标目录已有 `plugin.json` 就拒绝，**一个字节都不动**。
@@ -362,7 +362,7 @@ The string is missing the terminator: ".
     导入才发现失败，用户自己已有插件的清单就被换成了别人的命令
 - **没声明 `capabilities` 就是最小权限**：只能加载预览页面，不能起子进程、
   不能读写笔记待办。**`process.spawn` 没声明时启动直接被拒**，
-  判定在 `src/main/core/plugin/capabilities.ts` 的 `checkCapability`
+  判定在 `src/main/core/plugin/permissions/capabilities.ts` 的 `checkCapability`
 - **SDK 通道是 loopback HTTP + 长轮询**（`src/main/core/plugin/sdk/rpcServer.ts`）：
   插件进程靠 `QNOTE_PLUGIN_RPC` / `QNOTE_PLUGIN_TOKEN` 环境变量接进来。
   **别改回 WebSocket** —— 插件的 stdout/stderr 要原样给用户看日志，
@@ -373,13 +373,41 @@ The string is missing the terminator: ".
   插件不许直接碰 SQLite
 - **插件侧 SDK** 是 `resources/plugin-sdk/qnote-plugin-sdk.js`（纯 ESM，无构建步骤）。
   插件作者 `import` 它，导出 `activate(ctx)` / `deactivate()`
-- **老应用迁移是幂等的**：`src/main/core/plugin/legacyMigration.ts` 在插件管理器
+- **老应用迁移是幂等的**：`src/main/core/plugin/migration/legacyMigration.ts` 在插件管理器
   初始化时跑一次，把 `app_project` 里的老记录转成插件并在插件目录补一份
   `plugin.json`。**原 `qnote.json` 与 `app_project` 表都不删** —— 留回滚口子
 - **原生视图盖在 DOM 之上**：预览区是 `WebContentsView`，
 - **`useNativeViewCover` 是持有者集合**：多个页面各自持有原生视图时，
 - **侧栏的折叠与伸缩用 `ResizableSidebar`**：折叠、拖拽调宽、宽度上限、
 - **拖拽分割线是 flex 子节点**：`PanelResizer` 真实占位，不叠在侧栏边缘。
+
+- **插件目录按功能模块分子目录**：同一层的插件文件按模块归到子目录，跨层用
+  同一套模块名（`manifest` / `runtime` / `permissions` / `dependencies` / `sdk` /
+  `market` / `migration` / `dialog`）—— 共享层 `src/shared/plugin/<模块>/`、
+  主进程 `src/main/core/plugin/<模块>/`、IPC `src/main/handlers/plugin/<模块>/`、
+  渲染层 `src/renderer/pages/plugin/<模块>/`。**别再把同域文件平铺在一个目录里**。
+  入口文件（路由页 `pages/plugin/PluginsPage.tsx`、模块主控
+  `core/plugin/runtime/pluginManager.ts`）留在功能目录根，其余下沉到子目录。
+- **授权粒度落在 `plugin_grant` 表**：清单声明的权限拆成一项一项（读笔记 / 写笔记 /
+  读待办 …），`plugin_grant` 存 `plugin_id` + `capability` + `granted`。
+  设置页能逐项撤销，**撤销后下一次调用立刻失败**（不用重启插件）。
+  判定在 `hostApi.requireCapability` 一处 —— 清单声明 + 用户授权两道都要过。
+  `checkCapability` 保持纯函数，**别把查库塞进去**。
+- **同步授权别把用户的撤销抹回去**：清单变更时只给**新增**的项写 `granted=1`，
+  已存在的行保留用户的选择；清单里不再声明的项删掉。
+- **依赖解析在 `pluginDependencies.ts`**：`extensionDependencies` 格式 `id` 或
+  `id@^1.0.0`，版本比对复用 `pluginManifest.ts` 的 `satisfiesRange`。
+  依赖缺失或版本不满足 → **拒绝激活并指明缺哪个**，不做自动安装。
+- **市场版本与升级**：`published_app` 带 `version` / `dependencies` 两列，
+  本地镜像与 TiDB 两套后端都写。装的是**指定版本**；升级走
+  `plugin:upgrade-from-market` —— 覆盖清单与资源包、**清掉确认指纹**，
+  下次运行重新走一次权限确认。
+- **发布前先查 IP 字面量**：`preview` 的 url、`runtime.env` 的值、
+  `capabilities.network` 的模式里出现带 scheme 的 IP 链接就拒发
+  （AWS ALB 的硬约束）。**纯主机名 `http://localhost` 与不带 scheme 的
+  `127.0.0.1:7799` 放行**。
+- **迁移脚本能单独跑**：`pnpm run migrate:plugins`（先 `build:main`，
+  支持 `--user-data <dir>`），幂等，老 `qnote.json` 不删不改。
 
 ### 6.5 灵动岛
 
@@ -550,7 +578,7 @@ pnpm run lint:fix            # 能自动修的机械问题（未用 import、pre
 | crate | 移植的 TS 单元 | 主进程入口 |
 | --- | --- | --- |
 | `src/shared/notes/notes-rs/` | 笔记内容处理 | `src/main/core/notes/nativeNotes.ts` |
-| `src/shared/plugin/plugin-rs/` | 清单命令风险分析 | `src/main/core/plugin/nativePlugin.ts` |
+| `src/shared/plugin/plugin-rs/` | 清单命令风险分析 | `src/main/core/plugin/permissions/nativePlugin.ts` |
 | `src/shared/todo/todo-rs/` | 待办时间解析与提醒判定 | `src/main/core/todo/nativeTodo.ts` |
 | `src/shared/ai/ai-rs/` | 会话摘要与块序列化 | `src/main/core/ai/nativeAi.ts` |
 | `src/main/core/ai/tools/web/web-rs/` | 网页解析与搜索结果提取 | `src/main/core/ai/tools/web/searchEngine.ts`（同文件内原地分派，避免循环依赖） |

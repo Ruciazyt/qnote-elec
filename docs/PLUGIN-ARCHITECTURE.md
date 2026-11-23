@@ -53,17 +53,37 @@ QNote 只做三件事：读清单、跑进程、管权限。插件想扩展能�
 
 | 文件 | 作用 |
 | --- | --- |
-| `src/shared/plugin/pluginTypes.ts` | 所有跨端类型（Manifest / Record / Capabilities / Contributes / RuntimeState） |
-| `src/shared/plugin/pluginManifest.ts` | 清单解析与逐字段校验 + 自实现 semver 范围匹配 |
-| `src/shared/plugin/pluginPreview.ts` | preview 三种形态的解析与 URL 生成 |
-| `src/shared/plugin/pluginRisk.ts` | 命令风险分析（13 条规则，**不是安全边界**） |
-| `src/main/core/plugin/pluginManager.ts` | 插件管理器：导入 / 启停 / 日志 / 权限 / 命令注册表 |
-| `src/main/core/plugin/capabilities.ts` | `checkCapability` 权限判定 |
-| `src/main/core/plugin/legacyMigration.ts` | 1.x 老应用 → 插件的幂等迁移 |
-| `src/main/core/plugin/bundle.ts` | 资源包打包 / 解开（base64 + deflateRaw） |
+| `src/shared/plugin/manifest/pluginTypes.ts` | 所有跨端类型（Manifest / Record / Capabilities / Contributes / RuntimeState） |
+| `src/shared/plugin/manifest/pluginManifest.ts` | 清单解析与逐字段校验 + 自实现 semver 范围匹配 |
+| `src/shared/plugin/manifest/pluginPreview.ts` | preview 三种形态的解析与 URL 生成 |
+| `src/shared/plugin/permissions/pluginRisk.ts` | 命令风险分析（13 条规则，**不是安全边界**） |
+| `src/main/core/plugin/runtime/pluginManager.ts` | 插件管理器：导入 / 启停 / 日志 / 权限 / 命令注册表 |
+| `src/main/core/plugin/permissions/capabilities.ts` | `checkCapability` 权限判定 |
+| `src/main/core/plugin/migration/legacyMigration.ts` | 1.x 老应用 → 插件的幂等迁移 |
+| `src/main/core/plugin/runtime/bundle.ts` | 资源包打包 / 解开（base64 + deflateRaw） |
 | `src/main/core/plugin/sdk/rpcServer.ts` | SDK 传输层 |
 | `src/main/core/plugin/sdk/hostApi.ts` | 宿主 API 面 |
-| `src/main/handlers/plugin/pluginHandlers.ts` | 18 个 IPC 通道 + 事件广播 + 迁移钩子 |
+| `src/main/handlers/plugin/runtime/pluginHandlers.ts` | 18 个 IPC 通道 + 事件广播 + 迁移钩子 |
+
+插件目录内部再按**功能模块**分子目录，跨层用同一套模块名：
+
+| 模块 | 共享层 | 主进程 | 渲染层 | 放什么 |
+| --- | --- | --- | --- | --- |
+| `manifest` | `shared/plugin/manifest/` | `core/plugin/manifest/` | `pages/plugin/manifest/` | 清单类型、解析校验、清单编辑器 |
+| `runtime` | — | `core/plugin/runtime/` | `pages/plugin/runtime/` | 进程启停、状态机、日志台、预览面板、资源包 |
+| `permissions` | `shared/plugin/permissions/` | `core/plugin/permissions/` | `pages/plugin/permissions/` | 能力判定、授权表、风险分析、授权面板 |
+| `dependencies` | — | `core/plugin/dependencies/` | — | 依赖解析 |
+| `sdk` | `shared/plugin/sdk/` | `core/plugin/sdk/` | — | SDK 协议、传输层、宿主 API 面 |
+| `market` | `shared/plugin/market/` | `core/plugin/market/` | `pages/plugin/market/` | 版本比较、发布前检查、市场列表与发布框 |
+| `migration` | — | `core/plugin/migration/` | — | 1.x 老应用幂等迁移 |
+| `dialog` | `shared/plugin/dialog/` | `handlers/plugin/dialog/`、`core/window/plugin/dialog/` | `pages/plugin/dialog/` | 插件弹框通道 |
+
+入口文件留在功能目录根：渲染层是路由页 `pages/plugin/PluginsPage.tsx`，
+主进程是模块主控 `core/plugin/runtime/pluginManager.ts`。其余文件都归到模块子目录，
+**别再把同域文件平铺在一个目录里**。
+
+---
+
 
 ---
 
@@ -138,7 +158,7 @@ QNote 只做三件事：读清单、跑进程、管权限。插件想扩展能�
 }
 ```
 
-### 3.3 校验规则（`src/shared/plugin/pluginManifest.ts`）
+### 3.3 校验规则（`src/shared/plugin/manifest/pluginManifest.ts`）
 
 | 字段 | 规则 | 报错文案 |
 | --- | --- | --- |
@@ -496,8 +516,17 @@ plugin:preview-loaded / plugin:preview-error → 回传渲染层
 | `qnote.commands.execute` | 无 | 命令执行结果 |
 | `qnote.todos.list` | `qnote.todos: "read"` | `{count, items}`，上限 100 |
 | `qnote.notes.list` | `qnote.notes: "read"` | `{count, items, root}`，上限 500 |
+| `qnote.notes.get` | `qnote.notes: "read"` | 单篇笔记内容 |
+| `qnote.notes.create` | `qnote.notes: "write"` | 新建笔记 |
+| `qnote.notes.update` | `qnote.notes: "write"` | 改写笔记 |
+| `qnote.todos.create` | `qnote.todos: "write"` | 新建待办 |
+| `qnote.todos.update` | `qnote.todos: "write"` | 改待办（完成、改时间等） |
+| `qnote.clipboard.list` | `qnote.clipboard: "read"` | 剪贴板历史 |
+| `qnote.ai.chat` | `qnote.ai: "read"` | 走宿主已配好的 AI 服务发一句话，不写对话历史 |
 
 **数据访问一律走主进程**，插件不许直接碰 SQLite。设置项还要求：key 必须是清单里声明过的，否则拒绝。
+
+每个数据类方法都要过两道判定：**清单里声明了没有** + **用户撤销了没有**（`plugin_grant` 表）。撤销后**下一次调用立刻失败**，不用重启插件。
 
 ---
 
@@ -709,7 +738,7 @@ PublishedPluginMarket.handlePull(entry)
 
 ### 9.2 判定在哪
 
-`src/main/core/plugin/capabilities.ts` 的 `checkCapability(capabilities, request)`：
+`src/main/core/plugin/permissions/capabilities.ts` 的 `checkCapability(capabilities, request)`：
 
 - `{kind:"spawn"}` —— 启动插件时
 - `{kind:"data", area:"notes"|"todos"|…, access:"read"|"write"}` —— 每次数据类宿主 API 调用时
@@ -726,14 +755,16 @@ PublishedPluginMarket.handlePull(entry)
 
 插件跑在**独立 OS 进程**里，但它是个**普通用户进程** —— 没有容器、没有 seccomp、没有文件系统限制。声明式权限管的是**宿主 API 面**，不是插件进程本身。
 
-`checkCapability` 只有两个调用点：
+`checkCapability` 的调用点：
 
 | 调用点 | 判定 |
 | --- | --- |
 | `pluginManager.startPlugin` | `{ kind: "spawn" }` —— 没有 `process.spawn` 就不让起 |
-| `hostApi.listTodos` / `hostApi.listNotes` | `{ kind: "data", area, access }` —— 每次数据调用都重判 |
+| `hostApi.requireCapability` | `{ kind: "data", area, access }` —— 宿主 API 面里**所有**数据类方法都走它，每次调用都重判 |
 
-**真正被强制的只有两件事**：能不能启动、能不能通过 SDK 读笔记/待办。
+**真正被强制的只有两件事**：能不能启动、能不能通过 SDK 读笔记/待办等数据。
+
+数据类方法还要再过一道**用户授权**：`plugin_grant` 表里这个插件的这项被撤销了，就直接拒。判定在 `hostApi.requireCapability` 一处完成 —— 清单声明 + 用户授权两道都要过。撤销**不用重启插件**，下一次调用就失败。
 
 **声明了但目前没有强制点的**（清单里写、确认框里显示、但运行时不管）：
 
@@ -758,6 +789,7 @@ PublishedPluginMarket.handlePull(entry)
 | `pluginList()` | `plugin:list` | 列出插件 |
 | `pluginImport(dir)` | `plugin:import` | 从本机目录导入 |
 | `pluginImportFromMarket(dir, payload)` | `plugin:import-from-market` | 市场安装（专用路径） |
+| `pluginUpgradeFromMarket(id, payload)` | `plugin:upgrade-from-market` | 市场升级（覆盖清单与资源包，清掉确认指纹） |
 | `pluginRemove(id)` | `plugin:remove` | 移除 |
 | `pluginSetEnabled(id, enabled)` | `plugin:set-enabled` | 启用/禁用 |
 | `pluginRefresh()` | `plugin:refresh` | 重读清单 |
@@ -836,25 +868,24 @@ createPlugin({
 
 - `plugin.json` 清单 + 逐字段校验 + 自实现 semver 范围
 - `plugin` / `plugin_setting` / `plugin_grant` 三表
-- 老应用幂等迁移（1.x → 2.0）
+- 老应用幂等迁移（1.x → 2.0），也有独立入口 `pnpm run migrate:plugins`
 - 进程启停、日志流、预览面板（三种 preview 形态）
 - 声明式权限判定，数据类调用逐个校验
 - SDK 通道（loopback HTTP + 长轮询）+ 宿主 API 面 + 插件侧 SDK
 - 市场发布 / 获取全链路（清单 + 资源包）
 - 静态命令注册（`contributes.commands`）
+- 命令面板（`Ctrl+Shift+P`）、侧栏动态入口、插件设置页
+- 运行状态机：`inactive` / `activating` / `active` / `deactivating` / `failed`
+- `extensionDependencies` 依赖解析（缺失或版本不满足 → 拒绝激活并指明缺哪个）
+- 市场版本与升级：`published_app` 带 `version`/`dependencies`，装指定版本、升级后重走权限确认
+- 逐项授权撤销：设置页可逐项查看与撤销，撤销后对应调用立刻失败
+- 发布前网关兼容检查：`preview` / `env` / `capabilities.network` 里的 IP 字面量发布前就拦下
 
 ### 未实现 ⏳
 
 | 能力 | 现状 |
 | --- | --- |
-| 命令面板 | 命令能注册、能执行，但**没有命令面板 UI** —— 插件注册的命令目前没有可见落点 |
-| 侧栏动态入口 | `contributes.sidebar` 声明了，**挂载点没做** |
-| 插件设置页 | `contributes.settings` 存了值，**没有设置界面** |
-| `activationEvents` | 字段解析了，**触发机制没做** |
-| `extensionDependencies` | 字段解析了，**依赖解析没做** |
-| 市场版本与升级 | `published_app` 没有版本列，**装了新版不会提示升级** |
-| 逐项授权撤销 | `plugin_grant` 表建了，**没有授权 UI 与撤销逻辑** |
-| `qnote.clipboard.list` / `qnote.ai.chat` | 宿主 API 面里**没有这两个方法** |
+| `activationEvents` | 字段解析了，**触发机制没做**（插件靠命令、侧栏入口或手动启动激活） |
 
 ---
 
@@ -862,10 +893,10 @@ createPlugin({
 
 | 想加什么 | 动哪里 |
 | --- | --- |
-| 新的清单字段 | `src/shared/plugin/pluginTypes.ts` 加类型 → `pluginManifest.ts` 加校验 → `pluginManager.readPluginRecord` 加快照 |
+| 新的清单字段 | `src/shared/plugin/manifest/pluginTypes.ts` 加类型 → `pluginManifest.ts` 加校验 → `pluginManager.readPluginRecord` 加快照 |
 | 新的宿主 API 方法 | `src/main/core/plugin/sdk/hostApi.ts` 的 `handlePluginCall` 加 case → `resources/plugin-sdk/qnote-plugin-sdk.js` 加 ctx 命名空间 |
 | 新的贡献点 | `pluginTypes.ts` 的 `PluginContributes` 加字段 → 清单校验加规则 → 渲染层找挂载点 |
-| 新的 IPC 通道 | `src/main/handlers/plugin/pluginHandlers.ts` 注册 → `src/main/preload.ts` 暴露 → `src/renderer/electron.d.ts` 补类型 → `src/renderer/test/electron-channel.test.ts` 的白名单（若是广播） |
+| 新的 IPC 通道 | `src/main/handlers/plugin/runtime/pluginHandlers.ts` 注册 → `src/main/preload.ts` 暴露 → `src/renderer/electron.d.ts` 补类型 → `src/renderer/test/electron-channel.test.ts` 的白名单（若是广播） |
 | 新的数据访问 | `hostApi.ts` 里加方法，**每个方法都要过 `checkCapability`** |
 | 新的发布字段 | `src/shared/cloud/cloudTypes.ts` → `data-app/http_endpoints/config.json` + SQL → **控制台手工 Deploy** → TiDB 侧建列 |
 | 新的原生模块 | crate 放 `src/shared/<功能>/<功能>-rs/`，主进程入口 `src/main/core/<功能>/native*.ts`，加载器 `src/main/core/system/nativeModules.ts` |

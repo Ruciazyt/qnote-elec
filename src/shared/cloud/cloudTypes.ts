@@ -28,6 +28,11 @@ export interface CloudConnectionStatus {
   detail?: string;
 }
 
+export interface PublishedAppDependency {
+  id: string;
+  range?: string;
+}
+
 export interface PublishedApp {
   id: string;
   name: string;
@@ -39,8 +44,12 @@ export interface PublishedApp {
   pulls: number;
   createdAt: number;
   updatedAt: number;
+  version?: string;
+  dependencies?: PublishedAppDependency[];
   bundle?: string;
   bundleDropped?: boolean;
+  versionDropped?: boolean;
+  dependenciesDropped?: boolean;
 }
 
 export interface PublishedAppInput {
@@ -50,6 +59,8 @@ export interface PublishedAppInput {
   manifest: string;
   repoUrl?: string;
   tags?: string;
+  version?: string;
+  dependencies?: PublishedAppDependency[];
   bundle?: string;
 }
 

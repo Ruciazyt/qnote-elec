@@ -1,6 +1,7 @@
 
 import { log } from "../../main/core/system/log";
 import { CatalogClient, type CatalogTransport } from "./catalogClient";
+import { serializeDependencies } from "../../main/core/plugin/market/marketVersion";
 import {
   clampLimit,
   escapeKeyword,
@@ -89,10 +90,20 @@ export class CatalogSharedStore implements SharedStore {
     };
 
     const bundle = input.bundle ?? "";
-    let bundleDropped = false;
+    const version = (input.version ?? "").trim();
+    const dependencies = input.dependencies ?? [];
 
-    const send = async (withBundle: boolean): Promise<void> => {
-      const body = withBundle && bundle ? { ...fields, bundle } : fields;
+    const optional: Record<string, unknown> = {};
+    if (bundle) optional.bundle = bundle;
+    if (version) optional.version = version;
+    if (dependencies.length > 0) {
+      optional.dependencies = serializeDependencies(dependencies);
+    }
+
+    const dropped = new Set<string>();
+
+    const send = async (): Promise<void> => {
+      const body = { ...fields, ...optional };
       if (existingId) {
         await this.client.request({
           method: "POST",
@@ -109,20 +120,35 @@ export class CatalogSharedStore implements SharedStore {
     };
 
     try {
-      await send(true);
+      await send();
     } catch (error) {
-      if (!bundle || !mentionsBundle(error)) throw error;
-      log.warn("[cloud] 公共目录还不支持资源列，本次只发布清单", error);
-      await send(false);
-      bundleDropped = true;
+      const unsupported = unsupportedFields(error, optional);
+      if (unsupported.length === 0) throw error;
+      log.warn("[cloud] 公共目录还不支持这些列，本次只发布清单", {
+        fields: unsupported,
+      });
+      for (const key of unsupported) {
+        delete optional[key];
+        dropped.add(key);
+      }
+      await send();
     }
 
     const saved = await this.get(id);
     if (!saved) {
       throw new Error("发布失败：写入后读不回来");
     }
-    if (bundleDropped || (bundle && !saved.bundle)) {
+    if (dropped.has("bundle") || (bundle && !saved.bundle)) {
       saved.bundleDropped = true;
+    }
+    if (dropped.has("version") || (version && !saved.version)) {
+      saved.versionDropped = true;
+    }
+    if (
+      dropped.has("dependencies") ||
+      (dependencies.length > 0 && (saved.dependencies?.length ?? 0) === 0)
+    ) {
+      saved.dependenciesDropped = true;
     }
     return saved;
   }
@@ -163,9 +189,16 @@ export class CatalogSharedStore implements SharedStore {
   }
 }
 
-function mentionsBundle(error: unknown): boolean {
+const OPTIONAL_FIELDS = ["bundle", "version", "dependencies"];
+
+function unsupportedFields(
+  error: unknown,
+  sent: Record<string, unknown>
+): string[] {
   const message = error instanceof Error ? error.message : String(error ?? "");
-  return /bundle/i.test(message);
+  return OPTIONAL_FIELDS.filter(
+    (field) => field in sent && new RegExp(field, "i").test(message)
+  );
 }
 
 export function createCatalogSharedStore(config: {

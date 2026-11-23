@@ -10,7 +10,7 @@ vi.mock("../../system/log", () => ({
 }));
 
 import { PluginRpcServer } from "./rpcServer";
-import type { PluginManifest } from "../../../../shared/plugin/pluginTypes";
+import type { PluginManifest } from "../../../../shared/plugin/manifest/pluginTypes";
 import type { RpcRequest } from "../../../../shared/plugin/sdk/protocol";
 
 const MANIFEST: PluginManifest = {

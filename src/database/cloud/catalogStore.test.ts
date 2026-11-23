@@ -300,3 +300,131 @@ describe("公共目录共享存储", () => {
     expect(result.error).toContain("auth failed");
   });
 });
+
+describe("版本与依赖", () => {
+  it("发布时把版本与依赖一起发过去，读回来一致", async () => {
+    const transport = new FakeCatalogTransport();
+    const store = new CatalogSharedStore(transport);
+    await store.init();
+    transport.requests.length = 0;
+
+    const published = await store.publish({
+      ...SAMPLE,
+      version: "1.2.3",
+      dependencies: [{ id: "a.b" }, { id: "c.d", range: "^2.0.0" }],
+    });
+
+    const publish = transport.requests.find((r) => r.path === ENDPOINT_PUBLISH);
+    expect(publish?.body?.version).toBe("1.2.3");
+    expect(publish?.body?.dependencies).toBe(
+      '[{"id":"a.b"},{"id":"c.d","range":"^2.0.0"}]'
+    );
+
+    expect(published.version).toBe("1.2.3");
+    expect(published.dependencies).toEqual([
+      { id: "a.b" },
+      { id: "c.d", range: "^2.0.0" },
+    ]);
+
+    const fetched = await store.get(published.id);
+    expect(fetched?.version).toBe("1.2.3");
+    expect(fetched?.dependencies).toEqual([
+      { id: "a.b" },
+      { id: "c.d", range: "^2.0.0" },
+    ]);
+  });
+
+  it("端点不认版本列时退回 —— 标成没存上", async () => {
+    const requests: CatalogRequest[] = [];
+    const table: Array<Record<string, unknown>> = [];
+    const store = new CatalogSharedStore({
+      request: async (req: CatalogRequest) => {
+        requests.push(req);
+        if (req.path === ENDPOINT_PUBLISH) {
+          if ("version" in (req.body ?? {})) {
+            throw new CatalogError("Unknown column 'version' in 'field list'", 400);
+          }
+          table.push({ ...req.body });
+          return ok([]);
+        }
+        if (req.path === ENDPOINT_GET) {
+          const row = table.find((item) => item.id === req.query?.id);
+          return ok(row ? [{ ...row }] : []);
+        }
+        return ok([]);
+      },
+    });
+
+    const published = await store.publish({ ...SAMPLE, version: "1.2.3" });
+
+    expect(published.versionDropped).toBe(true);
+    expect(published.version).toBeUndefined();
+    const publishes = requests.filter((r) => r.path === ENDPOINT_PUBLISH);
+    expect(publishes).toHaveLength(2);
+    expect(publishes[0].body).toHaveProperty("version");
+    expect(publishes[1].body).not.toHaveProperty("version");
+  });
+
+  it("端点不认依赖列时退回 —— 标成没存上", async () => {
+    const requests: CatalogRequest[] = [];
+    const table: Array<Record<string, unknown>> = [];
+    const store = new CatalogSharedStore({
+      request: async (req: CatalogRequest) => {
+        requests.push(req);
+        if (req.path === ENDPOINT_PUBLISH) {
+          if ("dependencies" in (req.body ?? {})) {
+            throw new CatalogError("Unknown column 'dependencies'", 400);
+          }
+          table.push({ ...req.body });
+          return ok([]);
+        }
+        if (req.path === ENDPOINT_GET) {
+          const row = table.find((item) => item.id === req.query?.id);
+          return ok(row ? [{ ...row }] : []);
+        }
+        return ok([]);
+      },
+    });
+
+    const published = await store.publish({
+      ...SAMPLE,
+      dependencies: [{ id: "a.b" }],
+    });
+
+    expect(published.dependenciesDropped).toBe(true);
+    expect(published.dependencies).toEqual([]);
+    const publishes = requests.filter((r) => r.path === ENDPOINT_PUBLISH);
+    expect(publishes).toHaveLength(2);
+    expect(publishes[0].body).toHaveProperty("dependencies");
+    expect(publishes[1].body).not.toHaveProperty("dependencies");
+  });
+
+  it("端点不认资源列时退回 —— 标成没存上", async () => {
+    const requests: CatalogRequest[] = [];
+    const table: Array<Record<string, unknown>> = [];
+    const store = new CatalogSharedStore({
+      request: async (req: CatalogRequest) => {
+        requests.push(req);
+        if (req.path === ENDPOINT_PUBLISH) {
+          if ("bundle" in (req.body ?? {})) {
+            throw new CatalogError("Unknown column 'bundle'", 400);
+          }
+          table.push({ ...req.body });
+          return ok([]);
+        }
+        if (req.path === ENDPOINT_GET) {
+          const row = table.find((item) => item.id === req.query?.id);
+          return ok(row ? [{ ...row }] : []);
+        }
+        return ok([]);
+      },
+    });
+
+    const published = await store.publish({ ...SAMPLE, bundle: "Ym9ndW5sZQ==" });
+
+    expect(published.bundleDropped).toBe(true);
+    const publishes = requests.filter((r) => r.path === ENDPOINT_PUBLISH);
+    expect(publishes[0].body).toHaveProperty("bundle");
+    expect(publishes[1].body).not.toHaveProperty("bundle");
+  });
+});

@@ -23,30 +23,30 @@ import { useRouteActive } from "@/hooks/system/useRouteActive";
 import { useCollapsedState } from "@/hooks/panel/useCollapsedState";
 import { cn } from "@/lib/utils";
 import { ResizableSidebar } from "@/components/panel/ResizableSidebar";
-import { PluginPreviewPane } from "@/pages/plugin/PluginPreviewPane";
-import { PluginLogConsole } from "@/pages/plugin/PluginLogConsole";
-import { PluginList } from "@/pages/plugin/PluginList";
-import { PluginHeader } from "@/pages/plugin/PluginHeader";
+import { PluginPreviewPane } from "@/pages/plugin/runtime/PluginPreviewPane";
+import { PluginLogConsole } from "@/pages/plugin/runtime/PluginLogConsole";
+import { PluginList } from "@/pages/plugin/runtime/PluginList";
+import { PluginHeader } from "@/pages/plugin/runtime/PluginHeader";
 import {
   PluginManifestDialog,
   type PluginManifestForm,
-} from "@/pages/plugin/PluginManifestDialog";
-import { RemovePluginDialog } from "@/pages/plugin/RemovePluginDialog";
-import { PluginPermissionsPanel } from "@/pages/plugin/PluginPermissionsPanel";
-import { PluginSettingsPanel } from "@/pages/plugin/PluginSettingsPanel";
-import { PluginSpecDialog } from "@/pages/plugin/PluginSpecDialog";
-import { PublishedPluginMarket } from "@/pages/plugin/PublishedPluginMarket";
+} from "@/pages/plugin/manifest/PluginManifestDialog";
+import { RemovePluginDialog } from "@/pages/plugin/runtime/RemovePluginDialog";
+import { PluginPermissionsPanel } from "@/pages/plugin/permissions/PluginPermissionsPanel";
+import { PluginSettingsPanel } from "@/pages/plugin/runtime/PluginSettingsPanel";
+import { PluginSpecDialog } from "@/pages/plugin/manifest/PluginSpecDialog";
+import { PublishedPluginMarket } from "@/pages/plugin/market/PublishedPluginMarket";
 import {
   normalizeManifestPreview,
   pluginPreviewAddress,
   previewToDraftText,
-} from "@shared/plugin/pluginPreview";
+} from "@shared/plugin/manifest/pluginPreview";
 import type {
   PluginLogLine,
   PluginManifestDraft,
   PluginRecord,
   PluginRuntimeState,
-} from "@shared/plugin/pluginTypes";
+} from "@shared/plugin/manifest/pluginTypes";
 import type { CloudBackend } from "@shared/cloud/cloudTypes";
 
 const LOG_COLLAPSED_KEY = "qnote-plugins-log-collapsed";
@@ -124,6 +124,7 @@ export default function PluginsPage() {
 
   const handleSelect = useCallback(
     (id: string) => {
+      setMarketOpen(false);
       setSelectedId(id);
       const next = new URLSearchParams(searchParams);
       next.set("plugin", id);
@@ -537,15 +538,25 @@ export default function PluginsPage() {
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <div className="flex items-center gap-2 px-3 py-2 border-b border-border/60 flex-shrink-0">
-        <Boxes className="h-4 w-4 text-muted-foreground" />
-        <span className="text-sm font-medium">插件管理</span>
+        <Button
+          type="button"
+          variant={marketOpen ? "ghost" : "secondary"}
+          size="sm"
+          className="h-7 px-2 text-xs btn-hover"
+          onClick={() => setMarketOpen(false)}
+          aria-pressed={!marketOpen}
+          title="管理本机已导入的插件"
+        >
+          <Boxes className="h-3.5 w-3.5 mr-1" />
+          插件管理
+        </Button>
 
         <Button
           type="button"
           variant={marketOpen ? "secondary" : "ghost"}
           size="sm"
-          className="h-7 px-2 text-xs btn-hover ml-1"
-          onClick={() => setMarketOpen((v) => !v)}
+          className="h-7 px-2 text-xs btn-hover"
+          onClick={() => setMarketOpen(true)}
           aria-pressed={marketOpen}
           title="浏览别人发布的插件"
         >

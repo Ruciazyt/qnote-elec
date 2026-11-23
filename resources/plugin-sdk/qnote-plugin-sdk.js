@@ -90,9 +90,25 @@ function buildContext() {
     },
     todos: {
       list(options) { return call("qnote.todos.list", options || {}); },
+      create(input) { return call("qnote.todos.create", input || {}); },
+      update(input) { return call("qnote.todos.update", input || {}); },
     },
     notes: {
       list(options) { return call("qnote.notes.list", options || {}); },
+      get(pathOrOptions) {
+        const params = typeof pathOrOptions === "string"
+          ? { path: pathOrOptions }
+          : (pathOrOptions || {});
+        return call("qnote.notes.get", params);
+      },
+      create(input) { return call("qnote.notes.create", input || {}); },
+      update(input) { return call("qnote.notes.update", input || {}); },
+    },
+    clipboard: {
+      list(options) { return call("qnote.clipboard.list", options || {}); },
+    },
+    ai: {
+      chat(input) { return call("qnote.ai.chat", input || {}); },
     },
   };
 }

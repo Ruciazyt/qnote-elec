@@ -14,7 +14,7 @@ import { browserFillTool } from './browser/browserFill';
 import { browserNavigateTool } from './browser/browserNavigate';
 import { webSearchTool } from './web/webSearch';
 import { webFetchTool } from './web/webFetch';
-import { GITLAB_READ_TOOLS, GITLAB_WRITE_TOOLS } from './gitlab';
+import { GITLAB_READ_TOOLS, GITLAB_WRITE_TOOLS } from './gitlab/index';
 import { isGitlabConfigured } from './gitlab/config';
 import { mcpManager } from '../mcp/manager';
 

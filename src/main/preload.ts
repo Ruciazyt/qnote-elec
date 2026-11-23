@@ -451,6 +451,8 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("plugin:start", pluginId, confirmedManifestHash),
   pluginImportFromMarket: (dirPath: string, payload: unknown) =>
     ipcRenderer.invoke("plugin:import-from-market", dirPath, payload),
+  pluginUpgradeFromMarket: (pluginId: string, payload: unknown) =>
+    ipcRenderer.invoke("plugin:upgrade-from-market", pluginId, payload),
   pluginBuildBundle: (pluginId: string) =>
     ipcRenderer.invoke("plugin:build-bundle", pluginId),
   pluginStop: (pluginId: string) => ipcRenderer.invoke("plugin:stop", pluginId),
@@ -458,6 +460,10 @@ contextBridge.exposeInMainWorld("electron", {
   pluginLogs: (pluginId: string) => ipcRenderer.invoke("plugin:logs", pluginId),
   pluginClearLogs: (pluginId: string) => ipcRenderer.invoke("plugin:clear-logs", pluginId),
   pluginListCommands: () => ipcRenderer.invoke("plugin:list-commands"),
+  pluginListGrants: (pluginId: string) =>
+    ipcRenderer.invoke("plugin:list-grants", pluginId),
+  pluginSetGrant: (pluginId: string, capability: string, granted: boolean) =>
+    ipcRenderer.invoke("plugin:set-grant", pluginId, capability, granted),
   pluginExecuteCommand: (command: string) =>
     ipcRenderer.invoke("plugin:execute-command", command),
   pluginGetSettings: (pluginId: string) =>

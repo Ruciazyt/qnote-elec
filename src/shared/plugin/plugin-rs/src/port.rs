@@ -141,7 +141,7 @@ static RULES: LazyLock<Vec<RiskRule>> = LazyLock::new(|| {
     ]
 });
 
-/// Port of analyzeCommand (src/shared/plugin/pluginRisk.ts:114).
+/// Port of analyzeCommand (src/shared/plugin/permissions/pluginRisk.ts:114).
 pub fn analyze_command(command: String, args: Option<Vec<String>>) -> Result<Value, String> {
     let mut parts: Vec<&str> = Vec::with_capacity(1 + args.as_ref().map_or(0, Vec::len));
     parts.push(command.as_str());

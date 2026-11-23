@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useToast } from "@/hooks/ui/use-toast";
-import type { PluginCommandEntry } from "@shared/plugin/pluginTypes";
+import type { PluginCommandEntry } from "@shared/plugin/manifest/pluginTypes";
 
 export interface PluginCommandsApi {
   commands: PluginCommandEntry[];

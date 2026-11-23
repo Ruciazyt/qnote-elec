@@ -8,5 +8,7 @@ SET name = ${name},
     repo_url = ${repo_url},
     tags = ${tags},
     bundle = ${bundle},
+    version = ${version},
+    dependencies = ${dependencies},
     updated_at = ${updated_at}
 WHERE id = ${id};

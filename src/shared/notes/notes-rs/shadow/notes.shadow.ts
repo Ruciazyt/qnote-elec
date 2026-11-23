@@ -3,8 +3,8 @@
 // new: Rust only. Report mismatches with `onMismatch`; counts are in `shadowStats`.
 /* eslint-disable */
 import { createRequire } from 'node:module'
-import * as legacy0 from '../../noteHash.ts'
-import * as legacy1 from '../../noteTypes.ts'
+import * as legacy0 from '../../noteHash'
+import * as legacy1 from '../../noteTypes'
 
 type Mode = 'old' | 'shadow' | 'new'
 export interface Mismatch { fn: string, args: unknown[], expected: unknown, actual: unknown }

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type {
   PluginRecord,
   PluginRuntimeState,
-} from "@shared/plugin/pluginTypes";
+} from "@shared/plugin/manifest/pluginTypes";
 
 export interface PluginRegistry {
   plugins: PluginRecord[];

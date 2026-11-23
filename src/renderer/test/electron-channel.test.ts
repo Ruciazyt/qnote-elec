@@ -107,19 +107,19 @@ const BROADCAST_WHITELIST: { channel: string; why: string }[] = [
   },
   {
     channel: "plugin:plugins-changed",
-    why: "handlers/plugin/pluginHandlers.ts 的 broadcast 辅助函数",
+    why: "handlers/plugin/runtime/pluginHandlers.ts 的 broadcast 辅助函数",
   },
   {
     channel: "plugin:runtime-changed",
-    why: "handlers/plugin/pluginHandlers.ts 的 broadcast 辅助函数",
+    why: "handlers/plugin/runtime/pluginHandlers.ts 的 broadcast 辅助函数",
   },
   {
     channel: "plugin:log",
-    why: "handlers/plugin/pluginHandlers.ts 的 broadcast 辅助函数",
+    why: "handlers/plugin/runtime/pluginHandlers.ts 的 broadcast 辅助函数",
   },
   {
     channel: "plugin:notify",
-    why: "handlers/plugin/pluginHandlers.ts 的 broadcast 辅助函数",
+    why: "handlers/plugin/runtime/pluginHandlers.ts 的 broadcast 辅助函数",
   },
   {
     channel: "browser:tabs-changed",

@@ -70,6 +70,34 @@ function scrollArea(container: HTMLElement): HTMLElement {
   return container.querySelector("[data-note-tree-scroll]") as HTMLElement;
 }
 
+describe("笔记行的时间与类型", () => {
+  it("超过 30 天的文件用紧凑日期，不与类型标签挤在一起", () => {
+    renderList();
+
+    expect(screen.getAllByText("文本").length).toBeGreaterThan(0);
+    expect(screen.getByText(/^\d{2}-\d{2}-\d{2}$/)).toBeInTheDocument();
+  });
+
+  it("30 天内的文件显示相对时间", () => {
+    renderList({
+      nodes: [
+        {
+          kind: "file",
+          name: "随手记.md",
+          relPath: "随手记.md",
+          path: "D:\\notes\\随手记.md",
+          type: "markdown",
+          ext: ".md",
+          size: 64,
+          mtime: Date.now() - 3 * 24 * 3600 * 1000,
+        },
+      ],
+    });
+
+    expect(screen.getByText("3 天前")).toBeInTheDocument();
+  });
+});
+
 describe("笔记文件树右键菜单", () => {
   it("右键文件夹：菜单写明落点，并给出新建项", () => {
     renderList();

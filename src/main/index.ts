@@ -56,9 +56,9 @@ import {
   registerPluginHandlers,
   teardownPluginHandlers,
   resolvePluginDir,
-} from "./handlers/plugin/pluginHandlers";
-import { registerDialogHandlers } from "./handlers/plugin/dialogHandlers";
-import { dialogWindowManager } from "./core/window/plugin/dialogWindow";
+} from "./handlers/plugin/runtime/pluginHandlers";
+import { registerDialogHandlers } from "./handlers/plugin/dialog/dialogHandlers";
+import { dialogWindowManager } from "./core/window/plugin/dialog/dialogWindow";
 import { registerCloudHandlers } from "./handlers/cloud/cloudHandlers";
 import { initCloudStorage } from "../database/cloud/cloudManager";
 import {
@@ -66,7 +66,7 @@ import {
   initPluginPreviewProtocol,
   attachPluginPreview,
   disposePluginPreview,
-} from "./core/window/plugin/pluginPreview";
+} from "./core/window/plugin/runtime/pluginPreview";
 import { createMainWindow, getMainWindow, showMainWindow, createTray } from "./core/window/index";
 import { ClipboardPopupWindow } from "./core/window/clipboard/clipboardPopup";
 import { IslandWindow } from "./core/window/island/island";

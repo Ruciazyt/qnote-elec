@@ -40,7 +40,7 @@ const ROLE_DIRS = [
     },
     {
         dir: "scripts",
-        features: ["build", "dev", "git-hooks", "lib", "pixel-pet", "quality", "release"],
+        features: ["build", "dev", "git-hooks", "lib", "migrate", "pixel-pet", "quality", "release"],
         topLevel: ["audit-muted-text.mjs", "check-contrast.mjs", "check-css-text-contrast.mjs"],
     },
 ];

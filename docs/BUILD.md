@@ -49,7 +49,7 @@ pnpm run build-portable
 | crate | 移植的 TS 单元 | 主进程入口 |
 | --- | --- | --- |
 | `src/shared/notes/notes-rs/` | 笔记内容处理 | `src/main/core/notes/nativeNotes.ts` |
-| `src/shared/plugin/plugin-rs/` | 清单命令风险分析 | `src/main/core/plugin/nativePlugin.ts` |
+| `src/shared/plugin/plugin-rs/` | 清单命令风险分析 | `src/main/core/plugin/permissions/nativePlugin.ts` |
 | `src/shared/todo/todo-rs/` | 待办时间解析与提醒判定 | `src/main/core/todo/nativeTodo.ts` |
 | `src/shared/ai/ai-rs/` | 会话摘要与块序列化 | `src/main/core/ai/nativeAi.ts` |
 | `src/main/core/ai/tools/web/web-rs/` | 网页解析与搜索结果提取 | `src/main/core/ai/tools/web/searchEngine.ts` |

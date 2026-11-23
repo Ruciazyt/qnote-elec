@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CommandPalette } from "./CommandPalette";
-import type { PluginCommandEntry } from "@shared/plugin/pluginTypes";
+import type { PluginCommandEntry } from "@shared/plugin/manifest/pluginTypes";
 
 const COMMANDS: PluginCommandEntry[] = [
   {

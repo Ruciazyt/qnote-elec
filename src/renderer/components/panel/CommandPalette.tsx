@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import type { PluginCommandEntry } from "@shared/plugin/pluginTypes";
+import type { PluginCommandEntry } from "@shared/plugin/manifest/pluginTypes";
 
 interface CommandPaletteProps {
   open: boolean;

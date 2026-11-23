@@ -4,7 +4,7 @@ import { MemoryRouter } from "react-router";
 import { createElectronStub } from "@/test/electron-stub";
 import { AppSidebar } from "./AppSidebar";
 import { SidebarProvider } from "../ui/sidebar";
-import type { PluginRecord } from "@shared/plugin/pluginTypes";
+import type { PluginRecord } from "@shared/plugin/manifest/pluginTypes";
 
 beforeAll(() => {
   Object.defineProperty(window, "matchMedia", {

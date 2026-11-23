@@ -5,7 +5,7 @@ async function loadWrappers(mode: string) {
   vi.resetModules();
   const notes = await import("../notes/nativeNotes");
   const todo = await import("../todo/nativeTodo");
-  const plugin = await import("../plugin/nativePlugin");
+  const plugin = await import("../plugin/permissions/nativePlugin");
   const ai = await import("../ai/nativeAi");
   const web = await import("../ai/tools/web/searchEngine");
   return { notes, todo, plugin, ai, web };
