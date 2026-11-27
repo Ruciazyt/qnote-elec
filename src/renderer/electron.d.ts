@@ -184,20 +184,6 @@ interface ElectronAPI {
     status?: import("../shared/ai/gitlabBot").GitlabBotStatus;
     error?: string;
   }>;
-  generateGitlabBotSecret: () => Promise<{
-    success: boolean;
-    secret?: string;
-    error?: string;
-  }>;
-  generateGitlabBotRelayToken: () => Promise<{
-    success: boolean;
-    token?: string;
-    error?: string;
-  }>;
-  revealGitlabBotRelayToken: () => Promise<{
-    success: boolean;
-    token?: string;
-  }>;
   getGitlabBotRunnerStatus: () => Promise<{
     success: boolean;
     runner: import("../shared/ai/gitlabBot").GitlabRunnerStatusView;

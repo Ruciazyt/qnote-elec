@@ -1,23 +1,14 @@
 import { app } from "electron";
 import * as path from "node:path";
-import { log } from "../../system/log";
+import { log } from "../../../system/log";
 import {
   describeGitlabEvent,
-  parseGitlabEvent,
   type GitlabEvent,
 } from "./webhook";
-import { buildWorkBranchName, prepareRepoWorkspace } from "./repoWorkspace";
-import { runGitlabTask } from "./task";
-import { resolveEventPayload } from "./eventHydrator";
-import { getGitlabConfig } from "../tools/gitlab/runtime/config";
+import { buildWorkBranchName, prepareRepoWorkspace } from "../task/repoWorkspace";
+import { runGitlabTask } from "../task/task";
+import { getGitlabConfig } from "../../tools/gitlab/runtime/config";
 import { GitlabEventQueue, type EnqueueResult } from "./queue";
-
-export type GitlabBotEventSource = "webhook" | "relay";
-
-export interface TriggerOutcome {
-  accepted: boolean;
-  reason: string;
-}
 
 function stripTrailingSlashes(value: string): string {
   let end = value.length;
@@ -42,36 +33,8 @@ export class GitlabBotTrigger {
     );
   }
 
-  async handle(
-    eventType: string,
-    payload: any
-  ): Promise<TriggerOutcome> {
-    const hydrated = await resolveEventPayload(payload);
-    if (!hydrated.ok) {
-      return { accepted: false, reason: hydrated.reason ?? "报文解析失败" };
-    }
-    const event = parseGitlabEvent(eventType, hydrated.payload);
-    if (!event) {
-      return { accepted: false, reason: "webhook 报文解析失败" };
-    }
-    const result = this.enqueue(event, "webhook");
-    if (!result.accepted) {
-      log.info("[gitlab-bot] 事件未入队", {
-        reason: result.reason,
-        project: event.projectPath,
-        event: event.eventType,
-      });
-      return { accepted: false, reason: result.reason };
-    }
-    return { accepted: true, reason: result.reason };
-  }
-
-  enqueue(
-    event: GitlabEvent,
-    source: GitlabBotEventSource = "relay"
-  ): EnqueueResult {
+  enqueue(event: GitlabEvent): EnqueueResult {
     log.info("[gitlab-bot] 收到 GitLab 消息", {
-      source,
       ...describeGitlabEvent(event),
     });
     return this.queue.enqueue(event);

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const configState: { current: any } = { current: null };
 
-vi.mock("../configStore", () => ({
+vi.mock("../config/configStore", () => ({
   getGitlabBotConfig: () => configState.current,
 }));
 
@@ -12,7 +12,7 @@ import {
   generateRelayToken,
   parseRelayRequest,
   RELAY_TOKEN_PREFIX,
-} from "../relay";
+} from "../gateway/relay";
 
 const RELAY_TOKEN = "qnrelay_test_token";
 
@@ -20,9 +20,6 @@ beforeEach(() => {
   configState.current = {
     enabled: true,
     port: 7799,
-    bindAddress: "0.0.0.0",
-    signingToken: "whsec_x",
-    secretToken: "",
     relayToken: RELAY_TOKEN,
     triggerWords: ["@qnote"],
     allowedProjects: [],

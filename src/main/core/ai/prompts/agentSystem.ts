@@ -163,7 +163,7 @@ export const AGENT_SYSTEM_TEXT = `你是 QNote 桌面应用的 AI 助手，可�
 - gitlab_list_issues / gitlab_get_issue：读 Issue 和评论
 - gitlab_list_merge_requests：列 MR 和它的可合并状态
 - gitlab_list_pipelines / gitlab_get_pipeline / gitlab_get_job_logs：读 CI 流水线与失败日志
-- gitlab_gateway_status：读 QNote 内置 GitLab 网关的配置（是否启用、webhook 接收地址、触发词、允许的项目、密钥模式）
+- gitlab_gateway_status：读取 QNote GitLab Relay 状态、接入地址、触发词与项目白名单
 - gitlab_list_hooks：列出项目上已有的 Webhook
 
 ### 写
@@ -171,7 +171,6 @@ export const AGENT_SYSTEM_TEXT = `你是 QNote 桌面应用的 AI 助手，可�
 - gitlab_commit_files：把文件改动直接提交到某个分支
 - gitlab_create_issue / gitlab_update_issue / gitlab_add_comment
 - gitlab_create_merge_request / gitlab_update_merge_request / gitlab_merge_merge_request
-- gitlab_ensure_webhook：给项目配一条指向 QNote 网关的 Webhook（地址与密钥 QNote 自动填，已有同地址就更新）
 - gitlab_ensure_runner：给项目配 Runner 接入（建 pipeline trigger、把 Webhook 指向 GitLab 自己的 trigger API、写 CI 变量、返回 .gitlab-ci.yml 模板）。内网里 GitLab 连不到 QNote 时用这个
 
 ### 规矩（工具层已强制，别绕）

@@ -7,19 +7,19 @@ vi.mock("electron", () => ({
   app: { getPath: () => ".data" },
 }));
 
-vi.mock("../configStore", () => ({
+vi.mock("../config/configStore", () => ({
   getGitlabBotConfig: () => configState.current,
 }));
 
-vi.mock("../tools/gitlab/runtime/config", () => ({
+vi.mock("../../tools/gitlab/runtime/config", () => ({
   getGitlabConfig: () => ({ baseUrl: "", token: "" }),
 }));
 
-vi.mock("./task", () => ({
+vi.mock("../task/task", () => ({
   runGitlabTask: vi.fn(async () => ({ ok: true, text: "" })),
 }));
 
-import { GitlabBotTrigger } from "../trigger";
+import { GitlabBotTrigger } from "../events/trigger";
 import { log } from "../../../system/log";
 
 function noteEvent(overrides: Record<string, unknown> = {}) {
@@ -43,9 +43,6 @@ beforeEach(() => {
   configState.current = {
     enabled: true,
     port: 7799,
-    bindAddress: "0.0.0.0",
-    signingToken: "",
-    secretToken: "s3cret",
     relayToken: "",
     triggerWords: ["@qnote"],
     allowedProjects: [],
@@ -62,7 +59,6 @@ describe("GitLab 事件接收", () => {
     expect(info).toHaveBeenCalledWith(
       "[gitlab-bot] 收到 GitLab 消息",
       expect.objectContaining({
-        source: "relay",
         project: "team/app",
         kind: "note",
         event: "Note Hook",
@@ -74,30 +70,4 @@ describe("GitLab 事件接收", () => {
     info.mockRestore();
   });
 
-  it("webhook 通道的记录标出来源是 webhook", async () => {
-    const info = vi.spyOn(log, "info").mockImplementation(() => undefined);
-    const trigger = new GitlabBotTrigger({});
-
-    await trigger.handle("Note Hook", {
-      object_kind: "note",
-      project: {
-        id: 7,
-        path_with_namespace: "team/app",
-        default_branch: "main",
-      },
-      user: { username: "alice" },
-      issue: { iid: 12, title: "登录页报错", description: "" },
-      object_attributes: {
-        id: 99,
-        note: "@qnote 修一下这个白屏",
-        noteable_type: "Issue",
-      },
-    });
-
-    expect(info).toHaveBeenCalledWith(
-      "[gitlab-bot] 收到 GitLab 消息",
-      expect.objectContaining({ source: "webhook", project: "team/app" })
-    );
-    info.mockRestore();
-  });
 });

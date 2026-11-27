@@ -5,9 +5,10 @@ import {
   initGitlabBotConfigStore,
   saveGitlabBotConfig,
   type GitlabBotConfig,
-} from "./configStore";
-import { GitlabBotServer } from "./server";
-import { GitlabBotTrigger } from "./trigger";
+} from "./config/configStore";
+import { generateRelayToken } from "./gateway/relay";
+import { GitlabBotServer } from "./gateway/server";
+import { GitlabBotTrigger } from "./events/trigger";
 import {
   startGitlabRunner,
   stopGitlabRunner,
@@ -18,12 +19,10 @@ import type { GitlabBotStatus } from "../../../../shared/ai/gitlabBot";
 let server: GitlabBotServer | null = null;
 
 export function getGitlabBotStatus(): GitlabBotStatus {
-  const config = getGitlabBotConfig();
   const port = server?.currentPort ?? 0;
   return {
     running: server?.running ?? false,
-    port,
-    url: port ? `http://${config.bindAddress}:${port}` : "",
+    url: port ? `http://127.0.0.1:${port}` : "",
   };
 }
 
@@ -34,8 +33,8 @@ export async function startGitlabBotServer(DB: any): Promise<void> {
     log.info("[gitlab-bot] 网关未启用");
     return;
   }
-  if (!config.signingToken && !config.secretToken && !config.relayToken) {
-    log.warn("[gitlab-bot] 没配 webhook 密钥，网关不启动");
+  if (!config.relayToken) {
+    log.warn("[gitlab-bot] relay 令牌缺失，网关不启动");
     return;
   }
   const trigger = new GitlabBotTrigger(DB);
@@ -60,6 +59,7 @@ export async function stopGitlabBotServer(): Promise<void> {
 
 export async function initGitlabBot(DB: any): Promise<void> {
   await initGitlabBotConfigStore(DB);
+  await ensureRelayToken();
   setGitlabTriggerWords(getGitlabBotConfig().triggerWords);
   await startGitlabBotServer(DB);
   await startGitlabRunner();
@@ -77,11 +77,20 @@ export async function applyGitlabBotConfig(
   patch: Partial<GitlabBotConfig>,
   DB: any
 ): Promise<GitlabBotConfig> {
-  const next = await saveGitlabBotConfig(patch);
+  await saveGitlabBotConfig(patch);
+  await ensureRelayToken();
+  const next = getGitlabBotConfig();
   setGitlabTriggerWords(next.triggerWords);
   await startGitlabBotServer(DB);
   await syncGitlabRunner();
   return next;
+}
+
+async function ensureRelayToken(): Promise<void> {
+  const config = getGitlabBotConfig();
+  if (config.enabled && !config.relayToken) {
+    await saveGitlabBotConfig({ relayToken: generateRelayToken() });
+  }
 }
 
 export async function resetGitlabBotConfig(DB: any): Promise<void> {

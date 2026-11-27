@@ -8,34 +8,18 @@ import type {
 
 export interface GitlabBotDraft {
   enabled: boolean;
-  port: string;
-  bindAddress: string;
-  signingToken: string;
-  relayToken: string;
   triggerWords: string;
   allowedProjects: string;
-  signingTokenHint: string;
-  secretTokenHint: string;
-  relayTokenHint: string;
   runnerEnabled: boolean;
   runnerProject: string;
-  runnerTags: string;
 }
 
 const EMPTY_DRAFT: GitlabBotDraft = {
   enabled: false,
-  port: "7799",
-  bindAddress: "0.0.0.0",
-  signingToken: "",
-  relayToken: "",
   triggerWords: "@qnote",
   allowedProjects: "",
-  signingTokenHint: "",
-  secretTokenHint: "",
-  relayTokenHint: "",
   runnerEnabled: true,
   runnerProject: "",
-  runnerTags: "qnote",
 };
 
 function splitList(value: string): string[] {
@@ -63,18 +47,10 @@ export function useGitlabBotConfig() {
       const config: GitlabBotConfigView = result.config;
       setDraft({
         enabled: config.enabled,
-        port: String(config.port),
-        bindAddress: config.bindAddress,
-        signingToken: "",
-        relayToken: "",
         triggerWords: config.triggerWords.join(", "),
         allowedProjects: config.allowedProjects.join(", "),
-        signingTokenHint: config.signingTokenHint,
-        secretTokenHint: config.secretTokenHint,
-        relayTokenHint: config.relayTokenHint,
         runnerEnabled: config.runnerEnabled,
         runnerProject: config.runnerProject,
-        runnerTags: config.runnerTags.join(", "),
       });
       setStatus(result.status);
       setRunner(result.runner ?? null);
@@ -93,48 +69,6 @@ export function useGitlabBotConfig() {
     const config = await readConfig();
     if (config) setOpen(true);
   }, [readConfig]);
-
-  const generateSecret = useCallback(async () => {
-    try {
-      const result = await window.electron.generateGitlabBotSecret();
-      if (!result.success || !result.secret) {
-        toast({ title: result.error || "生成失败", variant: "destructive" });
-        return;
-      }
-      update({ signingToken: result.secret });
-      toast({ title: "已生成签名密钥，保存后生效" });
-    } catch {
-      toast({ title: "生成失败", variant: "destructive" });
-    }
-  }, [toast, update]);
-
-  const generateRelayToken = useCallback(async () => {
-    try {
-      const result = await window.electron.generateGitlabBotRelayToken();
-      if (!result.success || !result.token) {
-        toast({ title: result.error || "生成失败", variant: "destructive" });
-        return;
-      }
-      update({ relayToken: result.token });
-      toast({ title: "已生成 relay 令牌，保存后生效" });
-    } catch {
-      toast({ title: "生成失败", variant: "destructive" });
-    }
-  }, [toast, update]);
-
-  const copyRelayToken = useCallback(async () => {
-    try {
-      const result = await window.electron.revealGitlabBotRelayToken();
-      if (!result.success || !result.token) {
-        toast({ title: "还没有 relay 令牌", description: "先生成一个再复制", variant: "destructive" });
-        return;
-      }
-      await navigator.clipboard.writeText(result.token);
-      toast({ title: "relay 令牌已复制" });
-    } catch {
-      toast({ title: "复制失败", variant: "destructive" });
-    }
-  }, [toast]);
 
   const restartRunner = useCallback(async () => {
     try {
@@ -155,15 +89,10 @@ export function useGitlabBotConfig() {
     try {
       const result = await window.electron.saveGitlabBotConfig({
         enabled: draft.enabled,
-        port: Number(draft.port) || 7799,
-        bindAddress: draft.bindAddress.trim() || "0.0.0.0",
-        signingToken: draft.signingToken.trim() || undefined,
-        relayToken: draft.relayToken.trim() || undefined,
         triggerWords: splitList(draft.triggerWords),
         allowedProjects: splitList(draft.allowedProjects),
         runnerEnabled: draft.runnerEnabled,
         runnerProject: draft.runnerProject.trim(),
-        runnerTags: splitList(draft.runnerTags),
       });
       if (!result.success) {
         toast({ title: result.error || "保存失败", variant: "destructive" });
@@ -189,9 +118,6 @@ export function useGitlabBotConfig() {
     runner,
     saving,
     openDialog,
-    generateSecret,
-    generateRelayToken,
-    copyRelayToken,
     restartRunner,
     save,
   };

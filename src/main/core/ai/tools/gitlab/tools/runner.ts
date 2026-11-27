@@ -3,8 +3,8 @@ import { z } from "zod";
 import { GitlabApiError, gitlabRequest } from "../api/client";
 import { gitlabEndpoints } from "../api/endpoints";
 import { getGitlabConfig } from "../runtime/config";
-import { TRIGGER_POINTER_TEMPLATE } from "../../../gitlabBot/triggerPointer";
-import { getGitlabBotConfig } from "../../../gitlabBot/configStore";
+import { TRIGGER_POINTER_TEMPLATE } from "../../../gitlabBot/events/triggerPointer";
+import { getGitlabBotConfig } from "../../../gitlabBot/config/configStore";
 import { projectSchema, strictObject } from "../schemas/input";
 import {
   requireProject,
@@ -58,7 +58,7 @@ export const gitlabEnsureRunnerTool = tool(
       }
       if (!config.relayToken) {
         throw new GitlabApiError(
-          "QNote 的 GitLab 网关没配 relay 令牌，先在设置页生成",
+          "QNote GitLab Relay 令牌尚未初始化，请重新保存网关配置",
           0,
           false
         );

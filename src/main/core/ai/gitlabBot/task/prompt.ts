@@ -1,4 +1,4 @@
-import type { GitlabEvent } from "./webhook";
+import type { GitlabEvent } from "../events/webhook";
 
 export interface TaskPromptInput {
   event: GitlabEvent;

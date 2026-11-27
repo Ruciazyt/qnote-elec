@@ -3,13 +3,6 @@ import { z } from 'zod';
 import { GitlabApiError, gitlabRequest } from '../api/client';
 import { gitlabEndpoints } from '../api/endpoints';
 import type { GitlabHook } from '../api/types';
-import { getGitlabBotConfig } from '../../../gitlabBot/configStore';
-import {
-  buildWebhookTemplate,
-  maskWebhookSecret,
-  GITLAB_WEBHOOK_EVENT_KEYS,
-  type GitlabWebhookEventKey,
-} from '../../../gitlabBot/webhookTemplate';
 import {
   hookIdSchema,
   hookTriggerSchema,
@@ -217,106 +210,6 @@ export const gitlabDeleteHookTool = tool(
     schema: strictObject({
       project: projectSchema.describe('项目路径或数字项目 ID'),
       hook_id: hookIdSchema.describe('来自 gitlab_list_hooks 的 Webhook id'),
-      dry_run: z.boolean().optional(),
-    }),
-  }
-);
-
-export const gitlabEnsureWebhookTool = tool(
-  async (input: {
-    project: string;
-    dry_run?: boolean;
-    push_events?: boolean;
-    tag_push_events?: boolean;
-    note_events?: boolean;
-    issues_events?: boolean;
-    confidential_issues_events?: boolean;
-    merge_requests_events?: boolean;
-    job_events?: boolean;
-    pipeline_events?: boolean;
-    wiki_page_events?: boolean;
-    releases_events?: boolean;
-  }) => {
-    return runGitlabTool('gitlab_ensure_webhook', input.project, async () => {
-      const project = requireProject(input.project);
-      requireWritable();
-      const config = getGitlabBotConfig();
-      if (!config.enabled) {
-        throw new GitlabApiError(
-          'QNote 的 GitLab 网关没启用，先在设置页打开',
-          0,
-          false
-        );
-      }
-      if (!config.signingToken && !config.secretToken && !config.relayToken) {
-        throw new GitlabApiError(
-          'QNote 的 GitLab 网关没配 webhook 密钥',
-          0,
-          false
-        );
-      }
-
-      const overrides: Partial<Record<GitlabWebhookEventKey, boolean>> = {};
-      for (const key of GITLAB_WEBHOOK_EVENT_KEYS) {
-        const value = (input as Record<string, unknown>)[key];
-        if (typeof value === 'boolean') overrides[key] = value;
-      }
-
-      const template = buildWebhookTemplate({
-        port: config.port,
-        secretToken: config.secretToken,
-        signingToken: config.signingToken,
-        host: config.bindAddress,
-        events: overrides,
-      });
-
-      const listed = await gitlabRequest<GitlabHook[]>({
-        method: 'GET',
-        path: gitlabEndpoints.hooks(project),
-      });
-      const existing = (listed.data ?? []).find(
-        (hook) => hook.url === template.url
-      );
-
-      if (input.dry_run) {
-        return {
-          dry_run: true,
-          project,
-          action: existing ? 'would_update' : 'would_create',
-          template: {
-            ...template,
-            token: template.token ? maskWebhookSecret(template.token) : undefined,
-            signing_token: template.signing_token
-              ? maskWebhookSecret(template.signing_token)
-              : undefined,
-          },
-        };
-      }
-
-      if (existing) {
-        const updated = await gitlabRequest<GitlabHook>({
-          method: 'PUT',
-          path: gitlabEndpoints.hook(project, existing.id),
-          body: template,
-        });
-        return { project, action: 'updated', hook: hookResult(updated.data) };
-      }
-
-      const created = await gitlabRequest<GitlabHook>({
-        method: 'POST',
-        path: gitlabEndpoints.hooks(project),
-        body: template,
-      });
-      return { project, action: 'created', hook: hookResult(created.data) };
-    });
-  },
-  {
-    name: 'gitlab_ensure_webhook',
-    description:
-      '给项目配置一条指向 QNote 内网网关的 Webhook：接收地址与 secret 自动取自 QNote 的网关配置，已有同地址的 webhook 就更新而不是重复创建。写操作。',
-    schema: strictObject({
-      project: projectSchema.describe('项目路径或数字项目 ID'),
-      ...hookEventShape,
       dry_run: z.boolean().optional(),
     }),
   }

@@ -7,7 +7,6 @@ import type { GitlabRunnerStatusView } from "@shared/ai/gitlabBot";
 export interface GitlabBotRunnerDraft {
   enabled: boolean;
   project: string;
-  tags: string;
 }
 
 interface GitlabBotRunnerSectionProps {
@@ -38,9 +37,9 @@ export default function GitlabBotRunnerSection({
     <div className="space-y-3 rounded-md border border-border/70 bg-muted/20 p-3">
       <div className="flex items-center justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-medium text-foreground">自托管 Runner</p>
-          <p className="text-[10px] text-muted-foreground mt-0.5">
-            随 QNote 一起启停，负责领走 GitLab 派下来的任务再转回网关
+          <p className="text-sm font-medium text-foreground">自托管 Runner</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            由 QNote 管理生命周期，接收流水线任务并转发事件。
           </p>
         </div>
         <Switch
@@ -51,37 +50,23 @@ export default function GitlabBotRunnerSection({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <label
-            htmlFor="gitlab-bot-runner-project"
-            className="text-xs font-medium text-foreground/80"
-          >
-            绑定项目
-          </label>
-          <Input
-            id="gitlab-bot-runner-project"
-            value={draft.project}
-            onChange={(e) => onChange({ project: e.target.value })}
-            placeholder="group/project"
-            className="h-9 bg-muted/30 focus-visible:bg-background font-mono text-[12px]"
-          />
-        </div>
-        <div className="space-y-1.5">
-          <label
-            htmlFor="gitlab-bot-runner-tags"
-            className="text-xs font-medium text-foreground/80"
-          >
-            Runner 标签
-          </label>
-          <Input
-            id="gitlab-bot-runner-tags"
-            value={draft.tags}
-            onChange={(e) => onChange({ tags: e.target.value })}
-            placeholder="qnote"
-            className="h-9 bg-muted/30 focus-visible:bg-background font-mono text-[12px]"
-          />
-        </div>
+      <div className="space-y-1.5">
+        <label
+          htmlFor="gitlab-bot-runner-project"
+          className="text-xs font-medium text-foreground/80"
+        >
+          绑定项目
+        </label>
+        <Input
+          id="gitlab-bot-runner-project"
+          value={draft.project}
+          onChange={(e) => onChange({ project: e.target.value })}
+          placeholder="group/project"
+          className="h-9 bg-muted/30 focus-visible:bg-background font-mono text-[12px]"
+        />
+        <p className="text-xs text-muted-foreground">
+          留空时使用项目白名单中的首个项目。
+        </p>
       </div>
 
       <div className="flex items-center justify-between gap-3">

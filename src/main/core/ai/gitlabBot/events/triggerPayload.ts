@@ -1,4 +1,5 @@
-import { gitlabRequest } from "../tools/gitlab/api/client";
+import { gitlabGet } from "../../tools/gitlab/api/client";
+import { gitlabEndpoints } from "../../tools/gitlab/api/endpoints";
 
 export const TRIGGER_PAYLOAD_KEY = "TRIGGER_PAYLOAD";
 
@@ -20,19 +21,15 @@ export async function loadTriggerPayload(options: {
   pipelineId: number;
 }): Promise<TriggerPayloadResult> {
   try {
-    const result = await gitlabRequest<
+    const data = await gitlabGet<
       Array<{ key?: string; value?: string; variable_type?: string }>
-    >({
-      method: "GET",
-      path:
-        "/projects/" +
-        options.projectId +
-        "/pipelines/" +
-        options.pipelineId +
-        "/variables",
-      idempotent: true,
-    });
-    const list = Array.isArray(result.data) ? result.data : [];
+    >(
+      gitlabEndpoints.pipelineVariables(
+        String(options.projectId),
+        options.pipelineId
+      )
+    );
+    const list = Array.isArray(data) ? data : [];
     const hit = list.find((item) => item.key === TRIGGER_PAYLOAD_KEY);
     if (!hit?.value) {
       return {

@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import { log } from "../../../system/log";
 import type { GitlabRunnerStatusView } from "../../../../../shared/ai/gitlabBot";
-import { getGitlabBotConfig } from "../configStore";
+import { getGitlabBotConfig } from "../config/configStore";
 import { runnerConfigIsUsable } from "./configFile";
 import { runnerConfigPath, resolveRunnerBinary } from "./paths";
 import { GitlabRunnerProcess } from "./process";
@@ -38,8 +38,8 @@ async function repairRegistration(): Promise<void> {
       project,
       tags: config.runnerTags,
     });
-    if (!result.ok) {
-      lastError = result.error ?? "重新注册失败";
+    if (result.ok === false) {
+      lastError = result.error;
       log.error("[gitlab-bot] " + lastError);
       return;
     }
@@ -84,8 +84,8 @@ export async function startGitlabRunner(): Promise<GitlabRunnerStatusView> {
       project,
       tags: config.runnerTags,
     });
-    if (!result.ok) {
-      lastError = result.error ?? "runner 注册失败";
+    if (result.ok === false) {
+      lastError = result.error;
       log.error("[gitlab-bot] " + lastError);
       return getGitlabRunnerStatus();
     }

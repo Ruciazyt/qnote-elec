@@ -107,7 +107,6 @@ const EXTRA_META: Record<string, ToolMeta> = {
   gitlab_list_hooks: { title: "列出 Webhook", group: "GitLab", kind: "read" },
   gitlab_gateway_status: { title: "网关配置", group: "GitLab", kind: "read" },
   gitlab_create_hook: { title: "创建 Webhook", group: "GitLab", kind: "write" },
-  gitlab_ensure_webhook: { title: "配置 Webhook", group: "GitLab", kind: "write" },
   gitlab_update_hook: { title: "更新 Webhook", group: "GitLab", kind: "write" },
   gitlab_delete_hook: { title: "删除 Webhook", group: "GitLab", kind: "write" },
   gitlab_test_hook: { title: "测试 Webhook", group: "GitLab", kind: "write" },

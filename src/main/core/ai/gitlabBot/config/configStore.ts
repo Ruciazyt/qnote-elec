@@ -1,14 +1,11 @@
 import type { Knex } from "knex";
-import { log } from "../../system/log";
+import { log } from "../../../system/log";
 
 const SETTINGS_KEY = "gitlab_bot_config";
 
 export interface GitlabBotConfig {
   enabled: boolean;
   port: number;
-  bindAddress: string;
-  signingToken: string;
-  secretToken: string;
   relayToken: string;
   triggerWords: string[];
   allowedProjects: string[];
@@ -21,9 +18,6 @@ export function defaultGitlabBotConfig(): GitlabBotConfig {
   return {
     enabled: false,
     port: 7799,
-    bindAddress: "0.0.0.0",
-    signingToken: "",
-    secretToken: "",
     relayToken: "",
     triggerWords: ["@qnote"],
     allowedProjects: [],
@@ -40,41 +34,15 @@ export function getGitlabBotConfig(): GitlabBotConfig {
   return cached;
 }
 
-function toStringList(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  return value
-    .filter((item): item is string => typeof item === "string")
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-function normalizeConfig(raw: any): GitlabBotConfig {
-  const fallback = defaultGitlabBotConfig();
-  const port = Number(raw?.port);
-  const triggerWords = toStringList(raw?.triggerWords);
-  return {
-    enabled: raw?.enabled === true,
-    port:
-      Number.isInteger(port) && port > 0 && port < 65536
-        ? port
-        : fallback.port,
-    bindAddress:
-      typeof raw?.bindAddress === "string" && raw.bindAddress.trim()
-        ? raw.bindAddress.trim()
-        : fallback.bindAddress,
-    signingToken:
-      typeof raw?.signingToken === "string" ? raw.signingToken.trim() : "",
-    secretToken:
-      typeof raw?.secretToken === "string" ? raw.secretToken : "",
-    relayToken:
-      typeof raw?.relayToken === "string" ? raw.relayToken.trim() : "",
-    triggerWords: triggerWords.length ? triggerWords : fallback.triggerWords,
-    allowedProjects: toStringList(raw?.allowedProjects),
-    runnerEnabled: raw?.runnerEnabled !== false,
-    runnerProject:
-      typeof raw?.runnerProject === "string" ? raw.runnerProject.trim() : "",
-    runnerTags: toStringList(raw?.runnerTags),
-  };
+function readStoredConfig(raw: Partial<GitlabBotConfig>): GitlabBotConfig {
+  const defaults = defaultGitlabBotConfig();
+  const config = { ...defaults, ...raw };
+  if (!Number.isInteger(config.port) || config.port < 1 || config.port > 65535) {
+    config.port = defaults.port;
+  }
+  if (!config.triggerWords.length) config.triggerWords = defaults.triggerWords;
+  if (!("runnerTags" in raw)) config.runnerTags = [];
+  return config;
 }
 
 export async function loadGitlabBotConfig(): Promise<GitlabBotConfig> {
@@ -85,7 +53,19 @@ export async function loadGitlabBotConfig(): Promise<GitlabBotConfig> {
       cached = defaultGitlabBotConfig();
       return cached;
     }
-    cached = normalizeConfig(JSON.parse(row.configValue));
+    const raw = JSON.parse(row.configValue) as Partial<GitlabBotConfig> &
+      Record<string, unknown>;
+    const hasLegacyFields =
+      "bindAddress" in raw || "signingToken" in raw || "secretToken" in raw;
+    delete raw.bindAddress;
+    delete raw.signingToken;
+    delete raw.secretToken;
+    cached = readStoredConfig(raw);
+    if (hasLegacyFields) {
+      await db("settings")
+        .where("configName", SETTINGS_KEY)
+        .update({ configValue: JSON.stringify(cached), updated_at: new Date() });
+    }
     return cached;
   } catch (err) {
     log.error("[gitlab-bot] 读取配置失败", err);
@@ -97,11 +77,7 @@ export async function saveGitlabBotConfig(
   patch: Partial<GitlabBotConfig>
 ): Promise<GitlabBotConfig> {
   if (!db) throw new Error("GitLab Bot 配置存储未初始化");
-  const merged: Record<string, unknown> = { ...cached };
-  for (const [key, value] of Object.entries(patch)) {
-    if (value !== undefined) merged[key] = value;
-  }
-  const next = normalizeConfig(merged);
+  const next: GitlabBotConfig = { ...cached, ...patch };
   const now = new Date();
   const value = JSON.stringify(next);
   const exist = await db("settings").where("configName", SETTINGS_KEY).first();

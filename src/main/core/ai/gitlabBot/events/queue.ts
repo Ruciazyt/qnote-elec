@@ -1,5 +1,5 @@
-import { log } from "../../system/log";
-import { getGitlabBotConfig } from "./configStore";
+import { log } from "../../../system/log";
+import { getGitlabBotConfig } from "../config/configStore";
 import { decideTrigger, summarizeText, type GitlabEvent } from "./webhook";
 
 export interface QueueOptions {

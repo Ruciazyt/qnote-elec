@@ -100,23 +100,13 @@ contextBridge.exposeInMainWorld("electron", {
   clearGithubConfig: () => ipcRenderer.invoke("ai-clear-github-config"),
   getGitlabBotConfig: () => ipcRenderer.invoke("gitlab-bot:get-config"),
   saveGitlabBotConfig: (config: {
-    enabled: boolean;
-    port: number;
-    bindAddress: string;
-    secretToken?: string;
-    relayToken?: string;
-    triggerWords: string[];
-    allowedProjects: string[];
-    runnerEnabled: boolean;
-    runnerProject: string;
-    runnerTags: string[];
+    enabled?: boolean;
+    triggerWords?: string[];
+    allowedProjects?: string[];
+    runnerEnabled?: boolean;
+    runnerProject?: string;
   }) => ipcRenderer.invoke("gitlab-bot:save-config", config),
   clearGitlabBotConfig: () => ipcRenderer.invoke("gitlab-bot:clear-config"),
-  generateGitlabBotSecret: () => ipcRenderer.invoke("gitlab-bot:generate-secret"),
-  generateGitlabBotRelayToken: () =>
-    ipcRenderer.invoke("gitlab-bot:generate-relay-token"),
-  revealGitlabBotRelayToken: () =>
-    ipcRenderer.invoke("gitlab-bot:reveal-relay-token"),
   getGitlabBotRunnerStatus: () => ipcRenderer.invoke("gitlab-bot:runner-status"),
   restartGitlabBotRunner: () => ipcRenderer.invoke("gitlab-bot:restart-runner"),
 

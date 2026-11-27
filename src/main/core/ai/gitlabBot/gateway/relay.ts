@@ -1,5 +1,5 @@
 import { randomBytes, timingSafeEqual } from "node:crypto";
-import { getGitlabBotConfig } from "./configStore";
+import { getGitlabBotConfig } from "../config/configStore";
 
 export const RELAY_TOKEN_PREFIX = "qnrelay_";
 export const RELAY_TOKEN_HEADER = "x-qnote-relay-token";

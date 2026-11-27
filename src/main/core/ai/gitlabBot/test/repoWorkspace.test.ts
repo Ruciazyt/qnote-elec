@@ -9,7 +9,7 @@ vi.mock("electron", () => ({
   },
 }));
 
-import { buildWorkBranchName, projectDirName } from "../repoWorkspace";
+import { buildWorkBranchName, projectDirName } from "../task/repoWorkspace";
 
 describe("仓库工作区", () => {
   it("项目路径转成安全的目录名", () => {

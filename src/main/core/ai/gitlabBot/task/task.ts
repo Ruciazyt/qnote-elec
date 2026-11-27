@@ -1,24 +1,24 @@
 import { createHash } from "node:crypto";
-import { configManager } from "../../system/config";
-import { log } from "../../system/log";
-import { ensureAiChatSession } from "../chatSession";
+import { configManager } from "../../../system/config";
+import { log } from "../../../system/log";
+import { ensureAiChatSession } from "../../chatSession";
 import {
   removeAiChatRow,
   startAiChatAssistantRow,
   updateAiChatAssistantRow,
-} from "../chatPersistence";
-import { emitAiChatChanged } from "../chatEvents";
-import { BlockBuilder } from "../../../../shared/ai/aiBlocks";
+} from "../../chatPersistence";
+import { emitAiChatChanged } from "../../chatEvents";
+import { BlockBuilder } from "../../../../../shared/ai/aiBlocks";
 import {
   buildOpencodeParts,
   toOpencodeProvider,
-} from "../runtime/opencode/bridge";
-import { getOpencodeRuntime } from "../runtime/opencode/runtime";
-import type { OpencodeDriverResult } from "../runtime/opencode/driver";
-import { QNOTE_CODE_AGENT_NAME } from "../runtime/opencode/profile";
-import { resolveToolDisplay } from "../tools/index";
+} from "../../runtime/opencode/bridge";
+import { getOpencodeRuntime } from "../../runtime/opencode/runtime";
+import type { OpencodeDriverResult } from "../../runtime/opencode/driver";
+import { QNOTE_CODE_AGENT_NAME } from "../../runtime/opencode/profile";
+import { resolveToolDisplay } from "../../tools/index";
 import { buildTaskPrompt } from "./prompt";
-import type { GitlabEvent } from "./webhook";
+import type { GitlabEvent } from "../events/webhook";
 
 export function gitlabSessionId(projectPath: string, key: string): string {
   const hash = createHash("sha1")

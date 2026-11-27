@@ -146,6 +146,10 @@ export async function gitlabRequest<T>(options: GitlabRequestOptions): Promise<G
   }
 }
 
+export async function gitlabGet<T>(path: string): Promise<T> {
+  return (await gitlabRequest<T>({ method: 'GET', path })).data;
+}
+
 export async function gitlabList<T>(
   path: string,
   query: Record<string, GitlabQueryValue>,

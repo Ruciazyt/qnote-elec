@@ -11,19 +11,16 @@ vi.mock("electron", () => ({
 
 const configState: { current: any } = { current: null };
 
-vi.mock("../configStore", () => ({
+vi.mock("../config/configStore", () => ({
   getGitlabBotConfig: () => configState.current,
 }));
 
-import { dedupeKey, GitlabEventQueue } from "../queue";
-import type { GitlabEvent } from "../webhook";
+import { dedupeKey, GitlabEventQueue } from "../events/queue";
+import type { GitlabEvent } from "../events/webhook";
 
 const BASE_CONFIG = {
   enabled: true,
   port: 7799,
-  bindAddress: "0.0.0.0",
-  signingToken: "",
-  secretToken: "s3cret",
   relayToken: "",
   triggerWords: ["@qnote"],
   allowedProjects: [],

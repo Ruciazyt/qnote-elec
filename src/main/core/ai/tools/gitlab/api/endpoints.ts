@@ -42,6 +42,8 @@ export const gitlabEndpoints = {
   pipelines: (project: string) => projectPath(project) + '/pipelines',
   pipeline: (project: string, pipelineId: number) =>
     projectPath(project) + '/pipelines/' + pipelineId,
+  pipelineVariables: (project: string, pipelineId: number) =>
+    projectPath(project) + '/pipelines/' + pipelineId + '/variables',
   pipelineJobs: (project: string, pipelineId: number) =>
     projectPath(project) + '/pipelines/' + pipelineId + '/jobs',
   jobTrace: (project: string, jobId: number) =>

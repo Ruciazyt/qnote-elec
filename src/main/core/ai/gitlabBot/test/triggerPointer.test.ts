@@ -5,7 +5,7 @@ import {
   isTriggerPointer,
   parseTriggerPointer,
   TRIGGER_POINTER_TEMPLATE,
-} from "../triggerPointer";
+} from "../events/triggerPointer";
 
 describe("trigger 指针模板", () => {
   it("是合法 JSON", () => {

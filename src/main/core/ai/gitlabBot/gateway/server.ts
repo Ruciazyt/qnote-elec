@@ -1,8 +1,6 @@
 import * as http from "node:http";
-import { timingSafeEqual } from "node:crypto";
-import { log } from "../../system/log";
-import { getGitlabBotConfig } from "./configStore";
-import { verifyWebhookSignature } from "./signature";
+import { log } from "../../../system/log";
+import { getGitlabBotConfig } from "../config/configStore";
 import {
   authorizeRelay,
   parseRelayRequest,
@@ -10,21 +8,12 @@ import {
   RELAY_PROJECT_ID_HEADER,
   RELAY_TOKEN_HEADER,
 } from "./relay";
-import { parseGitlabEvent } from "./webhook";
-import { loadTriggerPayload } from "./triggerPayload";
-import { resolveEventPayload } from "./eventHydrator";
-import type { GitlabBotTrigger } from "./trigger";
+import { loadTriggerPayload } from "../events/triggerPayload";
+import type { GitlabBotTrigger } from "../events/trigger";
+import { getGitlabEvent } from "../events/eventDetails";
 
-export const GITLAB_WEBHOOK_PATH = "/gitlab/webhook";
 export const GITLAB_HEALTH_PATH = "/gitlab/health";
 export const GITLAB_RELAY_PATH = "/gitlab/relay";
-
-function safeEqual(left: string, right: string): boolean {
-  const a = Buffer.from(left, "utf8");
-  const b = Buffer.from(right, "utf8");
-  if (a.length !== b.length) return false;
-  return timingSafeEqual(a, b);
-}
 
 export class GitlabBotServer {
   private server: http.Server | null = null;
@@ -57,7 +46,7 @@ export class GitlabBotServer {
       };
       server.once("error", onError);
       server.once("listening", onListening);
-      server.listen(config.port, config.bindAddress);
+      server.listen(config.port, "127.0.0.1");
     });
 
     const address = server.address();
@@ -65,7 +54,7 @@ export class GitlabBotServer {
     this.server = server;
     return {
       port: this.port,
-      url: `http://${config.bindAddress}:${this.port}`,
+      url: `http://127.0.0.1:${this.port}`,
     };
   }
 
@@ -102,38 +91,21 @@ export class GitlabBotServer {
       return;
     }
 
-    if (pathname !== GITLAB_WEBHOOK_PATH || req.method !== "POST") {
-      this.sendJson(res, 404, { error: "not found" });
-      return;
-    }
-
-    const rawBody = await readRawBody(req);
-    const auth = this.authorize(req, rawBody);
-    if (!auth.ok) {
-      log.warn("[gitlab-bot] webhook 鉴权失败", { reason: auth.reason });
-      this.sendJson(res, 401, { error: "unauthorized" });
-      return;
-    }
-
-    let payload: any;
-    try {
-      payload = parseJsonBody(rawBody);
-    } catch (err) {
-      this.sendJson(res, 400, {
-        error: err instanceof Error ? err.message : String(err),
-      });
-      return;
-    }
-
-    const eventType = String(req.headers["x-gitlab-event"] || "");
-    const outcome = await this.trigger.handle(eventType, payload);
-    this.sendJson(res, 200, outcome);
+    this.sendJson(res, 404, { error: "not found" });
   }
 
   private async handleRelay(
     req: http.IncomingMessage,
     res: http.ServerResponse
   ): Promise<void> {
+    const token = String(req.headers[RELAY_TOKEN_HEADER] || "");
+    const auth = authorizeRelay(token);
+    if (!auth.ok) {
+      log.warn("[gitlab-bot] relay 鉴权失败", { reason: auth.reason });
+      this.sendJson(res, 401, { error: "unauthorized" });
+      return;
+    }
+
     const rawBody = await readRawBody(req);
     let payload: unknown;
     try {
@@ -146,19 +118,12 @@ export class GitlabBotServer {
     }
 
     const request = parseRelayRequest({
-      token: String(req.headers[RELAY_TOKEN_HEADER] || ""),
+      token,
       eventType: String(req.headers["x-gitlab-event"] || ""),
       payload,
       projectId: req.headers[RELAY_PROJECT_ID_HEADER],
       pipelineId: req.headers[RELAY_PIPELINE_ID_HEADER],
     });
-
-    const auth = authorizeRelay(request.token);
-    if (!auth.ok) {
-      log.warn("[gitlab-bot] relay 鉴权失败", { reason: auth.reason });
-      this.sendJson(res, 401, { error: "unauthorized" });
-      return;
-    }
 
     let resolved = request;
     if (!payload) {
@@ -180,55 +145,30 @@ export class GitlabBotServer {
       resolved = { ...request, payload: fetched.payload };
     }
 
-    const hydrated = await resolveEventPayload(resolved.payload);
-    if (!hydrated.ok) {
-      log.warn("[gitlab-bot] 回源取原文失败", { reason: hydrated.reason });
+    const parsed = await getGitlabEvent(
+      resolved.eventType,
+      resolved.payload
+    );
+    if (parsed.ok === false && parsed.stage === "detail") {
+      log.warn("[gitlab-bot] 回源取原文失败", { reason: parsed.reason });
       this.sendJson(res, 502, {
-        error: hydrated.reason ?? "回源取原文失败",
+        error: parsed.reason,
       });
       return;
     }
-    resolved = { ...resolved, payload: hydrated.payload };
-
-    const event = parseGitlabEvent(resolved.eventType, resolved.payload);
-    if (!event) {
-      this.sendJson(res, 400, { error: "转发报文解析失败" });
+    if (parsed.ok === false) {
+      this.sendJson(res, 400, { error: parsed.reason });
       return;
     }
-
-    const result = this.trigger.enqueue(event);
-    if (!result.accepted) {
-      log.info("[gitlab-bot] relay 事件未入队", { reason: result.reason });
+    const outcome = this.trigger.enqueue(parsed.event);
+    if (!outcome.accepted) {
+      log.info("[gitlab-bot] relay 事件未入队", { reason: outcome.reason });
     }
     this.sendJson(res, 200, {
-      accepted: result.accepted,
-      queued: result.accepted,
-      reason: result.reason,
+      accepted: outcome.accepted,
+      queued: outcome.accepted,
+      reason: outcome.reason,
     });
-  }
-
-  private authorize(
-    req: http.IncomingMessage,
-    rawBody: Buffer
-  ): { ok: boolean; reason: string } {
-    const config = getGitlabBotConfig();
-    if (config.signingToken) {
-      return verifyWebhookSignature({
-        signingToken: config.signingToken,
-        messageId: String(req.headers["webhook-id"] || ""),
-        timestamp: String(req.headers["webhook-timestamp"] || ""),
-        signatureHeader: String(req.headers["webhook-signature"] || ""),
-        rawBody,
-      });
-    }
-    if (config.secretToken) {
-      const token = String(req.headers["x-gitlab-token"] || "");
-      if (!safeEqual(token, config.secretToken)) {
-        return { ok: false, reason: "X-Gitlab-Token 不匹配" };
-      }
-      return { ok: true, reason: "明文令牌校验通过" };
-    }
-    return { ok: false, reason: "没配 webhook 密钥" };
   }
 
   private sendJson(

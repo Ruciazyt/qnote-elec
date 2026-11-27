@@ -15,7 +15,7 @@ import {
   initGitlabBotConfigStore,
   loadGitlabBotConfig,
   saveGitlabBotConfig,
-} from "../configStore";
+} from "../config/configStore";
 
 let DB: Knex;
 

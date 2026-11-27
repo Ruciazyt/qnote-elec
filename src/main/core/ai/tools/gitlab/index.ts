@@ -30,7 +30,6 @@ import {
 import {
   gitlabCreateHookTool,
   gitlabDeleteHookTool,
-  gitlabEnsureWebhookTool,
   gitlabListHooksTool,
   gitlabTestHookTool,
   gitlabUpdateHookTool,
@@ -66,7 +65,6 @@ export const GITLAB_WRITE_TOOLS: ToolDefinition[] = [
   gitlabUpdateHookTool,
   gitlabDeleteHookTool,
   gitlabTestHookTool,
-  gitlabEnsureWebhookTool,
   gitlabEnsureRunnerTool,
 ];
 

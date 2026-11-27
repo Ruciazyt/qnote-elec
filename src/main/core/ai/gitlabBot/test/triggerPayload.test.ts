@@ -4,10 +4,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const requestMock = vi.fn();
 
 vi.mock("../../tools/gitlab/api/client", () => ({
-  gitlabRequest: (options: unknown) => requestMock(options),
+  gitlabGet: async (path: string) =>
+    (await requestMock({ method: "GET", path, idempotent: true })).data,
 }));
 
-import { loadTriggerPayload } from "../triggerPayload";
+import { loadTriggerPayload } from "../events/triggerPayload";
 
 beforeEach(() => {
   requestMock.mockReset();
