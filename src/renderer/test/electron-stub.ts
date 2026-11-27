@@ -22,7 +22,12 @@ export function createElectronStub(overrides: Record<string, unknown> = {}): Ele
                 `src/renderer/electron.d.ts 三处。`
             );
           }
-          methods.set(prop, vi.fn(() => Promise.resolve(undefined)));
+          methods.set(
+            prop,
+            prop.startsWith("on")
+              ? vi.fn(() => () => {})
+              : vi.fn(() => Promise.resolve(undefined))
+          );
         }
         return methods.get(prop);
       },

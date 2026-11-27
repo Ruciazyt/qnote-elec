@@ -16,7 +16,7 @@ vi.mock("electron", () => ({
 import { PluginManager } from "../runtime/pluginManager";
 import { PluginHostApi } from "./hostApi";
 import { syncPluginGrants, setPluginGrant } from "../permissions/pluginGrants";
-import { setToolContext } from "../../ai/toolContext";
+import { initToolContext } from "../../ai/toolContext";
 import { aiService } from "../../ai/aiService";
 import { configManager } from "../../system/config";
 import type { FileWriter } from "../../notes/fileWriter";
@@ -125,7 +125,7 @@ describe("宿主 API 面的权限判定", () => {
 
     noteRoot = fs.mkdtempSync(path.join(os.tmpdir(), "qnote-plugin-notes-"));
     fs.writeFileSync(path.join(noteRoot, "方案.md"), "# 方案", "utf-8");
-    setToolContext({
+    initToolContext({
       DB,
       notes: { getFilePath: async () => noteRoot } as unknown as FileWriter,
     });

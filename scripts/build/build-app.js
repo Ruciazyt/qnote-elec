@@ -135,6 +135,28 @@ function runElectronBuilder(args, label) {
   return result.status === 0;
 }
 
+function prepareOpencode() {
+  console.log("\n▶ 内置 opencode 运行时");
+  const script = path.join(projectRoot, "scripts", "build", "prepare-opencode.js");
+  const result = spawnSync(process.execPath, [script], {
+    cwd: projectRoot,
+    encoding: "utf8",
+    stdio: "inherit",
+  });
+  return result.status === 0;
+}
+
+function prepareGitlabRunner() {
+  console.log("\n▶ 内置 GitLab Runner");
+  const script = path.join(projectRoot, "scripts", "build", "prepare-gitlab-runner.js");
+  const result = spawnSync(process.execPath, [script], {
+    cwd: projectRoot,
+    encoding: "utf8",
+    stdio: "inherit",
+  });
+  return result.status === 0;
+}
+
 function buildRust() {
   console.log("\n▶ 编译 Rust 原生模块");
   const result = spawnSync(
@@ -167,9 +189,21 @@ function main() {
     process.exit(1);
   }
 
+  if (!prepareOpencode()) {
+    console.error("\n❌ 内置 opencode 运行时失败，打包中止。");
+    process.exit(1);
+  }
+
   if (!buildRust()) {
     console.error("\n❌ Rust 原生模块编译失败，打包中止。");
     process.exit(1);
+  }
+
+  if (!prepareGitlabRunner()) {
+    console.warn(
+      "\n⚠️  内置 GitLab Runner 失败 —— 不影响打包，" +
+        "但「应用」页的 GitLab 机器人功能将无法自动拉起 Runner。"
+    );
   }
 
   const first = runBuilderWithRetry(extraArgs);

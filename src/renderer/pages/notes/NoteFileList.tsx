@@ -600,7 +600,7 @@ function NoteFileList({
           }
         >
           {isEmpty ? (
-            <div className="flex flex-col items-center justify-center py-10 leetcode-empty-state">
+            <div className="flex flex-col items-center justify-center py-10 panel-empty-state">
               <div className="relative mb-4">
                 <div className="absolute inset-0 bg-primary/10 rounded-full blur-xl scale-75" />
                 <div className="relative w-12 h-12 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center animate-float icon-glow-ring">

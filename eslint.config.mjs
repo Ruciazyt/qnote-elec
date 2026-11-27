@@ -206,6 +206,7 @@ export default [
             'qnote/no-arbitrary-duration': 'error',
             'qnote/no-module-state-in-utils': 'error',
             'qnote/page-padding': 'error',
+            'qnote/react-component-boundaries': 'warn',
         },
     },
 

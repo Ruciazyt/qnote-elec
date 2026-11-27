@@ -9,9 +9,6 @@ export {
 } from "./usageRecorder";
 export type { UsageRecord, UsageKind, TokenUsage } from "./usageRecorder";
 
-export { ObservabilityCallback } from './observabilityCallback';
-export type { ObservabilityCallbackOptions } from './observabilityCallback';
-
 export { UsageStatsService } from './usageStats';
 export type {
   UsageStats,

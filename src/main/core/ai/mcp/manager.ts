@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { appVersion } from "../../system/appVersion";
-import type { StructuredToolInterface } from "@langchain/core/tools";
+import type { ToolDefinition } from "../tools/tool";
 import { log } from "../../system/log";
 import { loadMcpSdk } from "./sdk";
 import {
@@ -76,7 +76,7 @@ class McpManager {
   private projectEntries = new Map<string, ProjectMcpEntry>();
   private live = new Map<string, LiveServer>();
   private statuses = new Map<string, { status: McpServerStatus; error?: string }>();
-  private toolCache: StructuredToolInterface[] = [];
+  private toolCache: ToolDefinition[] = [];
   private registry = new McpNameRegistry();
   private projectDir: string | null = null;
   private projectFingerprint: string | null = null;
@@ -141,7 +141,7 @@ class McpManager {
     return this.live.get(id)?.tools ?? [];
   }
 
-  getTools(): StructuredToolInterface[] {
+  getTools(): ToolDefinition[] {
     return [...this.toolCache];
   }
 
@@ -499,7 +499,7 @@ class McpManager {
     }));
     const serverSegments = this.registry.assignServers(candidates);
 
-    const tools: StructuredToolInterface[] = [];
+    const tools: ToolDefinition[] = [];
     for (const [serverId, live] of this.live) {
       const serverName = configs.get(serverId)?.name ?? serverId;
       const serverSegment = serverSegments.get(serverId);

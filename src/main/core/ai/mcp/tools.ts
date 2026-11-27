@@ -1,5 +1,5 @@
-import { tool } from "@langchain/core/tools";
-import type { StructuredToolInterface } from "@langchain/core/tools";
+import { tool } from "../tools/tool";
+import type { ToolDefinition } from "../tools/tool";
 import { jsonSchemaToZod } from "./schema";
 import type { McpToolInfo } from "./types";
 
@@ -8,7 +8,7 @@ export function buildMcpTool(params: {
   serverName: string;
   tool: McpToolInfo;
   invoke: (args: Record<string, unknown>) => Promise<string>;
-}): StructuredToolInterface {
+}): ToolDefinition {
   const { name, serverName, tool: info, invoke } = params;
   const schema = jsonSchemaToZod(
     info.inputSchema ?? { type: "object", properties: {} }
@@ -21,5 +21,5 @@ export function buildMcpTool(params: {
       schema: schema as any,
     }
   );
-  return created as unknown as StructuredToolInterface;
+  return created as unknown as ToolDefinition;
 }

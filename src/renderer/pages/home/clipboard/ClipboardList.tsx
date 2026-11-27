@@ -2,6 +2,7 @@ import React, { RefObject, useCallback, useState } from "react";
 import { formatDistanceToNow, format, isSameDay, isToday, isYesterday } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { Card } from "../../../components/ui/card";
+import { NeuCard } from "../../../components/ui/neu-card";
 import { Button } from "../../../components/ui/button";
 import { Skeleton } from "../../../components/ui/skeleton";
 import {
@@ -464,9 +465,9 @@ export function ClipboardList({
         if (isPinned && !expandedPinned.has(recordId)) {
           const previewText = record.type === "text" ? buildPreview(record.content) : "";
           return (
-            <Card
+            <NeuCard
               key={recordId}
-              className="relative p-0 border-0 animate-fade-in group card-accent-border neu-raised neu-raised-hover hover:-translate-y-1 hover:scale-[1.004]"
+              className="p-0 animate-fade-in"
               style={{
                 animationDelay: `${Math.min(index, 40) * 50}ms`,
                 animationFillMode: "both",
@@ -628,20 +629,17 @@ export function ClipboardList({
                   </Tooltip>
                 </div>
               </div>
-            </Card>
+            </NeuCard>
           );
         }
 
         return (
-          <Card
+          <NeuCard
             key={recordId}
-            className={`relative p-4 border-0 transition-all duration-200 group card-accent-border ${
+            raise={!isEditing}
+            className={`p-4 ${
               deferred ? "clipboard-card-virtual" : "animate-fade-in"
-            } ${
-              isEditing
-                ? "z-50 neu-raised neu-raised-open"
-                : "neu-raised neu-raised-hover hover:-translate-y-1 hover:scale-[1.004]"
-            } ${holding ? "opacity-60" : ""}`}
+            } ${isEditing ? "z-50 neu-raised-open" : ""} ${holding ? "opacity-60" : ""}`}
             style={{
               animationDelay: deferred ? undefined : `${Math.min(index, 40) * 50}ms`,
               animationFillMode: "both",
@@ -957,7 +955,7 @@ export function ClipboardList({
                 )}
               </div>
             </div>
-          </Card>
+          </NeuCard>
         );
       })}
       </div>

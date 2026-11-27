@@ -21,6 +21,8 @@ export function useAutoGrowTextarea(value: string, maxHeight?: number) {
     if (cssMaxHeight > 0) caps.push(cssMaxHeight);
     const limit = caps.length > 0 ? Math.min(...caps) : null;
 
+    const placeholder = el.placeholder;
+    el.placeholder = "";
     el.style.height = "0px";
     el.style.minHeight = "0px";
     el.style.overflowY = "hidden";
@@ -28,13 +30,27 @@ export function useAutoGrowTextarea(value: string, maxHeight?: number) {
     const content = el.scrollHeight + border;
     const next = Math.min(Math.max(content, minHeight), limit ?? Infinity);
 
+    el.placeholder = placeholder;
     el.style.height = `${next}px`;
     el.style.minHeight = "";
     el.style.overflowY = limit != null && content > limit ? "auto" : "hidden";
   }, []);
 
   useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
     resize();
+
+    if (typeof ResizeObserver === "undefined") return;
+    let lastWidth = el.clientWidth;
+    const observer = new ResizeObserver(() => {
+      const width = el.clientWidth;
+      if (Math.abs(width - lastWidth) < 1) return;
+      lastWidth = width;
+      resize();
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
   }, [value, resize]);
 
   return ref;

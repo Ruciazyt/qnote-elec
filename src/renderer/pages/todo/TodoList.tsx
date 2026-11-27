@@ -3,6 +3,7 @@ import { formatDistanceToNow } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { formatReminderLabel } from "@shared/todo/reminderTime";
 import { Button } from "@/components/ui/button";
+import { NeuCard } from "@/components/ui/neu-card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Todo, TodoPriority, TodoAttachment } from "./types";
 
@@ -115,137 +116,139 @@ export function TodoList({
         const attachments = todo.attachments || [];
         const attachmentCount = attachments.length;
         return (
-          <li
-            key={todo.id}
-            className={`rounded-lg border border-border/60 bg-card transition-colors hover:border-primary/30 hover:bg-card/80 ${completed ? "opacity-65" : ""}`}>
-            {}
-            <div className="flex items-center gap-2 px-3 pt-2 pb-1.5 text-xs">
-              <span className={`px-1.5 py-0.5 rounded border font-medium ${priority.className}`}>
-                {priority.label}
-              </span>
-              {due && (
-                <span className={`px-1.5 py-0.5 rounded border font-medium ${due.className}`}>
-                  {due.text}
+          <NeuCard
+            asChild
+            key={todo.id}>
+            <li>
+              {}
+              <div className="flex items-center gap-2 px-3 pt-2 pb-1.5 text-xs">
+                <span className={`px-1.5 py-0.5 rounded border font-medium ${priority.className}`}>
+                  {priority.label}
                 </span>
-              )}
-              {reminder && (
-                <span
-                  className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border font-medium ${reminder.className}`}
-                >
-                  <Bell className="h-3 w-3" />
-                  {reminder.text}
-                </span>
-              )}
-              {attachmentCount > 0 && (
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border bg-primary/5 text-primary-strong border-primary/20">
-                  <Paperclip className="h-3 w-3" />
-                  {attachmentCount}
-                </span>
-              )}
-              <span className="text-muted-foreground">{formatCreated(todo.created_at)}</span>
-              {showCompletedAt && completed && todo.completed_at && (
-                <span className="text-muted-foreground">
-                  完成于 {formatCreated(todo.completed_at)}
-                </span>
-              )}
-              <div className="ml-auto flex items-center gap-0.5">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      onClick={() => onEdit(todo)}
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 hover:bg-primary/10 hover:text-primary-strong"
-                      aria-label="编辑">
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" sideOffset={4}>
-                    <p className="text-xs">编辑</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      onClick={() => (archived ? onUnarchive?.(todo) : onArchive?.(todo))}
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 hover:bg-primary/10 hover:text-primary-strong"
-                      aria-label={archived ? "取消归档" : "归档"}>
-                      {archived ? (
-                        <ArchiveRestore className="h-3.5 w-3.5" />
-                      ) : (
-                        <Archive className="h-3.5 w-3.5" />
-                      )}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" sideOffset={4}>
-                    <p className="text-xs">{archived ? "取消归档" : "归档"}</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      onClick={() => onDelete(todo)}
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 hover:bg-destructive/10 hover:text-destructive"
-                      aria-label="删除">
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" sideOffset={4}>
-                    <p className="text-xs">删除</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-            </div>
-            {}
-            <div className="flex items-start gap-3 px-3 pb-3">
-              <input
-                type="checkbox"
-                checked={completed}
-                onChange={() => onToggle(todo)}
-                className="mt-0.5 h-4 w-4 cursor-pointer accent-primary flex-shrink-0"
-                aria-label={completed ? "标记为未完成" : "标记为已完成"}
-              />
-              <div className="flex-1 min-w-0">
-                <p
-                  className={`text-sm font-medium leading-relaxed break-words ${completed ? "line-through text-muted-foreground" : "text-foreground"}`}>
-                  {todo.title}
-                </p>
-                {todo.notes && (
-                  <p className={`text-xs text-muted-foreground mt-1 whitespace-pre-wrap leading-relaxed break-words ${completed ? "line-through" : ""}`}>
-                    {todo.notes}
-                  </p>
+                {due && (
+                  <span className={`px-1.5 py-0.5 rounded border font-medium ${due.className}`}>
+                    {due.text}
+                  </span>
                 )}
-                {}
+                {reminder && (
+                  <span
+                    className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border font-medium ${reminder.className}`}
+                  >
+                    <Bell className="h-3 w-3" />
+                    {reminder.text}
+                  </span>
+                )}
                 {attachmentCount > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {attachments.map((att) => (
-                      <button
-                        key={att.id}
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onAttachmentClick?.(att, todo);
-                        }}
-                        className="group/att relative h-14 w-14 rounded-md overflow-hidden border border-border/70 bg-muted/40 hover:border-primary/50 hover:ring-2 hover:ring-primary/20 transition-all focus:outline-none focus:ring-2 focus:ring-primary/40"
-                        title={att.name || "点击查看"}>
-                        <img
-                          src={att.dataUrl}
-                          alt={att.name || "附件"}
-                          className="h-full w-full object-cover"
-                          draggable={false}
-                        />
-                        <span className="absolute inset-0 bg-primary/0 group-hover/att:bg-primary/10 transition-colors" />
-                      </button>
-                    ))}
-                  </div>
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border bg-primary/5 text-primary-strong border-primary/20">
+                    <Paperclip className="h-3 w-3" />
+                    {attachmentCount}
+                  </span>
                 )}
+                <span className="text-muted-foreground">{formatCreated(todo.created_at)}</span>
+                {showCompletedAt && completed && todo.completed_at && (
+                  <span className="text-muted-foreground">
+                    完成于 {formatCreated(todo.completed_at)}
+                  </span>
+                )}
+                <div className="ml-auto flex items-center gap-0.5">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => onEdit(todo)}
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 hover:bg-primary/10 hover:text-primary-strong"
+                        aria-label="编辑">
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" sideOffset={4}>
+                      <p className="text-xs">编辑</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => (archived ? onUnarchive?.(todo) : onArchive?.(todo))}
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 hover:bg-primary/10 hover:text-primary-strong"
+                        aria-label={archived ? "取消归档" : "归档"}>
+                        {archived ? (
+                          <ArchiveRestore className="h-3.5 w-3.5" />
+                        ) : (
+                          <Archive className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" sideOffset={4}>
+                      <p className="text-xs">{archived ? "取消归档" : "归档"}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => onDelete(todo)}
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 hover:bg-destructive/10 hover:text-destructive"
+                        aria-label="删除">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" sideOffset={4}>
+                      <p className="text-xs">删除</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
               </div>
-            </div>
-          </li>
+              {}
+              <div className="flex items-start gap-3 px-3 pb-3">
+                <input
+                  type="checkbox"
+                  checked={completed}
+                  onChange={() => onToggle(todo)}
+                  className="mt-0.5 h-4 w-4 cursor-pointer accent-primary flex-shrink-0"
+                  aria-label={completed ? "标记为未完成" : "标记为已完成"}
+                />
+                <div className="flex-1 min-w-0">
+                  <p
+                    className={`text-sm font-medium leading-relaxed break-words ${completed ? "line-through text-muted-foreground" : "text-foreground"}`}>
+                    {todo.title}
+                  </p>
+                  {todo.notes && (
+                    <p className={`text-xs text-muted-foreground mt-1 whitespace-pre-wrap leading-relaxed break-words ${completed ? "line-through" : ""}`}>
+                      {todo.notes}
+                    </p>
+                  )}
+                  {}
+                  {attachmentCount > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {attachments.map((att) => (
+                        <button
+                          key={att.id}
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onAttachmentClick?.(att, todo);
+                          }}
+                          className="group/att relative h-14 w-14 rounded-md overflow-hidden border border-border/70 bg-muted/40 hover:border-primary/50 hover:ring-2 hover:ring-primary/20 transition-all focus:outline-none focus:ring-2 focus:ring-primary/40"
+                          title={att.name || "点击查看"}>
+                          <img
+                            src={att.dataUrl}
+                            alt={att.name || "附件"}
+                            className="h-full w-full object-cover"
+                            draggable={false}
+                          />
+                          <span className="absolute inset-0 bg-primary/0 group-hover/att:bg-primary/10 transition-colors" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </li>
+          </NeuCard>
         );
       })}
     </ul>

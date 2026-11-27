@@ -1,5 +1,5 @@
 
-import { tool } from '@langchain/core/tools';
+import { tool } from "../tool";
 import { z } from 'zod';
 import { buildFillScript, MAX_REF_INDEX } from './pageScripts';
 import { NO_BROWSER_HINT, resolveBrowser, runAction, toolError } from './shared';

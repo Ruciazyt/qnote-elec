@@ -1,4 +1,3 @@
-
 import { log } from '../system/log';
 import {
   AiConfig,
@@ -6,12 +5,9 @@ import {
   AiResponse,
 } from './types';
 import {
-  createChatModel,
-  toLangChainMessages,
+  requestChatCompletion,
   normalizeError,
-  normalizeUsage,
-  extractTextContent,
-  ChatModelOptions,
+  ChatRequestOptions,
   VALIDATE_REQUEST_TIMEOUT_MS,
   VALIDATE_MAX_RETRIES,
 } from './providers';
@@ -24,8 +20,7 @@ class AiService {
     messages: AiMessage[],
     config: AiConfig,
     maxTokens?: number,
-    callbacks?: unknown[],
-    options?: ChatModelOptions,
+    options?: ChatRequestOptions
   ): Promise<AiResponse> {
     try {
       log.info('发送 AI 消息', {
@@ -34,19 +29,12 @@ class AiService {
         model: config.model,
       });
 
-      const model = createChatModel(config, maxTokens, options);
-      const lcMessages = toLangChainMessages(messages);
-
-      const result = await model.invoke(lcMessages, { callbacks } as any);
-
-      const responseMeta = result.response_metadata as
-        | { model_name?: string }
-        | undefined;
+      const result = await requestChatCompletion(config, messages, maxTokens, options);
 
       return {
-        content: extractTextContent(result.content),
-        usage: normalizeUsage(result.usage_metadata),
-        model: responseMeta?.model_name,
+        content: result.content,
+        usage: result.usage,
+        model: result.model,
       };
     } catch (err) {
       normalizeError(err, config.provider);
@@ -59,8 +47,7 @@ class AiService {
         [{ role: 'user', content: 'Hello' }],
         config,
         50,
-        undefined,
-        { timeoutMs: VALIDATE_REQUEST_TIMEOUT_MS, maxRetries: VALIDATE_MAX_RETRIES },
+        { timeoutMs: VALIDATE_REQUEST_TIMEOUT_MS, maxRetries: VALIDATE_MAX_RETRIES }
       );
       return true;
     } catch (err) {

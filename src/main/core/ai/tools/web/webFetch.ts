@@ -1,5 +1,5 @@
 
-import { tool } from '@langchain/core/tools';
+import { tool } from "../tool";
 import { z } from 'zod';
 import { log } from '../../../system/log';
 import { extractTitle, fetchText, htmlToText } from './searchEngine';

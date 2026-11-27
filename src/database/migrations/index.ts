@@ -356,75 +356,6 @@ async function createMemoryStoreTable(DB: Knex): Promise<void> {
   }
 }
 
-async function createLeetcodeCollectionTable(DB: Knex): Promise<void> {
-  try {
-    await DB.schema.createTable("leetcode_collection", (table: Knex.TableBuilder) => {
-      table.increments("id").primary();
-      table.string("name").notNullable();
-      table.text("summary").defaultTo("");
-      table.timestamp("created_at").defaultTo(DB.fn.now());
-      table.timestamp("updated_at").defaultTo(DB.fn.now());
-    });
-    log.info("题单表创建成功");
-  } catch (err) {
-    log.error("创建题单表失败:", err);
-    throw err;
-  }
-}
-
-async function createLeetcodeProblemTable(DB: Knex): Promise<void> {
-  try {
-    await DB.schema.createTable("leetcode_problem", (table: Knex.TableBuilder) => {
-      table.increments("id").primary();
-      table.integer("collection_id").notNullable();
-      table.string("link").notNullable();
-      table.string("title").defaultTo("");
-      table.string("difficulty").defaultTo("");
-      table.boolean("is_completed").defaultTo(false);
-      table.timestamp("created_at").defaultTo(DB.fn.now());
-      table.timestamp("updated_at").defaultTo(DB.fn.now());
-
-      table.foreign("collection_id").references("id").inTable("leetcode_collection").onDelete("CASCADE");
-    });
-    log.info("题目表创建成功");
-  } catch (err) {
-    log.error("创建题目表失败:", err);
-    throw err;
-  }
-}
-
-async function addLeetcodeProblemTitleColumn(DB: Knex): Promise<void> {
-  try {
-    const columns = await DB.raw("PRAGMA table_info(leetcode_problem)");
-    const hasTitleColumn = columns.some((col: any) => col.name === "title");
-
-    if (!hasTitleColumn) {
-      await DB.raw("ALTER TABLE leetcode_problem ADD COLUMN title TEXT DEFAULT ''");
-      log.info("已为leetcode_problem表添加title字段");
-    } else {
-      log.info("leetcode_problem表的title字段已存在");
-    }
-  } catch (err) {
-    log.error("添加leetcode_problem表字段时出错:", err);
-  }
-}
-
-async function addLeetcodeProblemDifficultyColumn(DB: Knex): Promise<void> {
-  try {
-    const columns = await DB.raw("PRAGMA table_info(leetcode_problem)");
-    const hasDifficultyColumn = columns.some((col: any) => col.name === "difficulty");
-
-    if (!hasDifficultyColumn) {
-      await DB.raw("ALTER TABLE leetcode_problem ADD COLUMN difficulty TEXT DEFAULT ''");
-      log.info("已为leetcode_problem表添加difficulty字段");
-    } else {
-      log.info("leetcode_problem表的difficulty字段已存在");
-    }
-  } catch (err) {
-    log.error("添加leetcode_problem表difficulty字段时出错:", err);
-  }
-}
-
 async function createBookmarksTable(DB: Knex): Promise<void> {
   try {
     await DB.schema.createTable("browser_bookmark", (table: Knex.TableBuilder) => {
@@ -730,18 +661,11 @@ export async function migrateRun(path?: string): Promise<void> {
 
     await ensureTable(DB, "memory_store", createMemoryStoreTable);
 
-    await ensureTable(DB, "leetcode_collection", createLeetcodeCollectionTable);
-    await ensureTable(DB, "leetcode_problem", createLeetcodeProblemTable);
-
     await ensureTable(DB, "browser_bookmark", createBookmarksTable);
 
     await ensureTable(DB, "shortcut", createShortcutTable);
 
     await migratePluginSchema(DB);
-    await addLeetcodeProblemTitleColumn(DB);
-
-    await addLeetcodeProblemDifficultyColumn(DB);
-
     log.info("数据库迁移成功完成");
   } catch (err) {
     log.info("数据库迁移过程中发生错误:", err);

@@ -38,12 +38,12 @@ const SESSION_B = {
 
 const STREAM_STUBS = {
   onAiStreamChunk: vi.fn(() => () => {}),
+  onAiStreamThinking: vi.fn(() => () => {}),
   onAiStreamToolCall: vi.fn(() => () => {}),
   onAiStreamToolResult: vi.fn(() => () => {}),
   onAiStreamEnd: vi.fn(() => () => {}),
   onAiStreamError: vi.fn(() => () => {}),
   onAiCompacting: vi.fn(() => () => {}),
-  onAiNeedContinue: vi.fn(() => () => {}),
 };
 
 function installStub(overrides: Record<string, unknown> = {}): void {

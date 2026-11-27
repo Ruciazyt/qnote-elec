@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { Switch } from "../../components/ui/switch";
 import { CardContent } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
+import { SecretInput } from "../../components/ui/secret-input";
 import {
   Download,
   RefreshCw,
@@ -31,7 +32,6 @@ import {
   Home,
   BookOpen,
   ListChecks,
-  PenTool,
   Sliders,
   Mic,
   Globe,
@@ -1056,12 +1056,12 @@ export default function Settings() {
                   />
                 </Field>
                 <Field label="API Key">
-                  <Input
-                    type="password"
+                  <SecretInput
+                    id="ai-api-key"
                     value={aiApiKey}
-                    onChange={(e) => setAiApiKey(e.target.value)}
+                    onChange={setAiApiKey}
                     placeholder="请输入 API Key"
-                    className="h-9 bg-muted/30 focus-visible:bg-background"
+                    className="bg-muted/30 focus-visible:bg-background"
                   />
                 </Field>
                 <Field label="模型">
@@ -2028,19 +2028,6 @@ export default function Settings() {
                   enabled={sidebarTabs.todos}
                   onToggle={() =>
                     setSidebarTabs({ ...sidebarTabs, todos: !sidebarTabs.todos })
-                  }
-                  accent={ACCENTS.accent}
-                />
-                <SidebarTabToggle
-                  icon={PenTool}
-                  title="力扣分类"
-                  description="题单管理 + 题目标记"
-                  enabled={sidebarTabs.leetcode}
-                  onToggle={() =>
-                    setSidebarTabs({
-                      ...sidebarTabs,
-                      leetcode: !sidebarTabs.leetcode,
-                    })
                   }
                   accent={ACCENTS.accent}
                 />

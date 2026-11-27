@@ -78,6 +78,48 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("mcp-set-project-dir", dir),
   reloadMcp: () => ipcRenderer.invoke("mcp-reload"),
 
+  listBuiltinTools: () => ipcRenderer.invoke("ai-list-builtin-tools"),
+  setBuiltinToolEnabled: (name: string, enabled: boolean) =>
+    ipcRenderer.invoke("ai-set-builtin-tool-enabled", name, enabled),
+  getGitlabConfig: () => ipcRenderer.invoke("ai-get-gitlab-config"),
+  saveGitlabConfig: (config: {
+    baseUrl: string;
+    token?: string;
+    allowedProjects: string[];
+    readOnly: boolean;
+    expectedVersion?: string | null;
+  }) => ipcRenderer.invoke("ai-save-gitlab-config", config),
+  clearGitlabConfig: () => ipcRenderer.invoke("ai-clear-gitlab-config"),
+  getGithubConfig: () => ipcRenderer.invoke("ai-get-github-config"),
+  saveGithubConfig: (config: {
+    baseUrl: string;
+    token?: string;
+    allowedRepositories: string[];
+    readOnly: boolean;
+  }) => ipcRenderer.invoke("ai-save-github-config", config),
+  clearGithubConfig: () => ipcRenderer.invoke("ai-clear-github-config"),
+  getGitlabBotConfig: () => ipcRenderer.invoke("gitlab-bot:get-config"),
+  saveGitlabBotConfig: (config: {
+    enabled: boolean;
+    port: number;
+    bindAddress: string;
+    secretToken?: string;
+    relayToken?: string;
+    triggerWords: string[];
+    allowedProjects: string[];
+    runnerEnabled: boolean;
+    runnerProject: string;
+    runnerTags: string[];
+  }) => ipcRenderer.invoke("gitlab-bot:save-config", config),
+  clearGitlabBotConfig: () => ipcRenderer.invoke("gitlab-bot:clear-config"),
+  generateGitlabBotSecret: () => ipcRenderer.invoke("gitlab-bot:generate-secret"),
+  generateGitlabBotRelayToken: () =>
+    ipcRenderer.invoke("gitlab-bot:generate-relay-token"),
+  revealGitlabBotRelayToken: () =>
+    ipcRenderer.invoke("gitlab-bot:reveal-relay-token"),
+  getGitlabBotRunnerStatus: () => ipcRenderer.invoke("gitlab-bot:runner-status"),
+  restartGitlabBotRunner: () => ipcRenderer.invoke("gitlab-bot:restart-runner"),
+
   getPathForFile: (file: File) => webUtils.getPathForFile(file),
 
   getNoteTree: (dirPath: string) => ipcRenderer.invoke("notes:tree", dirPath),
@@ -168,13 +210,6 @@ contextBridge.exposeInMainWorld("electron", {
   getBaiduKeys: () => ipcRenderer.invoke("get-baidu-keys"),
   setBaiduKeys: (apiKey: string, secretKey: string) => ipcRenderer.invoke("set-baidu-keys", apiKey, secretKey),
 
-  onImportProgress: (callback: any) => {
-    ipcRenderer.on("import-progress", callback);
-  },
-  removeImportProgress: (callback: any) => {
-    ipcRenderer.removeListener("import-progress", callback);
-  },
-
   getAppInfo: () => ipcRenderer.invoke("get-app-info"),
 
   getUpdateStatus: () => ipcRenderer.invoke("update:status"),
@@ -200,6 +235,14 @@ contextBridge.exposeInMainWorld("electron", {
       callback(_e, payload);
     ipcRenderer.on("ai-stream:chunk", listener);
     return () => ipcRenderer.removeListener("ai-stream:chunk", listener);
+  },
+  onAiStreamThinking: (
+    callback: (event: unknown, payload: { sessionId: string; delta: string }) => void
+  ) => {
+    const listener = (_e: unknown, payload: { sessionId: string; delta: string }) =>
+      callback(_e, payload);
+    ipcRenderer.on("ai-stream:thinking", listener);
+    return () => ipcRenderer.removeListener("ai-stream:thinking", listener);
   },
   onAiStreamEnd: (
     callback: (event: unknown, payload: { sessionId: string; content: string }) => void
@@ -298,23 +341,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("ai-stream:tool-result", listener);
     return () => ipcRenderer.removeListener("ai-stream:tool-result", listener);
   },
-  onAiNeedContinue: (
-    callback: (
-      event: unknown,
-      payload: { sessionId: string; rounds: number; totalRounds: number }
-    ) => void
-  ) => {
-    const listener = (
-      _e: unknown,
-      payload: { sessionId: string; rounds: number; totalRounds: number }
-    ) => callback(_e, payload);
-    ipcRenderer.on("ai-stream:need_continue", listener);
-    return () => ipcRenderer.removeListener("ai-stream:need_continue", listener);
-  },
-  continueAiAgent: (sessionId: string, decision: "continue" | "stop") =>
-    ipcRenderer.invoke("ai-continue-agent", sessionId, decision),
-
-
   transcribeVoiceAudio: (pcmBase64: string, sampleRate: number): Promise<{
     ok: boolean;
     text?: string;
@@ -344,6 +370,11 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.invoke("get-ai-chat-session-history", chatSessionId),
   deleteAiChatSession: (chatSessionId: string) =>
     ipcRenderer.invoke("delete-ai-chat-session", chatSessionId),
+  onAiChatChanged: (callback: (payload: { sessionId: string }) => void) => {
+    const listener = (_event: unknown, payload: { sessionId: string }) => callback(payload);
+    ipcRenderer.on("ai-chat:changed", listener);
+    return () => ipcRenderer.removeListener("ai-chat:changed", listener);
+  },
   clearAiChat: () => ipcRenderer.invoke("clear-ai-chat"),
   getAiConfig: () => ipcRenderer.invoke("get-ai-config"),
   setAiConfig: (provider: string, apiKey: string, model: string, baseUrl: string) => ipcRenderer.invoke("set-ai-config", provider, apiKey, model, baseUrl),
@@ -384,16 +415,6 @@ contextBridge.exposeInMainWorld("electron", {
 
   exportDatabase: () => ipcRenderer.invoke("export-database"),
   importDatabase: () => ipcRenderer.invoke("import-database"),
-
-  getLeetcodeCollections: () => ipcRenderer.invoke("get-leetcode-collections"),
-  getLeetcodeCollection: (id: number) => ipcRenderer.invoke("get-leetcode-collection", id),
-  saveLeetcodeCollection: (collection: { id?: number; name: string; summary: string; problems?: Array<{ id?: number; link: string; is_completed: boolean; title?: string; difficulty?: string }> }) =>
-    ipcRenderer.invoke("save-leetcode-collection", collection),
-  deleteLeetcodeCollection: (id: number) => ipcRenderer.invoke("delete-leetcode-collection", id),
-  updateLeetcodeProblem: (problemId: number, updates: { link?: string; is_completed?: boolean; difficulty?: string }) =>
-    ipcRenderer.invoke("update-leetcode-problem", problemId, updates),
-  getLeetcodeProblemTitle: (url: string) => ipcRenderer.invoke("get-leetcode-problem-title", url),
-  importLeetcodeCollection: (text: string) => ipcRenderer.invoke("import-leetcode-collection", text),
 
   openExternal: (url: string) => ipcRenderer.invoke("open-external", url),
 

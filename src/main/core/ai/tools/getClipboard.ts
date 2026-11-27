@@ -1,4 +1,4 @@
-import { tool } from '@langchain/core/tools';
+import { tool } from "./tool";
 import { z } from 'zod';
 import { getToolContext } from "../toolContext";
 

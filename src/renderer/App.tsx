@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import "./index.css";
 import Layout from "./components/shell/layout";
@@ -22,8 +22,6 @@ import BrowserPage from "./pages/browser/BrowserPage";
 import SkillsPage from "./pages/skills/SkillsPage";
 import PluginsPage from "./pages/plugin/PluginsPage";
 
-const LeetcodeCollection = lazy(() => import("./pages/leetcode/LeetcodePage"));
-
 const FLOATING_AI_ASSISTANT = <FloatingAiAssistant />;
 const TOASTER = <Toaster />;
 
@@ -32,7 +30,6 @@ const PAGES = [
   { path: "/notes", node: <NotesPage /> },
   { path: "/settings", node: <SettingsPage /> },
   { path: "/todos", node: <TodoPage /> },
-  { path: "/leetcode", node: <LeetcodeCollection /> },
   { path: "/browser", node: <BrowserPage /> },
   { path: "/plugins", node: <PluginsPage /> },
   { path: "/skills", node: <SkillsPage /> },

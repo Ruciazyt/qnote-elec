@@ -5,6 +5,7 @@ const THINK_CLOSE = "</think>";
 export interface ToolCallRecord {
   id: string;
   name: string;
+  title?: string;
   args: Record<string, any>;
   result?: string;
   isError?: boolean;
@@ -54,7 +55,28 @@ export class BlockBuilder {
     }
   }
 
+  pushThinking(text: string): void {
+    if (!text) return;
+    this.append('thinking', text);
+  }
+
   pushToolCall(call: ToolCallRecord): void {
+    const existing = this.list.find(
+      (b) => b.kind === 'tool' && b.call.id === call.id
+    );
+    if (existing && existing.kind === 'tool') {
+      existing.call = {
+        ...existing.call,
+        ...call,
+        args:
+          call.args && Object.keys(call.args).length > 0
+            ? call.args
+            : existing.call.args,
+        status: existing.call.status,
+      };
+      this.currentKind = null;
+      return;
+    }
     this.flush();
     this.list.push({ kind: 'tool', call: { ...call, status: 'calling' } });
     this.currentKind = null;
@@ -74,6 +96,18 @@ export class BlockBuilder {
       kind: 'tool',
       call: { id, name: '未知工具', args: {}, result, isError, status: 'done' },
     });
+  }
+
+  finishPendingTools(result: string): ToolCallRecord[] {
+    const finished: ToolCallRecord[] = [];
+    for (const block of this.list) {
+      if (block.kind !== 'tool' || block.call.status !== 'calling') continue;
+      block.call.result = result;
+      block.call.isError = true;
+      block.call.status = 'done';
+      finished.push({ ...block.call });
+    }
+    return finished;
   }
 
   private append(kind: 'thinking' | 'text', text: string): void {

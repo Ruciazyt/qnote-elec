@@ -6,6 +6,7 @@ onlyBuiltDependencies:
   - electron
   - esbuild
   - sqlite3
+  - opencode-ai
 
 overrides:
   '@tiptap/extensions': 3.31.3

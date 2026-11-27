@@ -14,6 +14,8 @@ src/**/*.js.map
 !src/renderer/tailwind.config.js
 build/icon.icns
 /resources/catalog/
+/resources/opencode/
+/resources/gitlab-runner/
 resources/icon.png
 resources/icon-tray.png
 resources/trayTemplate.png
@@ -47,6 +49,10 @@ coverage/
 **/coverage/
 
 /.data/
+
+# gitlab-runner 注册时生成在当前工作目录
+/.runner_system_id
+/config.toml
 
 .env
 .env.*

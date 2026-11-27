@@ -285,7 +285,7 @@
 | 界面 | React 18 · Vite 6 · Tailwind CSS 3 · shadcn/ui（new-york）· lucide-react |
 | 编辑器 | TipTap 3（富文本 / Markdown）· Excalidraw 0.18 · Prism · Prettier |
 | 数据 | Knex 3 · SQLite（sqlite3） |
-| AI | LangChain（`@langchain/openai` / `@langchain/anthropic`）· 自研 Agent 循环、记忆层与 MCP 客户端 |
+| AI | opencode 1.19（自托管执行层）· MCP 工具通道 · 长期记忆层 · 插件 SDK |
 | 语言 | TypeScript 5.6 |
 | 构建 | electron-builder 26（NSIS 安装版 + 便携 ZIP + macOS dmg/zip） |
 | 测试 | Vitest 3 · Testing Library |

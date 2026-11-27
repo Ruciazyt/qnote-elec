@@ -6,7 +6,7 @@ interface ElectronAPI {
   openDevTools: () => void;
 
   onClipboardChanged: (callback: (event: unknown, data: import("./pages/home/clipboard/types").ClipboardRecord) => void) => void;
-  removeClipboardChanged: (callback: (event: unknown, data: unknown) => void) => void;
+  removeClipboardChanged: (callback: (event: unknown, data: import("./pages/home/clipboard/types").ClipboardRecord) => void) => void;
   getClipboardHistory: () => Promise<import("./pages/home/clipboard/types").ClipboardRecord[]>;
 
   getFilePath: () => Promise<string>;
@@ -151,6 +151,63 @@ interface ElectronAPI {
     error?: string;
   }>;
 
+  listBuiltinTools: () => Promise<import("../shared/ai/tools").BuiltinToolState[]>;
+  setBuiltinToolEnabled: (
+    name: string,
+    enabled: boolean
+  ) => Promise<{ success: boolean; error?: string }>;
+  getGitlabConfig: () => Promise<import("../shared/ai/tools").GitlabToolConfig>;
+  saveGitlabConfig: (
+    config: import("../shared/ai/tools").GitlabToolConfigInput
+  ) => Promise<{ success: boolean; hasToken?: boolean; error?: string }>;
+  clearGitlabConfig: () => Promise<{ success: boolean; error?: string }>;
+  getGithubConfig: () => Promise<import("../shared/ai/tools").GithubToolConfig>;
+  saveGithubConfig: (
+    config: import("../shared/ai/tools").GithubToolConfigInput
+  ) => Promise<{ success: boolean; hasToken?: boolean; error?: string }>;
+  clearGithubConfig: () => Promise<{ success: boolean; error?: string }>;
+  getGitlabBotConfig: () => Promise<{
+    success: boolean;
+    config: import("../shared/ai/gitlabBot").GitlabBotConfigView;
+    status: import("../shared/ai/gitlabBot").GitlabBotStatus;
+    runner: import("../shared/ai/gitlabBot").GitlabRunnerStatusView;
+  }>;
+  saveGitlabBotConfig: (
+    config: import("../shared/ai/gitlabBot").GitlabBotConfigPayload
+  ) => Promise<{
+    success: boolean;
+    status?: import("../shared/ai/gitlabBot").GitlabBotStatus;
+    error?: string;
+  }>;
+  clearGitlabBotConfig: () => Promise<{
+    success: boolean;
+    status?: import("../shared/ai/gitlabBot").GitlabBotStatus;
+    error?: string;
+  }>;
+  generateGitlabBotSecret: () => Promise<{
+    success: boolean;
+    secret?: string;
+    error?: string;
+  }>;
+  generateGitlabBotRelayToken: () => Promise<{
+    success: boolean;
+    token?: string;
+    error?: string;
+  }>;
+  revealGitlabBotRelayToken: () => Promise<{
+    success: boolean;
+    token?: string;
+  }>;
+  getGitlabBotRunnerStatus: () => Promise<{
+    success: boolean;
+    runner: import("../shared/ai/gitlabBot").GitlabRunnerStatusView;
+  }>;
+  restartGitlabBotRunner: () => Promise<{
+    success: boolean;
+    runner?: import("../shared/ai/gitlabBot").GitlabRunnerStatusView;
+    error?: string;
+  }>;
+
   listMcpServers: () => Promise<import("../shared/ai/mcp").McpServerState[]>;
   saveMcpServer: (server: import("../shared/ai/mcp").McpServerInput) => Promise<{
     success: boolean;
@@ -202,6 +259,9 @@ interface ElectronAPI {
   onAiStreamChunk: (
     callback: (event: unknown, payload: { sessionId: string; delta: string }) => void
   ) => () => void;
+  onAiStreamThinking: (
+    callback: (event: unknown, payload: { sessionId: string; delta: string }) => void
+  ) => () => void;
   onAiStreamEnd: (
     callback: (event: unknown, payload: { sessionId: string; content: string }) => void
   ) => () => void;
@@ -231,7 +291,13 @@ interface ElectronAPI {
   onAiStreamToolCall: (
     callback: (
       event: unknown,
-      payload: { sessionId: string; id: string; name: string; args: Record<string, any> }
+      payload: {
+        sessionId: string;
+        id: string;
+        name: string;
+        title?: string;
+        args: Record<string, any>;
+      }
     ) => void
   ) => () => void;
   onAiStreamToolResult: (
@@ -246,17 +312,6 @@ interface ElectronAPI {
       }
     ) => void
   ) => () => void;
-  onAiNeedContinue: (
-    callback: (
-      event: unknown,
-      payload: { sessionId: string; rounds: number; totalRounds: number }
-    ) => void
-  ) => () => void;
-  continueAiAgent: (
-    sessionId: string,
-    decision: "continue" | "stop"
-  ) => Promise<{ ok: boolean; error?: string }>;
-
   getAiUsageStats: () => Promise<{
     today: import("../main/core/ai/observability/usageStats").UsageTotals;
     week: import("../main/core/ai/observability/usageStats").UsageTotals;
@@ -270,6 +325,9 @@ interface ElectronAPI {
   createAiChatSession: () => Promise<import("./pages/ai/types").AiChatSession>;
   getAiChatSessionHistory: (chatSessionId: string) => Promise<Array<Omit<import("./pages/ai/types").ChatMessage, "toolCalls"> & { tool_calls: import("./pages/home/clipboard/types").ToolCallRecord[] }>>;
   deleteAiChatSession: (chatSessionId: string) => Promise<boolean>;
+  onAiChatChanged: (
+    callback: (payload: { sessionId: string }) => void
+  ) => () => void;
   clearAiChat: () => Promise<boolean>;
   getAiConfig: () => Promise<{ provider: string; apiKey: string; model: string; baseUrl: string }>;
   setAiConfig: (provider: string, apiKey: string, model: string, baseUrl: string) => Promise<boolean>;
@@ -293,30 +351,6 @@ interface ElectronAPI {
 
   exportDatabase: () => Promise<{ success: boolean; filePath?: string; error?: string; canceled?: boolean }>;
   importDatabase: () => Promise<{ success: boolean; error?: string; canceled?: boolean }>;
-  onImportProgress: (callback: (event: unknown, progress: unknown) => void) => void;
-  removeImportProgress: (callback: (event: unknown, progress: unknown) => void) => void;
-
-  getLeetcodeCollections: () => Promise<unknown[]>;
-  getLeetcodeCollection: (id: number) => Promise<unknown>;
-  saveLeetcodeCollection: (collection: {
-    id?: number;
-    name: string;
-    summary: string;
-    problems?: Array<{
-      id?: number;
-      link: string;
-      is_completed: boolean;
-      title?: string;
-      difficulty?: string;
-    }>;
-  }) => Promise<unknown>;
-  deleteLeetcodeCollection: (id: number) => Promise<void>;
-  updateLeetcodeProblem: (
-    problemId: number,
-    updates: { link?: string; is_completed?: boolean; difficulty?: string }
-  ) => Promise<void>;
-  getLeetcodeProblemTitle: (url: string) => Promise<{ success: boolean; title?: string; difficulty?: string; error?: string }>;
-  importLeetcodeCollection: (text: string) => Promise<unknown>;
 
   openExternal: (url: string) => Promise<boolean>;
 
@@ -519,7 +553,7 @@ interface ElectronAPI {
   shortcutOpen: (id: number) => Promise<{ success: boolean; error?: string }>;
   shortcutClear: () => Promise<boolean>;
   shortcutPick: (
-    kind: "app" | "folder"
+    kind: import("./pages/home/shortcut/types").ShortcutKind
   ) => Promise<import("./pages/home/shortcut/types").ShortcutPickResult | null>;
   shortcutNormalizeTarget: (
     target: string

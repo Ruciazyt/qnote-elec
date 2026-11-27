@@ -156,3 +156,47 @@ describe("落库序列化与还原", () => {
     expect(serializeBlocks([])).toBe("");
   });
 });
+
+describe("思考独立通道", () => {
+  it("思考不进正文块", () => {
+    const b = new BlockBuilder();
+    b.pushThinking("我在想");
+    b.pushText("答案");
+
+    expect(b.blocks()).toEqual([
+      { kind: "thinking", text: "我在想" },
+      { kind: "text", text: "答案" },
+    ]);
+  });
+
+  it("连续的思考合并成一块", () => {
+    const b = new BlockBuilder();
+    b.pushThinking("前半");
+    b.pushThinking("后半");
+
+    expect(b.blocks()).toEqual([{ kind: "thinking", text: "前半后半" }]);
+  });
+
+  it("同 id 的工具调用合并成一块并补上参数", () => {
+    const b = new BlockBuilder();
+    b.pushToolCall({ id: "c1", name: "get_todos", args: {} });
+    b.pushToolCall({ id: "c1", name: "get_todos", args: { status: "pending" } });
+
+    const blocks = b.blocks();
+    expect(blocks).toHaveLength(1);
+    const tool = blocks[0];
+    if (tool.kind !== "tool") throw new Error("应当是工具块");
+    expect(tool.call.args).toEqual({ status: "pending" });
+    expect(tool.call.status).toBe("calling");
+  });
+
+  it("参数先到、结果后到时不会被空参数覆盖", () => {
+    const b = new BlockBuilder();
+    b.pushToolCall({ id: "c1", name: "get_todos", args: { status: "pending" } });
+    b.pushToolCall({ id: "c1", name: "get_todos", args: {} });
+
+    const tool = b.blocks()[0];
+    if (tool.kind !== "tool") throw new Error("应当是工具块");
+    expect(tool.call.args).toEqual({ status: "pending" });
+  });
+});

@@ -4,11 +4,13 @@ import { Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import SkillSection from "./SkillSection";
 import McpSection from "./McpSection";
+import ToolsSection from "./ToolsSection";
 
-type TabKey = "skills" | "mcp";
+type TabKey = "skills" | "tools" | "mcp";
 
 const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "skills", label: "技能" },
+  { key: "tools", label: "工具" },
   { key: "mcp", label: "MCP 服务器" },
 ];
 
@@ -22,7 +24,7 @@ export default function SkillsPage() {
           className="mb-8"
           icon={Sparkles}
           title="技能 / MCP"
-          subtitle="提示词技能一键套用，MCP 服务器把外部能力接进 AI 对话"
+          subtitle="提示词技能一键套用，内置工具与 MCP 服务器把外部能力接进 AI 对话"
         />
 
         <div
@@ -48,7 +50,13 @@ export default function SkillsPage() {
           ))}
         </div>
 
-        {tab === "skills" ? <SkillSection /> : <McpSection />}
+        {tab === "skills" ? (
+          <SkillSection />
+        ) : tab === "tools" ? (
+          <ToolsSection />
+        ) : (
+          <McpSection />
+        )}
       </div>
     </div>
   );

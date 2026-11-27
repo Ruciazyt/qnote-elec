@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowUp, Bot, Plus, Square } from "lucide-react";
 import type { IslandAiActivity } from "@shared/island/island";
 import { useAiAssistant } from "@/hooks/ai/useAiAssistant";
+import { useChatAutoScroll } from "@/hooks/ai/useChatAutoScroll";
 import { elapsedDuration } from "../format";
 import { AiSessionList } from "./AiSessionList";
 
@@ -32,8 +33,6 @@ export function AiChatPanel({ activity, onOpenMain }: AiChatPanelProps) {
     aiLoading,
     streamingMessage,
     compacting,
-    pendingContinuation,
-    handleContinueDecision,
     handleSendAiMessage,
     handleCancelAiMessage,
     handleKeyDown,
@@ -42,7 +41,6 @@ export function AiChatPanel({ activity, onOpenMain }: AiChatPanelProps) {
     handleShowSessions,
     handleDeleteChatSession,
     setAiInput,
-    chatEndRef,
   } = useAiAssistant({ onError: handleStreamError });
 
   const isSessionsView = assistantView === "sessions";
@@ -77,6 +75,12 @@ export function AiChatPanel({ activity, onOpenMain }: AiChatPanelProps) {
   }, [activity, ownStreamId]);
 
   const canSend = aiInput.trim().length > 0 && !aiLoading;
+
+  const { scrollRef, onScroll } = useChatAutoScroll(
+    sortedMessages,
+    streamingMessage,
+    compacting
+  );
 
   const send = useCallback(() => {
     if (!canSend) return;
@@ -150,7 +154,7 @@ export function AiChatPanel({ activity, onOpenMain }: AiChatPanelProps) {
             </button>
           </div>
 
-          <div className="island-ai-messages">
+          <div ref={scrollRef} onScroll={onScroll} className="island-ai-messages">
             {chatHistoryLoading && sortedMessages.length === 0 ? (
               <div className="island-empty">
                 <div className="island-empty-title">加载对话中…</div>
@@ -188,32 +192,9 @@ export function AiChatPanel({ activity, onOpenMain }: AiChatPanelProps) {
                 {compacting ? (
                   <div className="island-ai-hint">正在压缩对话历史…</div>
                 ) : null}
-                {pendingContinuation ? (
-                  <div className="island-ai-continue">
-                    <span className="island-ai-continue-text">
-                      本轮已达上限（{pendingContinuation.rounds} 轮），是否继续？
-                    </span>
-                    <button
-                      type="button"
-                      className="island-ai-continue-btn"
-                      data-primary="true"
-                      onClick={() => handleContinueDecision("continue")}
-                    >
-                      继续
-                    </button>
-                    <button
-                      type="button"
-                      className="island-ai-continue-btn"
-                      onClick={() => handleContinueDecision("stop")}
-                    >
-                      就到这里
-                    </button>
-                  </div>
-                ) : null}
               </>
             )}
             {error ? <div className="island-chat-error">{error}</div> : null}
-            <div ref={chatEndRef} />
           </div>
         </>
       )}

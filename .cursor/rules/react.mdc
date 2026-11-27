@@ -7,6 +7,22 @@ alwaysApply: false
 ---
 # React Best Practices: A Comprehensive Guide
 
+## QNote 强制拆分规则
+
+1. **一个组件一个职责**
+   - UI 组件只负责接收 props 并渲染。
+   - 数据获取、状态同步和接口调用收进自定义 hooks。
+   - 副作用编排（订阅、定时器、事件注册、请求协调）收进自定义 hooks。
+   - 页面组件只负责调用 hooks，并把返回值接线给 UI 组件。
+2. **超过 300 行必须拆分**
+   - 单个文件超过 300 行时必须拆分。
+   - 单个组件使用超过 3 个 `useState` 或超过 2 个 `useEffect` 时必须拆分。
+   - 两个阈值任一命中即触发拆分，不以“当前还可维护”为理由保留。
+   - 三个可量化阈值由 `qnote/react-component-boundaries` 规则检查；现有超限文件先按 warning 收敛。
+3. **拆分必须保持行为不变**
+   - 纯组件拆分不得修改渲染输出、事件处理顺序或接口调用时机。
+   - 不得顺带重构业务逻辑、调整样式或改变错误处理。
+   - 验收标准是相关快照测试与交互测试保持通过。
 
 ## 1. Code Organization and Structure
 

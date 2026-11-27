@@ -3,7 +3,7 @@ import { relativePath } from "./paths.mjs";
 const ROLE_DIRS = [
     {
         dir: "src/main/handlers",
-        features: ["ai", "browser", "clipboard", "cloud", "island", "leetcode", "notes", "plugin", "shortcut", "sticky", "system", "todo", "update"],
+        features: ["ai", "browser", "clipboard", "cloud", "gitlab", "island", "notes", "plugin", "shortcut", "sticky", "system", "todo", "update"],
     },
     {
         dir: "src/main/core",
@@ -32,7 +32,7 @@ const ROLE_DIRS = [
     },
     {
         dir: "src/renderer/pages",
-        features: ["ai", "browser", "clipboard-popup", "home", "island", "leetcode", "notes", "plugin", "settings", "skills", "sticky", "todo"],
+        features: ["ai", "browser", "clipboard-popup", "home", "island", "notes", "plugin", "settings", "skills", "sticky", "todo"],
     },
     {
         dir: "src/shared",

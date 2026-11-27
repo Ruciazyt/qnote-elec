@@ -37,6 +37,12 @@ pnpm run lint           # ESLint（缺陷类 + 安全类规则）
 pnpm run test:coverage  # 跑测试并产出 lcov 覆盖率报告
 ```
 
+> `build:main` 会先跑 `scripts/build/prune-dist.js`，把 `dist/` 里已经没有源文件对应的
+> 陈旧产物剔掉。**tsc 不会清理旧产物**，而 CommonJS 解析是「文件优先于目录」——
+> 源码里把 `a.ts` 改名成 `a/` 目录后，`dist/main/a.js` 会盖住 `dist/main/a/index.js`，
+> 运行时报 `xxx is not a function`（实测在 `gitlabBot/runner` 与 `handlers/plugin` 两处都中过招）。
+> 只跑 `tsc -w` 的 watch 模式不会清，改了目录结构后要手动跑一次 `pnpm run build:electron`。
+
 ---
 
 ## 2. 提交规范（Angular 提交规范）
@@ -264,7 +270,7 @@ src/main/core/notes/         src/main/core/ai/        src/main/core/plugin/
 src/main/core/clipboard/     src/main/core/shortcut/  src/main/core/update/
 src/main/core/system/        ← 常驻单例：settings store、退出态、config、log
 src/main/core/window/<功能>/  ← 窗口按功能分：island/ sticky/ clipboard/ browser/ plugin/
-src/main/core/ai/<模块>/      ← AI 功能域：agents/ memory/ observability/ prompts/ skills/ tools/
+src/main/core/ai/<模块>/      ← AI 功能域：memory/ observability/ prompts/ runtime/ skills/ tools/
 src/main/utils/              ← 扁平，无子目录：只放纯工具
 src/shared/notes/            src/shared/ai/           src/shared/plugin/
 src/shared/clipboard/        src/shared/cloud/        src/shared/island/  src/shared/sticky/
@@ -288,7 +294,8 @@ src/renderer/pages/<功能>/       ← home/ notes/ settings/ todo/ browser/ ski
 | 跨端共享类型 | `src/shared/<功能>/` |
 | 数据表与迁移 | `src/database/` |
 | 插件系统（清单、进程启停、预览、SDK） | `src/main/core/plugin/`（按模块分子目录：`runtime/` `permissions/` `dependencies/` `market/` `migration/` `manifest/` `sdk/`）、`src/main/handlers/plugin/`、`src/main/core/window/plugin/`、`src/shared/plugin/`、`src/renderer/pages/plugin/` |
-| AI 功能域（对话、Agent、记忆、提示词、工具调用、向量库） | `src/main/core/ai/`（平铺的 `aiService.ts` / `providers.ts` / `streaming.ts` / `toolContext.ts` 等 + `agents/` `memory/` `observability/` `prompts/` `skills/` `tools/` 六个子目录）、`src/main/handlers/ai/`、`src/shared/ai/`、`src/renderer/pages/ai/`（渲染层 AI 界面：浮窗助手、桌宠、对话面板） |
+| AI 功能域（对话、Agent、记忆、提示词、工具调用、向量库） | `src/main/core/ai/`（平铺的 `aiService.ts` / `providers.ts` / `toolContext.ts` 等 + `memory/` `observability/` `prompts/` `runtime/` `skills/` `tools/` 子目录）、`src/main/handlers/ai/`、`src/shared/ai/`、`src/renderer/pages/ai/`（渲染层 AI 界面：浮窗助手、桌宠、对话面板） | 主进程 AI 域各功能目录的测试文件放进该目录自己的 `test/` 子目录，不平铺（如 `core/ai/mcp/toolName.ts` + `core/ai/mcp/test/toolName.test.ts`） |
+| AI 工具接入代码托管平台（GitLab / GitHub） | `src/main/core/ai/tools/<平台>/`（按模块分子目录：`api/` `runtime/` `schemas/` `tools/` `utils/`），平台之间不互拷：纯逻辑共用件放 `src/main/core/ai/tools/shared/`（`cursor.ts` 翻页句柄、`tokens.ts` 体积估算、`list.ts` 列表分页、`qnoteOverflow.ts` 溢出落盘）。一个平台要接的落点一共九处：`tools/<平台>/index.ts`（工具清单）、`tools/catalog.ts`（META 分组 + 目录条目）、`tools/registry.ts`（按配置挂载）、`tools/index.ts`（导出）、`runtime/configStore.ts`（配置存 settings 表）、`handlers/ai/toolHandlers.ts`（配置 IPC + 未配置标记）、`main/preload.ts` + `renderer/electron.d.ts`（IPC 绑定）、`main/index.ts`（初始化配置存储）、`renderer/pages/skills/<平台>ConfigButton.tsx`（设置页按钮），另加 `core/ai/prompts/agentSystem.ts` 的工具说明段 |
 | 清单命令的风险分析（市场来源插件的启动确认） | `src/shared/plugin/permissions/pluginRisk.ts`（纯函数）、`src/main/core/plugin/runtime/pluginManager.ts`（`checkStartConfirmation` / `confirmStart`）、`src/renderer/pages/plugin/runtime/StartConfirmDialog.tsx` |
 | 插件声明式权限的判定 | `src/main/core/plugin/permissions/capabilities.ts`（`checkCapability`）、`src/shared/plugin/manifest/pluginManifest.ts`（清单校验） |
 | 插件 SDK 通道与宿主 API | `src/main/core/plugin/sdk/rpcServer.ts`（传输）、`src/main/core/plugin/sdk/hostApi.ts`（API 面）、`resources/plugin-sdk/`（插件侧 SDK）、`src/shared/plugin/sdk/protocol.ts`（协议） |
@@ -620,6 +627,315 @@ pnpm run lint:fix            # 能自动修的机械问题（未用 import、pre
   `*-rs` 目录要从 `build/tsconfig.main.json`、`tsconfig.lint.json`、`eslint.config.mjs` 三处排除。
 - **没装 cargo 也能构建**：本地缺 Rust 时只警告，应用回退到 TS 实现。
 
+
+### 6.11 AI 执行层：opencode（自研 Agent 循环已退役）
+
+| 项 | 落点 |
+| --- | --- |
+| 运行时 | `src/main/core/ai/runtime/opencode/` —— `server.ts`（托管二进制）、`client.ts`（HTTP 薄客户端 + SSE）、`driver.ts`（事件→IPC）、`runtime.ts`（编排 + 会话映射）、`profile.ts`（agent profile）、`workspace.ts`（工作区文件）、`bridge.ts`（provider 映射） |
+| 工具通道 | `src/main/core/ai/runtime/mcp/` —— QNote 侧 MCP server（Streamable HTTP + Bearer 鉴权），工具仍走 `tool()` 包装，**工具函数体一行不用改** |
+| 系统提示词 | `src/main/core/ai/prompts/agentSystem.ts` 的 `AGENT_SYSTEM_TEXT`（纯文本，不依赖 LangChain 模板） |
+| IPC 契约 | `ai-stream:thinking` / `chunk` / `tool-call` / `tool-result` / `end` / `error` / `compacting`；`need_continue` 与 `ai-continue-agent` 已下线 |
+| 工具定义 | `src/main/core/ai/tools/tool.ts` 的自研 `tool()`（zod schema + `invoke` 解析），不再依赖 `@langchain/core/tools` |
+| 直连模型 | `src/main/core/ai/providers.ts` 用 `node-fetch` 直接打 `/chat/completions` 或 `/v1/messages` |
+
+- **opencode 是会话历史真相源**：QNote 的 `ai_chat` 表降级为展示镜像。
+  chat 会话 → opencode 会话的映射靠 session 的 `metadata.qnoteChatSessionId`，
+  重启后照样接得上（`runtime.ts` 的 `resolveOpencodeSessionId`）。
+- **模型只看得到 QNote 自家工具**：agent profile 里写 `permission: {"*": deny, "qnote_*": allow}`，
+  内置的 bash / edit / read 一律不发给模型。**规则顺序不能反** —— opencode 是后写的覆盖先写的，
+  必须先 `"*": deny` 再按前缀 allow。
+- **工具名带 `qnote_` 前缀**（opencode 给 MCP 工具加服务器名前缀），系统提示词里要写清这条。
+  driver **不做前缀剥离**（它不认 opencode 的命名规则），统一由
+  `catalog.ts` 的 `resolveToolDisplay()` 还原成 MCP server 里的原名并查出中文标题，
+  `ToolCallRecord.title` 带着它一路到界面。
+- **思考走独立通道**：opencode 的 reasoning part 单独走 `ai-stream:thinking`，
+  **别再包成 `<think>` 标签塞进正文 chunk** —— 那会让正文里混进自己的编码。
+  `BlockBuilder.pushThinking()` 收思考，`pushText()` 保留（模型原生输出的 `<think>` 仍要剥离）。
+- **工具参数会晚到**：opencode 的工具 part 先 `pending`（参数还是空的）再 `running`（参数齐了）。
+  driver 在 `running` 时补齐参数并再通知一次，界面上的工具卡片因此会更新两次，别当成重复事件。
+- **SSE 翻译层砍不掉**：opencode 的 `POST /session/{id}/message` 响应**只给最后一个 assistant
+  message**（中间的 reasoning、工具 part 全丢），完整历史得另外调 `GET /session/{id}/message`；
+  要看到过程只有 SSE 一条路。所以「SSE → QNote IPC」这层翻译是必然的，别再想着砍它。
+- **provider 走 opencode 自定义 provider**：openai / deepseek 用 `@ai-sdk/openai-compatible`
+  （打 `/chat/completions`），claude 用 `@ai-sdk/anthropic`。
+  **别用 opencode 内置的 openai provider** —— 它打 `/v1/responses`，第三方兼容接口不认。
+- **模型报错时 opencode 不回响应**：只发 `session.status{type:"retry"}`，HTTP 请求悬着；
+  靠 driver 的超时兜底，别裸等 `sendMessage`。
+- **同时只允许一个 opencode server**：它有全局状态目录，两个实例会互相搞坏
+  （会话列表为空、`POST /session` 直接 400）。
+- **二进制随包**：`scripts/build/prepare-opencode.js` 把 `opencode-ai` 的二进制拷进
+  `resources/opencode/`；`resolveOpencodeBinary()` 的查找顺序是 打包资源 → dev 资源 →
+  node_modules → PATH。
+- **LangChain 已全部退役**：`@langchain/core` / `@langchain/openai` / `@langchain/anthropic`
+  三个依赖都已从 `package.json` 移除。自研 Agent 循环（`agents/`）、热记忆与压缩器、
+  提示词模板、观测回调、tiktoken 补丁一并删除，别再把它们引回来。
+  工具用 `src/main/core/ai/tools/tool.ts` 的自研 `tool()`；直连模型只剩三处
+  （leetcode 题单解析、插件 SDK `chatWithAi`、API Key 校验），都走 `providers.ts` 的原生 fetch。
+
+### 6.12 GitLab Webhook 网关：从 GitLab 唤起 opencode
+
+| 项 | 落点 |
+| --- | --- |
+| 模块 | `src/main/core/ai/gitlabBot/` —— `configStore.ts`（配置）、`webhook.ts`（事件解析 + 触发判定）、`repoWorkspace.ts`（仓库工作区）、`prompt.ts`（任务提示词）、`task.ts`（执行 + 落库）、`trigger.ts`（入队入口）、`queue.ts`（事件队列：幂等去重 / 容量上限 / 失败重试）、`server.ts`（HTTP 网关）、`webhookTemplate.ts`（webhook 模板）、`relay.ts`（Runner 转发入口的鉴权与判定）、`runner/`（自托管 Runner 子模块：`paths.ts` 目录与二进制定位、`process.ts` 子进程管理、`registration.ts` 自动注册、`configFile.ts` config.toml 解析、`lock.ts` 残留进程清理） |
+| IPC | `src/main/handlers/gitlab/gitlabBotHandlers.ts` —— `gitlab-bot:get-config` / `save-config` / `clear-config` / `generate-secret` / `generate-relay-token` / `runner-status` / `restart-runner` |
+| 界面 | `src/renderer/pages/skills/GitlabBotConfigButton.tsx` + `GitlabBotRunnerSection.tsx` + `useGitlabBotConfig.ts`，挂在技能页 GitLab 分组头部 |
+| 入口 | `POST /gitlab/webhook`，鉴权优先走签名（`webhook-id` / `webhook-timestamp` / `webhook-signature`，Standard Webhooks 规范），没配签名密钥才退回明文 `X-Gitlab-Token`（`timingSafeEqual` 比对）；`GET /gitlab/health`；`POST /gitlab/relay`（Runner 转发入口，令牌走 `X-QNote-Relay-Token` 头） |
+| 配置项 | settings 表 `gitlab_bot_config`：`enabled` / `port` / `bindAddress` / `signingToken` / `secretToken` / `relayToken` / `triggerWords` / `allowedProjects` / `runnerEnabled` / `runnerProject` / `runnerTags` |
+| 签名密钥 | `src/main/core/ai/gitlabBot/signature.ts` —— QNote 生成 `whsec_` + 32 字节随机 base64；签名串是 `{webhook-id}.{webhook-timestamp}.{原始 body}` 的 HMAC-SHA256，容忍 300 秒 |
+
+- **只有网关对外，opencode 仍然只在本机**：opencode server 还是 `127.0.0.1` + 随机端口，
+  网关是独立的 HTTP 服务，绑 `bindAddress:port`（默认 `0.0.0.0:7799`）。
+- **触发条件是四道闸**：网关开着 → 配了密钥 → 项目在白名单内（空 = 不限）→
+  事件类型是 note / issue / merge_request 且正文命中触发词。触发词后面的内容就是给 agent 的指令。
+- **代码档位用另一个 agent profile**：`qnote-code`（`profile.ts` 的 `buildCodeAgentProfile`），
+  权限是 `{"*": deny}` 再逐项放行 `bash` / `read` / `write` / `edit` / `glob` / `grep` + `qnote_*`，
+  并显式 `external_directory: deny`（opencode 默认是 `ask`，无头场景会卡死等人点确认）。
+- **session 的工作目录靠 query 参数**：`POST /session?directory=<仓库路径>` 才会把 session 落在那个目录，
+  **body 里写 `directory` 会被忽略**（实测两次落点不同）。opencode 的 `bash` / `read` / `write` 都跟着
+  session 目录走，相对路径就落在仓库里。
+- **opencode 的 `bash` 在 Windows 上是 PowerShell 5.1**，不是 GNU bash：`&&` 会直接解析报错。
+  提示词里已经写明（`profile.ts` 的 `CODE_SHELL_NOTE`），别让 agent 写 bash 专属语法。
+- **Git 凭据不落盘**：clone / fetch / push 走 `credential.helper=store --file=<临时文件>`，
+  临时文件用完即删；仓库的 remote url 里不含 token。
+- **任务串行执行**：网关收到 webhook 立刻返回，同一时刻只跑一个任务，避免两个任务同时改同一个仓库。
+- **bot 任务的 AI 处理过程是增量落库的**：任务一开始就建一条空的 assistant 行，之后每 1 秒把已产生的
+  思考 / 工具 / 正文刷回这一行（`chatPersistence.ts` 的 `startAiChatAssistantRow` 与
+  `updateAiChatAssistantRow`，落点在 `gitlabBot/task.ts`）。**整轮结束才落库的老做法会让中途
+  退出的任务一条都不剩** —— 2026-11-27 那次任务跑了 8 分钟被关掉，session 里就是空的。
+  轮次结束或抛错时再做一次终刷；什么都没产出就把那条空行删掉。
+- **agent 能自己建 webhook**：`gitlab_ensure_webhook` 工具（`tools/gitlab/tools/hook.ts`）幂等 ——
+  接收地址与 secret 从 QNote 的网关配置取，同地址的 webhook 就更新而不是重复创建。
+  密钥永远留在宿主，agent 只报「给这个项目配 webhook」。
+- **签名模式下 `secretToken` 是空的**：判定密钥时必须 `signingToken || secretToken` 都算，
+  只看 `secretToken` 会让签名模式的所有请求被拒。密钥相关的三处要一起看：
+  `webhook.ts` 的 `decideTrigger`、`hook.ts` 的 `gitlab_ensure_webhook`、`server.ts` 的 `authorize`。
+- **GitLab 任务的 session 目录是仓库，`opencode.json` 必须同步过去**：opencode 按 session 的
+  `directory` 解析项目配置（provider 与 `.opencode/agents/`），配置不在那个目录时
+  `POST /session/<id>/message` 直接 500 —— 报错是 `UnknownError`，卡在
+  `SessionPrompt.createUserMessage`，**发生在调模型之前**，模型 ID 本身没问题也会挂。
+  `runtime.ts` 的 `syncWorkspace()` 每次 `runTurn` 都把 `opencode.json` 与两个 agent
+  markdown 复制到会话目录，并把 `/opencode.json` 与 `/.opencode/` 写进仓库的
+  `.git/info/exclude`（本地忽略，不进版本库，避免混进业务 diff）。
+  **普通对话不传 `directory`，不受影响。**
+- **agent 读网关配置走 `gitlab_gateway_status` 工具**（`tools/gitlab/tools/gateway.ts`）——
+  网关配置原本只在 IPC 层暴露给渲染层，工具层不给的话 agent 看不到 webhook 地址、端口、
+  触发词与密钥模式，只能瞎猜。只返回打码后的密钥提示，不回明文。
+- **Windows 上 GitLab 连不上网关多半是防火墙**：GitLab 报的 `Failed to open TCP connection ...
+  (execution expired)` 是 SYN 被丢弃（防火墙 DROP），不是 RST 拒绝。三个 profile 默认
+  `BlockInbound`，企业域环境下 `electron.exe` / `QNote.exe` 通常没有任何入站放行规则，
+  需要管理员加一条按端口放行的入站规则。
+- **GitLab 工具层配置别被重置**：`registry.ts` 在模块加载时会调 `configureQNoteGitlabAdapter`，
+  那时 `initGitlabConfigStore` 可能还没跑。所以 `configureGitlabToolkit` 在 `options.config`
+  未给时必须**保留**已有配置（`options.config ?? runtime.config`），否则 `isGitlabConfigured()`
+  变 false，**全部 GitLab 工具都不会挂载**，agent 一个都拿不到。
+
+#### 6.12.1 Runner 接入：GitLab 连不上本机时的通路
+
+**前提事实（实测，别再猜）**：企业网 ACL 会拦掉 `10.99.x` → `10.112.x` 的回程，
+**防火墙规则根本没机会生效** —— 换端口建临时 webhook 同样超时、本机收到 0 个请求。
+所以「让 GitLab 主动连 QNote」这条路在内网是死的。
+
+**解法**：把入站方向反过来。
+
+```
+用户评论 "@qnote 修bug"
+  ↓ GitLab webhook → GitLab 自己的 pipeline trigger API
+  ↓   POST /api/v4/projects/<数字ID>/ref/<分支>/trigger/pipeline?token=glptt-...
+  ↓   GitLab 调 GitLab 自己，必然通（实测 201 Created，pipeline source=trigger）
+  ↓ self-hosted Runner 主动轮询领 job（出站，你 → GitLab，通）
+Runner 在本机执行 job → curl QNote 的 relay 端点（127.0.0.1，通）
+  ↓ QNote 收到原始事件 → 复用 parseGitlabEvent / decideTrigger → 干活
+```
+
+| 项 | 落点 |
+| --- | --- |
+| 工具 | `gitlab_ensure_runner`（`tools/gitlab/tools/runner.ts`）—— 建 trigger token、把 webhook 指向 trigger API、写 CI 变量、返回 CI 模板 |
+| 模板 | `tools/gitlab/tools/runnerSetup.ts` —— `buildTriggerApiUrl()` / `buildCiTemplate()` |
+| relay | `src/main/core/ai/gitlabBot/relay.ts` —— `authorizeRelay()` / `parseRelayRequest()`；令牌走 `X-QNote-Relay-Token` 头，判定与入队在 `queue.ts` |
+| 回源取报文（兜底） | `src/main/core/ai/gitlabBot/triggerPayload.ts` —— `loadTriggerPayload()`，按 pipeline id 读 pipeline 变量；**需要 Maintainer 及以上权限** |
+| 指针模板 | `src/main/core/ai/gitlabBot/triggerPointer.ts` —— `TRIGGER_POINTER_TEMPLATE`（ASCII 指针）+ `parseTriggerPointer()` |
+| 回源补齐 | `src/main/core/ai/gitlabBot/eventHydrator.ts` —— `resolveEventPayload()`：指针报文按 id 回 GitLab 取原文，拼成标准形状再喂 `parseGitlabEvent` |
+
+- **`TRIGGER_PAYLOAD` 是 GitLab 给 trigger pipeline 强制注入的 file 类型变量**，
+  runner 一定要为它生成脚本，job 绕不开这一步。**所以「报文里不放自由文本」是唯一的根治办法。**
+- **ParserError 的真正根因是编码，不是反引号**：runner 写出的 `.ps1` 是 **UTF-8 无 BOM**，
+  而 Windows PowerShell 5.1 按**系统 ANSI 代码页（本机 ACP=936 / GBK）**解码无 BOM 脚本 ——
+  中文的 UTF-8 字节被 GBK 解码**吞掉紧跟的引号**，字符串提前终止 → `ParserError`。
+  本地复现：同一份脚本加 UTF-8 BOM 就正常，不加就炸。
+  **连锁反应更要命**：runner 把**所有**变量（`CI_PIPELINE_ID`、`CI_PROJECT_ID`、项目 CI 变量）
+  都写进同一个 `.ps1`，这段炸了 → **变量全丢**（实测 `$env:CI_PIPELINE_ID` 为空）→
+  job 里 `curl` 拿不到 URL → `curl: (2) no URL specified` → job 失败。
+  对照实测：payload 纯 ASCII → job 成功、变量齐全；payload 含中文 → ParserError + 变量全空。
+- **解法：webhook 用自定义模板，只输出 ASCII 指针**。模板存在
+  `gitlabBot/triggerPointer.ts` 的 `TRIGGER_POINTER_TEMPLATE`，
+  由 `gitlab_ensure_runner` 写进 hook 的 `custom_webhook_template`。
+  模板只放 id 与路径（`object_kind` / `object_id` / `issue_iid` / `project_path` …），
+  **一个自由文本都不放** → `TRIGGER_PAYLOAD` 恒为 ASCII → runner 变量段正常 → job 正常。
+  QNote 拿到指针后用 `eventHydrator.ts` 按 note id / issue iid 回 GitLab API 取原文，
+  **拼成标准 webhook 形状再喂现有 `parseGitlabEvent`**，解析逻辑一行没改。
+- **自定义模板的坑**：占位符语法是 `{{path}}` **不带空格**；写成 `{{ path }}` 会被渲染成
+  字符串 `"null"`（GitLab 把找不到的键当 nil 序列化）。模板本身必须是**合法 JSON**，
+  拼错了 `PUT /projects/:id/hooks/:id` 直接 422。GitLab 19.2 实测支持项目级
+  `custom_webhook_template`（`PUT` 与 `GET` 都能读写）。
+- **job 把指针文件直接 POST 过来，QNote 不读 pipeline 变量**：CI job 用
+  `--data-binary "@$env:TRIGGER_PAYLOAD"`（bash 是 `--data-binary "@$TRIGGER_PAYLOAD"`）
+  把 runner 写好的指针文件原样发成 body，QNote 收到 body 就直接按 id 回源取原文。
+  `$TRIGGER_PAYLOAD` 是 file 类型变量，runner 写文件后把**文件路径**放进环境变量，
+  路径原样交给 curl 就完全不经过 shell 变量，编码与引号问题都不存在。
+  **别把文件内容读进 shell 变量再拼进命令行** —— 那才是把内容塞回脚本的老路。
+  模板生成器在 `tools/gitlab/tools/runnerSetup.ts` 的 `buildCiTemplate()`。
+- **读 pipeline 变量要 Maintainer 及以上**：兜底路径
+  `GET /projects/<项目ID>/pipelines/<pipelineID>/variables` 在 **Developer 令牌下是 403**
+  （实测：同一令牌读 pipeline 详情 200、读 pipeline 变量 403）。
+  QNote 拿到 403 会回 **400**，CI job 的 `curl --fail` 因此以**退出码 22** 失败，
+  现象是 `curl: (22) The requested URL returned error: 400`。
+  **项目访问令牌（project access token）默认只给 Developer**，换成它就必然踩这个坑 ——
+  要么按上一条让 job 直接传指针，要么把令牌提到 Maintainer。
+- **protected branch 的权限也要对得上**：`main` 的 push 规则是 Maintainer，
+  Developer 令牌推 `main` 会 403（`You are not allowed to push into this branch`）。
+  bot 的正常流程是「建分支 + 开 MR + 由 Maintainer 合并」，别让它直接推主干。
+- **兜底路径：body 为空时按 pipeline id 回源**：relay 端点在 body 为空时用
+  `X-QNote-Pipeline-Id` + `X-QNote-Project-Id` 走上面那条读 pipeline 变量的路。
+  **`CI_PIPELINE_ID` / `CI_PROJECT_ID` 是 runner 内置的普通变量，不走变量文件生成，
+  纯数字，不会有转义问题。**
+  实现落在 `gitlabBot/triggerPayload.ts` 的 `loadTriggerPayload()`，
+  relay 端点（`server.ts`）在 body 为空时走这条回源路径。
+- **opencode 的事件流按会话目录分流**：`GET /event` 不带 `?directory=` 时只收到
+  默认目录（opencode workspace）的会话事件；**会话建在别的目录（GitLab 任务用的仓库 clone 目录）
+  就一条都收不到** → 主进程收不到 `onText` / `onToolCall` → **任务会话落库时 AI 回复与动作记录全是空的**。
+  官方 SDK 的 `event.subscribe` 本来就带 `?directory=&workspace=`。
+  修法：`client.ts` 的 `subscribeEvents()` 接 `query.directory`，
+  `driver.ts` 的 `OpencodeDriverOptions.directory` 透传，`runtime.ts` 把 `input.directory` 传下去。
+  症状对照：会话行数在涨但 `content` 长度与 `blocks` 数量恒为 0。
+- **Windows 上别给 runner 配 Git Bash（`shell = "bash"`）**：MSYS 会把 runner 传的
+  Windows 路径转成 POSIX 路径，而 runner 自己又要拼一次原始路径，最后得到
+  `/d/.../builds/D:/.../builds/...` 这种废路径，变量文件生成直接失败
+  （`Error while executing file based variables removal script`）。
+  `runner/shell.ts` 的 `detectRunnerShell()` 因此在 Windows 上固定返回 `powershell`，
+  macOS / Linux 才用 `bash`。
+- **file 类型变量的内容本身就是 webhook 原文**（GitLab 另加 `id` / `ref` / `variables` 三个字段），
+  **现有 `parseGitlabEvent` 直接可用**。
+- **trigger API 的 webhook URL 必须用数字项目 ID**：`/api/v4/projects/<数字ID>/ref/<分支>/trigger/pipeline?token=<glptt-...>`。
+  用 `encodeURIComponent("组/项目")` 编出的 `%2F` 在 GitLab 19.2 路径上会 401。
+- **pipeline trigger token 的端点是 `POST /projects/:id/triggers`**（不是 `/trigger_tokens`，后者 404），
+  令牌前缀 `glptt-`。`GET /projects/:id/triggers` 会把令牌明文列出来。
+- **CI 模板里不要写反斜杠续行**：GitLab runner 把 YAML block scalar 逐行交给 shell，
+  PowerShell 里行尾反斜杠会把下一行参数当成独立命令（实测报 `-Headers : 命令不存在`）。
+  **每个命令写成一行**。
+- **PowerShell 侧别用 `Invoke-WebRequest`**：runner 是 NonInteractive 模式，
+  IWR 会弹提示直接失败（`Windows PowerShell is in NonInteractive mode`）。**用 `curl.exe`**
+  （Windows 10+ 自带，实测 8.22.0）。
+- **CI 变量要建两个**：`QNOTE_RELAY_URL`（`http://127.0.0.1:<端口>/gitlab/relay`）与
+  `QNOTE_RELAY_TOKEN`（网关的 relay 令牌，`masked: true`）。runner 与 QNote 同机时用回环地址，
+  绕开防火墙与 ACL。
+- **runner 注册**（两条路都实测过）：
+  - 旧式注册令牌：`gitlab-runner register --registration-token <GR...>`，令牌来自
+    `POST /projects/:id/runners/reset_registration_token`。
+  - **自动注册走新式令牌**：`POST /user/runners` 建 project_type runner → 拿 `glrt-` 令牌 →
+    `gitlab-runner register --non-interactive --config <配置路径> --url <实例地址>
+    --token <glrt-令牌> --executor shell --shell <powershell|bash> --name <名字>`。
+    **`--url` 与 `--executor` 必填，缺一个就 PANIC**（`Invalid executor specified`）。
+    用 `--token` 时**不能带** `--tag-list` / `--run-untagged` —— 那些是服务端属性。
+  - 想给已有的 runner 换令牌：`POST /runners/:id/reset_authentication_token`（201，返回新令牌）。
+    路径是 `/runners/:id/...`，**不是** `/user/runners/:id/...`（后者 404）。
+  - `gitlab-runner register` 会在**当前工作目录**生成 `.runner_system_id`，
+    `config.toml` 要用 `--config` 指到别处，否则会污染仓库根目录。
+- **runner 二进制下载源是 `https://gitlab-runner-downloads.s3.amazonaws.com/v<版本>/binaries/<文件名>`**
+  （注意是 `/v19.6.1/binaries/`，**不是** `/releases/v19.6.1/binaries/`（403），
+  也不是 `/19.6.1/binaries/`（403））。校验和在同版本目录的 `release.sha256` 里，
+  记的是 `binaries/<文件名>`，按 basename 匹配。
+- **CI job 必须带 `tags: [qnote]`**：自动注册建的 runner 是 `run_untagged: false`，
+  只有显式打了标签的 job 才会被领走。模板由 `buildCiTemplate({ tags })` 生成。
+
+
+#### 6.12.2 Runner 随 QNote 生命周期启停
+
+**要求**：Runner 不是用户手动起的独立进程 —— QNote 启动就拉起，QNote 退出就收掉。
+
+| 项 | 落点 |
+| --- | --- |
+| 进程管理 | `src/main/core/ai/gitlabBot/runner/process.ts` —— spawn `gitlab-runner run --config <配置> --working-directory <builds>`，崩溃后按 3s/10s/30s/60s 退避重启，最多 5 次 |
+| 目录与二进制 | `src/main/core/ai/gitlabBot/runner/paths.ts` —— dev 用 `<仓库>/.data/opencode/runner`，安装版用 `userData/runner`；二进制优先找 `resources/gitlab-runner/`（打包目录），再找 `runnerDir()`，最后找 PATH |
+| 自动注册 | `src/main/core/ai/gitlabBot/runner/registration.ts` —— `ensureRunnerRegistered()` |
+| 残留清理 | `src/main/core/ai/gitlabBot/runner/lock.ts` —— 锁文件记 PID，QNote 被强杀后下次启动先干掉上一个 runner |
+| 打包 | `scripts/build/prepare-gitlab-runner.js` —— 下载二进制到 `resources/gitlab-runner/`，`build-app.js` 打包前调它 |
+
+- **挂载点**：`gitlabBot/index.ts` 的 `initGitlabBot()` 里 `startGitlabBotServer()` 之后
+  `startGitlabRunner()`；`applyGitlabBotConfig()` 改完配置再 `syncGitlabRunner()`（开就起、关就停）；
+  `src/main/index.ts` 的 `will-quit` 里 `stopGitlabRunner()`。
+  **Windows 上子进程不会随父进程退出**，不显式 kill 就会留一堆 runner 抢同一个 job。
+- **本地 config.toml 缺失才注册**：有 `config.toml` 且能解析出 token 就直接起，
+  免得每次启动都去动 GitLab 侧的令牌（旧令牌会打断正在跑的 job）。
+  注册流程：按描述找同名 runner（描述固定 `qnote-local`）→ 找到就 `reset_authentication_token`
+  换新令牌，找不到就 `POST /user/runners` 建一个 → 再 `gitlab-runner register` 把令牌写进本地
+  config.toml。
+- **runner 是 project_type 的**：非 admin 用户建不了 instance_type runner
+  （`GET /runners/all` 是 403）。所以 runner 必须绑一个项目，配置项 `runnerProject`
+  （留空则取 `allowedProjects[0]`）。
+- **打包要 +145MB**：`resources/gitlab-runner/` 与 `resources/opencode/` 一样进 `.gitignore`，
+  由 `prepare:gitlab-runner` 脚本在打包前下载。macOS 下这个二进制没签名，
+  和 opencode.exe 一样过不了公证。
+- **下载脚本产出的文件名必须与 `runnerBinaryName()` 一致**（`gitlab-runner.exe` /
+  `gitlab-runner`），否则打包后找不到二进制。
+- **runner 的日志别全塞进 QNote 日志**：`Checking for jobs` / `Appending trace` /
+  `Submitting job` 这些轮询噪音要过滤，ANSI 色码要剥掉，否则 app.log 会被刷爆。
+
+---
+
+#### 6.12.3 事件队列、发送前检查与会话刷新
+
+**一、事件按消息队列消费**
+
+| 项 | 落点 |
+| --- | --- |
+| 队列 | `src/main/core/ai/gitlabBot/queue.ts` —— `GitlabEventQueue` |
+| 幂等键 | `dedupeKey(event)` —— note 按 note id，issue / MR 按 iid + action |
+| 发送前检查 | `src/main/core/ai/tools/gitlab/utils/triggerGuard.ts` —— `stripTriggerWords` / `guardBotContent` |
+| 触发词表 | `src/main/core/ai/tools/gitlab/runtime/triggerWords.ts` —— 由 `gitlabBot/index.ts` 从配置同步 |
+| 会话变更 | `src/main/core/ai/chatEvents.ts` —— `emitAiChatChanged` / `onAiChatChanged` |
+
+- **判定挪到出队时**：入队只收事件，出队才跑 `decideTrigger`。入队前判定会让「事件」在队列里
+  根本不存在，重复投递与自产消息无从拦。
+- **幂等键要覆盖在途事件**：事件取出后到派发完成前，键必须留在 `pendingKeys` 里 ——
+  只在「已取出」时删掉，GitLab 重投就能再入队一次，同一个任务会跑两遍。
+- **容量上限 50，满了丢最旧**：入队时判 `pending.length >= capacity`，丢最旧一条并记日志。
+- **失败重试 2 次**：间隔按 `retryDelayMs * (attempt + 1)` 递增；重试用尽只放弃这一条，
+  不影响队列后续。
+- **relay 与 webhook 走同一条队列**：两条入口可能送来同一事件，幂等键就是给这个场景兜底的。
+- **任务失败不要落空行**：`task.ts` 里 AI 一条字都没产出时，把错误信息落成 assistant 消息，
+  完全没内容就不落库 —— 否则会话里会出现一个什么都没有的气泡。
+
+**二、发送前检查：agent 的回复不许带触发词**
+
+- **落点是工具层的五个写回出口**：`gitlab_add_comment`（评论）、
+  `gitlab_create_issue` / `gitlab_update_issue`（标题 + 正文）、
+  `gitlab_create_merge_request` / `gitlab_update_merge_request`（标题 + 描述）。
+- **做法**：发出去前用当前配置的触发词表把内容里的触发词剥掉（大小写不敏感），
+  剥掉的词放进返回值的 `trigger_words_removed`；**内容只剩触发词时直接拦下不发**。
+- **为什么拦在写回侧而不是判定侧**：自触发是「agent 写出去的内容里带着触发词」，
+  触发源在写回那一刻就产生了。收窄判定范围（只认评论正文）也拦不住 agent 回帖时复述触发词。
+- **词表要从配置同步**：`gitlabBot/index.ts` 在 `initGitlabBot` / `applyGitlabBotConfig` /
+  `resetGitlabBotConfig` 三处调 `setGitlabTriggerWords`，否则改了触发词配置，工具层还按旧的来。
+- **副作用**：用户让 agent 在 MR 描述里写「触发词用法」时，描述里的触发词也会被剥掉。
+
+**三、会话列表与内容改成持续刷新**
+
+| 环节 | 落点 |
+| --- | --- |
+| 事件总线 | `src/main/core/ai/chatEvents.ts` |
+| 落库触发 | `src/main/core/ai/chatPersistence.ts` —— `persistAiChatExchange` 事务成功后 emit |
+| 推送 | `src/main/handlers/ai/aiHandlers.ts` —— `getMainWindow()` 现取后 `webContents.send("ai-chat:changed")` |
+| preload | `src/main/preload.ts` 的 `onAiChatChanged` |
+| 渲染层 | `src/renderer/hooks/ai/useAiAssistant.ts` —— 收到推送刷列表 + 当前会话历史；`window` 的 `focus` 与 `document` 的 `visibilitychange` 再补拉一次 |
+
+- **不刷新 = 后台任务永远看不见**：GitLab 任务在主进程后台落库，渲染层只在 mount / 新建 /
+  发送后 / 取消 / 宠物语音结束时拉一次，界面永远停在旧状态 —— **数据在库里也看不见**。
+- **推送为主，focus 补拉兜底**：推送覆盖「订阅已建立」之后的落库；订阅建立之前
+  （渲染层刚热更新、窗口重建）的漏，由切回窗口时补拉兜住。
+- **正在流式输出时不刷新历史**：历史刷新会整段替换消息列表，本地流式期间
+  （`activeSessionRef` 有值）直接跳过，避免打断正在生成的内容。
+- **窗口句柄要现取**：`getMainWindow()` 在回调里取，别在注册时取快照。
 
 ---
 

@@ -1,54 +1,36 @@
-
-import type { StructuredToolInterface } from '@langchain/core/tools';
-import { getClipboardHistoryTool } from './getClipboard';
-import { getTodosTool } from './getTodos';
-import { createTodoTool, updateTodoTool } from './todoTools';
-import { getAppInfoTool } from './getAppInfo';
-import { saveNoteTool } from './saveNote';
-import { listNotesTool } from './listNotes';
-import { readNoteTool } from './readNote';
-import { rememberTool, recallTool, forgetTool } from './memoryTools';
-import { browserGetSnapshotTool } from './browser/browserSnapshot';
-import { browserClickTool } from './browser/browserClick';
-import { browserFillTool } from './browser/browserFill';
-import { browserNavigateTool } from './browser/browserNavigate';
-import { webSearchTool } from './web/webSearch';
-import { webFetchTool } from './web/webFetch';
+import type { ToolDefinition } from "./tool";
 import { GITLAB_READ_TOOLS, GITLAB_WRITE_TOOLS } from './gitlab/index';
-import { isGitlabConfigured } from './gitlab/config';
+import { isGitlabConfigured } from './gitlab/index';
+import { configureQNoteGitlabAdapter } from './gitlabQnoteAdapter';
+import { GITHUB_READ_TOOLS, GITHUB_WRITE_TOOLS } from './github/index';
+import { isGithubConfigured } from './github/index';
+import { configureQNoteGithubAdapter } from './githubQnoteAdapter';
+import { READ_TOOLS, WRITE_TOOLS } from './catalog';
+import { isToolEnabled } from './toolToggle';
 import { mcpManager } from '../mcp/manager';
 
-export const READ_TOOLS: StructuredToolInterface[] = [
-  getClipboardHistoryTool,
-  getTodosTool,
-  getAppInfoTool,
-  listNotesTool,
-  readNoteTool,
-  recallTool,
-  browserGetSnapshotTool,
-  webSearchTool,
-  webFetchTool,
-];
+configureQNoteGitlabAdapter();
+configureQNoteGithubAdapter();
 
-export const WRITE_TOOLS: StructuredToolInterface[] = [
-  saveNoteTool,
-  createTodoTool,
-  updateTodoTool,
-  rememberTool,
-  forgetTool,
-  browserClickTool,
-  browserFillTool,
-  browserNavigateTool,
-];
+export { READ_TOOLS, WRITE_TOOLS };
 
-export function getEnabledTools(): StructuredToolInterface[] {
+export function getEnabledTools(): ToolDefinition[] {
   const gitlabTools = isGitlabConfigured()
     ? [...GITLAB_READ_TOOLS, ...GITLAB_WRITE_TOOLS]
     : [];
-  return [...READ_TOOLS, ...WRITE_TOOLS, ...gitlabTools, ...mcpManager.getTools()];
+  const githubTools = isGithubConfigured()
+    ? [...GITHUB_READ_TOOLS, ...GITHUB_WRITE_TOOLS]
+    : [];
+  return [
+    ...READ_TOOLS,
+    ...WRITE_TOOLS,
+    ...gitlabTools,
+    ...githubTools,
+    ...mcpManager.getTools(),
+  ].filter((tool) => isToolEnabled(tool.name));
 }
 
-export async function prepareEnabledTools(): Promise<StructuredToolInterface[]> {
+export async function prepareEnabledTools(): Promise<ToolDefinition[]> {
   await mcpManager.ensureToolsReady();
   return getEnabledTools();
 }

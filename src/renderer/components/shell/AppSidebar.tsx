@@ -1,4 +1,4 @@
-import { Home, Settings, BookOpen, PenTool, PanelLeftClose, PanelLeftOpen, ListChecks, Globe, Sparkles, Boxes, Puzzle } from "lucide-react";
+import { Home, Settings, BookOpen, PanelLeftClose, PanelLeftOpen, ListChecks, Globe, Sparkles, Boxes, Puzzle } from "lucide-react";
 import { Link, useLocation, useSearchParams } from "react-router";
 import {
   Sidebar,
@@ -42,12 +42,6 @@ const items: SidebarItem[] = [
     url: "/todos",
     icon: ListChecks,
     tabKey: "todos",
-  },
-  {
-    title: "力扣分类",
-    url: "/leetcode",
-    icon: PenTool,
-    tabKey: "leetcode",
   },
   {
     title: "浏览器",

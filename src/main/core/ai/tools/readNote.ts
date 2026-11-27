@@ -1,4 +1,4 @@
-import { tool } from '@langchain/core/tools';
+import { tool } from "./tool";
 import { z } from 'zod';
 import { NoteStore } from "../../notes/noteStore";
 import { detectNoteType, getNoteTypeMeta } from '../../../../shared/notes/noteTypes';

@@ -17,14 +17,23 @@ export interface ToolContext {
 
 let _ctx: ToolContext | null = null;
 
-export function setToolContext(ctx: Partial<ToolContext>): void {
-  _ctx = { ...(_ctx as ToolContext), ...ctx } as ToolContext;
+export function initToolContext(ctx: ToolContext): void {
+  _ctx = ctx;
+}
+
+export function updateToolContext(ctx: Partial<ToolContext>): void {
+  if (!_ctx) {
+    throw new Error(
+      'Tool context not initialized. Call initToolContext() before updating it.'
+    );
+  }
+  _ctx = { ..._ctx, ...ctx };
 }
 
 export function getToolContext(): ToolContext {
   if (!_ctx) {
     throw new Error(
-      'Tool context not initialized. Call setToolContext() before invoking any tool.'
+      'Tool context not initialized. Call initToolContext() before invoking any tool.'
     );
   }
   return _ctx;

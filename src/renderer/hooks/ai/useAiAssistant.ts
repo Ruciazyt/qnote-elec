@@ -7,6 +7,7 @@ import {
 } from "@shared/ai/aiImages";
 import { toast } from "@/hooks/ui/use-toast";
 import { randomHex } from "@/utils/system/randomId";
+import { subscribeAiStream } from "./subscribeAiStream";
 
 export interface StreamingMessage {
   sessionId: string;
@@ -36,7 +37,6 @@ export interface PetBubbleState {
   error?: string;
 }
 
-const MAX_PET_AUTO_CONTINUE = 3;
 
 export interface UseAiAssistantOptions {
   onError?: (message: string) => void;
@@ -61,11 +61,6 @@ export function useAiAssistant(options?: UseAiAssistantOptions) {
   const [aiLoading, setAiLoading] = useState(false);
   const [streamingMessage, setStreamingMessage] = useState<StreamingMessage | null>(null);
   const [compacting, setCompacting] = useState<{ round: number; maxRounds: number } | null>(null);
-  const [pendingContinuation, setPendingContinuation] = useState<{
-    sessionId: string;
-    rounds: number;
-    totalRounds: number;
-  } | null>(null);
   const [latestClipboardContent, setLatestClipboardContent] = useState<
     string | undefined
   >(undefined);
@@ -77,7 +72,6 @@ export function useAiAssistant(options?: UseAiAssistantOptions) {
     activeSkillIdRef.current = activeSkillId;
   }, [activeSkillId]);
 
-  const chatEndRef = useRef<HTMLDivElement>(null);
   const activeChatSessionIdRef = useRef<string | null>(null);
   const historyRequestRef = useRef(0);
   const creatingSessionRef = useRef(false);
@@ -116,6 +110,45 @@ export function useAiAssistant(options?: UseAiAssistantOptions) {
       cancelled = true;
     };
   }, [loadChatSessions]);
+
+  const refreshActiveHistory = useCallback(async () => {
+    const sessionId = activeChatSessionIdRef.current;
+    if (!sessionId) return;
+    if (activeSessionRef.current) return;
+    const requestId = ++historyRequestRef.current;
+    try {
+      const history = await window.electron.getAiChatSessionHistory(sessionId);
+      if (requestId !== historyRequestRef.current) return;
+      if (activeChatSessionIdRef.current !== sessionId) return;
+      setChatMessages(history.map((m) => ({ ...m, blocks: m.blocks })));
+    } catch (err) {
+      console.error("刷新AI对话历史失败", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    const off = window.electron.onAiChatChanged((payload) => {
+      void loadChatSessions();
+      if (payload?.sessionId === activeChatSessionIdRef.current) {
+        void refreshActiveHistory();
+      }
+    });
+    return () => off();
+  }, [loadChatSessions, refreshActiveHistory]);
+
+  useEffect(() => {
+    const onFocus = () => {
+      if (document.visibilityState === "hidden") return;
+      void loadChatSessions();
+      void refreshActiveHistory();
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
+  }, [loadChatSessions, refreshActiveHistory]);
 
   useEffect(() => {
     const handler = (_event: unknown, record: unknown) => {
@@ -159,12 +192,6 @@ export function useAiAssistant(options?: UseAiAssistantOptions) {
         activeSessionRef.current = null;
       }
     };
-  }, []);
-
-  const scrollToEnd = useCallback(() => {
-    setTimeout(() => {
-      chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 100);
   }, []);
 
   const createChatSession = useCallback(async () => {
@@ -252,7 +279,6 @@ export function useAiAssistant(options?: UseAiAssistantOptions) {
       created_at: new Date(),
     };
     setChatMessages((prev) => [...prev, userMessage]);
-    scrollToEnd();
 
     const sessionId =
       typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -263,39 +289,45 @@ export function useAiAssistant(options?: UseAiAssistantOptions) {
 
     const builder = new BlockBuilder();
 
-    const offChunk = window.electron.onAiStreamChunk(
-      (_e, payload) => {
-        if (payload.sessionId !== sessionId || activeChatSessionIdRef.current !== chatSessionId) return;
+    let unsubscribe = () => {};
+    const cleanupStream = () => {
+      unsubscribe();
+      setCompacting(null);
+      if (activeSessionRef.current?.sessionId === sessionId) {
+        activeSessionRef.current = null;
+      }
+    };
+    unsubscribe = subscribeAiStream(
+      sessionId,
+      () => activeChatSessionIdRef.current === chatSessionId,
+      {
+        onChunk: (payload) => {
         builder.pushText(payload.delta);
         setStreamingMessage((prev) =>
           prev && prev.sessionId === sessionId
             ? { ...prev, content: prev.content + payload.delta, blocks: builder.blocks() }
             : prev
         );
-      }
-    );
-    const offToolCall = window.electron.onAiStreamToolCall(
-      (_e, payload) => {
-        if (payload.sessionId !== sessionId || activeChatSessionIdRef.current !== chatSessionId) return;
-        builder.pushToolCall({ id: payload.id, name: payload.name, args: payload.args });
+        },
+        onThinking: (payload) => {
+        builder.pushThinking(payload.delta);
         setStreamingMessage((prev) =>
           prev && prev.sessionId === sessionId ? { ...prev, blocks: builder.blocks() } : prev
         );
-      }
-    );
-    const offToolResult = window.electron.onAiStreamToolResult(
-      (_e, payload) => {
-        if (payload.sessionId !== sessionId || activeChatSessionIdRef.current !== chatSessionId) return;
+        },
+        onToolCall: (payload) => {
+        builder.pushToolCall({ id: payload.id, name: payload.name, title: payload.title, args: payload.args });
+        setStreamingMessage((prev) =>
+          prev && prev.sessionId === sessionId ? { ...prev, blocks: builder.blocks() } : prev
+        );
+        },
+        onToolResult: (payload) => {
         builder.pushToolResult(payload.id, payload.result, payload.isError);
         setStreamingMessage((prev) =>
           prev && prev.sessionId === sessionId ? { ...prev, blocks: builder.blocks() } : prev
         );
-      }
-    );
-    const offEnd = window.electron.onAiStreamEnd(
-      (_e, payload) => {
-        if (payload.sessionId !== sessionId) return;
-        cleanup();
+        },
+        onEnd: (payload) => {
         if (activeChatSessionIdRef.current !== chatSessionId) return;
         setChatMessages((prev) => [
           ...prev,
@@ -309,26 +341,16 @@ export function useAiAssistant(options?: UseAiAssistantOptions) {
         ]);
         setStreamingMessage(null);
         setAiLoading(false);
-        scrollToEnd();
         void loadChatSessions();
-      }
-    );
-    const offCompacting = window.electron.onAiCompacting(
-      (_e, payload) => {
-        if (payload.sessionId !== sessionId) return;
-        if (activeChatSessionIdRef.current !== chatSessionId) return;
+        },
+        onCompacting: (payload) => {
         if (payload.phase === 'compressing') {
           setCompacting({ round: payload.round ?? 0, maxRounds: payload.maxRounds ?? 3 });
         } else {
           setCompacting(null);
         }
-      }
-    );
-    const offError = window.electron.onAiStreamError(
-      (_e, payload) => {
-        if (payload.sessionId !== sessionId) return;
-        cleanup();
-        setPendingContinuation(null);
+        },
+        onError: (payload) => {
         if (activeChatSessionIdRef.current !== chatSessionId) return;
         setChatMessages((prev) => prev.filter((m) => m.id !== userMessage.id));
         setStreamingMessage(null);
@@ -340,37 +362,12 @@ export function useAiAssistant(options?: UseAiAssistantOptions) {
           description: payload.error || "未知错误",
           variant: "destructive",
         });
-      }
+        },
+      },
+      cleanupStream
     );
 
-    const offNeedContinue = window.electron.onAiNeedContinue(
-      (_e, payload) => {
-        if (payload.sessionId !== sessionId) return;
-        if (activeChatSessionIdRef.current !== chatSessionId) return;
-        setPendingContinuation({
-          sessionId,
-          rounds: payload.rounds,
-          totalRounds: payload.totalRounds,
-        });
-      }
-    );
-
-    function cleanup() {
-      offChunk();
-      offToolCall();
-      offToolResult();
-      offEnd();
-      offError();
-      offCompacting();
-      offNeedContinue();
-      setCompacting(null);
-      setPendingContinuation(null);
-      if (activeSessionRef.current?.sessionId === sessionId) {
-        activeSessionRef.current = null;
-      }
-    }
-
-    activeSessionRef.current = { sessionId, cleanup };
+    activeSessionRef.current = { sessionId, cleanup: cleanupStream };
 
     try {
       await window.electron.sendAiAgentStream(
@@ -382,7 +379,7 @@ export function useAiAssistant(options?: UseAiAssistantOptions) {
       );
     } catch (err) {
       const isCurrentSession = activeSessionRef.current?.sessionId === sessionId;
-      cleanup();
+      cleanupStream();
       if (!isCurrentSession) return;
       setChatMessages((prev) => prev.filter((m) => m.id !== userMessage.id));
       setStreamingMessage(null);
@@ -395,40 +392,17 @@ export function useAiAssistant(options?: UseAiAssistantOptions) {
         variant: "destructive",
       });
     }
-  }, [aiInput, aiImages, aiLoading, assistantView, createChatSession, loadChatSessions, scrollToEnd]);
+  }, [aiInput, aiImages, aiLoading, assistantView, createChatSession, loadChatSessions]);
 
   const handleCancelAiMessage = useCallback(() => {
     const active = activeSessionRef.current;
     if (!active) return;
-    activeSessionRef.current = null;
-    active.cleanup();
     try {
       window.electron.cancelAiMessage(active.sessionId);
     } catch (err) {
       console.error("取消 AI 流失败:", err);
     }
-    setStreamingMessage((current) =>
-      current?.sessionId === active.sessionId ? null : current
-    );
-    setPendingContinuation(null);
-    setAiLoading(false);
   }, []);
-
-  const handleContinueDecision = useCallback(
-    (decision: "continue" | "stop") => {
-      const pending = pendingContinuation;
-      if (!pending) return;
-      setPendingContinuation(null);
-      window.electron
-        .continueAiAgent(pending.sessionId, decision)
-        .catch((err) => {
-          console.error("续跑请求失败:", err);
-          setStreamingMessage(null);
-          setAiLoading(false);
-        });
-    },
-    [pendingContinuation]
-  );
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -470,7 +444,6 @@ export function useAiAssistant(options?: UseAiAssistantOptions) {
             blocks: m.blocks,
           }))
         );
-        scrollToEnd();
       }
     } catch (err) {
       console.error("加载AI对话历史失败", err);
@@ -479,7 +452,7 @@ export function useAiAssistant(options?: UseAiAssistantOptions) {
         setChatHistoryLoading(false);
       }
     }
-  }, [handleCancelAiMessage, scrollToEnd]);
+  }, [handleCancelAiMessage]);
 
   const handleShowSessions = useCallback(() => {
     historyRequestRef.current += 1;
@@ -549,12 +522,11 @@ export function useAiAssistant(options?: UseAiAssistantOptions) {
         if (requestId !== historyRequestRef.current) return;
         if (activeChatSessionIdRef.current !== sessionId) return;
         setChatMessages(history.map((m) => ({ ...m, blocks: m.blocks })));
-        scrollToEnd();
       } catch (err) {
         console.error("[pet-voice] 同步对话记录失败:", err);
       }
     },
-    [scrollToEnd]
+    []
   );
 
   const beginPetVoice = useCallback(() => {
@@ -637,31 +609,10 @@ export function useAiAssistant(options?: UseAiAssistantOptions) {
         }));
       });
 
-      let autoContinued = 0;
-      const offNeedContinue = window.electron.onAiNeedContinue((_e, payload) => {
-        if (payload.sessionId !== sessionId) return;
-        if (autoContinued >= MAX_PET_AUTO_CONTINUE) {
-          offNeedContinue();
-          return;
-        }
-        autoContinued += 1;
-        window.electron.continueAiAgent(sessionId, "continue").catch((err) => {
-          console.error("[pet-voice] 自动续跑失败:", err);
-          cleanup();
-          setPetBubble((current) => ({
-            phase: "error",
-            utterance: text,
-            reply: current?.reply ?? "",
-            error: "AI 处理中断",
-          }));
-        });
-      });
-
       function cleanup() {
         offChunk();
         offEnd();
         offError();
-        offNeedContinue();
         if (petStreamRef.current?.sessionId === sessionId) {
           petStreamRef.current = null;
         }
@@ -712,10 +663,7 @@ export function useAiAssistant(options?: UseAiAssistantOptions) {
     aiLoading,
     streamingMessage,
     compacting,
-    pendingContinuation,
-    handleContinueDecision,
     latestClipboardContent,
-    chatEndRef,
     skills,
     activeSkillId,
     setAiInput,

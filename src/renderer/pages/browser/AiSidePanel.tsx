@@ -80,15 +80,12 @@ export function AiSidePanel() {
             isHistoryLoading={ai.chatHistoryLoading}
             streamingMessage={ai.streamingMessage}
             compacting={ai.compacting}
-            pendingContinuation={ai.pendingContinuation}
-            onContinueDecision={ai.handleContinueDecision}
             skills={ai.skills}
             activeSkillId={ai.activeSkillId}
             onSelectSkill={ai.setActiveSkillId}
             aiImages={ai.aiImages}
             onAddAiImages={ai.addAiImages}
             onRemoveAiImage={ai.removeAiImage}
-            chatEndRef={ai.chatEndRef}
             onSendAiMessage={ai.handleSendAiMessage}
             onCancelAiMessage={ai.handleCancelAiMessage}
             onInputChange={ai.setAiInput}

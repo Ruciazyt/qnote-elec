@@ -30,10 +30,16 @@ import { registerTemplateHandlers } from "./handlers/ai/templateHandlers";
 import { registerOcrHandlers } from "./handlers/ai/ocrHandlers";
 import { registerConfigHandlers } from "./handlers/system/configHandlers";
 import { registerAiHandlers } from "./handlers/ai/aiHandlers";
+import { stopOpencodeRuntime } from "./core/ai/runtime/opencode/runtime";
 import { registerVectorHandlers } from "./handlers/ai/vectorHandlers";
 import { registerMcpHandlers } from "./handlers/ai/mcpHandlers";
+import { registerToolHandlers } from "./handlers/ai/toolHandlers";
 import { mcpManager } from "./core/ai/mcp/manager";
-import { registerLeetcodeHandlers } from "./handlers/leetcode/leetcodeHandlers";
+import { initToolToggleStore } from "./core/ai/tools/toolToggle";
+import { initGitlabConfigStore } from "./core/ai/tools/gitlab/runtime/configStore";
+import { initGitlabBot, stopGitlabRunner } from "./core/ai/gitlabBot";
+import { registerGitlabBotHandlers } from "./handlers/gitlab/gitlabBotHandlers";
+import { initGithubConfigStore } from "./core/ai/tools/github/runtime/configStore";
 import { registerDatabaseTransferHandlers } from "./handlers/system/databaseTransferHandlers";
 import { registerClipboardPopupHandlers } from "./handlers/clipboard/clipboardPopupHandlers";
 import { registerStickyNoteHandlers } from "./handlers/sticky/stickyNoteHandlers";
@@ -186,11 +192,12 @@ function registerIpcHandlers() {
   registerNoteHandlers(DB);
   registerTemplateHandlers(DB);
   registerMcpHandlers();
+  registerToolHandlers();
   registerOcrHandlers(DB);
   registerConfigHandlers();
   registerAiHandlers(DB, fileWriter);
+  registerGitlabBotHandlers(DB);
   registerVectorHandlers(DB);
-  registerLeetcodeHandlers(DB);
   registerClipboardPopupHandlers();
   registerStickyNoteHandlers();
   registerIslandHandlers(fileWriter);
@@ -378,6 +385,8 @@ app.on("will-quit", () => {
   stopReminderScheduler();
   unregisterAllShortcuts();
   stopClipboardListener();
+  void stopOpencodeRuntime();
+  void stopGitlabRunner();
   closeDB();
 
   const clipboardPopup = ClipboardPopupWindow.getInstance();
@@ -477,6 +486,30 @@ void app
           await mcpManager.init(DB);
         } catch (mcpErr) {
           log.error("[mcp] 初始化失败", mcpErr);
+        }
+
+        try {
+          await initToolToggleStore(DB);
+        } catch (toolErr) {
+          log.error("[tools] 初始化失败", toolErr);
+        }
+
+        try {
+          await initGitlabConfigStore(DB);
+        } catch (gitlabErr) {
+          log.error("[gitlab] 初始化失败", gitlabErr);
+        }
+
+        try {
+          await initGitlabBot(DB);
+        } catch (gitlabBotErr) {
+          log.error("[gitlab-bot] 初始化失败", gitlabBotErr);
+        }
+
+        try {
+          await initGithubConfigStore(DB);
+        } catch (githubErr) {
+          log.error("[github] 初始化失败", githubErr);
         }
 
         try {

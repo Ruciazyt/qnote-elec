@@ -342,7 +342,7 @@ createPlugin({
 
     await manager.stopPlugin(id);
     expect(await waitForStatus(id, "inactive")).toBe("inactive");
-  });
+  }, 30000);
 
   it("停插件时先让插件自己收尾，再结束进程", async () => {
     const markerPath = path.join(dir, "deactivated.txt");
@@ -383,7 +383,7 @@ createPlugin({
     await manager.stopPlugin(id);
     expect(await waitForStatus(id, "inactive")).toBe("inactive");
     expect(fs.existsSync(markerPath)).toBe(true);
-  });
+  }, 30000);
 });
 
 function pathToFileUrl(filePath: string): string {

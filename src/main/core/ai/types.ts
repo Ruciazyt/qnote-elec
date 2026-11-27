@@ -1,6 +1,12 @@
 
 export type AiProvider = 'openai' | 'deepseek' | 'claude';
 
+/**
+ * 归一化后的 provider：deepseek 走 OpenAI 兼容协议，被并进 openai，
+ * 所以按协议分派的默认值只有这两项。
+ */
+export type NormalizedProvider = 'openai' | 'claude';
+
 export interface AiMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
@@ -25,15 +31,13 @@ export interface AiResponse {
   model?: string;
 }
 
-export const DEFAULT_MODELS: Record<AiProvider, string> = {
+export const DEFAULT_MODELS: Record<NormalizedProvider, string> = {
   openai: 'gpt-4o-mini',
-  deepseek: 'deepseek-chat',
   claude: 'claude-3-5-haiku-20241022',
 };
 
-export const DEFAULT_MAX_TOKENS: Record<AiProvider, number> = {
+export const DEFAULT_MAX_TOKENS: Record<NormalizedProvider, number> = {
   openai: 65536,
-  deepseek: 65536,
   claude: 8192,
 };
 

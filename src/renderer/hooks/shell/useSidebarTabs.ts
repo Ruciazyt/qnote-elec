@@ -3,7 +3,6 @@ import { useCallback, useEffect, useState } from "react";
 export interface SidebarTabsConfig {
   notes: boolean;
   todos: boolean;
-  leetcode: boolean;
   browser: boolean;
   plugins: boolean;
   settings: boolean;
@@ -12,7 +11,6 @@ export interface SidebarTabsConfig {
 export const DEFAULT_SIDEBAR_TABS: SidebarTabsConfig = {
   notes: true,
   todos: false,
-  leetcode: false,
   browser: true,
   plugins: true,
   settings: true,
@@ -32,8 +30,6 @@ export function loadSidebarTabs(): SidebarTabsConfig {
     return {
       notes: typeof parsed.notes === "boolean" ? parsed.notes : DEFAULT_SIDEBAR_TABS.notes,
       todos: typeof parsed.todos === "boolean" ? parsed.todos : DEFAULT_SIDEBAR_TABS.todos,
-      leetcode:
-        typeof parsed.leetcode === "boolean" ? parsed.leetcode : DEFAULT_SIDEBAR_TABS.leetcode,
       browser: typeof parsed.browser === "boolean" ? parsed.browser : DEFAULT_SIDEBAR_TABS.browser,
       plugins:
         typeof parsed.plugins === "boolean"
