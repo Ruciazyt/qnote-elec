@@ -255,8 +255,14 @@ jobs:
           if (-not $signed) {
             throw "签名产物里没有找到安装包，检查 SignPath 的产物配置是否匹配"
           }
-          Copy-Item $signed.FullName -Destination (Join-Path $env:GITHUB_WORKSPACE "dist_electron") -Force
-          Write-Host "已用签名后的安装包替换原文件"
+          $expected = "QNote-Setup-${{ github.ref_name }}.exe"
+          if ($signed.Name -ne $expected) {
+            throw "签名产物文件名与 latest.yml 指向的不一致：$($signed.Name) != $expected"
+          }
+          $dest = Join-Path $env:GITHUB_WORKSPACE "dist_electron"
+          Get-ChildItem -Path $dest -Filter 'QNote-Setup-*.exe' | Remove-Item -Force
+          Copy-Item $signed.FullName -Destination $dest -Force
+          Write-Host "已用签名后的安装包替换原文件：$($signed.Name)"
         shell: pwsh
 
       - name: Remove unsigned artifact

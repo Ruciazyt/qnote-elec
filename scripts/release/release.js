@@ -115,6 +115,29 @@ function readPackageVersion() {
     return JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
 }
 
+function computeNextVersion(current, releaseType) {
+    const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(current);
+    if (!match) return current;
+    const major = Number(match[1]);
+    const minor = Number(match[2]);
+    const patch = Number(match[3]);
+    if (releaseType === 'major') return `${major + 1}.0.0`;
+    if (releaseType === 'minor') return `${major}.${minor + 1}.0`;
+    return `${major}.${minor}.${patch + 1}`;
+}
+
+function restorePackageJson(fallbackVersion) {
+    try {
+        execFileSync(GIT, ['checkout', '--', 'package.json', 'pnpm-lock.yaml'], {
+            stdio: 'inherit',
+            cwd: ROOT,
+        });
+        console.error(`   已把 package.json 回滚到 ${readPackageVersion()}`);
+    } catch {
+        console.error(`   回滚失败，请手工把 package.json 的 version 改回 ${fallbackVersion}`);
+    }
+}
+
 function hasTestScript() {
     try {
         const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
@@ -180,6 +203,9 @@ function main() {
             process.exit(1);
         }
 
+        console.log('📥 拉取最新代码...');
+        execFileSync(GIT, ['pull', 'origin', 'master'], { stdio: 'inherit', cwd: ROOT });
+
         const currentVersion = readPackageVersion();
         const versionErrors = validateFormat(currentVersion);
         if (versionErrors.length > 0) {
@@ -199,9 +225,6 @@ function main() {
         if (!typeCheck.ok) {
             process.exit(1);
         }
-
-        console.log('📥 拉取最新代码...');
-        execFileSync(GIT, ['pull', 'origin', 'master'], { stdio: 'inherit', cwd: ROOT });
 
         console.log('📦 安装工作区依赖...');
         execFileSync(PNPM, ['install'], { stdio: 'inherit', cwd: ROOT, shell: IS_WIN });
@@ -225,7 +248,17 @@ function main() {
 
         runSonarGate();
 
-        console.log(`📈 更新版本号 (${releaseType})...`);
+        const targetVersion = computeNextVersion(currentVersion, releaseType);
+        const targetErrors = validateVersion(targetVersion, null);
+        if (targetErrors.length > 0) {
+            console.error('❌ 目标版本号不符合规范：');
+            targetErrors.forEach((e) => console.error(`   · ${e}`));
+            console.error(`   当前版本 ${currentVersion}，按 ${releaseType} 应该是 ${targetVersion}`);
+            console.error('   换发布线请先改 scripts/release/verify-version.js 的 RELEASE_LINE');
+            process.exit(1);
+        }
+
+        console.log(`📈 更新版本号 (${releaseType} → ${targetVersion})...`);
         execFileSync(PNPM, ['version', releaseType, '--no-git-tag-version'], {
             stdio: 'inherit',
             cwd: ROOT,
@@ -238,6 +271,7 @@ function main() {
         if (newVersionErrors.length > 0) {
             console.error('❌ 新版本号不符合规范：');
             newVersionErrors.forEach((e) => console.error(`   · ${e}`));
+            restorePackageJson(currentVersion);
             process.exit(1);
         }
 

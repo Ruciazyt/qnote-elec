@@ -2,6 +2,8 @@ const { spawnSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
 
+const { resolveExe } = require("../lib/resolve-exe");
+
 const projectRoot = path.resolve(__dirname, "..", "..");
 const outDir = path.join(projectRoot, "dist", "native");
 const CRATE_ROOTS = ["src"];
@@ -10,6 +12,9 @@ const MAC_TARGETS = ["x86_64-apple-darwin", "aarch64-apple-darwin"];
 
 const REQUIRED = process.env.RUST_REQUIRED === "1";
 const IS_WIN = process.platform === "win32";
+const CARGO = resolveExe("cargo");
+const RUSTUP = resolveExe("rustup");
+const LIPO = resolveExe("lipo");
 
 function log(message) {
   console.log(message);
@@ -19,14 +24,13 @@ function run(command, args, options = {}) {
   return spawnSync(command, args, {
     cwd: projectRoot,
     encoding: "utf8",
-    shell: IS_WIN,
     maxBuffer: 64 * 1024 * 1024,
     ...options,
   });
 }
 
 function cargoVersion() {
-  const result = run("cargo", ["--version"]);
+  const result = run(CARGO, ["--version"]);
   return result.status === 0 ? String(result.stdout || "").trim() : null;
 }
 
@@ -75,7 +79,7 @@ function artifact(crateDir, lib, target) {
 
 function buildCrate(crateDir, lib) {
   if (process.platform !== "darwin") {
-    const result = run("cargo", ["build", "--release", "--manifest-path", path.join(crateDir, "Cargo.toml")]);
+    const result = run(CARGO, ["build", "--release", "--manifest-path", path.join(crateDir, "Cargo.toml")]);
     if (result.status !== 0) {
       throw new Error(`cargo build 失败：${result.stdout || ""}${result.stderr || ""}`);
     }
@@ -84,8 +88,8 @@ function buildCrate(crateDir, lib) {
 
   const built = [];
   for (const target of MAC_TARGETS) {
-    run("rustup", ["target", "add", target]);
-    const result = run("cargo", [
+    run(RUSTUP, ["target", "add", target]);
+    const result = run(CARGO, [
       "build",
       "--release",
       "--target",
@@ -103,7 +107,7 @@ function buildCrate(crateDir, lib) {
   if (present.length === 1) return present;
 
   const merged = path.join(crateDir, "target", `universal-${lib}`);
-  const lipo = run("lipo", ["-create", "-output", merged, ...present]);
+  const lipo = run(LIPO, ["-create", "-output", merged, ...present]);
   if (lipo.status !== 0) {
     throw new Error(`lipo 合并失败：${lipo.stdout || ""}${lipo.stderr || ""}`);
   }
