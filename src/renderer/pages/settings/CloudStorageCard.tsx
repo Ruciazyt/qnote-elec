@@ -32,6 +32,7 @@ export function CloudStorageCard() {
   const [guideOpen, setGuideOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const savedBackendRef = React.useRef<CloudBackend>("local");
 
   React.useEffect(() => {
     let alive = true;
@@ -39,6 +40,7 @@ export function CloudStorageCard() {
       try {
         const loaded = await window.electron.cloudGetConfig();
         if (!alive) return;
+        savedBackendRef.current = loaded.backend;
         setBackend(loaded.backend);
         if (loaded.lastCheck) setStatus(loaded.lastCheck);
       } catch (err) {
@@ -72,9 +74,11 @@ export function CloudStorageCard() {
     try {
       const result = await window.electron.cloudSaveConfig({ backend });
       if (!result.ok) {
+        setBackend(savedBackendRef.current);
         setError(result.error);
         return;
       }
+      savedBackendRef.current = backend;
       setStatus(result.data.lastCheck ?? null);
     } catch (err) {
       console.error("保存云端配置失败", err);

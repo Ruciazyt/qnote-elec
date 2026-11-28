@@ -10,10 +10,11 @@ interface HtmlViewerProps {
   file: NoteFileEntry | null;
   dirPath: string | null;
   externalId?: string | null;
+  onSaved?: (relPath: string) => void;
 }
 
 const HtmlViewer = forwardRef<NoteEditorHandle, HtmlViewerProps>(function HtmlViewer(
-  { file, dirPath, externalId },
+  { file, dirPath, externalId, onSaved },
   ref
 ) {
   const [html, setHtml] = useState("");
@@ -61,7 +62,10 @@ const HtmlViewer = forwardRef<NoteEditorHandle, HtmlViewerProps>(function HtmlVi
         const dest = targetRel ?? relPath;
         if (!dest || !dirPath) return false;
         const ok = await window.electron.writeHtmlNote(dirPath, dest, html);
-        if (ok && !targetRel) setDirty(false);
+        if (ok) {
+          if (!targetRel) setDirty(false);
+          onSaved?.(dest);
+        }
         return ok;
       },
       isDirty: () => dirty,
@@ -72,7 +76,7 @@ const HtmlViewer = forwardRef<NoteEditorHandle, HtmlViewerProps>(function HtmlVi
         setDirty(false);
       },
     }),
-    [html, relPath, dirPath, dirty]
+    [html, relPath, dirPath, dirty, onSaved]
   );
 
   if (!relPath) {

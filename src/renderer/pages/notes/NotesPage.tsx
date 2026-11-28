@@ -188,7 +188,6 @@ export default function NotesPage() {
   const [createExternalId, setCreateExternalId] = useState<string | null>(null);
   const [newFileName, setNewFileName] = useState("");
   const [creatingFile, setCreatingFile] = useState(false);
-  const [movingRel, setMovingRel] = useState<string | null>(null);
   const [externalConflict, setExternalConflict] = useState<string | null>(null);
 
   const excalidrawRef = useRef<NoteEditorHandle>(null);
@@ -414,6 +413,26 @@ export default function NotesPage() {
     seenMtimeRef.current = activeFile?.mtime ?? null;
   }, [activeRelPath, activeFile?.mtime]);
 
+  const loadingChildrenRef = useRef<Set<string>>(new Set());
+  const treeChildrenRef = useRef<Record<string, NoteTreeNode[]>>({});
+  treeChildrenRef.current = treeChildren;
+
+  const refreshLoadedChildren = useCallback(async (root: string) => {
+    const dirs = Object.keys(treeChildrenRef.current);
+    if (dirs.length === 0) return;
+    const entries = await Promise.all(
+      dirs.map(async (dir) => {
+        try {
+          const nodes = await window.electron.getNoteTreeChildren(root, dir);
+          return [dir, nodes ?? []] as const;
+        } catch {
+          return [dir, [] as NoteTreeNode[]] as const;
+        }
+      })
+    );
+    setTreeChildren((prev) => ({ ...prev, ...Object.fromEntries(entries) }));
+  }, []);
+
   const loadTree = useCallback(async () => {
     const p = await window.electron.getFilePath();
     setFilePath(p);
@@ -424,14 +443,9 @@ export default function NotesPage() {
     }
     const nodes = await window.electron.getNoteTree(p);
     setTree(nodes);
-    treeChildrenRef.current = {};
-    setTreeChildren({});
+    await refreshLoadedChildren(p);
     refreshCounts(p);
-  }, [refreshCounts]);
-
-  const loadingChildrenRef = useRef<Set<string>>(new Set());
-  const treeChildrenRef = useRef<Record<string, NoteTreeNode[]>>({});
-  treeChildrenRef.current = treeChildren;
+  }, [refreshCounts, refreshLoadedChildren]);
 
   const loadTreeChildren = useCallback(
     async (relDir: string) => {
@@ -583,6 +597,14 @@ export default function NotesPage() {
     setExternalConflict(null);
     const editor = activeEditorRef.current();
     if (!editor?.currentRelPath()) return;
+    if (!(editor.isDirty?.() ?? false)) {
+      await editor.reload?.();
+      toast({
+        title: "没有要保留的本地改动",
+        description: "已载入磁盘上的最新版本",
+      });
+      return;
+    }
     const ok = await editor.save();
     if (ok) {
       const node = activeRelPath ? findFileIn(tree, activeRelPath, treeChildren) : null;
@@ -713,55 +735,64 @@ export default function NotesPage() {
         const base = targetRelPath.slice(targetRelPath.lastIndexOf("/") + 1);
         toast({ title: "保存成功", description: base });
       }
+    } catch (err) {
+      console.error("保存失败:", err);
+      toast({ title: "保存失败", variant: "destructive" });
     } finally {
       setSaving(false);
     }
   }, [targetRelPath, activeEditor, toast]);
 
   const handleDeleteConfirm = useCallback(async () => {
-    if (pendingDelete) {
-      const { node, externalId } = pendingDelete;
-      const isFolder = node.kind === "folder";
-      const isFile = node.kind === "file";
+    try {
+      if (pendingDelete) {
+        const { node, externalId } = pendingDelete;
+        const isFolder = node.kind === "folder";
+        const isFile = node.kind === "file";
 
-      const ok = externalId
-        ? isFolder
-          ? await window.electron.deleteExternalFolder(externalId, node.relPath)
-          : await window.electron.deleteExternalFile(externalId, node.relPath)
-        : filePath
+        const ok = externalId
           ? isFolder
-            ? await window.electron.deleteNoteFolder(filePath, node.relPath)
-            : await window.electron.deleteNoteFile(filePath, node.relPath)
-          : false;
+            ? await window.electron.deleteExternalFolder(externalId, node.relPath)
+            : await window.electron.deleteExternalFile(externalId, node.relPath)
+          : filePath
+            ? isFolder
+              ? await window.electron.deleteNoteFolder(filePath, node.relPath)
+              : await window.electron.deleteNoteFile(filePath, node.relPath)
+            : false;
 
-      if (ok) {
-        if (externalId) {
-          if (isFile && activeExternalId === externalId && activeRelPath === node.relPath) {
-            setActiveRelPath(null);
-          }
-          await loadExternalTree(externalId, true);
-        } else if (isFolder) {
-          setCurrentFolder((cur) =>
-            cur === node.relPath || cur.startsWith(`${node.relPath}/`) ? "" : cur
-          );
-          setActiveRelPath((cur) =>
-            cur && cur.startsWith(`${node.relPath}/`) ? null : cur
-          );
-        } else {
-          setActiveRelPath((cur) => (cur === node.relPath ? null : cur));
-          setLastRelByType((prev) => {
-            const next = { ...prev };
-            for (const { type } of NOTE_TYPES) {
-              if (next[type]?.relPath === node.relPath) next[type] = null;
+        if (ok) {
+          if (externalId) {
+            if (isFile && activeExternalId === externalId && activeRelPath === node.relPath) {
+              setActiveRelPath(null);
             }
-            return next;
-          });
+            await loadExternalTree(externalId, true);
+          } else if (isFolder) {
+            setCurrentFolder((cur) =>
+              cur === node.relPath || cur.startsWith(`${node.relPath}/`) ? "" : cur
+            );
+            setActiveRelPath((cur) =>
+              cur && cur.startsWith(`${node.relPath}/`) ? null : cur
+            );
+          } else {
+            setActiveRelPath((cur) => (cur === node.relPath ? null : cur));
+            setLastRelByType((prev) => {
+              const next = { ...prev };
+              for (const { type } of NOTE_TYPES) {
+                if (next[type]?.relPath === node.relPath) next[type] = null;
+              }
+              return next;
+            });
+          }
+          if (!externalId) void loadTree();
         }
-        if (!externalId) void loadTree();
       }
+    } catch (err) {
+      console.error("删除失败:", err);
+      toast({ title: "删除失败", variant: "destructive" });
+    } finally {
+      setShowDeleteModal(false);
+      setPendingDelete(null);
     }
-    setShowDeleteModal(false);
-    setPendingDelete(null);
   }, [
     pendingDelete,
     filePath,
@@ -769,6 +800,7 @@ export default function NotesPage() {
     loadExternalTree,
     activeExternalId,
     activeRelPath,
+    toast,
   ]);
 
   const handleRenameStart = useCallback((node: NoteTreeNode) => {
@@ -800,8 +832,15 @@ export default function NotesPage() {
       if (!filePath) return;
 
       setRenaming(true);
-      const ok = await window.electron.renameNoteEntry(filePath, node.relPath, newName);
-      setRenaming(false);
+      let ok = false;
+      try {
+        ok = await window.electron.renameNoteEntry(filePath, node.relPath, newName);
+      } catch (err) {
+        console.error("重命名失败:", err);
+        toast({ title: "重命名失败", variant: "destructive" });
+      } finally {
+        setRenaming(false);
+      }
       if (!ok) return;
 
       const remap = (rel: string): string =>
@@ -1083,10 +1122,36 @@ export default function NotesPage() {
         toast({ title: "移动失败", description: result.reason, variant: "destructive" });
         return;
       }
+      const name = fromRel.slice(fromRel.lastIndexOf("/") + 1);
+      const nextRel = toFolderRel ? `${toFolderRel}/${name}` : name;
+      if (activeExternalId === folder.id) {
+        setActiveRelPath((cur) =>
+          cur && cur.startsWith(`${fromRel}/`)
+            ? nextRel + cur.slice(fromRel.length)
+            : cur
+        );
+        setLastRelByType((prev) => {
+          const next = { ...prev };
+          for (const { type } of NOTE_TYPES) {
+            const cur = next[type];
+            if (
+              cur &&
+              cur.externalId === folder.id &&
+              cur.relPath.startsWith(`${fromRel}/`)
+            ) {
+              next[type] = {
+                ...cur,
+                relPath: nextRel + cur.relPath.slice(fromRel.length),
+              };
+            }
+          }
+          return next;
+        });
+      }
       await loadExternalTree(folder.id, true);
       toast({ title: "已移动", description: toFolderRel || "根目录" });
     },
-    [loadExternalTree, toast]
+    [loadExternalTree, toast, activeExternalId]
   );
 
   const handleExternalImportFiles = useCallback(
@@ -1109,17 +1174,19 @@ export default function NotesPage() {
     [loadExternalTree, toast]
   );
 
+  const movingRelRef = useRef<string | null>(null);
+
   const handleMove = useCallback(
 
     async (fromRel: string, toFolderRel: string) => {
       if (!filePath || !fromRel) return;
-      if (movingRel !== null) return;
+      if (movingRelRef.current !== null) return;
 
       const name = fromRel.slice(fromRel.lastIndexOf("/") + 1);
       const nextRel = toFolderRel ? `${toFolderRel}/${name}` : name;
       if (nextRel === fromRel) return;
 
-      setMovingRel(fromRel);
+      movingRelRef.current = fromRel;
       try {
         const result = await window.electron.moveNoteEntry(filePath, fromRel, toFolderRel);
         if (!result.ok) {
@@ -1150,10 +1217,10 @@ export default function NotesPage() {
           description: nextRel,
         });
       } finally {
-        setMovingRel(null);
+        movingRelRef.current = null;
       }
     },
-    [filePath, movingRel, loadTree, toast]
+    [filePath, loadTree, toast]
   );
 
   const handleImportFiles = useCallback(
@@ -1729,6 +1796,7 @@ export default function NotesPage() {
                   file={activeType === "html" ? activeFile : null}
                   dirPath={activeRootPath}
                   externalId={activeExternalId}
+                  onSaved={handleSaved}
                 />
               </div>
             )}

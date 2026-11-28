@@ -309,23 +309,27 @@ export default function PluginsPage() {
 
   const handleStart = useCallback(
     async (plugin: PluginRecord, confirmedManifestHash?: string) => {
-      const res = await window.electron.pluginStart(plugin.id, confirmedManifestHash);
-      if (res.needsConfirmation) {
-        const opened = await window.electron.dialogOpen({
-          type: "start-confirm",
-          payload: res.needsConfirmation as unknown as Record<string, unknown>,
-        });
-        if (!opened?.ok) {
-          toast({
-            title: "启动失败",
-            description: opened?.error ?? "打不开确认窗口",
-            variant: "destructive",
+      try {
+        const res = await window.electron.pluginStart(plugin.id, confirmedManifestHash);
+        if (res.needsConfirmation) {
+          const opened = await window.electron.dialogOpen({
+            type: "start-confirm",
+            payload: res.needsConfirmation as unknown as Record<string, unknown>,
           });
+          if (!opened?.ok) {
+            toast({
+              title: "启动失败",
+              description: opened?.error ?? "打不开确认窗口",
+              variant: "destructive",
+            });
+          }
+          return;
         }
-        return;
-      }
-      if (!res.ok) {
-        toast({ title: "启动失败", description: res.error, variant: "destructive" });
+        if (!res.ok) {
+          toast({ title: "启动失败", description: res.error, variant: "destructive" });
+        }
+      } catch (err) {
+        toast({ title: "启动失败", description: String(err), variant: "destructive" });
       }
     },
     [toast]
@@ -333,9 +337,13 @@ export default function PluginsPage() {
 
   const handleStop = useCallback(
     async (plugin: PluginRecord) => {
-      const res = await window.electron.pluginStop(plugin.id);
-      if (!res.ok) {
-        toast({ title: "停止失败", description: res.error, variant: "destructive" });
+      try {
+        const res = await window.electron.pluginStop(plugin.id);
+        if (!res.ok) {
+          toast({ title: "停止失败", description: res.error, variant: "destructive" });
+        }
+      } catch (err) {
+        toast({ title: "停止失败", description: String(err), variant: "destructive" });
       }
     },
     [toast]
@@ -343,42 +351,55 @@ export default function PluginsPage() {
 
   const handleRestart = useCallback(
     async (plugin: PluginRecord) => {
-      await window.electron.pluginStop(plugin.id);
-      const res = await window.electron.pluginStart(plugin.id);
-      if (res.needsConfirmation) {
-        const opened = await window.electron.dialogOpen({
-          type: "start-confirm",
-          payload: res.needsConfirmation as unknown as Record<string, unknown>,
-        });
-        if (!opened?.ok) {
+      try {
+        await window.electron.pluginStop(plugin.id);
+        const res = await window.electron.pluginStart(plugin.id);
+        if (res.needsConfirmation) {
+          const opened = await window.electron.dialogOpen({
+            type: "start-confirm",
+            payload: res.needsConfirmation as unknown as Record<string, unknown>,
+          });
+          if (!opened?.ok) {
+            toast({
+              title: "重启失败",
+              description: opened?.error ?? "打不开确认窗口",
+              variant: "destructive",
+            });
+          }
+          return;
+        }
+        if (!res.ok) {
           toast({
             title: "重启失败",
-            description: opened?.error ?? "打不开确认窗口",
+            description: res.error,
             variant: "destructive",
           });
+          return;
         }
-        return;
+        toast({ title: "插件已重启", description: plugin.name });
+      } catch (err) {
+        toast({ title: "重启失败", description: String(err), variant: "destructive" });
       }
-      if (!res.ok) {
-        toast({
-          title: "重启失败",
-          description: res.error,
-          variant: "destructive",
-        });
-        return;
-      }
-      toast({ title: "插件已重启", description: plugin.name });
     },
     [toast]
   );
 
   const handleToggleEnabled = useCallback(
     async (plugin: PluginRecord, enabled: boolean) => {
-      const res = await window.electron.pluginSetEnabled(plugin.id, enabled);
-      if (!res.ok) {
+      try {
+        const res = await window.electron.pluginSetEnabled(plugin.id, enabled);
+        if (!res.ok) {
+          toast({
+            title: enabled ? "启用失败" : "禁用失败",
+            description: res.error,
+            variant: "destructive",
+          });
+          return;
+        }
+      } catch (err) {
         toast({
           title: enabled ? "启用失败" : "禁用失败",
-          description: res.error,
+          description: String(err),
           variant: "destructive",
         });
         return;

@@ -301,12 +301,16 @@ const RichTextEditor = forwardRef<NoteEditorHandle, RichTextEditorProps>(functio
   editorRef.current = editor;
   const relPath = file?.relPath ?? null;
 
+  const loadSeqRef = useRef(0);
+
   const loadIntoEditor = useCallback(
     async (target: string, force: boolean) => {
       if (!dirPath || !editor) return;
       const key = `${dirPath}\u0000${target}`;
       if (!force && loadedRelRef.current === key) return;
+      const seq = ++loadSeqRef.current;
       const md = await window.electron.readMarkdownNote(dirPath, target);
+      if (seq !== loadSeqRef.current) return;
       editor.commands.setContent(md, { contentType: "markdown", emitUpdate: false });
       loadedRelRef.current = key;
       setDirty(false);
@@ -317,6 +321,7 @@ const RichTextEditor = forwardRef<NoteEditorHandle, RichTextEditorProps>(functio
   useEffect(() => {
     if (!editor) return;
     if (!relPath || !dirPath) {
+      loadSeqRef.current += 1;
       if (loadedRelRef.current !== null) {
         editor.commands.setContent("", { contentType: "markdown", emitUpdate: false });
         loadedRelRef.current = null;

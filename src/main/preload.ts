@@ -28,6 +28,7 @@ contextBridge.exposeInMainWorld("electron", {
   openDevTools: () => ipcRenderer.send("open-dev-tools"),
   onClipboardChanged: (callback: any) => {
     ipcRenderer.on("clipboard-changed", callback);
+    return () => ipcRenderer.removeListener("clipboard-changed", callback);
   },
   removeClipboardChanged: (callback: any) => {
     ipcRenderer.removeListener("clipboard-changed", callback);

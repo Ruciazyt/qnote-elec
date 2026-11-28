@@ -199,10 +199,14 @@ export function PublishedPluginMarket({
   const [busyId, setBusyId] = React.useState<string | null>(null);
   const [installed, setInstalled] = React.useState<PluginRecord[]>([]);
 
+  const requestSeqRef = React.useRef(0);
+
   const reload = React.useCallback(async () => {
+    const seq = ++requestSeqRef.current;
     setLoading(true);
     try {
       const local = await window.electron.pluginList();
+      if (seq !== requestSeqRef.current) return;
       setInstalled(Array.isArray(local) ? local : []);
     } catch (err) {
       console.error("读取本机插件列表失败", err);
@@ -212,6 +216,7 @@ export function PublishedPluginMarket({
         keyword: keyword.trim() || undefined,
         limit: 100,
       });
+      if (seq !== requestSeqRef.current) return;
       if (!result.ok) {
         toast({
           title: "读取失败",
@@ -223,10 +228,11 @@ export function PublishedPluginMarket({
       setPlugins(result.data.apps);
       setTotal(result.data.total);
     } catch (err) {
+      if (seq !== requestSeqRef.current) return;
       console.error("读取插件市场失败", err);
       toast({ title: "读取失败", description: String(err), variant: "destructive" });
     } finally {
-      setLoading(false);
+      if (seq === requestSeqRef.current) setLoading(false);
     }
   }, [keyword, toast]);
 

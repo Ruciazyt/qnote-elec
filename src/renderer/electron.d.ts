@@ -5,7 +5,7 @@ interface ElectronAPI {
   maximizeWindow: () => void;
   openDevTools: () => void;
 
-  onClipboardChanged: (callback: (event: unknown, data: import("./pages/home/clipboard/types").ClipboardRecord) => void) => void;
+  onClipboardChanged: (callback: (event: unknown, data: import("./pages/home/clipboard/types").ClipboardRecord) => void) => () => void;
   removeClipboardChanged: (callback: (event: unknown, data: import("./pages/home/clipboard/types").ClipboardRecord) => void) => void;
   getClipboardHistory: () => Promise<import("./pages/home/clipboard/types").ClipboardRecord[]>;
 

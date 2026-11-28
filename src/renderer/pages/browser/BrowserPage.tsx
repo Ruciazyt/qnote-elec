@@ -260,12 +260,21 @@ export default function BrowserPage() {
 
   const handleToggleBookmark = useCallback(async () => {
     if (!activeTab?.url || !isBookmarkable(activeTab.url)) return;
-    const nowSaved = await toggleBookmark();
-    bumpBookmarks();
-    toast({
-      title: nowSaved ? "已收藏" : "已取消收藏",
-      description: activeTab.title || activeTab.url,
-    });
+    try {
+      const nowSaved = await toggleBookmark();
+      bumpBookmarks();
+      toast({
+        title: nowSaved ? "已收藏" : "已取消收藏",
+        description: activeTab.title || activeTab.url,
+      });
+    } catch (err) {
+      console.error("收藏操作失败", err);
+      toast({
+        title: "收藏操作失败",
+        description: err instanceof Error ? err.message : String(err),
+        variant: "destructive",
+      });
+    }
   }, [activeTab, toggleBookmark, toast, bumpBookmarks]);
 
   return (

@@ -170,14 +170,20 @@ export function useBookmarkState(url: string | undefined, title?: string | null)
   const toggle = useCallback(async () => {
     if (!url || !isBookmarkable(url)) return false;
     if (saved) {
-      await window.electron.browserBookmarkRemove(url);
+      const res = await window.electron.browserBookmarkRemove(url);
+      if (!res.success) {
+        throw new Error(res.error ?? "取消收藏失败");
+      }
       setSaved(false);
       return false;
     }
     const cleanTitle = title?.trim();
     const res = await window.electron.browserBookmarkAdd(url, cleanTitle || undefined);
-    setSaved(res.success);
-    return res.success;
+    if (!res.success) {
+      throw new Error(res.error ?? "收藏失败");
+    }
+    setSaved(true);
+    return true;
   }, [url, title, saved]);
 
   return { saved, toggle, refresh };

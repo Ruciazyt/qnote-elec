@@ -130,11 +130,16 @@ export function ClipboardPopup() {
 
   const handleCopy = useCallback(
     async (item: ClipboardItem) => {
-      const result = await window.electron.popupCopyClipboardItem(item.id);
-      if (result.success) {
-        showCopyToast("success", "已复制", item.id);
-      } else {
-        showCopyToast("error", result.error || "复制失败", null);
+      try {
+        const result = await window.electron.popupCopyClipboardItem(item.id);
+        if (result.success) {
+          showCopyToast("success", "已复制", item.id);
+        } else {
+          showCopyToast("error", result.error || "复制失败", null);
+        }
+      } catch (err) {
+        console.error("复制剪贴板条目失败", err);
+        showCopyToast("error", "复制失败", null);
       }
     },
     [showCopyToast]

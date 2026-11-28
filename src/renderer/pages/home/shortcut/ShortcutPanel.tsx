@@ -192,12 +192,19 @@ export function ShortcutPanel() {
 
   function persistOrder(next: ShortcutRow[], previous: ShortcutRow[]) {
     setItems(next);
-    void window.electron.shortcutReorder(next.map((item) => item.id)).then((ok) => {
-      if (!ok) {
+    void window.electron
+      .shortcutReorder(next.map((item) => item.id))
+      .then((ok) => {
+        if (!ok) {
+          setItems(previous);
+          toast({ title: "排序保存失败，已还原", variant: "destructive" });
+        }
+      })
+      .catch((err) => {
+        console.error("保存快捷方式排序失败", err);
         setItems(previous);
         toast({ title: "排序保存失败，已还原", variant: "destructive" });
-      }
-    });
+      });
   }
 
   const itemsById = useMemo(

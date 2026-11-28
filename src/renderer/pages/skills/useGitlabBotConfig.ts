@@ -99,7 +99,15 @@ export function useGitlabBotConfig() {
         return;
       }
       setStatus(result.status ?? null);
-      toast({ title: "GitLab 网关配置已保存" });
+      if (result.error) {
+        toast({
+          title: "配置已保存，但网关没起来",
+          description: result.error,
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "GitLab 网关配置已保存" });
+      }
       setOpen(false);
       await readConfig();
     } catch {

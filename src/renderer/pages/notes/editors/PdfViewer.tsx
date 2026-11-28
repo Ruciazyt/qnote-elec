@@ -39,7 +39,7 @@ const PdfViewer = forwardRef<NoteEditorHandle, PdfViewerProps>(function PdfViewe
     const onError = () => setFailed(true);
     el.addEventListener("error", onError);
     return () => el.removeEventListener("error", onError);
-  }, [previewUrl]);
+  }, [previewUrl, failed]);
 
   useImperativeHandle(
     ref,

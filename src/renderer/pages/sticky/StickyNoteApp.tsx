@@ -148,11 +148,16 @@ export function StickyNoteApp() {
         setEditing(false);
         return;
       }
-      const result = await window.electron.stickyUpdate({ id: note.id, text: next });
-      if (result?.ok) {
-        setNote((prev) => (prev ? { ...prev, text: next } : prev));
+      try {
+        const result = await window.electron.stickyUpdate({ id: note.id, text: next });
+        if (result?.ok) {
+          setNote((prev) => (prev ? { ...prev, text: next } : prev));
+        }
+      } catch (err) {
+        console.error("保存便签失败", err);
+      } finally {
+        setEditing(false);
       }
-      setEditing(false);
     },
     [note]
   );
@@ -170,6 +175,14 @@ export function StickyNoteApp() {
     return () => {
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onUp);
+    };
+  }, []);
+
+  const moveCleanupRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    return () => {
+      moveCleanupRef.current?.();
     };
   }, []);
 
@@ -194,8 +207,10 @@ export function StickyNoteApp() {
         window.removeEventListener("pointerup", onUp);
         window.removeEventListener("pointercancel", onUp);
         window.removeEventListener("blur", onUp);
+        moveCleanupRef.current = null;
         if (moving) void window.electron.stickyMoveEnd();
       };
+      moveCleanupRef.current = onUp;
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
       window.addEventListener("pointercancel", onUp);

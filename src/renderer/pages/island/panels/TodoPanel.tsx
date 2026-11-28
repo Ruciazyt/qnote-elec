@@ -19,6 +19,8 @@ export function TodoPanel({ todos, onOpenMain }: TodoPanelProps) {
     setPending(todo.id);
     try {
       await window.electron.todoToggle(todo.id);
+    } catch (err) {
+      console.error("切换待办状态失败", err);
     } finally {
       setPending(null);
     }

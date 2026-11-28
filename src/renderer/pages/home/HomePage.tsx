@@ -32,6 +32,7 @@ export default function HomePage() {
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrType, setOcrType] = useState<"standard" | "accurate" | "webimage">("standard");
 
+  const searchSeqRef = useRef(0);
   const codeContainerRef = useRef<HTMLDivElement>(null);
   const codeVisibleRef = useRef(false);
   const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.userAgent);
@@ -170,22 +171,26 @@ export default function HomePage() {
 
   async function handleSearch(keyword: string) {
     setSearchKeyword(keyword);
+    const seq = ++searchSeqRef.current;
     if (!keyword.trim()) {
-      void loadHistory();
+      void loadHistory(seq);
       return;
     }
     try {
       const results = await window.electron.searchNotes(keyword);
+      if (seq !== searchSeqRef.current) return;
       setClipboardHistory(results);
     } catch (err) {
+      if (seq !== searchSeqRef.current) return;
       console.error("Error searching records:", err);
       toast({ title: "搜索失败", variant: "destructive" });
     }
   }
 
-  const loadHistory = async () => {
+  const loadHistory = async (seq?: number) => {
     try {
       const history = await window.electron.getClipboardHistory();
+      if (seq !== undefined && seq !== searchSeqRef.current) return;
       setClipboardHistory(history);
     } catch (err) {
       console.error("Error loading clipboard history:", err);
