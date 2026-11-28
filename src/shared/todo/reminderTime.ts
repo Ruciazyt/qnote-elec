@@ -38,6 +38,25 @@ const PERIOD_WORDS = [
 
 const PM_PERIODS = new Set(["下午", "傍晚", "晚上", "夜里"]);
 
+function findPeriodWord(text: string): string | undefined {
+  for (const word of PERIOD_WORDS) {
+    if (text.includes(word)) return word;
+  }
+  return undefined;
+}
+
+function applyPeriodToHour(hour: number, period: string | undefined): number {
+  if (!period) return hour;
+  let out = hour;
+  if (PM_PERIODS.has(period)) {
+    if (out < 12) out += 12;
+    else if (out === 12) out = 0;
+  }
+  if (period === "中午" && out < 11) out += 12;
+  if (period === "凌晨" && out === 12) out = 0;
+  return out;
+}
+
 interface DayWord {
   word: string;
   offset: number;
@@ -322,27 +341,34 @@ function parseWeekday(text: string, now: Date): Date | null {
     if (!target) return null;
     const prefix = cn[1] ?? "";
     const clock = extractClock(text);
+    const period = findPeriodWord(text);
+    const hour = clock
+      ? applyPeriodToHour(clock.hour, period)
+      : period
+        ? PERIOD_DEFAULT_HOUR[period] ?? DEFAULT_HOUR
+        : undefined;
+    const minute = clock ? clock.minute : 0;
     const currentDow = now.getDay() === 0 ? 7 : now.getDay();
     const mondayOfThisWeek = shiftDays(startOfDay(now), 1 - currentDow);
 
     if (prefix.startsWith("下")) {
       const day = shiftDays(mondayOfThisWeek, 7 + target - 1);
-      return clock ? atTime(day, clock.hour, clock.minute) : atTime(day, DEFAULT_HOUR, 0);
+      return hour === undefined ? atTime(day, DEFAULT_HOUR, 0) : atTime(day, hour, minute);
     }
 
     let day = shiftDays(mondayOfThisWeek, target - 1);
-    let result = clock ? atTime(day, clock.hour, clock.minute) : atTime(day, DEFAULT_HOUR, 0);
+    let result = hour === undefined ? atTime(day, DEFAULT_HOUR, 0) : atTime(day, hour, minute);
     if (prefix.startsWith("本") || prefix.startsWith("这")) {
       if (result.getTime() <= now.getTime()) {
         day = shiftDays(day, 7);
-        result = clock ? atTime(day, clock.hour, clock.minute) : atTime(day, DEFAULT_HOUR, 0);
+        result = hour === undefined ? atTime(day, DEFAULT_HOUR, 0) : atTime(day, hour, minute);
       }
       return result;
     }
     if (day.getTime() < startOfDay(now).getTime()) {
       day = shiftDays(day, 7);
     }
-    return clock ? atTime(day, clock.hour, clock.minute) : atTime(day, DEFAULT_HOUR, 0);
+    return hour === undefined ? atTime(day, DEFAULT_HOUR, 0) : atTime(day, hour, minute);
   }
 
   const en = /\b(next|this|coming)?\s*(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i.exec(

@@ -62,6 +62,24 @@ describe("resolveReminderTime", () => {
     );
   });
 
+  it("星期几后面的上下午要算进小时", () => {
+    const nextMonday = new Date(mondayOfThisWeek().getTime() + 7 * 86400000);
+    const day = new Date(
+      nextMonday.getFullYear(),
+      nextMonday.getMonth(),
+      nextMonday.getDate(),
+      14,
+      0
+    );
+    expect(resolve("下周一下午2点")).toEqual(day);
+    expect(resolve("下周一晚上8点")).toEqual(
+      new Date(day.getFullYear(), day.getMonth(), day.getDate(), 20, 0)
+    );
+    expect(resolve("下周一上午10点").getHours()).toBe(10);
+    expect(resolve("下周一中午12点").getHours()).toBe(12);
+    expect(resolve("下周一凌晨3点").getHours()).toBe(3);
+  });
+
   it("解析英文相对表述", () => {
     expect(resolve("tomorrow 3pm")).toEqual(new Date(2026, 10, 19, 15, 0));
     expect(resolve("tomorrow morning")).toEqual(new Date(2026, 10, 19, 9, 0));

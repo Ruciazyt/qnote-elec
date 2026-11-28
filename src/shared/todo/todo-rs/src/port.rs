@@ -1278,6 +1278,34 @@ fn parse_duration(text: &str, now: &NowArg) -> Result<Option<f64>, String> {
     Ok(None)
 }
 
+fn find_period_word(text: &str) -> Option<&'static str> {
+    PERIOD_WORDS
+        .iter()
+        .find(|word| text.contains(*word))
+        .copied()
+}
+
+fn apply_period_to_hour(hour: u32, period: Option<&str>) -> u32 {
+    let Some(period) = period else {
+        return hour;
+    };
+    let mut out = hour;
+    if PM_PERIODS.contains(&period) {
+        if out < 12 {
+            out += 12;
+        } else if out == 12 {
+            out = 0;
+        }
+    }
+    if period == "中午" && out < 11 {
+        out += 12;
+    }
+    if period == "凌晨" && out == 12 {
+        out = 0;
+    }
+    out
+}
+
 fn at_time_with(clock: Option<(u32, u32)>, day: f64) -> f64 {
     match clock {
         Some((hour, minute)) => at_time(day, hour, minute, 0),
@@ -1291,7 +1319,11 @@ fn parse_weekday(text: &str, now: &NowArg) -> Result<Option<f64>, String> {
             return Ok(None);
         };
         let prefix = caps.get(1).map_or("", |m| m.as_str()).to_string();
-        let clock = extract_clock(text);
+        let period = find_period_word(text);
+        let clock = match extract_clock(text) {
+            Some((hour, minute)) => Some((apply_period_to_hour(hour, period), minute)),
+            None => period.map(|word| (period_default_hour(word), 0)),
+        };
         if !now.is_date {
             return Err("TypeError: now.getDay is not a function".to_string());
         }
