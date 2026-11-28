@@ -1,6 +1,3 @@
-import * as fs from "node:fs";
-import * as path from "node:path";
-import { IpcMainInvokeEvent } from "electron";
 import { log } from "../system/log";
 import { Knex } from "knex";
 
@@ -46,32 +43,6 @@ export class FileWriter {
     log.info("笔记目录初始化完成:", this.filePath);
   }
 
-  openFileForWriteSync(filePath: string): number {
-    try {
-      const dir = path.dirname(filePath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-      const fd = fs.openSync(filePath, "a");
-      return fd;
-    } catch (err) {
-      log.error(`Error opening or creating file at ${filePath}:`, err);
-      throw err;
-    }
-  }
-
-  writeToFileSync(_event: IpcMainInvokeEvent, data: string): Promise<string> {
-    try {
-      const fd = this.openFileForWriteSync(this.filePath);
-      fs.writeSync(fd, Buffer.from(`\n${data}`, "utf8"));
-      fs.closeSync(fd);
-      return Promise.resolve("success");
-    } catch (err) {
-      log.error("Error writing to file descriptor", err);
-      throw err;
-    }
-  }
-
   async setFilePath(filePath: string): Promise<void> {
     if (!filePath) {
       return;
@@ -83,6 +54,7 @@ export class FileWriter {
       this.filePath = filePath;
     } catch (err) {
       log.error("Error updating file path:", err);
+      throw err;
     }
   }
 

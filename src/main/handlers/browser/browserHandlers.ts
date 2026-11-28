@@ -77,11 +77,16 @@ export function registerBrowserHandlers(win: Electron.BrowserWindow | null) {
     "browser:set-bounds",
     (_event, next: { x: number; y: number; width: number; height: number }) => {
       if (!next) return;
+      const x = Number(next.x);
+      const y = Number(next.y);
+      const width = Number(next.width);
+      const height = Number(next.height);
+      if (![x, y, width, height].every((value) => Number.isFinite(value))) return;
       setBounds({
-        x: Math.round(next.x),
-        y: Math.round(next.y),
-        width: Math.round(next.width),
-        height: Math.round(next.height),
+        x: Math.round(x),
+        y: Math.round(y),
+        width: Math.round(width),
+        height: Math.round(height),
       });
     }
   );

@@ -18,6 +18,8 @@ function cacheDir(): string {
 }
 
 const memCache = new Map<string, string | null>();
+const failedAt = new Map<string, number>();
+const FAILURE_TTL_MS = 60_000;
 
 const inflight = new Map<string, Promise<string | null>>();
 
@@ -261,8 +263,13 @@ async function resolveUncached(kind: ShortcutKind, target: string): Promise<stri
     result = null;
   }
 
-  if (result) writeDiskCache(key, result);
-  memCache.set(key, result);
+  if (result) {
+    writeDiskCache(key, result);
+    memCache.set(key, result);
+    failedAt.delete(key);
+  } else {
+    failedAt.set(key, Date.now());
+  }
   return result;
 }
 
@@ -270,6 +277,9 @@ export async function resolveShortcutIcon(kind: ShortcutKind, target: string): P
   const key = cacheKey(kind, target);
 
   if (memCache.has(key)) return memCache.get(key) ?? null;
+  const failed = failedAt.get(key);
+  if (failed !== undefined && Date.now() - failed < FAILURE_TTL_MS) return null;
+  failedAt.delete(key);
   const disk = readDiskCache(key);
   if (disk) {
     memCache.set(key, disk);

@@ -90,6 +90,7 @@ class StickyNoteManager {
   private noteIdByWebContents = new Map<number, string>();
   private session: DragSession | null = null;
   private loaded = false;
+  private storeBroken = false;
   private saveTimer: NodeJS.Timeout | null = null;
   private tearingDown = false;
   private userClosedIds = new Set<string>();
@@ -106,30 +107,56 @@ class StickyNoteManager {
   private load(): void {
     if (this.loaded) return;
     this.loaded = true;
+
+    let raw: string;
     try {
-      const raw = fs.readFileSync(this.getStorePath(), "utf8");
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        for (const item of parsed) {
-          if (!item || typeof item.id !== "string") continue;
-          const record: StickyNoteRecord = {
-            id: item.id,
-            type: item.type === "image" ? "image" : "text",
-            text: typeof item.text === "string" ? item.text : "",
-            imageFile: typeof item.imageFile === "string" ? item.imageFile : undefined,
-            x: Number.isFinite(item.x) ? item.x : 100,
-            y: Number.isFinite(item.y) ? item.y : 100,
-            width: Number.isFinite(item.width) ? item.width : DEFAULT_WIDTH,
-            height: Number.isFinite(item.height) ? item.height : DEFAULT_HEIGHT,
-            alwaysOnTop: item.alwaysOnTop !== false,
-            autoSize: item.autoSize !== false,
-            createdAt: Number.isFinite(item.createdAt) ? item.createdAt : Date.now(),
-          };
-          this.records.set(record.id, record);
-        }
-      }
+      raw = fs.readFileSync(this.getStorePath(), "utf8");
     } catch {
+      return;
     }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (err) {
+      this.quarantineStore(err);
+      return;
+    }
+    if (!Array.isArray(parsed)) {
+      this.quarantineStore(new Error("便签清单不是数组"));
+      return;
+    }
+
+    for (const item of parsed) {
+      if (!item || typeof item.id !== "string") continue;
+      const record: StickyNoteRecord = {
+        id: item.id,
+        type: item.type === "image" ? "image" : "text",
+        text: typeof item.text === "string" ? item.text : "",
+        imageFile: typeof item.imageFile === "string" ? item.imageFile : undefined,
+        x: Number.isFinite(item.x) ? item.x : 100,
+        y: Number.isFinite(item.y) ? item.y : 100,
+        width: Number.isFinite(item.width) ? item.width : DEFAULT_WIDTH,
+        height: Number.isFinite(item.height) ? item.height : DEFAULT_HEIGHT,
+        alwaysOnTop: item.alwaysOnTop !== false,
+        autoSize: item.autoSize !== false,
+        createdAt: Number.isFinite(item.createdAt) ? item.createdAt : Date.now(),
+      };
+      this.records.set(record.id, record);
+    }
+  }
+
+  private quarantineStore(err: unknown): void {
+    const source = this.getStorePath();
+    const target = `${source}.corrupt.${Date.now()}`;
+    try {
+      fs.renameSync(source, target);
+      log.error("[sticky] 便签清单损坏，已备份为 " + target + "，原文件没被覆盖", err);
+      return;
+    } catch (renameErr) {
+      log.error("[sticky] 便签清单损坏且备份失败，停止写盘以免覆盖原文件", renameErr);
+    }
+    this.storeBroken = true;
   }
 
   private scheduleSave(): void {
@@ -141,6 +168,10 @@ class StickyNoteManager {
   }
 
   private saveNow(): void {
+    if (this.storeBroken) {
+      log.warn("[sticky] 便签清单损坏，已跳过写盘，避免覆盖可恢复的原始文件");
+      return;
+    }
     try {
       const list = Array.from(this.records.values());
       fs.writeFileSync(this.getStorePath(), JSON.stringify(list, null, 2), "utf8");

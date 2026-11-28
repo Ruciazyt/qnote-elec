@@ -152,9 +152,14 @@ if [ -z "$NEW_APP" ] || [ ! -d "$NEW_APP" ]; then
   exit 1
 fi
 
-log "清理隔离属性并重新签名"
+log "清理隔离属性并检查签名"
 ${XATTR} -dr com.apple.quarantine "$NEW_APP" >/dev/null 2>&1 || true
-${CODESIGN} --force --deep --sign - "$NEW_APP" >> "$LOG" 2>&1 || log "ad-hoc 签名跳过"
+if ${CODESIGN} --verify --deep --strict "$NEW_APP" >/dev/null 2>&1; then
+  log "保留更新包原有的 Developer ID 签名"
+else
+  log "更新包没有有效签名，改用 ad-hoc 签名"
+  ${CODESIGN} --force --deep --sign - "$NEW_APP" >> "$LOG" 2>&1 || log "ad-hoc 签名跳过"
+fi
 
 BACKUP="$BUNDLE.old"
 rm -rf "$BACKUP"

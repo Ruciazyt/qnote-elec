@@ -91,9 +91,8 @@ function broadcastClipboardChanged(payload: ClipboardData): void {
   }
 }
 
-export function clipboardListener(win: BrowserWindow, DB: Knex): void {
+export function clipboardListener(DB: Knex): void {
   log.info("剪贴板监听器启动");
-  void win;
 
   clipboardIntervalId = setInterval(async () => {
     if (isProcessing) {

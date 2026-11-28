@@ -68,27 +68,14 @@ export function registerVectorHandlers(DB: any) {
 
         return result;
       } else {
-        const searchResult = await vectorStore.searchSimilar(note.content, 1);
-        if (searchResult.success && searchResult.results && searchResult.results.length > 0) {
-          const vectorId = searchResult.results[0].id;
-          const result = await vectorStore.deleteNote(vectorId);
-
-          if (result.success) {
-            await DB.from("note")
-              .where("id", noteId)
-              .update({
-                vector_indexed: 0,
-                vector_id: ''
-              });
-            log.info(`笔记 ${noteId} 已从记忆索引删除`);
-          } else {
-            log.error(`从记忆索引删除笔记 ${noteId} 失败:`, result.error);
-          }
-
-          return result;
-        } else {
-          return { success: false, error: "未找到对应的向量" };
-        }
+        await DB.from("note")
+          .where("id", noteId)
+          .update({
+            vector_indexed: 0,
+            vector_id: ''
+          });
+        log.info(`笔记 ${noteId} 没有记录向量编号，已按未索引处理`);
+        return { success: false, error: "该笔记没有记录向量编号，无法定位要删除的向量" };
       }
     } catch (error) {
       log.error("从记忆索引删除笔记失败", error);

@@ -631,10 +631,7 @@ void app
         }
       })();
 
-      const mainWin = getMainWindow();
-      if (mainWin) {
-        clipboardListener(mainWin, DB);
-      }
+      clipboardListener(DB);
 
       log.info("应用程序启动完成");
     } catch (err) {

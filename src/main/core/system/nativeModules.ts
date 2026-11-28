@@ -29,7 +29,13 @@ export function nativePath(wrapper: string): string | null {
 }
 
 export function loadNative<T>(wrapper: string): T | null {
-  if (tried.has(wrapper)) return (loaded.get(wrapper) as T) ?? null;
+  if (loaded.has(wrapper)) return loaded.get(wrapper) as T;
+  if (tried.has(wrapper)) {
+    if (MODE === "new") {
+      throw new Error(`RUST_ANYTHING_MODE=new，但没找到 Rust 原生模块 ${wrapper}`);
+    }
+    return null;
+  }
   tried.add(wrapper);
   if (MODE === "old") return null;
 

@@ -1,5 +1,4 @@
 import { protocol, net } from "electron";
-import * as path from "node:path";
 import * as fs from "node:fs";
 import { pathToFileURL } from "node:url";
 import { NoteStore } from "../../core/notes/noteStore";
@@ -9,12 +8,6 @@ import { log } from "../../core/system/log";
 export const NOTES_PROTOCOL = "qnote-note";
 
 const noteStore = new NoteStore();
-
-const MIME_BY_EXT: Readonly<Record<string, string>> = {
-  ".html": "text/html; charset=utf-8",
-  ".htm": "text/html; charset=utf-8",
-  ".pdf": "application/pdf",
-};
 
 const SERVED_TYPES = new Set(["html", "pdf"]);
 
@@ -96,10 +89,6 @@ export function registerNotesProtocol(
   });
 
   log.info(`笔记预览协议已注册: ${NOTES_PROTOCOL}://`);
-}
-
-export function noteMime(relPath: string): string {
-  return MIME_BY_EXT[path.extname(relPath).toLowerCase()] ?? "application/octet-stream";
 }
 
 declareNotesScheme();

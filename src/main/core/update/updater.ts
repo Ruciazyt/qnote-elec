@@ -266,12 +266,12 @@ export async function downloadUpdate(): Promise<UpdateStatus> {
   return status;
 }
 
-export function installUpdate(): { ok: boolean; error?: string } {
+export async function installUpdate(): Promise<{ ok: boolean; error?: string }> {
   if (status.phase !== "downloaded") {
     return { ok: false, error: "更新包尚未下载完成" };
   }
   if (process.platform === "darwin") {
-    return installMacUpdate();
+    return await installMacUpdate();
   }
   try {
     log.info("[update] 触发重启安装");
@@ -285,7 +285,7 @@ export function installUpdate(): { ok: boolean; error?: string } {
   }
 }
 
-function installMacUpdate(): { ok: boolean; error?: string } {
+async function installMacUpdate(): Promise<{ ok: boolean; error?: string }> {
   const archivePath = downloadedArchivePath;
   if (!archivePath || !fs.existsSync(archivePath)) {
     const message = "未找到已下载的更新包，请重新下载后再试";
@@ -304,19 +304,22 @@ function installMacUpdate(): { ok: boolean; error?: string } {
   const scriptPath = path.join(dir, "install.sh");
   const logPath = path.join(dir, "install.log");
 
-  launchMacInstaller({
-    archivePath,
-    bundlePath: target.bundlePath,
-    appName: target.appName,
-    logPath,
-    scriptPath,
-    pid: process.pid,
-    waitSeconds: MAC_INSTALL_WAIT_SECONDS,
-  }).catch((err: unknown) => {
+  try {
+    await launchMacInstaller({
+      archivePath,
+      bundlePath: target.bundlePath,
+      appName: target.appName,
+      logPath,
+      scriptPath,
+      pid: process.pid,
+      waitSeconds: MAC_INSTALL_WAIT_SECONDS,
+    });
+  } catch (err) {
     log.error("[update] 启动 mac 安装脚本失败:", err);
     const message = humanizeError(err);
     patch({ phase: "error", error: message });
-  });
+    return { ok: false, error: message };
+  }
 
   log.info("[update] mac 安装脚本已接管", target.bundlePath);
   patch({ phase: "downloaded" });

@@ -164,6 +164,11 @@ class ConfigManager {
       );
       await this.writeSettingDirect(SETTINGS_KEYS.AI_API_KEY, legacy.aiApiKey ?? "");
       await this.writeSettingDirect(SETTINGS_KEYS.AI_MODEL, legacy.aiModel ?? "");
+      await this.writeSettingDirect(SETTINGS_KEYS.AI_BASE_URL, legacy.aiBaseUrl ?? "");
+      await this.writeSettingDirect(
+        SETTINGS_KEYS.VOICE_HOTKEY,
+        legacy.voiceHotkey ?? DEFAULT_CONFIG.voiceHotkey
+      );
       await this.writeSettingDirect(
         SETTINGS_KEYS.THEME,
         legacy.theme ?? (DEFAULT_CONFIG.theme as string)

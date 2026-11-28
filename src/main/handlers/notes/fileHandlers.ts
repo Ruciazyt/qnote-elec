@@ -51,6 +51,8 @@ export function registerFileHandlers(
   externalFolders: ExternalFolderStore
 ) {
   const noteStore = new NoteStore();
+  const notesRoot = (): string => path.resolve(fileWriter.getRootPath());
+
 
   ipcMain.handle("getFilePath", () => fileWriter.getFilePath());
 
@@ -64,82 +66,87 @@ export function registerFileHandlers(
       properties: ["openDirectory"],
     });
     if (result.filePaths[0]) {
-      await fileWriter.setFilePath(result.filePaths[0]);
+      try {
+        await fileWriter.setFilePath(result.filePaths[0]);
+      } catch (err) {
+        log.error("设置笔记目录失败", err);
+        return null;
+      }
       return result.filePaths[0];
     }
   });
 
 
-  ipcMain.handle("notes:tree", async (_event, dirPath: string): Promise<NoteTreeNode[]> => {
-    return noteStore.listChildren(dirPath, "");
+  ipcMain.handle("notes:tree", async (_event, _dirPath: string): Promise<NoteTreeNode[]> => {
+    return noteStore.listChildren(notesRoot(), "");
   });
 
   ipcMain.handle(
     "notes:tree-children",
-    async (_event, dirPath: string, relDir: string): Promise<NoteTreeNode[]> => {
-      return noteStore.listChildren(dirPath, relDir);
+    async (_event, _dirPath: string, relDir: string): Promise<NoteTreeNode[]> => {
+      return noteStore.listChildren(notesRoot(), relDir);
     }
   );
 
   ipcMain.handle(
     "notes:counts",
-    async (_event, dirPath: string): Promise<Record<NoteType, number>> => {
-      const cached = countsCache.get(dirPath);
+    async (_event, _dirPath: string): Promise<Record<NoteType, number>> => {
+      const cached = countsCache.get(notesRoot());
       if (cached && Date.now() - cached.at < COUNTS_TTL_MS) return cached.value;
-      const value = await noteStore.countByType(dirPath);
-      countsCache.set(dirPath, { at: Date.now(), value });
+      const value = await noteStore.countByType(notesRoot());
+      countsCache.set(notesRoot(), { at: Date.now(), value });
       return value;
     }
   );
 
   ipcMain.handle(
     "notes:stat",
-    (_event, dirPath: string, relPath: string): NoteFileEntry | null => {
-      return noteStore.stat(dirPath, relPath);
+    (_event, _dirPath: string, relPath: string): NoteFileEntry | null => {
+      return noteStore.stat(notesRoot(), relPath);
     }
   );
 
-  ipcMain.handle("notes:read", (_event, dirPath: string, relPath: string) => {
+  ipcMain.handle("notes:read", (_event, _dirPath: string, relPath: string) => {
     try {
-      return noteStore.read(dirPath, relPath);
+      return noteStore.read(notesRoot(), relPath);
     } catch (err) {
       log.error(`读取笔记失败: ${relPath}`, err);
       return null;
     }
   });
 
-  ipcMain.handle("notes:write-text", (_event, dirPath: string, relPath: string, text: string) => {
-    return noteStore.writeText(dirPath, relPath, text);
+  ipcMain.handle("notes:write-text", (_event, _dirPath: string, relPath: string, text: string) => {
+    return noteStore.writeText(notesRoot(), relPath, text);
   });
 
-  ipcMain.handle("notes:read-markdown", (_event, dirPath: string, relPath: string) => {
+  ipcMain.handle("notes:read-markdown", (_event, _dirPath: string, relPath: string) => {
     try {
-      return noteStore.readMarkdownWithAssets(dirPath, relPath);
+      return noteStore.readMarkdownWithAssets(notesRoot(), relPath);
     } catch (err) {
       log.error(`读取 Markdown 失败: ${relPath}`, err);
       return "";
     }
   });
 
-  ipcMain.handle("notes:write-markdown", (_event, dirPath: string, relPath: string, md: string) => {
-    return noteStore.writeMarkdownWithAssets(dirPath, relPath, md);
+  ipcMain.handle("notes:write-markdown", (_event, _dirPath: string, relPath: string, md: string) => {
+    return noteStore.writeMarkdownWithAssets(notesRoot(), relPath, md);
   });
 
-  ipcMain.handle("notes:read-html", (_event, dirPath: string, relPath: string) => {
+  ipcMain.handle("notes:read-html", (_event, _dirPath: string, relPath: string) => {
     try {
-      return noteStore.readHtmlWithAssets(dirPath, relPath);
+      return noteStore.readHtmlWithAssets(notesRoot(), relPath);
     } catch (err) {
       log.error(`读取 HTML 失败: ${relPath}`, err);
       return "";
     }
   });
 
-  ipcMain.handle("notes:write-html", (_event, dirPath: string, relPath: string, html: string) => {
-    return noteStore.writeHtmlWithAssets(dirPath, relPath, html);
+  ipcMain.handle("notes:write-html", (_event, _dirPath: string, relPath: string, html: string) => {
+    return noteStore.writeHtmlWithAssets(notesRoot(), relPath, html);
   });
 
-  ipcMain.handle("notes:save-asset", (_event, dirPath: string, dataUrl: string) => {
-    return noteStore.saveAssetFromDataUrl(dirPath, dataUrl);
+  ipcMain.handle("notes:save-asset", (_event, _dirPath: string, dataUrl: string) => {
+    return noteStore.saveAssetFromDataUrl(notesRoot(), dataUrl);
   });
 
   ipcMain.handle("notes:open-in-explorer", (_event, _dirPath: string, relPath: string) => {
@@ -147,7 +154,7 @@ export function registerFileHandlers(
       const rootAbs = path.resolve(fileWriter.getRootPath());
       const abs = path.resolve(rootAbs, relPath || ".");
       const rel = path.relative(rootAbs, abs);
-      if (rel.startsWith("..") || path.isAbsolute(rel)) {
+      if (rel === ".." || rel.startsWith(".." + path.sep) || path.isAbsolute(rel)) {
         throw new Error(`非法的笔记路径: ${relPath}`);
       }
       return shell.openPath(abs);
@@ -163,7 +170,7 @@ export function registerFileHandlers(
       const rootAbs = path.resolve(fileWriter.getRootPath());
       const abs = path.resolve(rootAbs, relPath);
       const rel = path.relative(rootAbs, abs);
-      if (rel.startsWith("..") || path.isAbsolute(rel)) {
+      if (rel === ".." || rel.startsWith(".." + path.sep) || path.isAbsolute(rel)) {
         throw new Error(`非法的笔记路径: ${relPath}`);
       }
       shell.showItemInFolder(abs);
@@ -176,12 +183,12 @@ export function registerFileHandlers(
 
   ipcMain.handle(
     "notes:save-from-clipboard",
-    (_event, dirPath: string, type: "text" | "image", content: string
+    (_event, _dirPath: string, type: "text" | "image", content: string
   ): NoteFileEntry | null => {
-    return noteStore.saveNoteFromClipboard(dirPath, type, content);
+    return noteStore.saveNoteFromClipboard(notesRoot(), type, content);
   });
 
-  ipcMain.handle("notes:pick-image", async (_event, dirPath: string) => {
+  ipcMain.handle("notes:pick-image", async (_event, _dirPath: string) => {
     const win = getMainWindow();
     if (!win) {
       log.error("notes:pick-image 调用时主窗口不存在，无法打开图片选择框");
@@ -200,7 +207,7 @@ export function registerFileHandlers(
       const ext = path.extname(picked).toLowerCase();
       const mime = MIME_BY_EXT[ext] ?? "image/png";
       const dataUrl = `data:${mime};base64,${buffer.toString("base64")}`;
-      const assetRel = noteStore.saveAssetFromDataUrl(dirPath, dataUrl);
+      const assetRel = noteStore.saveAssetFromDataUrl(notesRoot(), dataUrl);
       if (!assetRel) return null;
       return { dataUrl, assetRel };
     } catch (err) {
@@ -209,60 +216,60 @@ export function registerFileHandlers(
     }
   });
 
-  ipcMain.handle("notes:delete", (_event, dirPath: string, relPath: string) => {
-    return noteStore.delete(dirPath, relPath);
+  ipcMain.handle("notes:delete", (_event, _dirPath: string, relPath: string) => {
+    return noteStore.delete(notesRoot(), relPath);
   });
 
-  ipcMain.handle("notes:delete-folder", (_event, dirPath: string, relPath: string) => {
-    return noteStore.deleteFolder(dirPath, relPath);
+  ipcMain.handle("notes:delete-folder", (_event, _dirPath: string, relPath: string) => {
+    return noteStore.deleteFolder(notesRoot(), relPath);
   });
 
-  ipcMain.handle("notes:rename", (_event, dirPath: string, oldRel: string, newName: string) => {
-    return noteStore.rename(dirPath, oldRel, newName);
+  ipcMain.handle("notes:rename", (_event, _dirPath: string, oldRel: string, newName: string) => {
+    return noteStore.rename(notesRoot(), oldRel, newName);
   });
 
-  ipcMain.handle("notes:create-folder", (_event, dirPath: string, parentRel: string, name: string) => {
+  ipcMain.handle("notes:create-folder", (_event, _dirPath: string, parentRel: string, name: string) => {
     if (!noteStore.isValidFolderName(name)) return false;
-    return noteStore.createFolder(dirPath, parentRel, name.trim());
+    return noteStore.createFolder(notesRoot(), parentRel, name.trim());
   });
 
   ipcMain.handle(
     "notes:create-file",
-    (_event, dirPath: string, parentRel: string, name: string, type: NoteType
-    ) => noteStore.createNoteFile(dirPath, parentRel, name, type)
+    (_event, _dirPath: string, parentRel: string, name: string, type: NoteType
+    ) => noteStore.createNoteFile(notesRoot(), parentRel, name, type)
   );
 
   ipcMain.handle(
     "notes:import-files",
     async (
       _event,
-      dirPath: string,
+      _dirPath: string,
       srcPaths: string[],
       targetFolderRel = ""
     ): Promise<{ imported: string[]; skipped: string[] }> => {
-      const result = await importFilesInto(dirPath, srcPaths, targetFolderRel);
+      const result = await importFilesInto(notesRoot(), srcPaths, targetFolderRel);
 
-      if (result.imported.length > 0) broadcastNotesChanged(dirPath);
+      if (result.imported.length > 0) broadcastNotesChanged(notesRoot());
       return result;
     }
   );
 
   ipcMain.handle(
     "notes:move",
-    (_event, dirPath: string, fromRel: string, toFolderRel: string
-  ) => noteStore.move(dirPath, fromRel, toFolderRel));
+    (_event, _dirPath: string, fromRel: string, toFolderRel: string
+  ) => noteStore.move(notesRoot(), fromRel, toFolderRel));
 
   ipcMain.handle(
     "notes:save-clipboard-image",
-    async (_event, dirPath: string, parentRel: string): Promise<NoteFileEntry | null> => {
+    async (_event, _dirPath: string, parentRel: string): Promise<NoteFileEntry | null> => {
       try {
         const image = await readClipboardImage();
         if (image.isEmpty()) return null;
 
-        const relPath = noteStore.allocateImageName(dirPath, parentRel, ".png");
-        if (!noteStore.writeBinary(dirPath, relPath, image.toPNG())) return null;
+        const relPath = noteStore.allocateImageName(notesRoot(), parentRel, ".png");
+        if (!noteStore.writeBinary(notesRoot(), relPath, image.toPNG())) return null;
 
-        return noteStore.stat(dirPath, relPath);
+        return noteStore.stat(notesRoot(), relPath);
       } catch (err) {
         log.error("保存剪贴板图片失败", err);
         return null;
@@ -444,7 +451,12 @@ async function importFilesInto(
   const skipped: string[] = [];
 
   const folder = (targetFolderRel || "").trim();
-  if (folder.includes("..") || path.isAbsolute(folder)) {
+  if (
+    folder === ".." ||
+    folder.includes(".." + path.sep) ||
+    folder.includes("/..") ||
+    path.isAbsolute(folder)
+  ) {
     return { imported, skipped: [`非法目标目录：${targetFolderRel}`] };
   }
 

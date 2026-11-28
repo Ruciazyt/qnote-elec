@@ -3,6 +3,16 @@ import { log } from "../../core/system/log";
 import { contentHash } from "../../../shared/notes/noteHash";
 import { describeDBError } from "../../../database/index";
 
+async function clearNoteIndexRows(DB: any, ids: number[]): Promise<void> {
+  if (!ids.length) return;
+  try {
+    await DB.from("vector_store").whereIn("note_id", ids).delete();
+    await DB.from("memory_store").whereIn("note_id", ids).delete();
+  } catch (err) {
+    log.error("清理笔记的向量与记忆索引失败", err);
+  }
+}
+
 export function registerNoteHandlers(DB: any) {
   const LIST_ORDER = "COALESCE(pinned_at, 0) DESC, created_at DESC";
 
@@ -33,6 +43,7 @@ export function registerNoteHandlers(DB: any) {
   ipcMain.handle("delete-note-by-id", async (_event: any, id: number) => {
     try {
       await DB.from("note").where("id", id).delete();
+      await clearNoteIndexRows(DB, [id]);
       return true;
     } catch (err) {
       log.error("删除笔记失败", err);
@@ -42,6 +53,16 @@ export function registerNoteHandlers(DB: any) {
 
   ipcMain.handle("delete-all-notes", async () => {
     try {
+      try {
+        const targets = DB.from("note")
+          .whereNull("pinned_at")
+          .where("is_important", 0)
+          .select("id");
+        await DB.from("vector_store").whereIn("note_id", targets).delete();
+        await DB.from("memory_store").whereIn("note_id", targets).delete();
+      } catch (err) {
+        log.error("清理记忆索引失败", err);
+      }
       const deleted = await DB.from("note")
         .whereNull("pinned_at")
         .where("is_important", 0)
@@ -77,10 +98,10 @@ export function registerNoteHandlers(DB: any) {
       return [];
     }
     try {
-      const escapedKeyword = keyword.trim().replace(/[%_]/g, String.raw`\$&`);
+      const escapedKeyword = keyword.trim().replace(/[\\%_]/g, (ch) => "\\" + ch);
       const records = await DB.from("note")
         .select("*")
-        .where("content", "like", `%${escapedKeyword}%`)
+        .whereRaw("content LIKE ? ESCAPE '\\'", [`%${escapedKeyword}%`])
         .orderByRaw(LIST_ORDER)
         .limit(100);
 

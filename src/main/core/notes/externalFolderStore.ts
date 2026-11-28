@@ -30,6 +30,8 @@ function folderNameOf(dirPath: string): string {
 }
 
 export class ExternalFolderStore {
+  private corrupt = false;
+
   constructor(private readonly DB: Knex) {}
 
   async list(): Promise<ExternalFolder[]> {
@@ -37,7 +39,10 @@ export class ExternalFolderStore {
       const row = await this.DB("settings").where("configName", CONFIG_KEY).first();
       if (!row?.configValue) return [];
       const parsed = JSON.parse(row.configValue);
-      if (!Array.isArray(parsed)) return [];
+      if (!Array.isArray(parsed)) {
+        throw new Error("外部文件夹清单不是数组");
+      }
+      this.corrupt = false;
       return parsed.filter(isStoredFolder).map((f) => ({
         id: f.id,
         path: f.path,
@@ -45,6 +50,7 @@ export class ExternalFolderStore {
       }));
     } catch (err) {
       log.error("读取外部文件夹清单失败", err);
+      this.corrupt = true;
       return [];
     }
   }
@@ -99,6 +105,9 @@ export class ExternalFolderStore {
   }
 
   private async save(list: ExternalFolder[]): Promise<void> {
+    if (this.corrupt) {
+      throw new Error("外部文件夹清单已损坏，已拒绝覆盖原文件");
+    }
     const payload = JSON.stringify(list);
     try {
       const existing = await this.DB("settings").where("configName", CONFIG_KEY).first();

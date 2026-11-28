@@ -74,7 +74,7 @@ export class NoteStore {
     const base = path.resolve(root);
     const target = path.resolve(base, relPath);
     const rel = path.relative(base, target);
-    if (rel.startsWith("..") || path.isAbsolute(rel)) {
+    if (rel === ".." || rel.startsWith(".." + path.sep) || path.isAbsolute(rel)) {
       throw new Error(`非法的笔记路径: ${relPath}`);
     }
     return target;
@@ -158,6 +158,17 @@ export class NoteStore {
     root: string,
     budget: ScanBudget = {}
   ): Promise<Extract<NoteTreeNode, { kind: "file" }>[]> {
+    const result = await this.scanFilesWithStatus(root, budget);
+    return result.files;
+  }
+
+  async scanFilesWithStatus(
+    root: string,
+    budget: ScanBudget = {}
+  ): Promise<{
+    files: Extract<NoteTreeNode, { kind: "file" }>[];
+    truncated: boolean;
+  }> {
     const maxDirs = budget.maxDirs ?? 500;
     const maxFiles = budget.maxFiles ?? 2000;
     const deadline = Date.now() + (budget.deadlineMs ?? 2000);
@@ -165,9 +176,13 @@ export class NoteStore {
     const out: Extract<NoteTreeNode, { kind: "file" }>[] = [];
     const queue: string[] = [""];
     let visited = 0;
+    let truncated = false;
 
     while (queue.length > 0 && visited < maxDirs && out.length < maxFiles) {
-      if (Date.now() >= deadline) break;
+      if (Date.now() >= deadline) {
+        truncated = true;
+        break;
+      }
       const relDir = queue.shift() as string;
       visited += 1;
 
@@ -181,7 +196,10 @@ export class NoteStore {
       }
 
       for (const dirent of dirents) {
-        if (out.length >= maxFiles || Date.now() >= deadline) break;
+        if (out.length >= maxFiles || Date.now() >= deadline) {
+          truncated = true;
+          break;
+        }
         if (dirent.name.startsWith(".")) continue;
         if (!relDir && dirent.name === ASSET_DIR) continue;
 
@@ -203,7 +221,8 @@ export class NoteStore {
       }
     }
 
-    return out;
+    if (queue.length > 0) truncated = true;
+    return { files: out, truncated };
   }
 
   async countByType(root: string, budget: ScanBudget = {}): Promise<Record<NoteType, number>> {
@@ -554,7 +573,7 @@ export class NoteStore {
         rel = this.allocateImageName(root, "", ext);
         if (!this.writeBinary(root, rel, Buffer.from(match[2], "base64"))) return null;
       } else {
-        rel = NoteStore.deriveNoteName(raw);
+        rel = this.allocateUniqueRel(root, NoteStore.deriveNoteName(raw));
         if (!this.writeMarkdownWithAssets(root, rel, raw)) return null;
       }
 

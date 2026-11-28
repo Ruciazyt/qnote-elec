@@ -1,8 +1,10 @@
 import { BrowserWindow, dialog, ipcMain } from "electron";
+import knex from "knex";
 import type { Knex } from "knex";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { log } from "../../core/system/log";
+import { closeDB } from "../../../database/index";
 
 type ExportResult =
   | { success: true; filePath: string }
@@ -38,6 +40,43 @@ function timestampSuffix() {
   return new Date().toISOString().replace(/[:.]/g, "-");
 }
 
+const REQUIRED_TABLES = ["settings", "note"];
+
+async function verifyDatabaseFile(filePath: string): Promise<string | null> {
+  const probe = knex({
+    client: "sqlite3",
+    connection: { filename: filePath },
+    useNullAsDefault: true,
+  });
+  try {
+    const rows = await probe("sqlite_master").select("name");
+    const names = new Set(rows.map((row) => String(row.name)));
+    const missing = REQUIRED_TABLES.filter((table) => !names.has(table));
+    if (missing.length > 0) {
+      return `导入文件不是 QNote 的数据库（缺少 ${missing.join("、")} 表）`;
+    }
+    return null;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return `导入文件不是可用的 SQLite 数据库：${message}`;
+  } finally {
+    await probe.destroy().catch(() => undefined);
+  }
+}
+
+async function removeSidecars(dbPath: string): Promise<void> {
+  for (const suffix of ["-wal", "-shm"]) {
+    const sidecar = dbPath + suffix;
+    try {
+      if (fs.existsSync(sidecar)) {
+        await fs.promises.rm(sidecar, { force: true });
+      }
+    } catch (err) {
+      log.warn("删除数据库附属文件失败: " + sidecar, err);
+    }
+  }
+}
+
 export function registerDatabaseTransferHandlers(DB: Knex | null, win: BrowserWindow | null) {
   ipcMain.handle("export-database", async (): Promise<ExportResult> => {
     const dbPath = getDbFilePath(DB);
@@ -46,7 +85,7 @@ export function registerDatabaseTransferHandlers(DB: Knex | null, win: BrowserWi
     }
 
     try {
-      await DB?.raw("PRAGMA wal_checkpoint(FULL)");
+      await DB?.raw("PRAGMA wal_checkpoint(TRUNCATE)");
     } catch (err) {
       log.warn("执行 wal_checkpoint 失败", err);
     }
@@ -105,6 +144,11 @@ export function registerDatabaseTransferHandlers(DB: Knex | null, win: BrowserWi
       return { success: false, error: `无法读取导入文件: ${message}` };
     }
 
+    const problem = await verifyDatabaseFile(sourcePath);
+    if (problem) {
+      return { success: false, error: problem };
+    }
+
     const backupPath = path.join(
       path.dirname(dbPath),
       `clipboard-backup-before-import-${timestampSuffix()}.sqlite`
@@ -112,21 +156,45 @@ export function registerDatabaseTransferHandlers(DB: Knex | null, win: BrowserWi
 
     try {
       await copyFileSafe(dbPath, backupPath);
-      await copyFileSafe(sourcePath, dbPath);
-      log.info("数据库导入完成", { sourcePath, backupPath });
-      return {
-        success: true,
-        sourcePath,
-        backupPath,
-        requiresRestart: true,
-      };
     } catch (error) {
-      log.error("导入数据库失败", error);
+      log.error("备份当前数据库失败", error);
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error),
       };
     }
+
+    try {
+      await DB?.raw("PRAGMA wal_checkpoint(TRUNCATE)");
+    } catch (err) {
+      log.warn("导入前 checkpoint 失败", err);
+    }
+
+    closeDB();
+
+    try {
+      await copyFileSafe(sourcePath, dbPath);
+    } catch (error) {
+      log.error("导入数据库失败", error);
+      try {
+        await copyFileSafe(backupPath, dbPath);
+      } catch (restoreErr) {
+        log.error("回滚原数据库失败", restoreErr);
+      }
+      return {
+        success: false,
+        error: "导入失败，已回滚到原数据库；请重启应用后再试",
+      };
+    }
+
+    await removeSidecars(dbPath);
+    log.info("数据库导入完成", { sourcePath, backupPath });
+    return {
+      success: true,
+      sourcePath,
+      backupPath,
+      requiresRestart: true,
+    };
   });
 }
 
