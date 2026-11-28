@@ -32,7 +32,14 @@ export class GitlabBotServer {
   async start(): Promise<{ port: number; url: string }> {
     const config = getGitlabBotConfig();
     const server = http.createServer((req, res) => {
-      void this.handle(req, res);
+      void this.handle(req, res).catch((err) => {
+        log.warn("[gitlab-bot] 处理请求失败", {
+          error: err instanceof Error ? err.message : String(err),
+        });
+        if (!res.headersSent) {
+          this.sendJson(res, 400, { error: "请求体不完整或已断开" });
+        }
+      });
     });
 
     await new Promise<void>((resolve, reject) => {

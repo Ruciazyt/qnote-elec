@@ -1,5 +1,6 @@
 import type { Knex } from "knex";
 import { log } from "../../../system/log";
+import { GITLAB_RUNNER_DEFAULT_TAGS } from "../../../../../shared/ai/gitlabBot";
 
 const SETTINGS_KEY = "gitlab_bot_config";
 
@@ -23,7 +24,7 @@ export function defaultGitlabBotConfig(): GitlabBotConfig {
     allowedProjects: [],
     runnerEnabled: true,
     runnerProject: "",
-    runnerTags: ["qnote"],
+    runnerTags: [...GITLAB_RUNNER_DEFAULT_TAGS],
   };
 }
 
@@ -34,15 +35,42 @@ export function getGitlabBotConfig(): GitlabBotConfig {
   return cached;
 }
 
+function stringList(value: unknown, fallback: string[]): string[] {
+  if (!Array.isArray(value)) return [...fallback];
+  const list = value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+  return list.length ? list : [...fallback];
+}
+
+function boolValue(value: unknown, fallback: boolean): boolean {
+  return typeof value === "boolean" ? value : fallback;
+}
+
+function textValue(value: unknown, fallback: string): string {
+  return typeof value === "string" ? value : fallback;
+}
+
 function readStoredConfig(raw: Partial<GitlabBotConfig>): GitlabBotConfig {
   const defaults = defaultGitlabBotConfig();
-  const config = { ...defaults, ...raw };
-  if (!Number.isInteger(config.port) || config.port < 1 || config.port > 65535) {
-    config.port = defaults.port;
-  }
-  if (!config.triggerWords.length) config.triggerWords = defaults.triggerWords;
-  if (!("runnerTags" in raw)) config.runnerTags = [];
-  return config;
+  const port = raw.port;
+  return {
+    enabled: boolValue(raw.enabled, defaults.enabled),
+    port:
+      typeof port === "number" &&
+      Number.isInteger(port) &&
+      port >= 1 &&
+      port <= 65535
+        ? port
+        : defaults.port,
+    relayToken: textValue(raw.relayToken, defaults.relayToken),
+    triggerWords: stringList(raw.triggerWords, defaults.triggerWords),
+    allowedProjects: stringList(raw.allowedProjects, defaults.allowedProjects),
+    runnerEnabled: boolValue(raw.runnerEnabled, defaults.runnerEnabled),
+    runnerProject: textValue(raw.runnerProject, defaults.runnerProject),
+    runnerTags: stringList(raw.runnerTags, defaults.runnerTags),
+  };
 }
 
 export async function loadGitlabBotConfig(): Promise<GitlabBotConfig> {
@@ -77,7 +105,10 @@ export async function saveGitlabBotConfig(
   patch: Partial<GitlabBotConfig>
 ): Promise<GitlabBotConfig> {
   if (!db) throw new Error("GitLab Bot 配置存储未初始化");
-  const next: GitlabBotConfig = { ...cached, ...patch };
+  const defined = Object.fromEntries(
+    Object.entries(patch).filter(([, value]) => value !== undefined)
+  ) as Partial<GitlabBotConfig>;
+  const next = readStoredConfig({ ...cached, ...defined });
   const now = new Date();
   const value = JSON.stringify(next);
   const exist = await db("settings").where("configName", SETTINGS_KEY).first();

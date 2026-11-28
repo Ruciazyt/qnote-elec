@@ -85,7 +85,12 @@ export const githubListWorkflowRunsTool = tool(
 );
 
 export const githubGetWorkflowRunTool = tool(
-  async (input: { repository: string; run_id: number; job_limit?: number }) => {
+  async (input: {
+    repository: string;
+    run_id: number;
+    job_limit?: number;
+    job_cursor?: string;
+  }) => {
     return runGithubTool('github_get_workflow_run', input.repository, async () => {
       const repository = requireRepository(input.repository);
       const runId = Number(input.run_id);
@@ -103,6 +108,7 @@ export const githubGetWorkflowRunTool = tool(
           kind: 'jobs:' + repository + ':' + runId,
           path: githubEndpoints.workflowJobs(repository, runId),
           query: {},
+          cursor: input.job_cursor,
           perPage: jobLimit,
         },
         async (path, query, pageNumber, perPage) => {
@@ -155,9 +161,12 @@ export const githubGetWorkflowRunTool = tool(
         updated_at: run.data?.updated_at ?? null,
         url: run.data?.html_url ?? null,
         job_count: allJobs.length,
+        job_next_cursor: jobs.nextCursor,
         jobs: shown,
         jobs_truncated: trimmed,
-        job_hint: '要失败 job 的日志，用 github_get_job_logs 传它的 job id',
+        job_hint: jobs.nextCursor
+          ? 'job_count 是这一页的数量，还有更多 job 时带着 job_next_cursor 再调一次'
+          : '要失败 job 的日志，用 github_get_job_logs 传它的 job id',
       };
     });
   },
@@ -165,11 +174,13 @@ export const githubGetWorkflowRunTool = tool(
     name: 'github_get_workflow_run',
     description:
       '读一次 Actions 运行的详情和它下面的 job 列表（id、名字、状态、结论）。' +
-      'run_id 来自 github_list_workflow_runs。',
+      'run_id 来自 github_list_workflow_runs。job_count 是这一页的数量，' +
+      '还有更多时用 job_next_cursor 继续翻。',
     schema: strictObject({
       repository: repositorySchema.describe('仓库全名，形如 owner/repo'),
       run_id: z.number().int().describe('运行 id，来自 github_list_workflow_runs'),
       job_limit: z.number().int().min(1).max(100).optional().describe('最多取多少个 job，默认 20'),
+      job_cursor: z.string().optional().describe('翻页句柄，来自上一次返回的 job_next_cursor'),
     }),
   }
 );

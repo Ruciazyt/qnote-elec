@@ -1,4 +1,5 @@
 import { detectRunnerShell } from "../../../gitlabBot/runner/shell";
+import { resolveRunnerTags } from "../../../../../../shared/ai/gitlabBot";
 import { gitlabRequest } from "../api/client";
 import { gitlabEndpoints } from "../api/endpoints";
 import type { GitlabHook, GitlabPipelineTrigger } from "../api/types";
@@ -114,7 +115,7 @@ export function buildCiTemplate(options: {
   tags?: string[];
 }): string {
   const shell = options.shell ?? detectRunnerShell();
-  const tags = options.tags?.length ? options.tags : ["qnote"];
+  const tags = resolveRunnerTags(options.tags);
   const lines = [
     "# QNote GitLab 机器人接入",
     "#",

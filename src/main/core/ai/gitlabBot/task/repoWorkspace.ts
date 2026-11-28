@@ -21,7 +21,11 @@ export interface RepoWorkspace {
 }
 
 export function projectDirName(projectPath: string): string {
-  return projectPath.replace(/[\\/]/g, "__").replace(/[^A-Za-z0-9._-]/g, "_");
+  const name = projectPath
+    .replace(/[\\/]/g, "__")
+    .replace(/[^A-Za-z0-9._-]/g, "_");
+  if (!name || name === "." || name === "..") return "_";
+  return name;
 }
 
 export function buildWorkBranchName(event: {
@@ -76,24 +80,33 @@ async function tryGit(
   }
 }
 
+export function credentialHelperPath(file: string): string {
+  const posix = file.replace(/\\/g, "/");
+  return "'" + posix.replace(/'/g, "'\\''") + "'";
+}
+
 function writeCredentialFile(
   repoUrl: string,
   token: string
-): { file: string; cleanup: () => void } {
+): { file: string; helperPath: string; cleanup: () => void } {
+  let protocol = "https:";
   let host = "";
   try {
-    host = new URL(repoUrl).host;
+    const url = new URL(repoUrl);
+    protocol = url.protocol;
+    host = url.host;
   } catch {
     host = "";
   }
   const file = path.join(os.tmpdir(), `qnote-git-cred-${randomUUID()}`);
   fs.writeFileSync(
     file,
-    `https://oauth2:${encodeURIComponent(token)}@${host}\n`,
-    "utf8"
+    `${protocol}//oauth2:${encodeURIComponent(token)}@${host}\n`,
+    { encoding: "utf8", mode: 0o600 }
   );
   return {
     file,
+    helperPath: credentialHelperPath(file),
     cleanup: () => {
       try {
         fs.rmSync(file, { force: true });
@@ -102,6 +115,39 @@ function writeCredentialFile(
       }
     },
   };
+}
+
+async function resolveDefaultBranch(
+  given: string | undefined,
+  dir: string,
+  env: NodeJS.ProcessEnv,
+  authArgs: string[]
+): Promise<string> {
+  if (given) return given;
+  const head = (
+    await tryGit(
+      [...authArgs, "symbolic-ref", "--short", "refs/remotes/origin/HEAD"],
+      dir,
+      env
+    )
+  )?.trim();
+  if (head) return head.replace(/^origin\//, "");
+  return "main";
+}
+
+async function resolveBaseCommit(
+  defaultBranch: string,
+  dir: string,
+  env: NodeJS.ProcessEnv,
+  authArgs: string[]
+): Promise<string> {
+  for (const ref of [`origin/${defaultBranch}`, "origin/HEAD"]) {
+    const sha = (
+      await tryGit([...authArgs, "rev-parse", "--verify", ref], dir, env)
+    )?.trim();
+    if (sha) return sha;
+  }
+  throw new Error(`远端找不到 ${defaultBranch} 分支，任务没有基点`);
 }
 
 export async function prepareRepoWorkspace(
@@ -117,7 +163,7 @@ export async function prepareRepoWorkspace(
     "-c",
     "credential.helper=",
     "-c",
-    `credential.helper=store --file=${credential.file}`,
+    `credential.helper=store --file=${credential.helperPath}`,
   ];
 
   try {
@@ -136,8 +182,17 @@ export async function prepareRepoWorkspace(
       await runGit([...authArgs, "fetch", "--prune", "origin"], dir, env);
     }
 
-    const defaultBranch = options.defaultBranch || "main";
+    const defaultBranch = await resolveDefaultBranch(
+      options.defaultBranch,
+      dir,
+      env,
+      authArgs
+    );
     const workBranch = options.branch || defaultBranch;
+
+    await runGit([...authArgs, "reset", "--hard"], dir, env);
+    await runGit([...authArgs, "clean", "-fd"], dir, env);
+
     const remoteHeads = await tryGit(
       [...authArgs, "ls-remote", "--heads", "origin", workBranch],
       dir,
@@ -156,12 +211,7 @@ export async function prepareRepoWorkspace(
         env
       );
     } else {
-      const base =
-        (await tryGit(
-          [...authArgs, "rev-parse", "--verify", `origin/${defaultBranch}`],
-          dir,
-          env
-        ))?.trim() || "HEAD";
+      const base = await resolveBaseCommit(defaultBranch, dir, env, authArgs);
       await runGit([...authArgs, "checkout", "-B", workBranch, base], dir, env);
     }
 

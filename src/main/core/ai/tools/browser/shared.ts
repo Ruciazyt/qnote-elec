@@ -39,11 +39,14 @@ export async function runAction(
     result = await browser.execute<ActionResult>(code);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    navigated = /跳转|navigat|context/i.test(msg);
+    navigated = /跳转|navigat|execution context (was )?(destroyed|disposed)/i.test(msg);
     if (!navigated) {
       return toolError('EXECUTE_FAILED', `操作失败：${msg}`);
     }
-    result = { ok: true };
+    return (
+      '操作结果未知：页面正在跳转，脚本没能执行完，不能算成功。' +
+      '请重新调用 browser_get_snapshot 确认当前页面再决定下一步。'
+    );
   }
 
   if (!result?.ok) {

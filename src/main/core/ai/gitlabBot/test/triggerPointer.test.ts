@@ -62,6 +62,7 @@ describe("指针解析", () => {
       noteable_id: "47082",
       issue_iid: "3",
       mr_iid: "null",
+      action: "update",
     });
     expect(pointer).toEqual({
       kind: "note",
@@ -76,7 +77,18 @@ describe("指针解析", () => {
       noteableId: 47082,
       issueIid: 3,
       mrIid: 0,
+      action: "update",
     });
+  });
+
+  it("没有动作字段时当空", () => {
+    const pointer = parseTriggerPointer({
+      object_kind: "issue",
+      project_id: "1",
+      project_path: "team/app",
+      object_id: "2",
+    });
+    expect(pointer?.action).toBe("");
   });
 
   it("缺关键字段时不算指针", () => {

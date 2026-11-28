@@ -13,7 +13,7 @@ export const gitlabListCommitsTool = tool(
       const project = requireProject(input.project);
       const limit = clampLimit(input.limit, 20, 100);
       const page = await listWithCursor<GitlabCommit>({
-        kind: 'commits',
+        kind: 'commits:' + project,
         path: gitlabEndpoints.commits(project),
         query: { ref_name: input.ref?.trim() || undefined },
         cursor: input.cursor,
@@ -77,6 +77,16 @@ export const gitlabCommitFilesTool = tool(
         if (!action.file_path) throw new GitlabApiError('文件改动缺少 file_path', 0, false);
         if (action.action === 'move' && !action.previous_path) {
           throw new GitlabApiError('move 操作必须给 previous_path', 0, false);
+        }
+        if (
+          (action.action === 'create' || action.action === 'update') &&
+          typeof action.content !== 'string'
+        ) {
+          throw new GitlabApiError(
+            `${action.action} 操作必须给 content（只有 delete / chmod / move 可以不给）`,
+            0,
+            false
+          );
         }
       }
 

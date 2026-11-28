@@ -27,12 +27,6 @@ export interface GitlabEvent {
   objectId?: number;
 }
 
-export function collectTriggerText(event: GitlabEvent): string {
-  return [event.comment, event.title, event.description]
-    .filter((item): item is string => typeof item === "string" && item.length > 0)
-    .join("\n");
-}
-
 export function findTriggerWord(
   text: string,
   words: string[]
@@ -101,14 +95,14 @@ export function decideTrigger(
   if (!GITLAB_SUPPORTED_OBJECT_KINDS.has(event.objectKind)) {
     return { ok: false, reason: `暂不处理 ${event.eventType || event.objectKind}` };
   }
-  const hit = findTriggerWord(collectTriggerText(event), config.triggerWords);
-  if (!hit) {
-    return { ok: false, reason: "没有命中触发词" };
-  }
   const source =
     event.comment?.trim() ||
     [event.title, event.description].filter(Boolean).join("\n") ||
     "";
+  const hit = findTriggerWord(source, config.triggerWords);
+  if (!hit) {
+    return { ok: false, reason: "没有命中触发词" };
+  }
   const instruction = stripTriggerWord(source, hit).trim();
   if (!instruction) {
     return { ok: false, reason: "触发词后面没有指令内容" };

@@ -65,7 +65,7 @@ export const gitlabListBranchesTool = tool(
       const project = requireProject(input.project);
       const limit = clampLimit(input.limit, 20, 100);
       const page = await listWithCursor<GitlabBranch>({
-        kind: 'branches',
+        kind: 'branches:' + project,
         path: gitlabEndpoints.branches(project),
         query: { search: input.search?.trim() || undefined },
         cursor: input.cursor,

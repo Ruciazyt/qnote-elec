@@ -39,7 +39,7 @@ export const gitlabListIssuesTool = tool(
       const project = requireProject(input.project);
       const limit = clampLimit(input.limit, 20, 100);
       const page = await listWithCursor<GitlabIssue>({
-        kind: 'issues',
+        kind: 'issues:' + project,
         path: gitlabEndpoints.issues(project),
         query: {
           state: input.state ?? 'opened',

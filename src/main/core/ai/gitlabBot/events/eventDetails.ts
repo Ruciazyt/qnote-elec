@@ -97,7 +97,7 @@ async function getIssueDetail(
     description: issue.description,
     labels: issue.labels ?? [],
     webUrl: issue.web_url,
-    action: "open",
+    action: pointer.action || "open",
   };
 }
 
@@ -118,7 +118,7 @@ async function getMergeRequestDetail(
     description: mr.description,
     branch: mr.source_branch,
     webUrl: mr.web_url,
-    action: "open",
+    action: pointer.action || "open",
   };
 }
 

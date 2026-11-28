@@ -1,6 +1,6 @@
 import { tool } from "../../tool";
 import { z } from 'zod';
-import { GithubApiError, githubRequest } from '../api/client';
+import { GithubApiError, githubList, githubRequest } from '../api/client';
 import { githubEndpoints } from '../api/endpoints';
 import {
   clampLimit,
@@ -45,15 +45,7 @@ export const githubListPullRequestsTool = tool(
           cursor: input.cursor,
           perPage: limit,
         },
-        async (path, query, pageNumber, perPage) => {
-          const result = await githubRequest<GitHubPullRequest[]>({
-            method: 'GET',
-            path,
-            query: { ...query, page: pageNumber, per_page: perPage },
-            idempotent: true,
-          });
-          return { items: result.data ?? [], nextPage: null, total: null };
-        }
+        githubList
       );
       const pullRequests = page.items.map((item) => ({
         number: item.number,

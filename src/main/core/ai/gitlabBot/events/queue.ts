@@ -104,18 +104,15 @@ export class GitlabEventQueue {
         const event = this.pending.shift();
         if (!event) break;
         const key = dedupeKey(event);
-        try {
-          await this.dispatch(event);
-        } finally {
-          this.markDone(key);
-        }
+        const consumed = await this.dispatch(event);
+        this.markDone(key, consumed);
       }
     } finally {
       this.pumping = false;
     }
   }
 
-  private async dispatch(event: GitlabEvent): Promise<void> {
+  private async dispatch(event: GitlabEvent): Promise<boolean> {
     const decision = decideTrigger(event, getGitlabBotConfig());
     if (!decision.ok) {
       log.info("[gitlab-bot] 未触发", {
@@ -123,7 +120,7 @@ export class GitlabEventQueue {
         project: event.projectPath,
         event: event.eventType,
       });
-      return;
+      return false;
     }
     log.info("[gitlab-bot] 命中触发词", {
       project: event.projectPath,
@@ -135,26 +132,29 @@ export class GitlabEventQueue {
     for (let attempt = 0; attempt <= this.maxRetries; attempt += 1) {
       try {
         await this.consume(event, instruction);
-        return;
+        return true;
       } catch (err) {
         if (attempt >= this.maxRetries) {
           log.error("[gitlab-bot] 任务执行失败，已放弃", {
             attempts: attempt + 1,
             error: err instanceof Error ? err.message : String(err),
           });
-          return;
+          return true;
         }
         const wait = this.retryDelayMs * (attempt + 1);
         log.warn("[gitlab-bot] 任务执行失败，准备重试", { attempt: attempt + 1, wait });
         await delay(wait);
       }
     }
+    return false;
   }
 
-  private markDone(key: string): void {
+  private markDone(key: string, consumed: boolean): void {
     this.pendingKeys.delete(key);
+    if (!consumed) return;
     if (this.doneKeys.size >= this.doneLimit) {
-      this.doneKeys.clear();
+      const oldest = this.doneKeys.values().next().value;
+      if (typeof oldest === "string") this.doneKeys.delete(oldest);
     }
     this.doneKeys.add(key);
   }

@@ -1,5 +1,6 @@
 
 import { nativeCall } from '../../../system/nativeModules';
+import { assertPublicUrl } from './urlGuard';
 
 export type SearchEngineId = 'bing' | 'baidu';
 
@@ -229,6 +230,46 @@ function charsetOf(contentType: string | null, head: string): string {
   return 'utf-8';
 }
 
+const MAX_REDIRECTS = 5;
+
+async function readCappedBody(
+  res: Response,
+  maxBytes: number
+): Promise<Uint8Array> {
+  const reader = res.body?.getReader();
+  if (!reader) {
+    const buffer = await res.arrayBuffer();
+    return new Uint8Array(
+      buffer.byteLength > maxBytes ? buffer.slice(0, maxBytes) : buffer
+    );
+  }
+
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (!value || value.byteLength === 0) continue;
+    const remaining = maxBytes - total;
+    if (value.byteLength >= remaining) {
+      chunks.push(value.slice(0, Math.max(remaining, 0)));
+      total = maxBytes;
+      await reader.cancel().catch(() => undefined);
+      break;
+    }
+    chunks.push(value);
+    total += value.byteLength;
+  }
+
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes;
+}
+
 export async function fetchText(
   url: string,
   opts: { timeoutMs?: number; maxBytes?: number } = {}
@@ -238,22 +279,39 @@ export async function fetchText(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(url, {
-      signal: controller.signal,
-      redirect: 'follow',
-      headers: {
-        'User-Agent': USER_AGENT,
-        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      },
-    });
+    let current = url;
+    let res: Response | null = null;
+
+    for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
+      await assertPublicUrl(current);
+      res = await fetch(current, {
+        signal: controller.signal,
+        redirect: 'manual',
+        headers: {
+          'User-Agent': USER_AGENT,
+          'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        },
+      });
+
+      if (res.status < 300 || res.status >= 400) break;
+      const location = res.headers.get('location');
+      if (!location) break;
+      current = new URL(location, current).toString();
+      res = null;
+      if (hop === MAX_REDIRECTS) {
+        throw new Error('重定向次数过多');
+      }
+    }
+
+    if (!res) {
+      throw new Error('重定向次数过多');
+    }
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}`);
     }
-    const buffer = await res.arrayBuffer();
-    const slice =
-      buffer.byteLength > maxBytes ? buffer.slice(0, maxBytes) : buffer;
-    const bytes = new Uint8Array(slice);
+
+    const bytes = await readCappedBody(res, maxBytes);
     const head = new TextDecoder('utf-8', { fatal: false }).decode(bytes.slice(0, 4096));
     const charset = charsetOf(res.headers.get('content-type'), head);
     let text: string;

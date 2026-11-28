@@ -32,7 +32,7 @@ export const gitlabListMergeRequestsTool = tool(
       const project = requireProject(input.project);
       const limit = clampLimit(input.limit, 20, 100);
       const page = await listWithCursor<GitlabMergeRequest>({
-        kind: 'mrs',
+        kind: 'mrs:' + project,
         path: gitlabEndpoints.mergeRequests(project),
         query: {
           state: input.state ?? 'opened',

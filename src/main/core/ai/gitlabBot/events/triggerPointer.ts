@@ -11,6 +11,7 @@ export interface TriggerPointer {
   noteableId: number;
   issueIid: number;
   mrIid: number;
+  action: string;
 }
 
 const TEMPLATE_FIELDS: Record<string, string> = {
@@ -26,6 +27,7 @@ const TEMPLATE_FIELDS: Record<string, string> = {
   noteable_id: "{{object_attributes.noteable_id}}",
   issue_iid: "{{issue.iid}}",
   mr_iid: "{{merge_request.iid}}",
+  action: "{{object_attributes.action}}",
 };
 
 /**
@@ -78,6 +80,7 @@ export function parseTriggerPointer(payload: unknown): TriggerPointer | null {
     noteableId: readNumber(record.noteable_id),
     issueIid: readNumber(record.issue_iid),
     mrIid: readNumber(record.mr_iid),
+    action: readText(record.action),
   };
   if (!pointer.kind || !pointer.projectId || !pointer.projectPath) return null;
   return pointer;

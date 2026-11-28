@@ -89,6 +89,8 @@ export const githubListRepositoriesTool = tool(
   }
 );
 
+const MAX_BRANCH_SEARCH_PAGES = 10;
+
 export const githubListBranchesTool = tool(
   async (input: { repository: string; search?: string; limit?: number; cursor?: string }) => {
     return runGithubTool('github_list_branches', input.repository, async () => {
@@ -111,7 +113,29 @@ export const githubListBranchesTool = tool(
       });
       const defaultBranch = repoInfo.data?.default_branch ?? null;
       const keyword = input.search?.trim().toLowerCase();
-      const branches = page.items
+
+      const collected: GitHubBranch[] = [...page.items];
+      let nextCursor = page.nextCursor;
+      let scanned = 1;
+      if (keyword) {
+        while (nextCursor && scanned < MAX_BRANCH_SEARCH_PAGES) {
+          const more = await listWithCursorUsing<GitHubBranch>(
+            {
+              kind: 'branches:' + repository,
+              path: githubEndpoints.branches(repository),
+              query: {},
+              cursor: nextCursor,
+              perPage: limit,
+            },
+            githubList
+          );
+          collected.push(...more.items);
+          nextCursor = more.nextCursor;
+          scanned += 1;
+        }
+      }
+
+      const branches = collected
         .filter((item) => !keyword || item.name.toLowerCase().includes(keyword))
         .map((item) => ({
           name: item.name,
@@ -124,9 +148,14 @@ export const githubListBranchesTool = tool(
         total: page.total,
         default_branch: defaultBranch,
         branches,
-        next_cursor: page.nextCursor,
-        next_hint: page.nextCursor
+        next_cursor: nextCursor,
+        next_hint: nextCursor
           ? '还有更多分支，把 next_cursor 原样传回本工具即可继续取下一页'
+          : null,
+        search_pages_scanned: keyword ? scanned : null,
+        search_note: keyword
+          ? `分支接口没有服务端搜索，search 只在已扫描的 ${scanned} 页里过滤；` +
+            `未扫到的分支可能仍然匹配，继续用 next_cursor 翻页`
           : null,
       };
     });

@@ -65,6 +65,23 @@ describe("事件去重键", () => {
     expect(dedupeKey(event)).toBe("issue:7:3:open");
   });
 
+  it("issue 的 open 与 update 是两个键", () => {
+    const open = makeEvent({
+      objectKind: "issue",
+      noteId: undefined,
+      issueIid: 3,
+      action: "open",
+    });
+    const update = makeEvent({
+      objectKind: "issue",
+      noteId: undefined,
+      issueIid: 3,
+      action: "update",
+    });
+    expect(dedupeKey(open)).toBe("issue:7:3:open");
+    expect(dedupeKey(update)).toBe("issue:7:3:update");
+  });
+
   it("合并请求事件按 iid 与动作去重", () => {
     const event = makeEvent({
       objectKind: "merge_request",
@@ -134,6 +151,50 @@ describe("事件队列", () => {
     release();
     await flush(20);
     expect(consumed).toEqual([1, 3, 4]);
+  });
+
+  it("没触发的事件不占去重键，改完内容还能再触发", async () => {
+    const consumed: string[] = [];
+    const queue = new GitlabEventQueue(async (event) => {
+      consumed.push(event.title ?? "");
+    });
+    const first = queue.enqueue(
+      makeEvent({
+        objectKind: "issue",
+        noteId: undefined,
+        issueIid: 3,
+        comment: undefined,
+        title: "登录白屏",
+      })
+    );
+    await flush();
+    expect(first.accepted).toBe(true);
+    expect(consumed).toEqual([]);
+
+    const second = queue.enqueue(
+      makeEvent({
+        objectKind: "issue",
+        noteId: undefined,
+        issueIid: 3,
+        comment: undefined,
+        title: "@qnote 登录白屏",
+      })
+    );
+    await flush();
+    expect(second.accepted).toBe(true);
+    expect(consumed).toEqual(["@qnote 登录白屏"]);
+  });
+
+  it("去重历史按窗口滑动，不整段清空", async () => {
+    const queue = new GitlabEventQueue(async () => {}, { doneLimit: 2 });
+    queue.enqueue(makeEvent({ noteId: 1 }));
+    await flush();
+    queue.enqueue(makeEvent({ noteId: 2 }));
+    await flush();
+    queue.enqueue(makeEvent({ noteId: 3 }));
+    await flush();
+    expect(queue.enqueue(makeEvent({ noteId: 1 })).accepted).toBe(true);
+    expect(queue.enqueue(makeEvent({ noteId: 2 })).accepted).toBe(false);
   });
 
   it("消费失败会重试", async () => {

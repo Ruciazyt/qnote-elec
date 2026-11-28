@@ -31,6 +31,7 @@ const NOISE_PATTERNS = [
   "Created missing unique system ID",
 ];
 const EARLY_EXIT_MS = 25000;
+const STABLE_RUN_MS = 10 * 60 * 1000;
 const STALE_WAIT_STEPS = 20;
 const STALE_WAIT_MS = 150;
 
@@ -85,7 +86,16 @@ export class GitlabRunnerProcess {
   start(): { ok: boolean; error?: string } {
     if (this.running) return { ok: true };
     this.stopping = false;
+    try {
+      return this.spawnRunner();
+    } catch (err) {
+      this.lastError = err instanceof Error ? err.message : String(err);
+      log.error("[gitlab-bot] runner 启动失败", err);
+      return { ok: false, error: this.lastError };
+    }
+  }
 
+  private spawnRunner(): { ok: boolean; error?: string } {
     const binary = resolveRunnerBinary();
     if (!binary) {
       this.lastError = "找不到 gitlab-runner 可执行文件";
@@ -126,36 +136,51 @@ export class GitlabRunnerProcess {
     });
 
     child.on("error", (err) => {
-      this.lastError = err.message;
       log.error("[gitlab-bot] runner 进程错误", err);
+      this.handleChildGone(child, null, null, err.message);
     });
 
     child.on("exit", (code, signal) => {
-      if (this.child === child) {
-        this.child = null;
-        clearRunnerLock();
-      }
-      if (this.stopping) return;
-      const early = Date.now() - this.startedAt < EARLY_EXIT_MS;
-      this.lastError =
-        "runner 进程退出，代码 " + String(code) + " 信号 " + String(signal);
-      log.warn("[gitlab-bot] " + this.lastError);
-      this.onUnexpectedExit?.({ code, signal, early });
-      this.scheduleRestart();
+      this.handleChildGone(child, code, signal);
     });
 
-    writeRunnerLock({
-      pid: child.pid ?? 0,
-      startedAt: Date.now(),
-      binary,
-    });
+    if (child.pid) {
+      writeRunnerLock({
+        pid: child.pid,
+        startedAt: Date.now(),
+        binary,
+      });
+    }
 
+    this.lastError = "";
     log.info("[gitlab-bot] runner 已启动", {
       pid: child.pid,
       binary,
       configPath,
     });
     return { ok: true };
+  }
+
+  private handleChildGone(
+    child: ChildProcess,
+    code: number | null,
+    signal: string | null,
+    errorText?: string
+  ): void {
+    if (this.child === child) {
+      this.child = null;
+      clearRunnerLock();
+    }
+    if (this.stopping) return;
+    const lived = Date.now() - this.startedAt;
+    const early = lived < EARLY_EXIT_MS;
+    if (lived >= STABLE_RUN_MS) this.restarts = 0;
+    this.lastError =
+      errorText ??
+      "runner 进程退出，代码 " + String(code) + " 信号 " + String(signal);
+    log.warn("[gitlab-bot] " + this.lastError);
+    this.scheduleRestart();
+    this.onUnexpectedExit?.({ code, signal, early });
   }
 
   cancelRestart(): void {

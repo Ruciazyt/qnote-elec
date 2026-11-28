@@ -46,8 +46,7 @@ export class GitlabBotTrigger {
   ): Promise<void> {
     const gitlab = getGitlabConfig();
     if (!gitlab.baseUrl || !gitlab.token) {
-      log.warn("[gitlab-bot] 没配 GitLab 实例地址或令牌，任务跳过");
-      return;
+      throw new Error("没配 GitLab 实例地址或令牌，任务未执行");
     }
 
     const repoUrl =
@@ -77,13 +76,15 @@ export class GitlabBotTrigger {
       repoDir: workspace.dir,
       branch: workspace.branch,
       defaultBranch: event.defaultBranch || "main",
-      allowPush: true,
+      allowPush: !gitlab.readOnly,
     });
 
+    if (!result.ok) {
+      throw new Error(result.error || "任务执行失败");
+    }
     log.info("[gitlab-bot] 任务结束", {
       project: event.projectPath,
       ok: result.ok,
-      error: result.error,
     });
   }
 }

@@ -27,7 +27,7 @@ let runtime: GithubRuntime = {
 
 export function configureGithubToolkit(options: GithubToolkitOptions = {}): void {
   runtime = {
-    config: options.config,
+    config: options.config ?? runtime.config,
     logger: options.logger ?? defaultLogger,
     writeOverflow: options.writeOverflow ?? writeOverflowFile,
   };

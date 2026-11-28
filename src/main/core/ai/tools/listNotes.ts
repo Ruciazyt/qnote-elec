@@ -27,7 +27,12 @@ export const listNotesTool = tool(
 
     try {
       const store = new NoteStore();
-      const all = await store.scanFiles(root, { maxDirs: 2000, maxFiles: 5000, deadlineMs: 5000 });
+      const scan = await store.scanFilesWithStatus(root, {
+        maxDirs: 2000,
+        maxFiles: 5000,
+        deadlineMs: 5000,
+      });
+      const all = scan.files;
 
       const prefix = input.folder && input.folder.trim() ? input.folder.trim().replace(/^((?:[\s\S]*[^/])?)\/+$/, "$1") : '';
       let items = all;
@@ -42,6 +47,10 @@ export const listNotesTool = tool(
         ok: true,
         root,
         count: items.length,
+        truncated: scan.truncated,
+        truncated_hint: scan.truncated
+          ? '笔记目录过大或层级太深，这次只扫到一部分；没列出的笔记不代表不存在，别据此下结论'
+          : null,
         items: items.map((n) => ({
           relPath: n.relPath,
           name: n.name,

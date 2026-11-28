@@ -135,9 +135,17 @@ export async function gitlabRequest<T>(options: GitlabRequestOptions): Promise<G
     } catch (err) {
       if (err instanceof GitlabApiError) throw err;
       const message = err instanceof Error ? err.message : String(err);
-      if (idempotent && attempt < MAX_ATTEMPTS) {
+      const timedOut = err instanceof Error && err.name === 'AbortError';
+      if (idempotent && !timedOut && attempt < MAX_ATTEMPTS) {
         await sleep(backoffMs(attempt));
         continue;
+      }
+      if (timedOut) {
+        throw new GitlabApiError(
+          `请求 GitLab 超时（${Math.round(cfg.requestTimeoutMs / 1000)} 秒）`,
+          0,
+          true
+        );
       }
       throw new GitlabApiError('请求 GitLab 失败：' + message, 0, true);
     } finally {

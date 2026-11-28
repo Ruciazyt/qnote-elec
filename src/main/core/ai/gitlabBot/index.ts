@@ -17,6 +17,7 @@ import { setGitlabTriggerWords } from "../tools/gitlab/runtime/triggerWords";
 import type { GitlabBotStatus } from "../../../../shared/ai/gitlabBot";
 
 let server: GitlabBotServer | null = null;
+let trigger: GitlabBotTrigger | null = null;
 
 export function getGitlabBotStatus(): GitlabBotStatus {
   const port = server?.currentPort ?? 0;
@@ -26,18 +27,18 @@ export function getGitlabBotStatus(): GitlabBotStatus {
   };
 }
 
-export async function startGitlabBotServer(DB: any): Promise<void> {
+export async function startGitlabBotServer(DB: any): Promise<string> {
   await stopGitlabBotServer();
   const config = getGitlabBotConfig();
   if (!config.enabled) {
     log.info("[gitlab-bot] 网关未启用");
-    return;
+    return "";
   }
   if (!config.relayToken) {
     log.warn("[gitlab-bot] relay 令牌缺失，网关不启动");
-    return;
+    return "";
   }
-  const trigger = new GitlabBotTrigger(DB);
+  if (!trigger) trigger = new GitlabBotTrigger(DB);
   const instance = new GitlabBotServer(trigger);
   try {
     const endpoint = await instance.start();
@@ -46,8 +47,11 @@ export async function startGitlabBotServer(DB: any): Promise<void> {
       url: endpoint.url,
       port: endpoint.port,
     });
+    return "";
   } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
     log.error("[gitlab-bot] 网关启动失败", err);
+    return message;
   }
 }
 
@@ -76,14 +80,14 @@ async function syncGitlabRunner(): Promise<void> {
 export async function applyGitlabBotConfig(
   patch: Partial<GitlabBotConfig>,
   DB: any
-): Promise<GitlabBotConfig> {
+): Promise<{ config: GitlabBotConfig; error: string }> {
   await saveGitlabBotConfig(patch);
   await ensureRelayToken();
   const next = getGitlabBotConfig();
   setGitlabTriggerWords(next.triggerWords);
-  await startGitlabBotServer(DB);
+  const error = await startGitlabBotServer(DB);
   await syncGitlabRunner();
-  return next;
+  return { config: next, error };
 }
 
 async function ensureRelayToken(): Promise<void> {
@@ -98,6 +102,7 @@ export async function resetGitlabBotConfig(DB: any): Promise<void> {
   await clearGitlabBotConfig();
   setGitlabTriggerWords(getGitlabBotConfig().triggerWords);
   await startGitlabBotServer(DB);
+  await syncGitlabRunner();
 }
 
 export { getGitlabBotConfig };

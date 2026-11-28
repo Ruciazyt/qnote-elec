@@ -147,6 +147,7 @@ export const updateTodoTool = tool(
   async (input: {
     id?: number;
     title?: string;
+    new_title?: string;
     notes?: string | null;
     priority?: 'high' | 'medium' | 'low';
     due_date?: string | null;
@@ -174,7 +175,15 @@ export const updateTodoTool = tool(
     }
 
     const update: Record<string, unknown> = { updated_at: new Date() };
-    if (input.title !== undefined) update.title = input.title.trim();
+    if (input.new_title !== undefined) {
+      const nextTitle = input.new_title.trim();
+      if (!nextTitle) {
+        return JSON.stringify({ ok: false, error: "新标题不能为空。" });
+      }
+      update.title = nextTitle;
+    } else if (input.title !== undefined && typeof input.id === "number") {
+      update.title = input.title.trim();
+    }
     if (input.notes !== undefined) update.notes = input.notes?.trim() || null;
     if (input.priority !== undefined) update.priority = input.priority;
     if (input.due_date !== undefined) {
@@ -226,17 +235,24 @@ export const updateTodoTool = tool(
       '修改已有的待办任务：改标题、改优先级、改截止日期、改提醒时间、标记完成。' +
       '用户说"把那个 todo 改到明天下午三点""提醒我改成明天""这个完成了"时使用。' +
       '用 id 精确定位（先 get_todos 拿 id）；只有标题时按标题匹配最近的一条。' +
-      'remind_at 同样接受自然语言时间："明天下午3点""30分钟后""今晚8点"。',
+      '要改标题请用 new_title：title 只用来定位，改名同时改标题会写回同一个值。' +
+      'remind_at 同样接受自然语言时间："明天下午3点""30分钟后""今晚8点"；传 null 或空字符串取消提醒。',
     schema: z.object({
       id: z.number().int().optional().describe('要修改的 Todo 的 id，来自 get_todos'),
-      title: z.string().optional().describe('新标题，也可用来定位任务'),
+      title: z.string().optional().describe('用来定位任务的标题（不会改标题）'),
+      new_title: z.string().optional().describe('新的标题；要改名用这个字段'),
       notes: z.string().nullable().optional().describe('新的备注，传 null 清空'),
       priority: z.enum(['high', 'medium', 'low']).optional().describe('新的优先级'),
-      due_date: z.string().optional().describe('新的截止日期，"明天""周五"或 2026-11-19'),
+      due_date: z
+        .string()
+        .nullable()
+        .optional()
+        .describe('新的截止日期，"明天""周五"或 2026-11-19；传 null 清空'),
       remind_at: z
         .string()
+        .nullable()
         .optional()
-        .describe('新的提醒时间，"明天下午3点""30分钟后""今晚8点"；传空字符串表示取消提醒'),
+        .describe('新的提醒时间，"明天下午3点""30分钟后""今晚8点"；传 null 或空字符串取消提醒'),
       completed: z.boolean().optional().describe('true 标记完成，false 标记未完成'),
     }),
   }

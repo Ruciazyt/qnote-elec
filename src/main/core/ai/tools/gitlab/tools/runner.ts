@@ -78,6 +78,10 @@ export const gitlabEnsureRunnerTool = tool(
         ref,
         token: triggerToken,
       });
+      const maskedTriggerUrl = webhookUrl.replace(
+        /([?&]token=)[^&\s]+/i,
+        '$1[已脱敏的令牌]'
+      );
       const ciTemplate = buildCiTemplate({
         relayUrl: relayEndpoint(config.port),
         relayToken: config.relayToken,
@@ -91,7 +95,7 @@ export const gitlabEnsureRunnerTool = tool(
           project: info.path,
           project_id: info.id,
           ref,
-          trigger_api_url: webhookUrl,
+          trigger_api_url: maskedTriggerUrl,
           ci_template: ciTemplate,
           note: "演练模式：没有真的建 trigger token 或 webhook",
         };
@@ -109,7 +113,7 @@ export const gitlabEnsureRunnerTool = tool(
         project: info.path,
         project_id: info.id,
         ref,
-        trigger_api_url: webhookUrl,
+        trigger_api_url: maskedTriggerUrl,
         webhook: { id: hook.hook.id, url: hook.hook.url, action: hook.action },
         ci_variables: {
           QNOTE_RELAY_URL: relayEndpoint(config.port),

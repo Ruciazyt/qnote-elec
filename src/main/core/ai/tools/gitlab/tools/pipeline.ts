@@ -22,7 +22,7 @@ export const gitlabListPipelinesTool = tool(
       const project = requireProject(input.project);
       const limit = clampLimit(input.limit, 20, 100);
       const page = await listWithCursor<GitlabPipeline>({
-        kind: 'pipelines',
+        kind: 'pipelines:' + project,
         path: gitlabEndpoints.pipelines(project),
         query: {
           ref: input.ref?.trim() || undefined,
@@ -70,7 +70,12 @@ export const gitlabListPipelinesTool = tool(
 );
 
 export const gitlabGetPipelineTool = tool(
-  async (input: { project: string; pipeline_id: number; job_limit?: number }) => {
+  async (input: {
+    project: string;
+    pipeline_id: number;
+    job_limit?: number;
+    job_cursor?: string;
+  }) => {
     return runGitlabTool('gitlab_get_pipeline', input.project, async () => {
       const project = requireProject(input.project);
       const pipelineId = Number(input.pipeline_id);
@@ -87,6 +92,7 @@ export const gitlabGetPipelineTool = tool(
         kind: 'jobs:' + project + ':' + pipelineId,
         path: gitlabEndpoints.pipelineJobs(project, pipelineId),
         query: {},
+        cursor: input.job_cursor,
         perPage: jobLimit,
       });
 
@@ -127,11 +133,14 @@ export const gitlabGetPipelineTool = tool(
         duration: pipeline.data?.duration ?? null,
         url: pipeline.data?.web_url ?? null,
         job_count: allJobs.length,
+        job_next_cursor: jobs.nextCursor,
         jobs: shown,
         jobs_truncated: trimmed,
         job_hint: trimmed
           ? 'job 太多，只回了失败的和最慢的几个；要看全部用 job id 逐个查日志'
-          : '要失败 job 的日志，用 gitlab_get_job_logs 传它的 job id',
+          : jobs.nextCursor
+            ? 'job_count 是这一页的数量，还有更多 job 时带着 job_next_cursor 再调一次'
+            : '要失败 job 的日志，用 gitlab_get_job_logs 传它的 job id',
       };
     });
   },
@@ -139,11 +148,13 @@ export const gitlabGetPipelineTool = tool(
     name: 'gitlab_get_pipeline',
     description:
       '读一条流水线的状态和它下面的 job 列表（id、名字、阶段、状态、耗时）。' +
-      'pipeline_id 来自 gitlab_list_pipelines。job 太多时只回失败与最慢的几个。',
+      'pipeline_id 来自 gitlab_list_pipelines。job 太多时只回失败与最慢的几个，' +
+      'job_count 是这一页的数量，还有更多时用 job_next_cursor 继续翻。',
     schema: strictObject({
       project: projectSchema.describe('项目路径，形如 组名/项目名'),
       pipeline_id: z.number().int().describe('流水线 id，来自 gitlab_list_pipelines'),
       job_limit: z.number().int().min(1).max(100).optional().describe('最多取多少个 job，默认 20'),
+      job_cursor: z.string().optional().describe('翻页句柄，来自上一次返回的 job_next_cursor'),
     }),
   }
 );
@@ -201,7 +212,7 @@ export const gitlabGetJobLogsTool = tool(
   {
     name: 'gitlab_get_job_logs',
     description:
-      '读某个 CI job 的日志：默认给尾部若干行，外加全文里命中关键词（error/fail/exception 等）的行。' +
+      '读某个 CI job 的日志：默认给开头若干行，外加全文里命中关键词（error/fail/exception 等）的行。' +
       '日志很长时用 start_line 翻页。job id 来自 gitlab_get_pipeline。',
     schema: strictObject({
       project: projectSchema.describe('项目路径，形如 组名/项目名'),

@@ -326,6 +326,60 @@ describe("opencode driver", () => {
     expect(result.text).toBe("模型回复");
   });
 
+  it("事件流订阅失败不影响这一轮的结果", async () => {
+    const client = {
+      subscribeEvents: vi.fn(async () => {
+        throw new Error("opencode event stream failed 404");
+      }),
+      sendMessage: vi.fn(async () => ({
+        info: {},
+        parts: [{ id: "prt_1", sessionID, type: "text", text: "完整回答" }],
+      })),
+      abortSession: vi.fn(async () => true),
+    };
+    const driver = new OpencodeDriver({ client: client as any, sessionID });
+    const result = await driver.run([{ type: "text", text: "hi" }]);
+    expect(result.error).toBeUndefined();
+    expect(result.text).toBe("完整回答");
+  });
+
+  it("事件流没送来正文时用 POST 响应里的 parts 兜底", async () => {
+    const { client } = createClient([], {
+      info: {},
+      parts: [{ id: "prt_1", sessionID, type: "text", text: "完整回答" }],
+    });
+    const chunks: string[] = [];
+    const driver = new OpencodeDriver({
+      client,
+      sessionID,
+      handlers: { onText: (delta) => chunks.push(delta) },
+    });
+    const result = await driver.run([{ type: "text", text: "hi" }]);
+    expect(result.text).toBe("完整回答");
+    expect(chunks).toEqual(["完整回答"]);
+  });
+
+  it("超时后要中止 opencode 会话", async () => {
+    const client = {
+      subscribeEvents: vi.fn(
+        async (signal: AbortSignal) =>
+          new Promise<void>((resolve) => {
+            signal.addEventListener("abort", () => resolve(), { once: true });
+          })
+      ),
+      sendMessage: vi.fn(() => new Promise(() => {})),
+      abortSession: vi.fn(async () => true),
+    };
+    const driver = new OpencodeDriver({
+      client: client as any,
+      sessionID,
+      deadlineMs: 20,
+    });
+    const result = await driver.run([{ type: "text", text: "hi" }]);
+    expect(result.error).toBe("opencode 响应超时");
+    expect(client.abortSession).toHaveBeenCalledWith(sessionID);
+  });
+
   it("模型报错时把错误带出来", async () => {
     const { client } = createClient([], {
       info: { error: { name: "ProviderError", data: { message: "额度用完" } } },

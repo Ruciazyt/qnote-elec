@@ -123,6 +123,28 @@ describe("指针直接转换成 GitLab 事件", () => {
     }
   });
 
+  it("issue 更新事件带上 update 动作", async () => {
+    requestMock.mockResolvedValueOnce({
+      data: { iid: 3, title: "标题", description: "正文" },
+    });
+    const pointer = {
+      object_kind: "issue",
+      event_type: "issue",
+      project_id: "93599",
+      project_path: "zhuyt9/demo",
+      default_branch: "main",
+      author: "zhuyt9",
+      object_id: "47082",
+      object_iid: "3",
+      action: "update",
+    };
+    const result = await getGitlabEvent("Issue Hook", pointer);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.event.action).toBe("update");
+    }
+  });
+
   it("接口报错时带回原因", async () => {
     requestMock.mockRejectedValue(new Error("404 找不到"));
     const result = await getGitlabEvent("Note Hook", ISSUE_NOTE_POINTER);

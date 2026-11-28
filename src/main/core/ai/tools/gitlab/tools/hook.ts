@@ -89,7 +89,7 @@ export const gitlabListHooksTool = tool(
     return runGitlabTool('gitlab_list_hooks', input.project, async () => {
       const project = requireProject(input.project);
       const page = await listWithCursor<GitlabHook>({
-        kind: 'hooks',
+        kind: 'hooks:' + project,
         path: gitlabEndpoints.hooks(project),
         query: {},
         cursor: input.cursor,

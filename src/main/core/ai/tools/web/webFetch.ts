@@ -41,6 +41,9 @@ export const webFetchTool = tool(
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
       log.error(`[ai-web] fetch failed ${url}: ${reason}`);
+      if (reason.includes("出于安全考虑")) {
+        return `抓取失败：${reason}`;
+      }
       return `抓取失败：${reason}。可以改用 browser_navigate + browser_get_snapshot。`;
     }
   },

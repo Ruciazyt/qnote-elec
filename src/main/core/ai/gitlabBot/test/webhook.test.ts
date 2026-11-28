@@ -91,6 +91,15 @@ describe("触发判定", () => {
     expect(decision.ok).toBe(false);
   });
 
+  it("触发词在标题里、评论没带触发词时不触发", () => {
+    const event = noteEvent({
+      title: "@qnote 帮我看看这个",
+      comment: "我也遇到了",
+    });
+    const decision = decideTrigger(event, BASE_CONFIG);
+    expect(decision.ok).toBe(false);
+  });
+
   it("issue 标题里带触发词也算触发", () => {
     const event = noteEvent({
       eventType: "Issue Hook",

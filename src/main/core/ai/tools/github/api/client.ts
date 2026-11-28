@@ -183,9 +183,17 @@ export async function githubRequest<T>(
     } catch (err) {
       if (err instanceof GithubApiError) throw err;
       const message = err instanceof Error ? err.message : String(err);
-      if (idempotent && attempt < MAX_ATTEMPTS) {
+      const timedOut = err instanceof Error && err.name === 'AbortError';
+      if (idempotent && !timedOut && attempt < MAX_ATTEMPTS) {
         await sleep(backoffMs(attempt));
         continue;
+      }
+      if (timedOut) {
+        throw new GithubApiError(
+          `请求 GitHub 超时（${Math.round(cfg.requestTimeoutMs / 1000)} 秒）`,
+          0,
+          true
+        );
       }
       throw new GithubApiError('请求 GitHub 失败：' + message, 0, true);
     } finally {

@@ -32,6 +32,12 @@ export interface OpencodeRuntimeOptions {
   password?: string;
 }
 
+interface RetiringRuntime {
+  client: OpencodeClient | null;
+  server: OpencodeServer | null;
+  mcp: QnoteMcpServer | null;
+}
+
 export class OpencodeRuntime {
   private server: OpencodeServer | null = null;
   private mcp: QnoteMcpServer | null = null;
@@ -39,6 +45,8 @@ export class OpencodeRuntime {
   private starting: Promise<OpencodeClient> | null = null;
   private fingerprint = "";
   private files: OpencodeWorkspaceFiles | null = null;
+  private activeTurns = new Map<OpencodeClient, number>();
+  private retiring: RetiringRuntime[] = [];
 
   constructor(private readonly options: OpencodeRuntimeOptions = {}) {}
 
@@ -49,24 +57,72 @@ export class OpencodeRuntime {
   async ensureStarted(provider: OpencodeProviderEntry): Promise<OpencodeClient> {
     const next = fingerprint(provider);
     if (this.client && this.fingerprint === next) return this.client;
+
+    if (this.starting) {
+      const started = await this.starting;
+      if (this.client === started && this.fingerprint === next) return started;
+    }
+
     if (this.client) {
       log.info("[opencode] provider 配置变化，重启 runtime");
-      await this.stop();
     }
-    if (this.starting) return this.starting;
+    await this.retireCurrent();
+
     this.starting = this.boot(provider).finally(() => {
       this.starting = null;
     });
     return this.starting;
   }
 
+  private async retireCurrent(): Promise<void> {
+    if (!this.server && !this.mcp && !this.client) return;
+    const entry: RetiringRuntime = {
+      client: this.client,
+      server: this.server,
+      mcp: this.mcp,
+    };
+    this.server = null;
+    this.mcp = null;
+    this.client = null;
+    this.fingerprint = "";
+
+    if ((this.activeTurns.get(entry.client as OpencodeClient) ?? 0) > 0) {
+      this.retiring.push(entry);
+      return;
+    }
+    await this.stopEntry(entry);
+  }
+
+  private async stopEntry(entry: RetiringRuntime): Promise<void> {
+    await entry.server?.stop();
+    await entry.mcp?.stop();
+  }
+
+  private releaseTurn(client: OpencodeClient): void {
+    const left = (this.activeTurns.get(client) ?? 1) - 1;
+    if (left > 0) {
+      this.activeTurns.set(client, left);
+      return;
+    }
+    this.activeTurns.delete(client);
+    const index = this.retiring.findIndex((entry) => entry.client === client);
+    if (index < 0) return;
+    const [entry] = this.retiring.splice(index, 1);
+    void this.stopEntry(entry);
+  }
+
   async stop(): Promise<void> {
+    const pending = this.retiring.splice(0);
+    for (const entry of pending) {
+      await this.stopEntry(entry);
+    }
     await this.server?.stop();
     await this.mcp?.stop();
     this.server = null;
     this.mcp = null;
     this.client = null;
     this.fingerprint = "";
+    this.activeTurns.clear();
   }
 
   async resolveOpencodeSessionId(
@@ -99,13 +155,18 @@ export class OpencodeRuntime {
 
   async runTurn(input: OpencodeTurnInput): Promise<OpencodeDriverResult> {
     const client = await this.ensureStarted(input.provider);
-    this.syncWorkspace(input.directory);
-    const sessionId = await this.resolveOpencodeSessionId(
-      input.chatSessionId,
-      input.provider,
-      { directory: input.directory, agentName: input.agentName }
-    );
-    return this.sendTurn(client, sessionId, input);
+    this.activeTurns.set(client, (this.activeTurns.get(client) ?? 0) + 1);
+    try {
+      this.syncWorkspace(input.directory);
+      const sessionId = await this.resolveOpencodeSessionId(
+        input.chatSessionId,
+        input.provider,
+        { directory: input.directory, agentName: input.agentName }
+      );
+      return await this.sendTurn(client, sessionId, input);
+    } finally {
+      this.releaseTurn(client);
+    }
   }
 
   private async sendTurn(
@@ -164,37 +225,50 @@ export class OpencodeRuntime {
   }
 
   private async boot(provider: OpencodeProviderEntry): Promise<OpencodeClient> {
-    const mcp = new QnoteMcpServer({});
-    const endpoint = await mcp.start();
-    this.mcp = mcp;
+    let mcp: QnoteMcpServer | null = null;
+    let server: OpencodeServer | null = null;
+    try {
+      mcp = new QnoteMcpServer({});
+      const endpoint = await mcp.start();
+      this.mcp = mcp;
 
-    const files = buildOpencodeWorkspace({
-      directory: this.workingDir,
-      mcpUrl: endpoint.url,
-      mcpToken: endpoint.token,
-      provider,
-    });
-    this.files = files;
-    writeOpencodeWorkspace(this.workingDir, files.configJson, {
-      [QNOTE_AGENT_NAME]: files.agentMarkdown,
-      [QNOTE_CODE_AGENT_NAME]: files.codeAgentMarkdown,
-    });
+      const files = buildOpencodeWorkspace({
+        directory: this.workingDir,
+        mcpUrl: endpoint.url,
+        mcpToken: endpoint.token,
+        provider,
+      });
+      this.files = files;
+      writeOpencodeWorkspace(this.workingDir, files.configJson, {
+        [QNOTE_AGENT_NAME]: files.agentMarkdown,
+        [QNOTE_CODE_AGENT_NAME]: files.codeAgentMarkdown,
+      });
 
-    const server = new OpencodeServer({
-      workingDir: this.workingDir,
-      username: this.options.username ?? "qnote",
-      password: this.options.password,
-    });
-    this.server = server;
-    const client = await server.start();
-    this.client = client;
-    this.fingerprint = fingerprint(provider);
-    log.info("[opencode] runtime 就绪", {
-      workingDir: this.workingDir,
-      tools: endpoint.toolNames.length,
-      model: provider.model,
-    });
-    return client;
+      server = new OpencodeServer({
+        workingDir: this.workingDir,
+        username: this.options.username ?? "qnote",
+        password: this.options.password,
+      });
+      const client = await server.start();
+      this.server = server;
+      this.client = client;
+      this.fingerprint = fingerprint(provider);
+      log.info("[opencode] runtime 就绪", {
+        workingDir: this.workingDir,
+        tools: endpoint.toolNames.length,
+        model: provider.model,
+      });
+      return client;
+    } catch (err) {
+      await server?.stop().catch(() => undefined);
+      await mcp?.stop().catch(() => undefined);
+      this.server = null;
+      this.mcp = null;
+      this.client = null;
+      this.fingerprint = "";
+      log.error("[opencode] runtime 启动失败，已清理残留资源", err);
+      throw err;
+    }
   }
 }
 

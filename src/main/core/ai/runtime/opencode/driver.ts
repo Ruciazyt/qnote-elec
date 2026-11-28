@@ -1,9 +1,13 @@
 import type { OpencodeClient } from "./client";
 import type {
+  OpencodeAssistantResponse,
+  OpencodeEventEnvelope,
+  OpencodePart,
   OpencodePartInput,
   OpencodePromptOptions,
 } from "./protocol";
 import { normalizeToolOutput } from "./protocol";
+import { log } from "../../../system/log";
 
 export interface OpencodeToolCall {
   id: string;
@@ -124,7 +128,7 @@ export class OpencodeDriver {
     if (signal?.aborted) onAbort();
     else signal?.addEventListener("abort", onAbort, { once: true });
 
-    const subscription = client.subscribeEvents(controller.signal, (event) => {
+    const handleEvent = (event: OpencodeEventEnvelope): void => {
       const properties = event.properties || {};
       const eventSessionID = readEventSessionId(properties);
       if (eventSessionID && eventSessionID !== sessionID) return;
@@ -188,11 +192,22 @@ export class OpencodeDriver {
             extractErrorMessage(properties.error) ?? result.error ?? "opencode 会话出错";
           return;
       }
-    }, this.options.directory ? { directory: this.options.directory } : undefined);
+    };
+
+    const subscription: Promise<void> = client
+      .subscribeEvents(
+        controller.signal,
+        handleEvent,
+        this.options.directory ? { directory: this.options.directory } : undefined
+      )
+      .catch((err: unknown) => {
+        log.warn("[opencode] 事件订阅失败", err);
+      });
 
     const deadlineMs = this.options.deadlineMs ?? OPENCODE_DRIVER_DEADLINE_MS;
+    let response: OpencodeAssistantResponse | undefined;
     try {
-      const response = await withDeadline(
+      response = await withDeadline(
         client.sendMessage(
           sessionID,
           { ...extra, parts, agent: this.options.agent ?? extra.agent },
@@ -208,13 +223,68 @@ export class OpencodeDriver {
       if (!result.error) {
         result.error = err instanceof Error ? err.message : String(err);
       }
+      if (err instanceof DeadlineError && !result.aborted) {
+        void client.abortSession(sessionID).catch(() => undefined);
+      }
     } finally {
       signal?.removeEventListener("abort", onAbort);
       controller.abort();
-      await subscription;
+      await settleSubscription(subscription);
     }
 
+    applyResponseParts(result, response, handlers);
+
     return result;
+  }
+}
+
+async function settleSubscription(subscription: Promise<void>): Promise<void> {
+  try {
+    await subscription;
+  } catch (err) {
+    log.warn("[opencode] 事件流结束异常", err);
+  }
+}
+
+function applyResponseParts(
+  result: OpencodeDriverResult,
+  response: OpencodeAssistantResponse | undefined,
+  handlers: OpencodeDriverHandlers | undefined
+): void {
+  const parts = response?.parts;
+  if (!Array.isArray(parts) || parts.length === 0) return;
+
+  if (!result.text) {
+    const text = collectPartText(parts, "text");
+    if (text) {
+      result.text = text;
+      handlers?.onText?.(text);
+    }
+  }
+
+  if (!result.thinking) {
+    const thinking = collectPartText(parts, "reasoning");
+    if (thinking) {
+      result.thinking = thinking;
+      handlers?.onThinking?.(thinking);
+    }
+  }
+}
+
+function collectPartText(parts: OpencodePart[], type: "text" | "reasoning"): string {
+  let out = "";
+  for (const part of parts) {
+    if (part.type !== type) continue;
+    const text = (part as { text?: unknown }).text;
+    if (typeof text === "string") out += text;
+  }
+  return out;
+}
+
+class DeadlineError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "DeadlineError";
   }
 }
 
@@ -240,7 +310,7 @@ function withDeadline<T>(
   message: string
 ): Promise<T> {
   return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(message)), deadlineMs);
+    const timer = setTimeout(() => reject(new DeadlineError(message)), deadlineMs);
     promise.then(
       (value) => {
         clearTimeout(timer);

@@ -33,6 +33,7 @@ import type {
 
 const CONNECT_TIMEOUT_DEFAULT = 15_000;
 const CALL_TIMEOUT_DEFAULT = 60_000;
+const CONNECT_RETRY_COOLDOWN_MS = 60_000;
 
 interface ResolveConfigResult {
   ok: boolean;
@@ -76,6 +77,7 @@ class McpManager {
   private projectEntries = new Map<string, ProjectMcpEntry>();
   private live = new Map<string, LiveServer>();
   private statuses = new Map<string, { status: McpServerStatus; error?: string }>();
+  private lastConnectAttempt = new Map<string, number>();
   private toolCache: ToolDefinition[] = [];
   private registry = new McpNameRegistry();
   private projectDir: string | null = null;
@@ -149,12 +151,15 @@ class McpManager {
     if (this.reloadProjectConfig()) {
       await this.closeProjectConnections();
     }
-    const pending = [...this.effectiveConfigs().values()].filter(
-      (cfg) =>
-        cfg.enabled !== false &&
-        !this.live.has(cfg.id) &&
-        !this.statuses.has(cfg.id)
-    );
+    const pending = [...this.effectiveConfigs().values()].filter((cfg) => {
+      if (cfg.enabled === false) return false;
+      if (this.live.has(cfg.id)) return false;
+      const status = this.statuses.get(cfg.id);
+      if (!status) return true;
+      if (status.status !== "error") return false;
+      const last = this.lastConnectAttempt.get(cfg.id) ?? 0;
+      return Date.now() - last >= CONNECT_RETRY_COOLDOWN_MS;
+    });
     if (pending.length === 0) {
       this.rebuildTools();
       return;
@@ -256,6 +261,7 @@ class McpManager {
     }
 
     this.statuses.set(id, { status: "connecting" });
+    this.lastConnectAttempt.set(id, Date.now());
 
     try {
       const resolved = this.resolveConfig(config);
@@ -314,7 +320,8 @@ class McpManager {
 
     await this.closeLive(serverId);
     const second = await this.invokeTool(serverId, toolName, args);
-    return second.text;
+    if (second.ok) return second.text;
+    return `${first.text}（重连后仍失败：${second.text}）`;
   }
 
   async shutdown(): Promise<void> {

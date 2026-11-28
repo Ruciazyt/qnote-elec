@@ -35,8 +35,12 @@ export function registerGitlabBotHandlers(DB: any): void {
       if (patch.triggerWords?.length === 0) patch.triggerWords = ["@qnote"];
 
       try {
-        await applyGitlabBotConfig(patch, DB);
-        return { success: true, status: getGitlabBotStatus() };
+        const applied = await applyGitlabBotConfig(patch, DB);
+        return {
+          success: true,
+          status: getGitlabBotStatus(),
+          error: applied.error,
+        };
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         log.error("[gitlab-bot] 保存配置失败", err);
@@ -52,8 +56,13 @@ export function registerGitlabBotHandlers(DB: any): void {
   ipcMain.handle("gitlab-bot:restart-runner", async () => {
     try {
       await stopGitlabRunner();
-      await startGitlabRunner();
-      return { success: true, runner: getGitlabRunnerStatus() };
+      const runner = await startGitlabRunner();
+      const started = !runner.enabled || runner.running;
+      return {
+        success: started,
+        runner,
+        error: started ? "" : runner.lastError || "Runner 没起来",
+      };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       log.error("[gitlab-bot] 重启 runner 失败", err);

@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { log } from "../../../system/log";
@@ -12,8 +12,11 @@ import {
 import { getGitlabConfig } from "../../tools/gitlab/runtime/config";
 import { runnerConfigPath, resolveRunnerBinary } from "./paths";
 import { runnerShell } from "./shell";
+import { writeRunnerBinding } from "./binding";
+import { resolveRunnerTags } from "../../../../../shared/ai/gitlabBot";
 
 export const RUNNER_DESCRIPTION = "qnote-local";
+const REGISTER_TIMEOUT_MS = 60_000;
 
 export interface EnsureRunnerOptions {
   project: string;
@@ -37,27 +40,50 @@ export async function ensureRunnerRegistered(
     return { ok: false, error: "找不到 gitlab-runner 可执行文件" };
   }
 
-  const tags = options.tags.length ? options.tags : [RUNNER_DESCRIPTION];
+  const tags = resolveRunnerTags(options.tags);
+
+  let registration: {
+    runnerId: number;
+    token: string;
+    action: "created" | "reset";
+  };
+  try {
+    registration = await registerWithGitLab(options.project, tags);
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
 
   try {
-    const registration = await registerWithGitLab(options.project, tags);
-
     await registerLocally({
       binary,
       baseUrl: cfg.baseUrl,
       token: registration.token,
       configPath: runnerConfigPath(),
     });
-    log.info("[gitlab-bot] runner 注册完成", {
-      runnerId: registration.runnerId,
-      action: registration.action,
-    });
-    return { ok: true };
   } catch (err) {
+    removeLocalRunnerConfig();
     return {
       ok: false,
       error: err instanceof Error ? err.message : String(err),
     };
+  }
+
+  writeRunnerBinding({ project: options.project, tags, url: cfg.baseUrl });
+  log.info("[gitlab-bot] runner 注册完成", {
+    runnerId: registration.runnerId,
+    action: registration.action,
+  });
+  return { ok: true };
+}
+
+function removeLocalRunnerConfig(): void {
+  try {
+    fs.rmSync(runnerConfigPath(), { force: true });
+  } catch (err) {
+    log.warn("[gitlab-bot] 删除本地 runner 配置失败", err);
   }
 }
 
@@ -117,32 +143,55 @@ function registerLocally(options: {
     RUNNER_DESCRIPTION,
   ];
   return new Promise<void>((resolve, reject) => {
-    const child = spawn(options.binary, args, {
-      cwd: dir,
-      windowsHide: true,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    let child: ChildProcess;
+    try {
+      child = spawn(options.binary, args, {
+        cwd: dir,
+        windowsHide: true,
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+    } catch (err) {
+      reject(err instanceof Error ? err.message : String(err));
+      return;
+    }
     let output = "";
+    let settled = false;
+    const settle = (finish: () => void): void => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      finish();
+    };
+    const timer = setTimeout(() => {
+      try {
+        child.kill("SIGKILL");
+      } catch {
+        // ignore
+      }
+      settle(() => reject(new Error("gitlab-runner register 超时")));
+    }, REGISTER_TIMEOUT_MS);
     child.stdout?.on("data", (chunk: Buffer) => {
       output += chunk.toString("utf8");
     });
     child.stderr?.on("data", (chunk: Buffer) => {
       output += chunk.toString("utf8");
     });
-    child.on("error", reject);
+    child.on("error", (err) => settle(() => reject(err)));
     child.on("close", (code) => {
-      if (code === 0) {
-        resolve();
-        return;
-      }
-      reject(
-        new Error(
-          "gitlab-runner register 退出码 " +
-            String(code) +
-            "：" +
-            output.trim().slice(0, 500)
-        )
-      );
+      settle(() => {
+        if (code === 0) {
+          resolve();
+          return;
+        }
+        reject(
+          new Error(
+            "gitlab-runner register 退出码 " +
+              String(code) +
+              "：" +
+              output.trim().slice(0, 500)
+          )
+        );
+      });
     });
   });
 }

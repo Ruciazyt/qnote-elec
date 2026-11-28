@@ -73,7 +73,7 @@ describe("网关的 Runner 配置", () => {
     const loaded = await loadGitlabBotConfig();
     expect(loaded.runnerEnabled).toBe(true);
     expect(loaded.runnerProject).toBe("");
-    expect(loaded.runnerTags).toEqual([]);
+    expect(loaded.runnerTags).toEqual(["qnote"]);
   });
 
   it("runnerEnabled 只认布尔值", async () => {
