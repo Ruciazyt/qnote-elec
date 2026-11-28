@@ -131,8 +131,44 @@ function satisfiesComparator(version: Semver, comparator: string): boolean {
   const trimmed = text.trim();
   const operatorMatch = /^(>=|<=|>|<|=)?/.exec(trimmed);
   if (!operatorMatch) return false;
-  const operator = operatorMatch[1] ?? "=";
-  const parsedBase = parsePartial(trimmed.slice(operatorMatch[1]?.length ?? 0));
+  const operator = operatorMatch[1] ?? "";
+  const body = trimmed.slice(operatorMatch[1]?.length ?? 0);
+
+  if (!operator) {
+    const wildcard = /^(\d+)(?:\.(\d+|[xX*]))?(?:\.(\d+|[xX*]))?$/.exec(body);
+    if (wildcard) {
+      const major = Number(wildcard[1]);
+      const minorText = wildcard[2];
+      const patchText = wildcard[3];
+      const minorNum =
+        minorText !== undefined && !/[xX*]/.test(minorText) ? Number(minorText) : null;
+      const patchNum =
+        patchText !== undefined && !/[xX*]/.test(patchText) ? Number(patchText) : null;
+      if (minorNum !== null && patchNum !== null) {
+        return (
+          compareSemver(version, {
+            major,
+            minor: minorNum,
+            patch: patchNum,
+            prerelease: [],
+          }) === 0
+        );
+      }
+      const lower: Semver = {
+        major,
+        minor: minorNum ?? 0,
+        patch: patchNum ?? 0,
+        prerelease: [],
+      };
+      const upper: Semver =
+        minorNum !== null
+          ? { major, minor: minorNum + 1, patch: 0, prerelease: [] }
+          : { major: major + 1, minor: 0, patch: 0, prerelease: [] };
+      return compareSemver(version, lower) >= 0 && compareSemver(version, upper) < 0;
+    }
+  }
+
+  const parsedBase = parsePartial(body);
   if (!parsedBase) return false;
   const diff = compareSemver(version, parsedBase.semver);
   switch (operator) {
@@ -149,6 +185,23 @@ function satisfiesComparator(version: Semver, comparator: string): boolean {
   }
 }
 
+function comparatorAnchorsPrerelease(
+  version: Semver,
+  comparator: string
+): boolean {
+  const text = comparator.trim();
+  if (!text || text === "*" || text === "x" || text === "X") return false;
+  const body = text.replace(/^(>=|<=|>|<|=|\^|~)/, "");
+  const parsed = parsePartial(body);
+  if (!parsed) return false;
+  if (parsed.semver.prerelease.length === 0) return false;
+  return (
+    parsed.semver.major === version.major &&
+    parsed.semver.minor === version.minor &&
+    parsed.semver.patch === version.patch
+  );
+}
+
 export function satisfiesRange(version: string, range: string): boolean {
   const parsed = parseSemver(version);
   if (!parsed) return false;
@@ -157,7 +210,13 @@ export function satisfiesRange(version: string, range: string): boolean {
   return trimmed.split("||").some((alternative) => {
     const comparators = alternative.trim().split(/\s+/).filter(Boolean);
     if (comparators.length === 0) return true;
-    return comparators.every((comparator) => satisfiesComparator(parsed, comparator));
+    if (!comparators.every((comparator) => satisfiesComparator(parsed, comparator))) {
+      return false;
+    }
+    if (parsed.prerelease.length === 0) return true;
+    return comparators.some((comparator) =>
+      comparatorAnchorsPrerelease(parsed, comparator)
+    );
   });
 }
 

@@ -149,4 +149,11 @@ describe("旧应用迁移成插件", () => {
     expect(slugifyPluginSegment("--a.b--")).toBe("a.b");
     expect(slugifyPluginSegment("///")).toBe("plugin");
   });
+
+  it("大写与连续点都要收拾干净，保证 id 合法", () => {
+    expect(slugifyPluginSegment("MyApp")).toBe("myapp");
+    expect(slugifyPluginSegment("a..b")).toBe("a.b");
+    expect(slugifyPluginSegment("A")).toBe("a");
+    expect(slugifyPluginSegment("..")).toBe("plugin");
+  });
 });

@@ -30,6 +30,10 @@ export function spawnGrantKey(): string {
   return "process.spawn";
 }
 
+export function envGrantKey(): string {
+  return "process.env";
+}
+
 export function grantKeyForAreaAccess(
   area: PluginDataArea,
   access: PluginGrantAccess

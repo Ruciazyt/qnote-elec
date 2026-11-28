@@ -6,6 +6,7 @@ import {
 } from "../permissions/capabilities";
 import { describeCapabilityEntries } from "../../../../shared/plugin/permissions/pluginCapabilities";
 import { isGrantActive } from "../permissions/pluginGrants";
+import type { PluginSettingContribution } from "../../../../shared/plugin/manifest/pluginTypes";
 import type { PluginRpcHost, RpcSession } from "./rpcServer";
 import type { PluginManager } from "../runtime/pluginManager";
 import {
@@ -33,6 +34,25 @@ export class HostApiError extends Error {
 
 function denied(message: string): HostApiError {
   return new HostApiError(RPC_ERROR.denied, message);
+}
+
+function coerceSettingValue(
+  declared: PluginSettingContribution | undefined,
+  raw: unknown
+): unknown {
+  if (raw === null || raw === undefined) return null;
+  if (typeof raw !== "string") return raw;
+  const type = declared?.type;
+  if (type === "boolean") {
+    if (raw === "true") return true;
+    if (raw === "false") return false;
+    return null;
+  }
+  if (type === "number") {
+    const num = Number(raw);
+    return Number.isFinite(num) ? num : null;
+  }
+  return raw;
 }
 
 export class PluginHostApi implements PluginRpcHost {
@@ -133,7 +153,11 @@ export class PluginHostApi implements PluginRpcHost {
     request: CapabilityRequest,
     method: string
   ): Promise<void> {
-    const decision = checkCapability(session.manifest.capabilities, request);
+    const declared = await this.manager.currentCapabilities(session.pluginId);
+    const decision = checkCapability(
+      declared ?? session.manifest.capabilities,
+      request
+    );
     if (!decision.allowed) {
       const reason = decision.reason ?? "没有权限";
       this.manager.logFromPlugin(
@@ -191,7 +215,8 @@ export class PluginHostApi implements PluginRpcHost {
     const declared = session.manifest.contributes?.settings?.find(
       (item) => item.key === key
     );
-    return { value: row ? row.value : (declared?.default ?? null) };
+    const raw = row ? row.value : (declared?.default ?? null);
+    return { value: coerceSettingValue(declared, raw) };
   }
 
   private async setSetting(

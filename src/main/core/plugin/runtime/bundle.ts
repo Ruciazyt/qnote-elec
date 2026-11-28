@@ -130,6 +130,31 @@ export function packProjectBundle(
   };
 }
 
+function realpathOrResolve(target: string): string {
+  try {
+    return fs.realpathSync.native(target);
+  } catch {
+    return path.resolve(target);
+  }
+}
+
+function assertNoLinkInside(base: string, rel: string): void {
+  const segments = rel.split(/[\\/]+/).filter(Boolean);
+  let current = base;
+  for (const segment of segments) {
+    current = path.join(current, segment);
+    let stat: fs.Stats;
+    try {
+      stat = fs.lstatSync(current);
+    } catch {
+      continue;
+    }
+    if (stat.isSymbolicLink()) {
+      throw new Error(`资源包里不能包含符号链接：${rel}`);
+    }
+  }
+}
+
 export function unpackProjectBundle(
   root: string,
   bundle: string
@@ -138,6 +163,7 @@ export function unpackProjectBundle(
   const json = inflateRawSync(Buffer.from(bundle, "base64")).toString("utf8");
   const files = JSON.parse(json) as Record<string, string>;
   const base = path.resolve(root);
+  const realBase = realpathOrResolve(base);
   let count = 0;
 
   for (const [rel, content] of Object.entries(files)) {
@@ -145,7 +171,14 @@ export function unpackProjectBundle(
     if (target !== base && !target.startsWith(base + path.sep)) {
       throw new Error(`资源包里有越界的路径：${rel}`);
     }
-    fs.mkdirSync(path.dirname(target), { recursive: true });
+    assertNoLinkInside(base, rel);
+
+    const dir = path.dirname(target);
+    fs.mkdirSync(dir, { recursive: true });
+    const realDir = realpathOrResolve(dir);
+    if (realDir !== realBase && !realDir.startsWith(realBase + path.sep)) {
+      throw new Error(`资源包里的路径越界：${rel}`);
+    }
     fs.writeFileSync(target, Buffer.from(content, "base64"));
     count += 1;
   }

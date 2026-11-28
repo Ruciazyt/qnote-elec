@@ -28,9 +28,15 @@ export function parsePluginPreview(value: unknown): PluginPreviewSpec | null {
   const source = value as Record<string, unknown>;
 
   if (source.type === "port") {
-    const port = Number(source.port);
-    if (!isValidPort(port)) return null;
-    return { type: "port", port };
+    const raw = source.port;
+    if (typeof raw === "number") {
+      return isValidPort(raw) ? { type: "port", port: raw } : null;
+    }
+    if (typeof raw === "string") {
+      const port = parsePortText(raw);
+      return port === null ? null : { type: "port", port };
+    }
+    return null;
   }
 
   if (source.type === "url") {

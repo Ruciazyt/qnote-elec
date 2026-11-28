@@ -11,6 +11,7 @@ import {
 } from "../manifest/pluginManifest";
 import {
   buildPluginCommandLine,
+  parsePluginManifest,
   satisfiesRange,
 } from "../../../../shared/plugin/manifest/pluginManifest";
 import { previewToDraftText } from "../../../../shared/plugin/manifest/pluginPreview";
@@ -46,11 +47,49 @@ import {
   checkPluginDependencies,
   formatDependencyIssues,
 } from "../dependencies/pluginDependencies";
-import { grantKeysForCapabilities } from "../../../../shared/plugin/permissions/pluginCapabilities";
+import {
+  envGrantKey,
+  grantKeysForCapabilities,
+} from "../../../../shared/plugin/permissions/pluginCapabilities";
 import { PluginRpcServer } from "../sdk/rpcServer";
 import { PluginHostApi } from "../sdk/hostApi";
 
 const LOG_BUFFER_LIMIT = 400;
+
+const PLUGIN_ENV_ALLOWLIST = [
+  "PATH",
+  "HOME",
+  "USERPROFILE",
+  "HOMEDRIVE",
+  "HOMEPATH",
+  "TEMP",
+  "TMP",
+  "TMPDIR",
+  "SYSTEMROOT",
+  "WINDIR",
+  "COMSPEC",
+  "PATHEXT",
+  "APPDATA",
+  "LOCALAPPDATA",
+  "PROGRAMDATA",
+  "PROGRAMFILES",
+  "PROGRAMFILES(X86)",
+  "LANG",
+  "LC_ALL",
+  "TZ",
+  "SHELL",
+  "DISPLAY",
+  "XDG_RUNTIME_DIR",
+];
+
+function hostEnvForPlugin(): Record<string, string> {
+  const env: Record<string, string> = {};
+  for (const key of PLUGIN_ENV_ALLOWLIST) {
+    const value = process.env[key];
+    if (typeof value === "string") env[key] = value;
+  }
+  return env;
+}
 
 export interface PluginEventSink {
   onPluginsChanged(plugins: PluginRecord[]): void;
@@ -288,7 +327,48 @@ export class PluginManager {
         text: `SDK 握手失败：${reason}`,
         at: Date.now(),
       });
+      await this.terminateRun(pluginId);
     }
+  }
+
+  private async terminateRun(pluginId: string): Promise<void> {
+    const entry = this.runtimes.get(pluginId);
+    if (!entry) return;
+    this.rpcServer.destroySession(pluginId);
+    this.clearPluginCommands(pluginId);
+    if (!isAlive(entry.child)) {
+      this.runtimes.delete(pluginId);
+      return;
+    }
+    const pid = entry.child.pid;
+    entry.stopping = true;
+    if (pid) {
+      if (process.platform === "win32") {
+        const killed = await new Promise<boolean>((resolve) => {
+          const killer = spawn(taskkillPath(), ["/pid", String(pid), "/T", "/F"], {
+            windowsHide: true,
+          });
+          killer.on("close", (code) => resolve(code === 0));
+          killer.on("error", () => resolve(false));
+        });
+        if (!killed) {
+          try {
+            entry.child.kill("SIGKILL");
+          } catch {
+          }
+        }
+      } else {
+        try {
+          process.kill(-pid, "SIGKILL");
+        } catch {
+          try {
+            entry.child.kill("SIGKILL");
+          } catch {
+          }
+        }
+      }
+    }
+    this.runtimes.delete(pluginId);
   }
 
   async importPlugin(
@@ -635,14 +715,20 @@ export class PluginManager {
     if (!plugin) return null;
     if ((plugin.origin ?? "local") !== "market") return null;
 
-    const manifest = await this.readManifest(pluginId);
-    if (!manifest) return null;
+    const snapshot = await this.readManifestSnapshot(pluginId);
+    if (!snapshot?.manifest || !snapshot.hash) return null;
 
-    const manifestHash = this.manifestHashOf(plugin.path);
-    if ((plugin.confirmedManifestHash ?? "") === manifestHash) return null;
+    if ((plugin.confirmedManifestHash ?? "") === snapshot.hash) return null;
+    return this.buildStartConfirmation(plugin, snapshot.manifest, snapshot.hash);
+  }
 
+  private buildStartConfirmation(
+    plugin: PluginRecord,
+    manifest: PluginManifest,
+    manifestHash: string
+  ): StartConfirmation {
     return {
-      pluginId,
+      pluginId: plugin.id,
       name: plugin.name,
       commandLine: buildPluginCommandLine(manifest.runtime),
       origin: "market",
@@ -654,6 +740,18 @@ export class PluginManager {
       sourceLabel: plugin.description,
       capabilities: manifest.capabilities,
     };
+  }
+
+  private async persistConfirmedManifestHash(
+    pluginId: string,
+    manifestHash: string
+  ): Promise<void> {
+    await this.DB("plugin")
+      .where("id", pluginId)
+      .update({
+        confirmed_manifest_hash: manifestHash,
+        updated_at: new Date(),
+      });
   }
 
   async confirmStart(pluginId: string, manifestHash: string): Promise<boolean> {
@@ -753,7 +851,7 @@ export class PluginManager {
     return await setPluginGrant(this.DB, pluginId, capability, granted);
   }
 
-  private async currentCapabilities(
+  async currentCapabilities(
     pluginId: string
   ): Promise<PluginCapabilities | undefined> {
     const manifest = await this.readManifest(pluginId);
@@ -802,10 +900,15 @@ export class PluginManager {
         return { ok: false, error: plugin.error ?? "这个插件尚未配置好" };
       }
 
-      const manifest = await this.readManifest(pluginId);
-      if (!manifest) return { ok: false, error: "读取清单失败" };
+      const snapshot = await this.readManifestSnapshot(pluginId);
+      if (!snapshot?.manifest) return { ok: false, error: "读取清单失败" };
+      const manifest = snapshot.manifest;
+      const manifestHash = snapshot.hash;
       if (!manifest.runtime.command) {
         return { ok: false, error: "清单里没有 command，无法启动" };
+      }
+      if (!satisfiesRange(this.hostVersion, manifest.engines.qnote)) {
+        return { ok: false, error: "这个插件与当前 QNote 版本不兼容" };
       }
 
       const decision = checkCapability(manifest.capabilities, { kind: "spawn" });
@@ -836,21 +939,37 @@ export class PluginManager {
       const commandLine = buildPluginCommandLine(manifest.runtime);
 
       if ((plugin.origin ?? "local") === "market") {
-        if (confirmedManifestHash) {
-          await this.confirmStart(pluginId, confirmedManifestHash);
-        }
-        const confirmation = await this.checkStartConfirmation(pluginId);
-        if (confirmation) {
-          return { ok: false, needsConfirmation: confirmation };
+        const confirmedHash = (plugin.confirmedManifestHash ?? "").trim();
+        if (confirmedHash !== manifestHash) {
+          const userHash = (confirmedManifestHash ?? "").trim();
+          if (!userHash || userHash !== manifestHash) {
+            return {
+              ok: false,
+              needsConfirmation: this.buildStartConfirmation(plugin, manifest, manifestHash),
+            };
+          }
+          await this.persistConfirmedManifestHash(pluginId, manifestHash);
         }
       }
 
       await this.rpcServer.ensureStarted();
       const session = this.rpcServer.createSession(pluginId, manifest);
 
+      const declaredEnv = new Set(manifest.capabilities?.process?.env ?? []);
+      const envGranted =
+        declaredEnv.size > 0 &&
+        (await isGrantActive(this.DB, pluginId, envGrantKey()));
+      const manifestEnv: Record<string, string> = {};
+      if (envGranted) {
+        for (const [key, value] of Object.entries(manifest.runtime.env ?? {})) {
+          if (!declaredEnv.has(key)) continue;
+          manifestEnv[key] = value;
+        }
+      }
+
       const env = {
-        ...process.env,
-        ...(manifest.runtime.env ?? {}),
+        ...hostEnvForPlugin(),
+        ...manifestEnv,
         QNOTE_PLUGIN_RPC: this.rpcServer.endpoint,
         QNOTE_PLUGIN_TOKEN: session.token,
         QNOTE_PLUGIN_ID: manifest.id,
@@ -988,13 +1107,19 @@ export class PluginManager {
 
       if (pid) {
         if (process.platform === "win32") {
-          await new Promise<void>((resolve) => {
+          const killed = await new Promise<boolean>((resolve) => {
             const killer = spawn(taskkillPath(), ["/pid", String(pid), "/T", "/F"], {
               windowsHide: true,
             });
-            killer.on("close", () => resolve());
-            killer.on("error", () => resolve());
+            killer.on("close", (code) => resolve(code === 0));
+            killer.on("error", () => resolve(false));
           });
+          if (!killed) {
+            try {
+              entry.child.kill("SIGKILL");
+            } catch {
+            }
+          }
         } else {
           try {
             process.kill(-pid, "SIGTERM");
@@ -1088,6 +1213,25 @@ export class PluginManager {
 
   private async broadcastPlugins(): Promise<void> {
     this.sink?.onPluginsChanged(await this.listPlugins());
+  }
+
+  private async readManifestSnapshot(
+    pluginId: string
+  ): Promise<{ manifest: PluginManifest; hash: string } | null> {
+    const row = await this.DB("plugin").where("id", pluginId).first();
+    const dir = row?.path ? String(row.path) : "";
+    if (!dir) return null;
+
+    let raw: string;
+    try {
+      raw = fs.readFileSync(path.join(dir, PLUGIN_MANIFEST_FILENAME), "utf-8");
+    } catch {
+      return null;
+    }
+
+    const parsed = parsePluginManifest(raw);
+    if (!parsed.manifest) return null;
+    return { manifest: parsed.manifest, hash: contentHash(raw) };
   }
 
   private async readManifest(pluginId: string): Promise<PluginManifest | null> {

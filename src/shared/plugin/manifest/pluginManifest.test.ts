@@ -261,4 +261,25 @@ describe("版本与版本范围", () => {
     expect(satisfiesRange("2.0.0", "^1.0.0 || ^2.0.0")).toBe(true);
     expect(satisfiesRange("2.0.0", "*")).toBe(true);
   });
+
+  it("裸版本号按范围理解，通配写法也算", () => {
+    expect(satisfiesRange("1.5.0", "1")).toBe(true);
+    expect(satisfiesRange("2.0.0", "1")).toBe(false);
+    expect(satisfiesRange("1.2.9", "1.2")).toBe(true);
+    expect(satisfiesRange("1.3.0", "1.2")).toBe(false);
+    expect(satisfiesRange("1.9.9", "1.x")).toBe(true);
+    expect(satisfiesRange("2.0.0", "1.x")).toBe(false);
+    expect(satisfiesRange("1.2.9", "1.2.x")).toBe(true);
+    expect(satisfiesRange("1.3.0", "1.2.x")).toBe(false);
+    expect(satisfiesRange("1.2.3", "1.2.3")).toBe(true);
+    expect(satisfiesRange("1.2.4", "1.2.3")).toBe(false);
+  });
+
+  it("预发布版本要有同元组的预发布锚点才匹配", () => {
+    expect(satisfiesRange("1.5.0-beta.1", "^1.0.0")).toBe(false);
+    expect(satisfiesRange("1.0.0-beta.1", "^1.0.0")).toBe(false);
+    expect(satisfiesRange("1.0.0-beta.1", "^1.0.0-alpha")).toBe(true);
+    expect(satisfiesRange("1.0.0-beta.1", ">=1.0.0-alpha <2.0.0")).toBe(true);
+    expect(satisfiesRange("1.0.0", "^1.0.0")).toBe(true);
+  });
 });

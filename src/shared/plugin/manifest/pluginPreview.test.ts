@@ -48,6 +48,15 @@ describe("预览值解析", () => {
     expect(parsePluginPreview({ type: "port" })).toBeNull();
   });
 
+  it("布尔值不能当端口号", () => {
+    expect(parsePluginPreview({ type: "port", port: true })).toBeNull();
+    expect(parsePluginPreview({ type: "port", port: false })).toBeNull();
+    expect(parsePluginPreview({ type: "port", port: "7799" })).toEqual({
+      type: "port",
+      port: 7799,
+    });
+  });
+
   it("字符串与数字不是合法的预览写法", () => {
     expect(parsePluginPreview(7799)).toBeNull();
     expect(parsePluginPreview("7799")).toBeNull();

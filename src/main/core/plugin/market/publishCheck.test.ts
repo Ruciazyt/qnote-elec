@@ -50,6 +50,18 @@ describe("IP 字面量识别", () => {
     expect(findIpLiteralUrl("API=http://10.0.0.1")).toBe("http://10.0.0.1"); // NOSONAR
   });
 
+  it("路径里带 @ 的 IP 地址仍能被发现", () => {
+    // eslint-disable-next-line sonarjs/no-hardcoded-ip, sonarjs/no-clear-text-protocols -- 用例就是要断言路径里的 @ 不影响 IP 识别
+    expect(findIpLiteralUrl("http://192.0.2.10/users/@me")).toBe("http://192.0.2.10/users/@me"); // NOSONAR
+    // eslint-disable-next-line sonarjs/no-hardcoded-ip, sonarjs/no-clear-text-protocols -- 用例就是要断言查询串里的 @ 不影响 IP 识别
+    expect(findIpLiteralUrl("https://192.0.2.10/api?mail=a@b.com")).toBe("https://192.0.2.10/api?mail=a@b.com"); // NOSONAR
+  });
+
+  it("带 userinfo 的 IP 地址仍能被发现", () => {
+    // eslint-disable-next-line sonarjs/no-hardcoded-ip, sonarjs/no-clear-text-protocols -- 用例就是要断言 userinfo 不影响 IP 识别
+    expect(findIpLiteralUrl("http://user@192.0.2.10/x")).toBe("http://user@192.0.2.10/x"); // NOSONAR
+  });
+
   it("纯主机名与不带 scheme 的 IP 都放行", () => {
     expect(findIpLiteralUrl("http://localhost:7799/")).toBeNull();
     expect(findIpLiteralUrl("127.0.0.1:7799")).toBeNull();

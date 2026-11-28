@@ -35,10 +35,9 @@ export function isIpLiteralHost(host: string): boolean {
 }
 
 function hostOfAuthority(authority: string): string {
-  const at = authority.lastIndexOf("@");
-  const hostAndPort = (at === -1 ? authority : authority.slice(at + 1)).split(
-    /[/?#]/
-  )[0];
+  const authorityOnly = authority.split(/[/?#]/)[0];
+  const at = authorityOnly.lastIndexOf("@");
+  const hostAndPort = at === -1 ? authorityOnly : authorityOnly.slice(at + 1);
   if (hostAndPort.startsWith("[")) {
     const end = hostAndPort.indexOf("]");
     return end === -1 ? hostAndPort : hostAndPort.slice(0, end + 1);

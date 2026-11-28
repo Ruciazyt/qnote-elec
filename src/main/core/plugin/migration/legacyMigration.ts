@@ -18,6 +18,7 @@ export interface LegacyMigrationResult {
 }
 
 const SLUG_SEPARATOR = ".-";
+const MAX_SEGMENT_LENGTH = 120;
 
 export function slugifyPluginSegment(text: string): string {
   const replaced = text.replace(/[^\p{L}\p{N}.-]+/gu, "-");
@@ -25,8 +26,17 @@ export function slugifyPluginSegment(text: string): string {
   let end = replaced.length;
   while (start < end && SLUG_SEPARATOR.includes(replaced[start])) start += 1;
   while (end > start && SLUG_SEPARATOR.includes(replaced[end - 1])) end -= 1;
-  const cleaned = replaced.slice(start, end);
-  return cleaned || "plugin";
+  const collapsed = replaced
+    .slice(start, end)
+    .toLowerCase()
+    .split(".")
+    .filter(Boolean)
+    .join(".");
+  let trimmed = collapsed.slice(0, MAX_SEGMENT_LENGTH);
+  while (trimmed.length > 0 && SLUG_SEPARATOR.includes(trimmed[trimmed.length - 1])) {
+    trimmed = trimmed.slice(0, -1);
+  }
+  return trimmed || "plugin";
 }
 
 function defaultEngines(hostVersion: string): string {

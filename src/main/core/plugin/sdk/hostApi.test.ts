@@ -373,4 +373,58 @@ describe("宿主 API 面的权限判定", () => {
       ).rejects.toThrow(/请先在设置中配置 AI API Key/);
     });
   });
+
+  describe("插件设置项的存取", () => {
+    function settingsSession(): RpcSession {
+      return {
+        ...session,
+        manifest: {
+          ...MANIFEST,
+          contributes: {
+            settings: [
+              { key: "verbose", type: "boolean", default: false },
+              { key: "retries", type: "number", default: 3 },
+              { key: "endpoint", type: "string", default: "https://example.com" },
+            ],
+          },
+        },
+      };
+    }
+
+    it("写进去再读出来，类型不变", async () => {
+      const s = settingsSession();
+      await api.handlePluginCall(s, "qnote.settings.set", {
+        key: "verbose",
+        value: true,
+      });
+      await api.handlePluginCall(s, "qnote.settings.set", {
+        key: "retries",
+        value: 5,
+      });
+
+      expect(
+        await api.handlePluginCall(s, "qnote.settings.get", { key: "verbose" })
+      ).toEqual({ value: true });
+      expect(
+        await api.handlePluginCall(s, "qnote.settings.get", { key: "retries" })
+      ).toEqual({ value: 5 });
+    });
+
+    it("没写过的设置项读出来是清单里的默认值", async () => {
+      const s = settingsSession();
+      expect(
+        await api.handlePluginCall(s, "qnote.settings.get", { key: "verbose" })
+      ).toEqual({ value: false });
+      expect(
+        await api.handlePluginCall(s, "qnote.settings.get", { key: "retries" })
+      ).toEqual({ value: 3 });
+    });
+
+    it("没声明的设置项读不到", async () => {
+      const s = settingsSession();
+      await expect(
+        api.handlePluginCall(s, "qnote.settings.get", { key: "unknown" })
+      ).rejects.toThrow(/没有声明设置项/);
+    });
+  });
 });
