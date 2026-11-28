@@ -82,20 +82,16 @@ export async function saveCloudConfig(
     catalog: config.catalog,
     lastCheck: config.lastCheck ?? null,
   });
-  const existing = await DB("settings").where("configName", SETTINGS_KEY).first();
   const now = new Date();
-  if (existing) {
-    await DB("settings")
-      .where("configName", SETTINGS_KEY)
-      .update({ configValue: value, updated_at: now });
-  } else {
-    await DB("settings").insert({
+  await DB("settings")
+    .insert({
       configName: SETTINGS_KEY,
       configValue: value,
       created_at: now,
       updated_at: now,
-    });
-  }
+    })
+    .onConflict("configName")
+    .merge({ configValue: value, updated_at: now });
 }
 
 let activeStore: SharedStore | null = null;
@@ -109,10 +105,10 @@ export async function getSharedStore(DB: Knex): Promise<SharedStore> {
     return activeStore;
   }
 
-  const store = await buildStore(config, DB);
-  activeStore = store;
-  activeStoreKey = key;
-  return store;
+  const resolved = await buildStore(config, DB);
+  activeStore = resolved.store;
+  activeStoreKey = resolved.key;
+  return resolved.store;
 }
 
 export async function resetSharedStore(): Promise<void> {
@@ -130,21 +126,21 @@ function storeKey(config: CloudStorageConfig): string {
 async function buildStore(
   config: CloudStorageConfig,
   DB: Knex
-): Promise<SharedStore> {
+): Promise<{ store: SharedStore; key: string }> {
   if (config.backend === "catalog" && config.catalog) {
     const { store } = createCatalogSharedStore(config.catalog);
     try {
       await store.init();
-      return store;
+      return { store, key: storeKey(config) };
     } catch (error) {
       log.error("[cloud] 公共目录初始化失败，本次退回本地共享存储", error);
       const local = createLocalSharedStore(DB);
       await local.init();
-      return local;
+      return { store: local, key: "local" };
     }
   }
 
   const local = createLocalSharedStore(DB);
   await local.init();
-  return local;
+  return { store: local, key: "local" };
 }

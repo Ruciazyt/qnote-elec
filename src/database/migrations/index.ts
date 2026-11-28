@@ -152,6 +152,8 @@ async function createAiUsageLogTable(DB: Knex): Promise<void> {
   }
 }
 
+const SESSION_ID_BACKFILL_FLAG = "ai_chat_session_id_backfilled_v1";
+
 async function addAiChatSessionIdColumn(DB: Knex): Promise<void> {
   try {
     const columns = await DB.raw("PRAGMA table_info(ai_chat)");
@@ -165,10 +167,16 @@ async function addAiChatSessionIdColumn(DB: Knex): Promise<void> {
     }
     await DB.raw("CREATE INDEX IF NOT EXISTS ai_chat_session_compressed_idx ON ai_chat(session_id, compressed)");
 
-    const unassignedMessages = await DB.from("ai_chat")
-      .whereNull("session_id")
-      .orderBy("created_at", "asc")
-      .orderBy("id", "asc");
+    const backfilled = await DB("settings")
+      .where("configName", SESSION_ID_BACKFILL_FLAG)
+      .first();
+
+    const unassignedMessages = backfilled
+      ? []
+      : await DB.from("ai_chat")
+          .whereNull("session_id")
+          .orderBy("created_at", "asc")
+          .orderBy("id", "asc");
 
     if (unassignedMessages.length > 0) {
       const firstUserMessage = unassignedMessages.find((message: any) => message.role === "user");
@@ -209,6 +217,16 @@ async function addAiChatSessionIdColumn(DB: Knex): Promise<void> {
           .whereNull("session_id")
           .update({ session_id: DEFAULT_AI_CHAT_SESSION_ID });
       });
+    }
+
+    if (!backfilled) {
+      await DB("settings")
+        .insert({
+          configName: SESSION_ID_BACKFILL_FLAG,
+          configValue: String(Date.now()),
+        })
+        .onConflict("configName")
+        .merge({ configValue: String(Date.now()) });
     }
 
     await DB.raw("CREATE INDEX IF NOT EXISTS ai_chat_session_id_idx ON ai_chat(session_id)");
